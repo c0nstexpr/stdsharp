@@ -4,11 +4,7 @@ cmake_minimum_required(VERSION 3.15)
 # Project details
 #
 
-project(
-  "Project"
-  VERSION 0.1.0 
-  LANGUAGES CXX
-)
+project("blurringshadow" VERSION 0.1.0 LANGUAGES CXX)
 
 #
 # Set project options
@@ -44,13 +40,22 @@ endif()
 
 include(cmake/Conan.cmake)
 include(cmake/Vcpkg.cmake)
+include(cmake/SourcesAndHeaders.cmake)
+include(cmake/CompilerWarnings.cmake)
 
 #
 # Create library, setup header and source files
 #
 
 # Find all headers and implementation files
-include(cmake/SourcesAndHeaders.cmake)
+verbose_message("Found the following header files:")
+verbose_message("${headers}")
+verbose_message("Found the following source files:")
+if(${PROJECT_NAME}_BUILD_EXECUTABLE)
+	verbose_message("${exe_sources}")
+elseif(!${PROJECT_NAME}_BUILD_HEADERS_ONLY)
+	verbose_message("${sources}")
+endif()
 
 if(${PROJECT_NAME}_BUILD_EXECUTABLE)
   add_executable(${PROJECT_NAME} ${exe_sources})
@@ -58,21 +63,9 @@ if(${PROJECT_NAME}_BUILD_EXECUTABLE)
 elseif(${PROJECT_NAME}_BUILD_HEADERS_ONLY)
   add_library(${PROJECT_NAME} INTERFACE)
 else()
-  add_library(
-    ${PROJECT_NAME}
-    ${headers}
-    ${sources}
-  )
+  add_library(${PROJECT_NAME} ${headers} ${sources})
 endif()
 
-verbose_message("Found the following header files:")
-verbose_message(${headers})
-verbose_message("Found the following source files:")
-if(${PROJECT_NAME}_BUILD_EXECUTABLE)
-	verbose_message(${exe_sources})
-else()
-	verbose_message(${sources})
-endif()
 message(STATUS "Added all header and implementation files.\n")
 
 #
@@ -80,12 +73,10 @@ message(STATUS "Added all header and implementation files.\n")
 #
 
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)
-  target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
+    target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_20)
 else()
-  target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+    target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 endif()
-include(cmake/CompilerWarnings.cmake)
-set_project_warnings(${PROJECT_NAME})
 
 verbose_message("Applied compiler warnings. Using standard ${CXX_STANDARD}.\n")
 
@@ -172,31 +163,20 @@ add_clang_format_target()
 
 include(GNUInstallDirs)
 install(
-  TARGETS
-    ${PROJECT_NAME}
-  EXPORT
-    ${PROJECT_NAME}Targets
-  LIBRARY DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION
-    ${CMAKE_INSTALL_BINDIR}
-  ARCHIVE DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}
-  INCLUDES DESTINATION
-    include
-  PUBLIC_HEADER DESTINATION
-    include
+  TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  INCLUDES DESTINATION include
+  PUBLIC_HEADER DESTINATION include
 )
 
 install(
-  EXPORT 
-    ${PROJECT_NAME}Targets
-  FILE
-    ${PROJECT_NAME}Targets.cmake
-  NAMESPACE
-    ${PROJECT_NAME}::
-  DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${PROJECT_NAME}Targets.cmake
+  NAMESPACE ${PROJECT_NAME}::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 #
@@ -210,10 +190,8 @@ configure_file(
 )
 
 install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME_LOWERCASE}/version.hpp
-  DESTINATION
-    include/${PROJECT_NAME_LOWERCASE}
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME_LOWERCASE}/version.hpp
+    DESTINATION include/${PROJECT_NAME_LOWERCASE}
 )
 
 #
@@ -221,10 +199,8 @@ install(
 #
 
 install(
-  DIRECTORY
-    include/${PROJECT_NAME_LOWERCASE}
-  DESTINATION
-    include
+    DIRECTORY include/${PROJECT_NAME_LOWERCASE}
+    DESTINATION include
 )
 
 verbose_message("Install targets succesfully build. Install with `cmake --build <build_directory> --target install --config <build_config>`.")
@@ -234,27 +210,28 @@ verbose_message("Install targets succesfully build. Install with `cmake --build 
 #
 
 include(CMakePackageConfigHelpers)
+
+set(PROJECT_VERSION_FILE_NAME ${PROJECT_NAME}Version.cmake)
+set(PROJECT_CONFIG_FILE_NAME ${PROJECT_NAME}Config.cmake)
+
 write_basic_package_version_file(
-    ${PROJECT_NAME}ConfigVersion.cmake
-  VERSION
-    ${PROJECT_VERSION}
-  COMPATIBILITY
-    SameMajorVersion
+    ${PROJECT_CONFIG_FILE_NAME}
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
 )
 
 configure_package_config_file(
-  ${CMAKE_CURRENT_LIST_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION 
+    ${CMAKE_CURRENT_LIST_DIR}/cmake/Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_CONFIG_FILE_NAME}
+    INSTALL_DESTINATION 
     ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-  DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_CONFIG_FILE_NAME}
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_VERSION_FILE_NAME}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 #
@@ -262,16 +239,14 @@ install(
 #
 
 if(${PROJECT_NAME}_GENERATE_EXPORT_HEADER)
-  include(GenerateExportHeader)
-  generate_export_header(${PROJECT_NAME})
-  install(
-    FILES
-      ${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWERCASE}_export.h 
-    DESTINATION
-      include
-  )
+    include(GenerateExportHeader)
+    generate_export_header(${PROJECT_NAME})
+    install(
+        FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWERCASE}_export.h 
+        DESTINATION include
+    )
 
-message(STATUS "Generated the export header `${PROJECT_NAME_LOWERCASE}_export.h` and installed it.")
+    message(STATUS "Generated the export header `${PROJECT_NAME_LOWERCASE}_export.h` and installed it.")
 endif()
 
 message(STATUS "Finished building requirements for installing the package.\n")
@@ -281,7 +256,7 @@ message(STATUS "Finished building requirements for installing the package.\n")
 #
 
 if(${PROJECT_NAME}_ENABLE_UNIT_TESTING)
-  enable_testing()
+    enable_testing()
 	message(STATUS "Build unit tests for the project. Tests should always be found in the test folder\n")
-  add_subdirectory(test)
+    add_subdirectory(tests)
 endif()
