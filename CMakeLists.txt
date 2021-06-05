@@ -39,14 +39,12 @@ add_library(blurringshadow::utility ALIAS blurringshadow_utility)
 #
 # Model project dependencies 
 #
-find_package(range-v3 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
 target_link_libraries(
     blurringshadow_utility 
     INTERFACE 
-        range-v3::range-v3
         fmt::fmt
         Microsoft.GSL::GSL
 )

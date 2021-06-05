@@ -368,3 +368,4 @@ healthchecksdb
 MigrationBackup/
 
 out/*
+*.DotSettings
