@@ -29,7 +29,7 @@ set(
     ${utility_header_dir}/utility_core.h
 )
 
-config_interface_lib(blurringshadow_utility "${headers}" STD_VER 20)
+config_interface_lib(blurringshadow_utility "${headers}" STD 20)
 
 #
 # Provide alias to library
@@ -59,7 +59,7 @@ target_add_clang_format("${headers}")
 #
 # Install library for easy downstream inclusion
 #
-target_install(blurringshadow_utility ${PROJECT_VERSION} "blurringshadow::" FALSE)
+target_install(blurringshadow_utility VER ${PROJECT_VERSION} NAMESPACE "blurringshadow::")
 
 #
 # Unit testing setup

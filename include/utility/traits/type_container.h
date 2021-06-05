@@ -1,7 +1,6 @@
 ﻿// Created by BlurringShadow at 2021-03-03-下午 4:35
 
 #pragma once
-
 #include "integer_sequence.h"
 
 namespace blurringshadow::utility::traits
@@ -26,7 +25,7 @@ namespace blurringshadow::utility::traits
             static constexpr std::array<bool, size> type_math_result()
             {
                 if constexpr(size == 0) return {};
-                else return {concepts::same_as<Find, T>...};
+                else return {std::same_as<Find, T>...};
             }
 
             template<typename Find>
@@ -139,7 +138,7 @@ namespace blurringshadow::utility::traits
         template<typename Other>
         using append_front_t = type_container<Other>;
 
-        CPP_template(std::size_t Size, std::size_t From = 0)(requires(Size== 0))
+        template<std::size_t Size, std::size_t From = 0> requires (Size == 0)
         using select_range_indexed_t = type_container;
 
         using rest_t = type_container;

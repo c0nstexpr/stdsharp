@@ -22,21 +22,12 @@ namespace blurringshadow::utility
             template<typename T> requires requires(T t) { to_string(t); }
             [[nodiscard]] constexpr auto operator()(const T& t) const { return to_string(t); }
         };
-
-        template<typename T>
-        concept has_from_string_cpo = requires(const std::string_view str, T t)
-        {
-            from_string(str, t);
-        };
     }
 
     inline constexpr details::to_string_cpo to_string;
 
     template<typename T>
-    inline constexpr auto from_string =
-        [](
-        const std::string_view str
-    ) [[nodiscard]] -> T
+    [[nodiscard]] constexpr T from_string(const std::string_view str)
     {
         if constexpr(std::constructible_from<T, std::string_view>)
             return {str};
@@ -48,17 +39,13 @@ namespace blurringshadow::utility
             return {str.data(), str.size()};
         else
         {
-            T t{};
+            using std::from_chars;
 
-            if constexpr(details::has_from_string_cpo<T>) from_string(str, t);
-            else
-            {
-                using std::from_chars;
-                if(from_chars(str.data(), str.data() + str.size(), t).ec != std::errc{})
-                    throw std::invalid_argument("");
-            }
+            T t{};
+            if(from_chars(str.data(), str.data() + str.size(), t).ec != std::errc{})
+                throw std::invalid_argument("");
 
             return t;
         }
-    };
+    }
 }

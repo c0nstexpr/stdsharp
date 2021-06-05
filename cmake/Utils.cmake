@@ -5,26 +5,9 @@ include(cmake/StandardSettings.cmake)
 include(GNUInstallDirs)
 include(cmake/Conan.cmake)
 include(cmake/Vcpkg.cmake)
-
-set(CPM_DOWNLOAD_VERSION 0.32.1)
-
-if(CPM_SOURCE_CACHE)
-  set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-elseif(DEFINED ENV{CPM_SOURCE_CACHE})
-  set(CPM_DOWNLOAD_LOCATION "$ENV{CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-else()
-  set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-endif()
-
-if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
-  message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
-  file(DOWNLOAD
-       https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-       ${CPM_DOWNLOAD_LOCATION}
-  )
-endif()
-
-include(${CPM_DOWNLOAD_LOCATION})
+include(cmake/CPM.cmake)
+include(GenerateExportHeader)
+include(CMakePackageConfigHelpers)
 
 function(verbose_message content)
     if(${PROJECT_NAME}_VERBOSE_OUTPUT)
@@ -35,11 +18,6 @@ endfunction()
 #
 # Add a target for formating the project using `clang-format` (i.e: cmake --build build --target clang-format)
 #
-
-function(list_to_str list str)
-    string(REPLACE ";" "\n" str "${list}")
-endfunction()
-
 function(target_add_clang_format file_paths)
     if(NOT ${PROJECT_NAME}_CLANG_FORMAT_BINARY)
 	    find_program(${PROJECT_NAME}_CLANG_FORMAT_BINARY clang-format)
@@ -56,8 +34,7 @@ function(target_add_clang_format file_paths)
 endfunction()
 
 function(target_set_warnings target access)
-    set(var_prefix target_set_warnings)
-    cmake_parse_arguments(${var_prefix} "WARNING_AS_ERROR" "" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "WARNING_AS_ERROR" "" "" ${ARGN})
 
     set(MSVC_WARNINGS
         /W4     # Baseline reasonable warnings
@@ -124,7 +101,7 @@ function(target_set_warnings target access)
         -Wuseless-cast # warn if you perform a cast to the same type
     )
 
-    if (${${var_prefix}_WARNING_AS_ERROR})
+    if (${${CMAKE_CURRENT_FUNCTION}_WARNING_AS_ERROR})
         set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
         set(MSVC_WARNINGS ${MSVC_WARNINGS} /WX)
     endif()
@@ -143,19 +120,17 @@ function(target_set_warnings target access)
 endfunction()
 
 function(init_proj)
-    set(var_prefix init_proj)
-    cmake_parse_arguments(var_prefix "USE_ALT_NAMES" "" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" ${ARGN})
     message(STATUS "Started CMake for ${PROJECT_NAME} v${PROJECT_VERSION}...\n")
 
     #
     # Setup alternative names
     #
-    if(${${var_prefix}_USE_ALT_NAMES})
+	set(PROJECT_NAME_LOWERCASE ${PROJECT_NAME} PARENT_SCOPE)
+	set(PROJECT_NAME_UPPERCASE ${PROJECT_NAME} PARENT_SCOPE)
+    if(${${CMAKE_CURRENT_FUNCTION}_USE_ALT_NAMES})
 	    string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
 	    string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)
-    else()
-	    set(PROJECT_NAME_LOWERCASE ${PROJECT_NAME})
-	    set(PROJECT_NAME_UPPERCASE ${PROJECT_NAME})
     endif()
 
     #
@@ -176,28 +151,28 @@ endfunction()
 # Create header only library
 #
 function(config_interface_lib lib_name includes)
-    set(var_prefix config_interface_lib)
-    cmake_parse_arguments(var_prefix "" "STD_VER" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
     
     # Find all headers and implementation files
-    verbose_message("Found the following header files:")
-    list_to_str("${includes}" includes_str)
-    verbose_message("${includes_str}")
+    list(JOIN includes "\n    " includes_str)
+    verbose_message("Found the following header files:\n    ${includes_str}")
 
     add_library(${lib_name} INTERFACE ${includes})
 
-    message(STATUS "Added all header and implementation files.\n")
+    message(STATUS "Added all header files.\n")
 
     #
     # Set the project standard and warnings
     #
 
-    if(${var_prefix}_STD_VER})
-        target_compile_features(${lib_name} INTERFACE cxx_std_${std_ver})
+    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
+    if(${std})
+        target_compile_features(${lib_name} INTERFACE cxx_std_${std})
+        message(STATUS "Using c++ ${std}.\n")
     endif()
 
     target_set_warnings(${lib_name} INTERFACE WARNING_AS_ERROR)
-    verbose_message("Applied compiler warnings. Using standard ${CXX_STANDARD}.\n")
+
 
     #
     # Set the build/user include directories
@@ -214,17 +189,14 @@ endfunction()
 # Create static or shared library, setup header and source files
 #
 function(config_lib lib_name includes src lib_type)
-    set(var_prefix config_interface_lib)
-    cmake_parse_arguments(var_prefix "" "STD_VER" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
 
     # Find all headers and implementation files
-    verbose_message("Found the following header files:")
-    list_to_str("${includes}" includes_str)
-    verbose_message("${includes_str}")
+    list(JOIN includes "\n    " includes_str)
+    verbose_message("Found the following header files:\n    ${includes_str}")
 
-    verbose_message("Found the following source files:")
-    list_to_str("${src}" src_str)
-	verbose_message("${src_str}")
+    list(JOIN src "\n    " src_str)
+    verbose_message("Found the following source files:\n    ${src_str}")
 
     add_library(${lib_name} ${lib_type} ${includes} ${src})
 
@@ -241,12 +213,13 @@ function(config_lib lib_name includes src lib_type)
     # Set the project standard and warnings
     #
 
-    if(${var_prefix}_STD_VER})
-        target_compile_features(${lib_name} PUBLIC cxx_std_${std_ver})
+    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
+    if(${std})
+        target_compile_features(${lib_name} PUBLIC cxx_std_${std})
+        message(STATUS "Using c++ ${std}.\n")
     endif()
 
     target_set_warnings(${lib_name} PUBLIC WARNING_AS_ERROR)
-    verbose_message("Applied compiler warnings. Using standard ${CXX_STANDARD}.\n")
 
     #
     # Set the build/user include directories
@@ -264,25 +237,25 @@ endfunction()
 # Create executable, setup header and source files
 #
 function(config_exe exe_name exe_src)
-    set(var_prefix config_interface_lib)
-    cmake_parse_arguments(var_prefix "" "STD_VER" "INCLUDES;SOURCES" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" ${ARGN})
 
-    if(${${var_prefix}_SOURCES})
-        config_lib(${exe_name}_LIB "${${var_prefix}_INCLUDES}" "${${var_prefix}_SOURCES}")
+    if(${${CMAKE_CURRENT_FUNCTION}_SOURCES})
+        config_lib(${exe_name}_LIB "${config_interface_lib_INCLUDES}" "${config_interface_lib_SOURCES}" STATIC )
     else()
-        config_interface_lib(${exe_name}_LIB "${${var_prefix}_INCLUDES}")
+        config_interface_lib(${exe_name}_LIB "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}")
     endif()
 
-    verbose_message("Found the following executable source files:")
-    list_to_str("${exe_src}" exe_src_str)
-	verbose_message("${exe_src_str}")
+    list(JOIN exe_src "\n    " exe_src_str)
+    verbose_message("Found the following executable source files:\n${exe_src_str}")
 
     add_executable(${exe_name} ${exe_src})
 
     target_link_libraries(${exe_name} ${exe_name}_LIB)
 
-    if(${var_prefix}_STD_VER})
-        target_compile_features(${exe_name} PUBLIC cxx_std_${std_ver})
+    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
+    if(${std})
+        target_compile_features(${exe_name} PUBLIC cxx_std_${std})
+        message(STATUS "Using c++ ${std}.\n")
     endif()
 
     target_set_warnings(${exe_name} PUBLIC TRUE)
@@ -291,7 +264,9 @@ endfunction()
 #
 # install target
 #
-function(target_install target_name ver namespace export_header)
+function(target_install target_name)
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "VER;NAMESPACE" "" ${ARGN})
+
     install(
       TARGETS ${target_name}
       EXPORT ${target_name}Targets
@@ -305,7 +280,7 @@ function(target_install target_name ver namespace export_header)
     install(
       EXPORT ${target_name}Targets
       FILE ${target_name}Targets.cmake
-      NAMESPACE ${namespace}
+      NAMESPACE ${${CMAKE_CURRENT_FUNCTION}_NAMESPACE}
       DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
     )
 
@@ -339,14 +314,12 @@ function(target_install target_name ver namespace export_header)
     # Quick `ConfigVersion.cmake` creation
     #
 
-    include(CMakePackageConfigHelpers)
-
     set(VERSION_FILE_NAME ${target_name}Version.cmake)
     set(CONFIG_FILE_NAME ${target_name}Config.cmake)
 
     write_basic_package_version_file(
         ${CONFIG_FILE_NAME}
-        VERSION ${ver}
+        VERSION ${${CMAKE_CURRENT_FUNCTION}_VER}
         COMPATIBILITY SameMajorVersion
     )
 
@@ -364,20 +337,23 @@ function(target_install target_name ver namespace export_header)
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
     )
 
-    #
-    # Generate export header if specified
-    #
+    message(STATUS "Finished building requirements for installing the package.\n")
+endfunction()
 
-    if(export_header)
-        include(GenerateExportHeader)
-        generate_export_header(${target_name})
+#
+# Generate export header
+#
+function(target_export_header target_name)
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "INSTALL" "" "" ${ARGN})
+
+    generate_export_header(${target_name})
+
+    message(STATUS "Generated the export header `${target_name}_export.h`")
+
+    if(${${CMAKE_CURRENT_FUNCTION}_INSTALL})
         install(
             FILES ${PROJECT_BINARY_DIR}/${target_name}_export.h 
             DESTINATION include
         )
-
-        message(STATUS "Generated the export header `${target_name}_export.h` and installed it.")
     endif()
-
-    message(STATUS "Finished building requirements for installing the package.\n")
 endfunction()

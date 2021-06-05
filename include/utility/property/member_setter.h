@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "traits/member.h"
-#include "traits/object.h"
+#include "utility/traits/member.h"
 
 namespace blurringshadow::utility
 {
