@@ -3,9 +3,11 @@
 #pragma once
 
 #include <charconv>
+#include <fmt/ostream.h>
+
 #include "utility_core.h"
 
-namespace c0nstexpr::utility
+namespace blurringshadow::utility
 {
     namespace details
     {
@@ -22,8 +24,10 @@ namespace c0nstexpr::utility
         };
 
         template<typename T>
-        concept has_from_string_cpo = 
-        requires(const std::string_view str, T t) { from_string(str, t); };
+        concept has_from_string_cpo = requires(const std::string_view str, T t)
+        {
+            from_string(str, t);
+        };
     }
 
     inline constexpr details::to_string_cpo to_string;
@@ -34,11 +38,11 @@ namespace c0nstexpr::utility
         const std::string_view str
     ) [[nodiscard]] -> T
     {
-        if constexpr(concepts::constructible_from<T, std::string_view>)
+        if constexpr(std::constructible_from<T, std::string_view>)
             return {str};
-        else if constexpr(concepts::constructible_from<T, const char*>)
+        else if constexpr(std::constructible_from<T, const char*>)
             return {str.data()};
-        else if constexpr(concepts::constructible_from<T, const char*, const char*>)
+        else if constexpr(std::constructible_from<T, const char*, const char*>)
             return {str.data(), str.data() + str.size()};
         else if constexpr(std::constructible_from<T, const char*, std::size_t>)
             return {str.data(), str.size()};

@@ -3,17 +3,11 @@
 #pragma once
 
 #include <algorithm>
-#include <chrono>
 #include <concepts>
-#include <execution>
-#include <optional>
-#include <ranges>
-#include <string>
+#include <functional>
+#include <random>
 #include <type_traits>
-#include <utility>
 
-#include <boost/type_traits.hpp>
-#include <fmt/ostream.h>
 #include <gsl/gsl>
 
 using namespace std::literals;
@@ -81,24 +75,24 @@ namespace blurringshadow::utility
     template<typename T, typename Compare>
     [[nodiscard]] constexpr bool is_between(
         const T& v,
-        const boost::type_identity_t<T>& min,
-        const boost::type_identity_t<T>& max,
+        const std::type_identity_t<T>& min,
+        const std::type_identity_t<T>& max,
         Compare cmp
     ) { return std::addressof(std::clamp(v, min, max, cmp)) == std::addressof(v); }
 
     template<typename T>
     [[nodiscard]] constexpr bool is_between(
         const T& v,
-        const boost::type_identity_t<T>& min,
-        const boost::type_identity_t<T>& max
+        const std::type_identity_t<T>& min,
+        const std::type_identity_t<T>& max
     ) { return is_between(v, min, max, std::less<>{}); }
 
-    constexpr auto& get_random_device()
+    [[nodiscard]] inline auto& get_random_device()
     {
         static std::random_device random_device;
         return random_device;
     }
 
     template<typename T> requires std::is_enum_v<T>
-    constexpr auto to_underlying(const T v) { return static_cast<std::underlying_type_t<T>>(v); }
+    [[nodiscard]] constexpr auto to_underlying(const T v) { return static_cast<std::underlying_type_t<T>>(v); }
 }

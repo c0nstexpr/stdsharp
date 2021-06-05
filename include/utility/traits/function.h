@@ -3,7 +3,7 @@
 #pragma once
 #include "type_container.h"
 
-namespace c0nstexpr::utility::traits
+namespace blurringshadow::utility::traits
 {
     namespace details
     {

@@ -6,7 +6,7 @@
 
 #include  <shared_mutex>
 
-namespace c0nstexpr::utility
+namespace blurringshadow::utility
 {
     template<typename T>
     class concurrent_object

@@ -4,7 +4,7 @@
 
 #include "type_traits.h"
 
-namespace c0nstexpr::utility::traits
+namespace blurringshadow::utility::traits
 {
     namespace details
     {

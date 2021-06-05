@@ -5,7 +5,7 @@
 #include "traits/member.h"
 #include "traits/object.h"
 
-namespace c0nstexpr::utility
+namespace blurringshadow::utility
 {
     namespace details
     {
