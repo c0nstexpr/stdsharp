@@ -113,9 +113,12 @@ namespace blurringshadow::utility::traits
         template<std::size_t Index, typename Other>
         using insert_t = typename select_range_indexed_t<Index>
         ::template append_t<Other>
-        ::apply_t<
+        // ReSharper disable once CppRedundantTemplateKeyword
+        // clang-format off
+        ::template apply_t<
             select_range_indexed_t<base::size - Index, Index>::template append_front_t
         >;
+        // clang-format on
 
         using rest_t = select_range_indexed_t<base::size - 1>;
     };
