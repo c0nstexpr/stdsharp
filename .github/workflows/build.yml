@@ -53,13 +53,13 @@ jobs:
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
-      - name: Run CMake with vcpkg.json manifest
+      - name: Build Project
         uses: lukka/run-cmake@main
         with:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           useVcpkgToolchainFile: true
-          buildDirectory: '${{ env.buildDir }}'
+          buildDirectory: '${{ env.buildDir }}/build'
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : --build ${{ env.buildDir }}/build -t blurringshadowTests ${{ matrix.coverageTarget }} 
           
