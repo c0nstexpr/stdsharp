@@ -20,7 +20,8 @@ jobs:
             cmakeOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: --target blurringshadowTests blurringshadowTestsCoverage -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=ON CMAKE_BUILD_TYPE=Debug 
+            cmakeOptions: -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=ON CMAKE_BUILD_TYPE=Debug 
+                --target blurringshadowTests blurringshadowTestsCoverage
           - os: macos-latest
             triplet: x64-osx
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
