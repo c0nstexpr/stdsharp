@@ -12,7 +12,6 @@ option(ENABLE_VCPKG "Enable the Vcpkg package manager for this project." ON)
 
 # Generate compile_commands.json for clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 option(VERBOSE_OUTPUT "Enable verbose output, allowing for a better understanding of each step taken." ON)
 option(GENERATE_EXPORT_HEADER "Create a `project_export.h` file containing all exported symbols." OFF)
