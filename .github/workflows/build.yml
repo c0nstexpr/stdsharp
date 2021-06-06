@@ -61,7 +61,7 @@ jobs:
           useVcpkgToolchainFile: true
           buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
-          cmakeAppendedArgs : --build --t blurringshadowTests ${{ matrix.coverageTarget }} 
+          cmakeAppendedArgs : --build -t blurringshadowTests ${{ matrix.coverageTarget }} 
           
       - name: collect code coverage
         if: ${{ runner.os == 'Linux' }}
