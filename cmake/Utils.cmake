@@ -240,18 +240,20 @@ endfunction()
 function(config_exe exe_name exe_src)
     cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" ${ARGN})
 
-    if(${${CMAKE_CURRENT_FUNCTION}_SOURCES})
-        config_lib(${exe_name}_LIB "${config_interface_lib_INCLUDES}" "${config_interface_lib_SOURCES}" STATIC )
-    else()
-        config_interface_lib(${exe_name}_LIB "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}")
-    endif()
-
     list(JOIN exe_src "\n    " exe_src_str)
-    verbose_message("Found the following executable source files:\n${exe_src_str}")
+    verbose_message("Found the following executable source files:\n    ${exe_src_str}")
 
     add_executable(${exe_name} ${exe_src})
 
-    target_link_libraries(${exe_name} ${exe_name}_LIB)
+    if(${${CMAKE_CURRENT_FUNCTION}_INCLUDES})
+        if(${${CMAKE_CURRENT_FUNCTION}_SOURCES})
+            config_lib(${exe_name}_LIB "${config_interface_lib_INCLUDES}" "${config_interface_lib_SOURCES}" STATIC )
+        else()
+            config_interface_lib(${exe_name}_LIB "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}")
+        endif()
+
+        target_link_libraries(${exe_name} ${exe_name}_LIB)
+    endif()
 
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
     if(${std})
