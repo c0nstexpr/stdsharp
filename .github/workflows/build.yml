@@ -20,7 +20,7 @@ jobs:
             cmakeOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=1 CMAKE_BUILD_TYPE=Debug
+            cmakeOptions: --target blurringshadowTests blurringshadowTestsCoverage -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=ON CMAKE_BUILD_TYPE=Debug 
           - os: macos-latest
             triplet: x64-osx
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
@@ -52,11 +52,6 @@ jobs:
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
-      - name: test
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          cd ${{ env.buildDir }}
-          ctest --build-config Debug
           
       - name: collect code coverage
         if: ${{ runner.os == 'Linux' }}
