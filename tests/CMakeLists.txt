@@ -24,7 +24,21 @@ target_link_libraries(${PROJECT_NAME} boost::ut blurringshadow::utility)
 option(ENABLE_COVERAGE "Enable test coverage" OFF)
 
 if(ENABLE_COVERAGE)
-  target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g -fprofile-arcs -ftest-coverage)
+    set(url https://raw.githubusercontent.com/bilke/cmake-modules/master/CodeCoverage.cmake)
+    set(cmake_path ${CMAKE_BINARY_DIR}/CodeCoverage.cmake)
+    if(NOT EXISTS "${cmake_path}")
+        message(STATUS "Downloading code coverage util `CodeCoverage.cmake` from ${url}")
+        file(DOWNLOAD "${url}" "${cmake_path}")
+    endif()
+    include(${cmake_path})
+    message(STATUS "Downloaded succesfully.")
+
+    setup_target_for_coverage_gcovr_xml(
+        NAME ${coverage}
+        EXECUTABLE ctest -j ${PROCESSOR_COUNT}
+        DEPENDENCIES ${PROJECT_NAME}
+        BASE_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
 endif()
 
 #
@@ -33,3 +47,4 @@ endif()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 
 verbose_message("Finished adding unit tests for ${CMAKE_PROJECT_NAME}.")
+
