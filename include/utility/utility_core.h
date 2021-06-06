@@ -78,14 +78,14 @@ namespace blurringshadow::utility
         const std::type_identity_t<T>& min,
         const std::type_identity_t<T>& max,
         Compare cmp
-    ) { return std::addressof(std::clamp(v, min, max, cmp)) == std::addressof(v); }
+        ) { return std::addressof(std::clamp(v, min, max, cmp)) == std::addressof(v); }
 
     template<typename T>
     [[nodiscard]] constexpr bool is_between(
         const T& v,
         const std::type_identity_t<T>& min,
         const std::type_identity_t<T>& max
-    ) { return is_between(v, min, max, std::less<>{}); }
+        ) { return is_between(v, min, max, std::less<>{}); }
 
     [[nodiscard]] inline auto& get_random_device()
     {
@@ -94,5 +94,8 @@ namespace blurringshadow::utility
     }
 
     template<typename T> requires std::is_enum_v<T>
-    [[nodiscard]] constexpr auto to_underlying(const T v) { return static_cast<std::underlying_type_t<T>>(v); }
+    [[nodiscard]] constexpr auto to_underlying(const T v)
+    {
+        return static_cast<std::underlying_type_t<T>>(v);
+    }
 }

@@ -42,5 +42,5 @@ namespace blurringshadow::utility
     };
 
     template<typename T>
-    concurrent_object(T&&) -> concurrent_object<std::remove_cvref_t<T>>; 
+    concurrent_object(T&&) -> concurrent_object<std::remove_cvref_t<T>>;
 }

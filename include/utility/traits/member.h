@@ -48,31 +48,31 @@ namespace blurringshadow::utility::traits
         };
     }
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(is_const, is_volatile, ref_type, qualifiers) \
-template<typename R, typename ClassT, typename... Args>                                    \
-struct member_function_traits<R(ClassT::*)(Args ...) qualifiers> :                         \
-    details::mem_fn_traits<R, ClassT, Args...>,                              \
-    details::mem_fn_qualifier_traits<is_const, is_volatile, member_ref_qualifier::ref_type> {};     \
+    #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(is_const, is_volatile, ref_type, qualifiers) \
+        template<typename R, typename ClassT, typename... Args>                                \
+        struct member_function_traits<R(ClassT::*)(Args ...) qualifiers> :                     \
+            details::mem_fn_traits<R, ClassT, Args...>,                                        \
+            details::mem_fn_qualifier_traits<is_const, is_volatile, member_ref_qualifier::ref_type> {};
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \
-UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(true, is_volatile, ref_type, const qualifiers)        \
-UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, qualifiers)             \
+    #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \
+        UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(true, is_volatile, ref_type, const qualifiers)    \
+        UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, qualifiers)
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, qualifiers)      \
- UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(true, ref_type, volatile qualifiers) \
- UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(false, ref_type, qualifiers)         \
+    #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, qualifiers)          \
+         UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(true, ref_type, volatile qualifiers) \
+         UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(false, ref_type, qualifiers)
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK          \
-UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(none, )     \
-UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(lvalue, &)  \
-UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, &&) \
+    #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK             \
+        UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(none, )    \
+        UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(lvalue, &) \
+        UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, &&)
 
     UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK
 
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS
+    #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK
+    #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK
+    #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK
+    #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS
 
     template<auto Ptr>
     struct member_function_pointer_traits : member_function_traits<std::decay_t<decltype(Ptr)>> {};
@@ -81,6 +81,6 @@ UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, &&) \
     concept member_of = std::same_as<typename member_traits<T>::class_t, ClassT>;
 
     template<typename T, typename ClassT>
-    concept member_func_of = std::is_member_pointer_v<T> && 
+    concept member_func_of = std::is_member_pointer_v<T> &&
     std::same_as<typename member_function_traits<T>::class_t, ClassT>;
 }

@@ -18,6 +18,6 @@ namespace blurringshadow::utility
         };
     }
 
-    template<auto MemberPtr, typename... Args> 
+    template<auto MemberPtr, typename... Args>
     concept member_setter = details::member_setter_constraints<MemberPtr, Args...>::v;
 }

@@ -2,18 +2,20 @@
 # Print a message only if the `VERBOSE_OUTPUT` option is on
 #
 include(cmake/StandardSettings.cmake)
-include(cmake/Conan.cmake)
-include(cmake/Vcpkg.cmake)
+include(cmake/Format.cmake)
 include(cmake/CPM.cmake)
+include(cmake/CCache.cmake)
 include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 
 function(verbose_message content)
-    if(${PROJECT_NAME}_VERBOSE_OUTPUT)
-			message(STATUS ${content})
+    if(VERBOSE_OUTPUT)
+	    message(STATUS ${content})
     endif()
 endfunction()
 
+include(cmake/Conan.cmake)
+include(cmake/Vcpkg.cmake)
 #
 # Add a target for formating the project using `clang-format` (i.e: cmake --build build --target clang-format)
 #
@@ -358,3 +360,10 @@ function(target_export_header target_name)
         )
     endif()
 endfunction()
+
+CPMAddPackage(
+  NAME Format.cmake
+  VERSION 1.7.0
+  GITHUB_REPOSITORY TheLartians/Format.cmake
+  OPTIONS "FORMAT_SKIP_CMAKE YES"
+)

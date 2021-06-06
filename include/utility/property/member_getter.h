@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "traits/member.h"
+#include "utility/traits/member.h"
 
 namespace blurringshadow::utility
 {
@@ -19,6 +19,6 @@ namespace blurringshadow::utility
         };
     }
 
-    template<auto MemberPtr> 
+    template<auto MemberPtr>
     concept member_getter = details::member_getter_constraints<MemberPtr>::v;
 }

@@ -45,30 +45,27 @@ namespace blurringshadow::utility::traits
     template<typename ValueT, template<ValueT...> typename T, typename Sequence>
     constexpr auto apply_sequence(Sequence seq) -> decltype(details::apply_int_seq<ValueT, T>(seq));
 
-#ifdef __cpp_lib_concepts
     template<typename ValueT, template<ValueT...> typename T, auto Sequence>
     using apply_sequence_t = decltype(apply_sequence<ValueT, T>(Sequence));
-#endif
 
     template<typename ValueT, typename T, typename Sequence>
     constexpr void apply_sequence_invoke(Sequence)
     {
-        decltype(apply_sequence<ValueT, details::int_seq_invoker<ValueT>::template apply>(
-                Sequence{}
-            ))
-            ::template invoke<T>();
+        decltype(apply_sequence<
+            ValueT,
+            details::int_seq_invoker<ValueT>::template apply
+        >(Sequence{}))::template invoke<T>();
     }
 
+    // ReSharper disable once CppEntityUsedOnlyInUnevaluatedContext
     template<typename ValueT, template<ValueT...> typename T>
-    static constexpr auto apply_sequence_v = [](auto Sequence)
+    static constexpr auto apply_sequence_v = [](auto seq)
     {
-        return decltype(apply_sequence<ValueT, T>(Sequence)){};
+        return decltype(apply_sequence<ValueT, T>(seq)){};
     };
 
-#ifdef __cpp_lib_concepts
     template<template<std::size_t...> typename T, auto Sequence>
     using apply_index_sequence_t = apply_sequence_t<std::size_t, T, Sequence>;
-#endif
 
     template<template<std::size_t...> typename T>
     static constexpr auto apply_index_sequence_v = [](auto Sequence)
@@ -101,7 +98,7 @@ namespace blurringshadow::utility::traits
     static constexpr auto make_integer_sequence_v = transform_sequence_v<T>(
         std::make_integer_sequence<T, Size>{},
         [](const T& v) { return v + From; }
-    );
+        );
 
     template<std::size_t Size, std::size_t From = 0>
     static constexpr auto make_index_sequence_v = make_integer_sequence_v<std::size_t, Size, From>;

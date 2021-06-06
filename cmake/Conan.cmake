@@ -1,5 +1,5 @@
 function(conan)
-    if(${PROJECT_NAME}_ENABLE_CONAN)
+    if(ENABLE_CONAN)
         #
         # Setup Conan requires and options here:
         #

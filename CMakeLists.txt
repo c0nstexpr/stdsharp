@@ -37,6 +37,11 @@ config_interface_lib(blurringshadow_utility "${headers}" STD 20)
 add_library(blurringshadow::utility ALIAS blurringshadow_utility)
 
 #
+# Format the lib
+#
+clang_format(blurringshadow_utility)
+
+#
 # Model project dependencies 
 #
 find_package(fmt CONFIG REQUIRED)
@@ -52,11 +57,6 @@ target_link_libraries(
 verbose_message("Successfully added all dependencies and linked against them.")
 
 #
-# Format the project using the `clang-format` target (i.e: cmake --build build --target clang-format)
-#
-target_add_clang_format("${headers}")
-
-#
 # Install library for easy downstream inclusion
 #
 target_install(blurringshadow_utility VER ${PROJECT_VERSION} NAMESPACE "blurringshadow::")
@@ -64,9 +64,6 @@ target_install(blurringshadow_utility VER ${PROJECT_VERSION} NAMESPACE "blurring
 #
 # Unit testing setup
 #
-
-if(${PROJECT_NAME}_ENABLE_UNIT_TESTING)
-    enable_testing()
-	message(STATUS "Build unit tests for the project\n")
-    add_subdirectory(tests)
-endif()
+enable_testing()
+message(STATUS "Build unit tests for the project\n")
+add_subdirectory(tests)

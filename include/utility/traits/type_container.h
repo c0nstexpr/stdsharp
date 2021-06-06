@@ -18,7 +18,7 @@ namespace blurringshadow::utility::traits
                 // ReSharper disable once CppFunctionIsNotImplemented
                 static constexpr indexed_type get_from_index(
                     std::integral_constant<std::size_t, I>
-                ) noexcept;
+                    ) noexcept;
             };
 
             template<typename Find>
@@ -63,7 +63,7 @@ namespace blurringshadow::utility::traits
                 template<std::size_t Index>
                 using indexed_t = decltype(type_extractor(
                     get_from_index(std::integral_constant<std::size_t, Index>{})
-                ));
+                    ));
 
                 // ReSharper disable once CppRedundantQualifier
                 template<typename Find>
@@ -113,7 +113,7 @@ namespace blurringshadow::utility::traits
         template<std::size_t Index, typename Other>
         using insert_t = typename select_range_indexed_t<Index>
         ::template append_t<Other>
-        ::template apply_t<
+        ::apply_t<
             select_range_indexed_t<base::size - Index, Index>::template append_front_t
         >;
 
