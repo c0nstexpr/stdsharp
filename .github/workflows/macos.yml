@@ -32,6 +32,7 @@ jobs:
       with:
           setupOnly: true
           vcpkgTriplet: 'x64-osx'
+          vcpkgGitCommitId: b2544fd780b2e9a05d903314cbbd37268ba43d81
           vcpkgDirectory: '${{ runner.workspace }}/vcpkg'
 
     - name: configure
