@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  job:
+  job:          
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     strategy:
@@ -17,11 +17,13 @@ jobs:
         include:
           - os: windows-latest
             triplet: x64-windows
+            cmakeOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
+            cmakeOptions: -D CMAKE_CXX_COMPILER=clang++-12 ENABLE_COVERAGE=1 CMAKE_BUILD_TYPE=Debug
           - os: macos-latest
             triplet: x64-osx
-
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-12
     env:
       buildDir: '${{ github.workspace }}/out'
 
@@ -39,7 +41,7 @@ jobs:
           # Ensure the cache key changes any time the content of the manifest file changes.
           appendedCacheKey: ${{ hashFiles( 'vcpkg.json' ) }}
           vcpkgTriplet: ${{ matrix.triplet }}
-
+          
       - name: Run CMake with vcpkg.json manifest
         uses: lukka/run-cmake@main
         with:
@@ -48,3 +50,15 @@ jobs:
           useVcpkgToolchainFile: true
           buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
+          cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
+
+      - name: test
+        run: |
+          cd out
+          ctest --build-config Debug
+          
+      - name: collect code coverage
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+          verbose: true
