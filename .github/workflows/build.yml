@@ -20,10 +20,10 @@ jobs:
             cmakeOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -D CMAKE_CXX_COMPILER=clang++-12 ENABLE_COVERAGE=1 CMAKE_BUILD_TYPE=Debug
+            cmakeOptions: -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=1 CMAKE_BUILD_TYPE=Debug
           - os: macos-latest
             triplet: x64-osx
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-12
+            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
     env:
       buildDir: '${{ github.workspace }}/out'
 
@@ -53,11 +53,13 @@ jobs:
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
       - name: test
+        if: ${{ runner.os == 'Ubuntu' }}
         run: |
           cd out
           ctest --build-config Debug
           
       - name: collect code coverage
+        if: ${{ runner.os == 'Ubuntu' }}
         uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
