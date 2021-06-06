@@ -10,10 +10,10 @@
 
 #include <gsl/gsl>
 
-using namespace std::literals;
-
 namespace blurringshadow::utility
 {
+    using namespace std::literals;
+
     inline constexpr auto equal_to = std::equal_to{};
     inline constexpr auto not_equal_to = std::not_equal_to{};
     inline constexpr auto less = std::less{};
