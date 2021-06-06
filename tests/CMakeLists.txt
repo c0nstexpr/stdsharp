@@ -19,6 +19,15 @@ CPMAddPackage("gh:boost-ext/ut@1.1.8")
 target_link_libraries(${PROJECT_NAME} boost::ut blurringshadow::utility)
 
 #
+# Configure code coverage
+#
+option(ENABLE_COVERAGE "Enable test coverage" OFF)
+
+if(ENABLE_COVERAGE)
+  target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g -fprofile-arcs -ftest-coverage)
+endif()
+
+#
 # Add the unit tests
 #
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
