@@ -47,4 +47,4 @@ jobs:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           useVcpkgToolchainFile: true
           buildDirectory: '${{ env.buildDir }}'
-          buildWithCMakeArgs: '-- -v'
+          vcpkgTriplet: ${{ matrix.triplet }}
