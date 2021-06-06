@@ -34,7 +34,7 @@ if(ENABLE_COVERAGE)
     message(STATUS "Downloaded succesfully.")
 
     setup_target_for_coverage_gcovr_xml(
-        NAME ${coverage}
+        NAME ${PROJECT_NAME}Coverage
         EXECUTABLE ctest -j ${PROCESSOR_COUNT}
         DEPENDENCIES ${PROJECT_NAME}
         BASE_DIRECTORY ${CMAKE_BINARY_DIR}
