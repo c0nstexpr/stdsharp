@@ -20,8 +20,8 @@ jobs:
             cmakeOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=ON CMAKE_BUILD_TYPE=Debug 
-                --target blurringshadowTests blurringshadowTestsCoverage
+            cmakeOptions: -D CMAKE_CXX_COMPILER=gcc-10 ENABLE_COVERAGE=ON CMAKE_BUILD_TYPE=Debug
+            coverageTarget: blurringshadowTestsCoverage
           - os: macos-latest
             triplet: x64-osx
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
@@ -53,6 +53,15 @@ jobs:
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
+      - name: Run CMake with vcpkg.json manifest
+        uses: lukka/run-cmake@main
+        with:
+          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          useVcpkgToolchainFile: true
+          buildDirectory: '${{ env.buildDir }}'
+          vcpkgTriplet: ${{ matrix.triplet }}
+          cmakeAppendedArgs : --build --t blurringshadowTests ${{ matrix.coverageTarget }} 
           
       - name: collect code coverage
         if: ${{ runner.os == 'Linux' }}
