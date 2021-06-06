@@ -55,7 +55,7 @@ jobs:
       - name: test
         if: ${{ runner.os == 'Linux' }}
         run: |
-          cd out
+          cd ${{ env.buildDir }}
           ctest --build-config Debug
           
       - name: collect code coverage
@@ -63,4 +63,5 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
+          directory: '{{ env.buildDir }}'
           verbose: true
