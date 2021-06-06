@@ -1,0 +1,62 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  job:
+    name: ${{ matrix.os }} build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: windows-latest
+            triplet: x64-windows
+          - os: ubuntu-latest
+            triplet: x64-linux
+          - os: macos-latest
+            triplet: x64-osx
+
+    env:
+      buildDir: '${{ github.workspace }}/out'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: lukka/get-cmake@latest
+
+      - name: dir
+        run: find $RUNNER_TEMP
+        shell: bash
+
+      - name: dir
+        run: find $RUNNER_WORKSPACE
+        shell: bash
+
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@main
+        id: runvcpkg
+        with:
+          setupOnly: true
+          vcpkgGitCommitId: 'b2544fd780b2e9a05d903314cbbd37268ba43d81'
+          # Ensure the cache key changes any time the content of the manifest file changes.
+          appendedCacheKey: ${{ hashFiles( '**/vcpkg_manifest/vcpkg.json' ) }}
+          vcpkgTriplet: ${{ matrix.triplet }}
+
+      - name: Prints output of run-vcpkg's action
+        run: echo "root='${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_ROOT_OUT }}', triplet='${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_TRIPLET_OUT }}'"
+
+      - name: Run CMake with vcpkg.json manifest
+        uses: lukka/run-cmake@main
+        with:
+          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          useVcpkgToolchainFile: true
+          buildDirectory: '${{ env.buildDir }}'
+          cmakeAppendedArgs: '"-GNinja Multi-Config" -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet}} '
+          buildWithCMake: true
