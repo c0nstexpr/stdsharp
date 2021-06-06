@@ -40,8 +40,8 @@ namespace blurringshadow::utility
         using base::swap;
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
-        constexpr array_literal(const base& base) :
-            base(base) {}
+        constexpr array_literal(const base& input_array) :
+            base(input_array) {}
 
         // ReSharper disable once CppNonExplicitConvertingConstructor
         constexpr array_literal(const T (&a)[Size]) { std::copy(a, a + Size, begin()); }
