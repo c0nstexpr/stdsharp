@@ -2,7 +2,6 @@
 # Print a message only if the `VERBOSE_OUTPUT` option is on
 #
 include(cmake/StandardSettings.cmake)
-include(GNUInstallDirs)
 include(cmake/Conan.cmake)
 include(cmake/Vcpkg.cmake)
 include(cmake/CPM.cmake)
@@ -265,6 +264,8 @@ endfunction()
 # install target
 #
 function(target_install target_name)
+    include(GNUInstallDirs)
+
     cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "VER;NAMESPACE" "" ${ARGN})
 
     install(
