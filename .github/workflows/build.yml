@@ -65,7 +65,14 @@ jobs:
           vcpkgTriplet: ${{ matrix.triplet }}
           buildDirectory: '${{ env.buildDir }}'
           cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
-          
+   
+   
+      - name: Initialize CodeQL
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+            make bootstrap
+            make release
+  
       - name: Initialize CodeQL
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/init@v1
