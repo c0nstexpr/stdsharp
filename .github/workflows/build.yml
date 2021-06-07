@@ -21,14 +21,15 @@ jobs:
             Target: blurringshadowTests
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
-            Target: blurringshadowTestsCoverage
+            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
+            Target: blurringshadowTests
           - os: macos-latest
             triplet: x64-osx
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
             Target: blurringshadowTests
     env:
       buildDir: '${{ github.workspace }}/out'
+      Target: blurringshadowTests
 
     steps:
       - uses: actions/checkout@v2
@@ -44,10 +45,6 @@ jobs:
           # Ensure the cache key changes any time the content of the manifest file changes.
           appendedCacheKey: ${{ hashFiles( 'vcpkg.json' ) }}
           vcpkgTriplet: ${{ matrix.triplet }}
-          
-      - name: Install gcovr  
-        if: ${{ runner.os == 'Linux' }}    
-        run: sudo apt-get install lcov
        
       - name: Run CMake with vcpkg.json manifest
         uses: lukka/run-cmake@main
@@ -67,4 +64,10 @@ jobs:
           useVcpkgToolchainFile: true
           buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ matrix.Target }} 
+          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
+          
+      - name: Lint Code Base
+        uses: docker://ghcr.io/github/super-linter:slim-v4
+        env:
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
