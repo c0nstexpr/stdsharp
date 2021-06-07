@@ -29,7 +29,8 @@ jobs:
             Target: blurringshadowTests
     env:
       Target: blurringshadowTests
-
+      buildDir: '${{ github.workspace }}/out'
+      
     steps:
       - uses: actions/checkout@v2
 
@@ -50,6 +51,7 @@ jobs:
         with:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          buildDirectory: '${{ env.buildDir }}'
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
@@ -61,7 +63,8 @@ jobs:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
-          cmakeAppendedArgs : --build -t ${{ env.Target }} 
+          buildDirectory: '${{ env.buildDir }}'
+          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
           
       - name: Initialize CodeQL
         if: ${{ matrix.os == 'ubuntu-latest' }}
