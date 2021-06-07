@@ -69,10 +69,10 @@ jobs:
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ matrix.Target }} 
           
-      - name: collect code coverage
+      - name: Collect code coverage
         if: ${{ runner.os == 'Linux' }}
         uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
-          directory: '{{ env.buildDir }}/tests'
+          files: '{{ env.buildDir }}/tests/blurringshadowTestsCoverage.xml'
           verbose: true
