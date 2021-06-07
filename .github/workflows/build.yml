@@ -21,7 +21,7 @@ jobs:
             Target: blurringshadowTests
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
+            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DCMAKE_BUILD_TYPE=RELEASE
             Target: blurringshadowTests
           - os: macos-latest
             triplet: x64-osx
@@ -66,18 +66,11 @@ jobs:
           buildDirectory: '${{ env.buildDir }}'
           cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
    
-   
-      - name: Initialize CodeQL
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-            make bootstrap
-            make release
-  
       - name: Initialize CodeQL
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/init@v1
         with:
-          languages: 'cpp'
+          languages: cpp
 
       - name: Perform CodeQL Analysis
         if: ${{ matrix.os == 'ubuntu-latest' }}
