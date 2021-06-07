@@ -68,18 +68,3 @@ jobs:
           buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ matrix.Target }} 
-
-      - name: Upload a Coverage Report
-        if: ${{ runner.os == 'Linux' }}    
-        uses: actions/upload-artifact@v2.2.3
-        with:
-          name: TestsCoverage.xml
-          path: ${{ env.buildDir }}/tests/blurringshadowTestsCoverage.xml
-        
-      - name: Collect Code Coverage
-        if: ${{ runner.os == 'Linux' }}
-        uses: codecov/codecov-action@v1
-        with:
-          fail_ci_if_error: true
-          files: '${{ env.buildDir }}/tests/blurringshadowTestsCoverage.xml'
-          verbose: true
