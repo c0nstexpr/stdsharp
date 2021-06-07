@@ -74,5 +74,5 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
-          files: '{{ env.buildDir }}/tests/blurringshadowTestsCoverage.xml'
+          files: '${{ env.buildDir }}/tests/blurringshadowTestsCoverage.xml'
           verbose: true
