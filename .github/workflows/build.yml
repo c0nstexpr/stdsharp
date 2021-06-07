@@ -47,7 +47,7 @@ jobs:
           
       - name: Install gcovr  
         if: ${{ runner.os == 'Linux' }}    
-        run: sudo apt-get lcov
+        run: sudo apt-get install lcov
        
       - name: Run CMake with vcpkg.json manifest
         uses: lukka/run-cmake@main
