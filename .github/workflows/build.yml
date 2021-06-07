@@ -28,7 +28,6 @@ jobs:
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
             Target: blurringshadowTests
     env:
-      buildDir: '${{ github.workspace }}/out'
       Target: blurringshadowTests
 
     steps:
@@ -52,7 +51,6 @@ jobs:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           useVcpkgToolchainFile: true
-          buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
@@ -62,19 +60,14 @@ jobs:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           useVcpkgToolchainFile: true
-          buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
+          cmakeAppendedArgs : --build -t ${{ env.Target }} 
           
       - name: Initialize CodeQL
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/init@v1
         with:
           languages: cpp
-
-      - name: Autobuild
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: github/codeql-action/autobuild@v1
 
       - name: Perform CodeQL Analysis
         if: ${{ matrix.os == 'ubuntu-latest' }}
