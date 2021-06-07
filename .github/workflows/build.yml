@@ -67,16 +67,16 @@ jobs:
           cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
           
       - name: Initialize CodeQL
-        if: ${{ matrix.os = 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/init@v1
         with:
           languages: cpp
 
       - name: Autobuild
-        if: ${{ matrix.os = 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/autobuild@v1
 
       - name: Perform CodeQL Analysis
-        if: ${{ matrix.os = 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/analyze@v1
 
