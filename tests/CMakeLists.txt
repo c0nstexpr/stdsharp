@@ -33,7 +33,7 @@ if(ENABLE_COVERAGE)
     include(${cmake_path})
     message(STATUS "Downloaded succesfully.")
 
-    setup_target_for_coverage_gcovr_xml(
+    setup_target_for_coverage_lcov(
         NAME ${PROJECT_NAME}Coverage
         EXECUTABLE ctest -j ${PROCESSOR_COUNT}
         DEPENDENCIES ${PROJECT_NAME}
