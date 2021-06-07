@@ -74,5 +74,5 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
-          directory: '{{ env.buildDir }}'
+          directory: '{{ env.buildDir }}/tests'
           verbose: true
