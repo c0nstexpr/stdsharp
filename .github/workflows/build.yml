@@ -70,9 +70,8 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/init@v1
         with:
-          languages: cpp
+          languages: 'cpp'
 
       - name: Perform CodeQL Analysis
         if: ${{ matrix.os == 'ubuntu-latest' }}
         uses: github/codeql-action/analyze@v1
-
