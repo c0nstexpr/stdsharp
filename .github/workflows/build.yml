@@ -21,7 +21,7 @@ jobs:
             Target: blurringshadowTests
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DENABLE_COVERAGE=ON
+            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
             Target: blurringshadowTestsCoverage
           - os: macos-latest
             triplet: x64-osx
@@ -45,6 +45,10 @@ jobs:
           appendedCacheKey: ${{ hashFiles( 'vcpkg.json' ) }}
           vcpkgTriplet: ${{ matrix.triplet }}
           
+      - name: Install gcovr  
+        if: ${{ runner.os == 'Linux' }}    
+        run: pip install gcovr
+       
       - name: Run CMake with vcpkg.json manifest
         uses: lukka/run-cmake@main
         with:
