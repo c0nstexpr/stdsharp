@@ -64,15 +64,4 @@ jobs:
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           buildDirectory: '${{ env.buildDir }}'
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
-   
-      - name: Initialize CodeQL
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: github/codeql-action/init@v1
-        with:
-          languages: cpp
-          db-location: '${{ github.workspace }}/codeql_dbs'
-          
-      - name: Perform CodeQL Analysis
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: github/codeql-action/analyze@v1
+          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }}
