@@ -42,9 +42,10 @@ namespace blurringshadow::utility
     {
         T&& t;
 
+        // ReSharper disable once CppNonExplicitConversionOperator
         template<typename U> requires requires { static_cast<std::decay_t<U>>(std::forward<T>(t)); }
-        [[nodiscard]] constexpr operator
-        U() noexcept(std::is_nothrow_constructible_v<T, std::decay_t<U>>)
+        [[nodiscard]] constexpr operator U()
+        noexcept(std::is_nothrow_constructible_v<T, std::decay_t<U>>)
         {
             return static_cast<std::decay_t<U>>(std::forward<T>(t));
         }
@@ -54,7 +55,7 @@ namespace blurringshadow::utility
     auto_cast(T&& t) -> auto_cast<T>;
 
     template<typename T, typename U, typename Comp>
-    constexpr T& set_if(T& left, U&& right, Comp comp)
+    constexpr T& set_if(T& left, U&& right, Comp&& comp)
     {
         if(comp(right, left)) left = std::forward<U>(right);
         return left;
@@ -77,19 +78,23 @@ namespace blurringshadow::utility
         const T& v,
         const std::type_identity_t<T>& min,
         const std::type_identity_t<T>& max,
-        Compare cmp
-        ) { return std::addressof(std::clamp(v, min, max, cmp)) == std::addressof(v); }
+        Compare&& cmp
+    )
+    {
+        return std::addressof(std::clamp(v, min, max, std::forward<Compare>(cmp))) ==
+            std::addressof(v);
+    }
 
     template<typename T>
     [[nodiscard]] constexpr bool is_between(
         const T& v,
         const std::type_identity_t<T>& min,
         const std::type_identity_t<T>& max
-        ) { return is_between(v, min, max, std::less<>{}); }
+    ) { return is_between(v, min, max, std::less<>{}); }
 
     [[nodiscard]] inline auto& get_random_device()
     {
-        static std::random_device random_device;
+        static thread_local std::random_device random_device;
         return random_device;
     }
 

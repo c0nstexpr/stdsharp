@@ -9,7 +9,7 @@ AlignOperands: DontAlign # Align
 AlignTrailingComments: false # true
 AllowShortBlocksOnASingleLine: Always # Never
 AllowShortCaseLabelsOnASingleLine: true # false
-AllowShortIfStatementsOnASingleLine: AllIfsAndElse # Never
+AllowShortIfStatementsOnASingleLine: Always # Never
 AllowShortLoopsOnASingleLine: true # false
 AlwaysBreakTemplateDeclarations: Yes # MultiLine
 BinPackArguments: false # true
@@ -48,10 +48,10 @@ IndentWrappedFunctionNames: true # false
 KeepEmptyLinesAtTheStartOfBlocks: false # true
 MaxEmptyLinesToKeep: 2 # 1
 NamespaceIndentation: All # None
-PPIndentWidth: 4 # -1
+#Clang13 PPIndentWidth: 4 # -1
 PenaltyBreakFirstLessLess: 3 # 120
 PointerAlignment: Left # Right
-SortIncludes: Never # CaseSensitive
+SortIncludes: false # CaseSensitive
 SortUsingDeclarations: false # true
 SpaceAfterTemplateKeyword: false # true
 SpaceBeforeCtorInitializerColon: false # true
