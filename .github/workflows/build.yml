@@ -21,16 +21,16 @@ jobs:
             Target: blurringshadowTests
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
+            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DCMAKE_BUILD_TYPE=RELEASE
             Target: blurringshadowTests
           - os: macos-latest
             triplet: x64-osx
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
             Target: blurringshadowTests
     env:
-      buildDir: '${{ github.workspace }}/out'
       Target: blurringshadowTests
-
+      buildDir: '${{ github.workspace }}/out'
+      
     steps:
       - uses: actions/checkout@v2
 
@@ -51,8 +51,8 @@ jobs:
         with:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          useVcpkgToolchainFile: true
           buildDirectory: '${{ env.buildDir }}'
+          useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
@@ -62,12 +62,6 @@ jobs:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           useVcpkgToolchainFile: true
-          buildDirectory: '${{ env.buildDir }}'
           vcpkgTriplet: ${{ matrix.triplet }}
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} 
-          
-      - name: Lint Code Base
-        uses: docker://ghcr.io/github/super-linter:slim-v4
-        env:
-          DEFAULT_BRANCH: master
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          buildDirectory: '${{ env.buildDir }}'
+          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }}

@@ -1,4 +1,7 @@
 [![Build](https://github.com/BlurringShadow/blurringshadow-utility/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/BlurringShadow/blurringshadow-utility/actions/workflows/build.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f08b08ddd5e146c69b39ac5001f06c6a)](https://www.codacy.com/gh/BlurringShadow/blurringshadow-utility/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=BlurringShadow/blurringshadow-utility&amp;utm_campaign=Badge_Grade)
+
+
 # blurringshadow-utility
 
 Contains commonly used c++ code that not impl or well impl in other libs
