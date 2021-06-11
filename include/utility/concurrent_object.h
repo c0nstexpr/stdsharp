@@ -4,7 +4,7 @@
 
 #include "utility_core.h"
 
-#include  <shared_mutex>
+#include <shared_mutex>
 
 namespace blurringshadow::utility
 {
@@ -12,10 +12,9 @@ namespace blurringshadow::utility
     class concurrent_object
     {
     public:
-        template<typename... Args> requires(std::constructible_from<T, Args...>)
-        // ReSharper disable once CppNonExplicitConvertingConstructor
-        constexpr concurrent_object(Args&&... args) :
-            object_(std::forward<Args>(args)...) {}
+        template<typename... Args>
+            requires std::constructible_from<T, Args...>
+        constexpr concurrent_object(Args&&... args): object_(std::forward<Args>(args)...) {}
 
         constexpr auto& raw() { return object_; }
 
