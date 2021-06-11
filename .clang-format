@@ -3,6 +3,7 @@ Language: Cpp
 Standard: Auto
 BasedOnStyle: LLVM
 
+AccessModifierOffset : -4
 AlignAfterOpenBracket: AlwaysBreak # Align
 AlignEscapedNewlines: Left # Right
 AlignOperands: DontAlign # Align
@@ -14,32 +15,33 @@ AllowShortLoopsOnASingleLine: true # false
 AlwaysBreakTemplateDeclarations: Yes # MultiLine
 BinPackArguments: false # true
 BinPackParameters: false # true
-BraceWrapping:
-    AfterCaseLabel: true
-    AfterClass: true
-    AfterControlStatement: MultiLine
-    AfterEnum: true
-    AfterFunction: true
-    AfterNamespace: true
-    AfterObjCDeclaration: true
-    AfterStruct: true
-    AfterUnion: true
-    AfterExternBlock: true
-    BeforeCatch: true
-    BeforeElse: true
-    BeforeLambdaBody: true
-    BeforeWhile: true
-    IndentBraces: false
-    SplitEmptyFunction: false
-    SplitEmptyRecord: false
-    SplitEmptyNamespace: false
-BreakBeforeBraces: Custom # Attach
+#BraceWrapping:
+#   AfterCaseLabel: true
+#   AfterClass: true
+#   AfterControlStatement: MultiLine
+#   AfterEnum: true
+#  AfterFunction: true
+#   AfterNamespace: true
+#   AfterObjCDeclaration: true
+#   AfterStruct: true
+#   AfterUnion: true
+#   AfterExternBlock: true
+#   BeforeCatch: true
+#   BeforeElse: true
+#   BeforeLambdaBody: true
+#   BeforeWhile: true
+#   IndentBraces: false
+#   SplitEmptyFunction: false
+#   SplitEmptyRecord: false
+#   SplitEmptyNamespace: false
+BreakBeforeBraces: Allman # Attach
 BreakInheritanceList: AfterColon # BeforeColon
 BreakBeforeTernaryOperators: false # true
 BreakConstructorInitializers: AfterColon # BeforeColon
 ColumnLimit: 100 # 80
 ConstructorInitializerAllOnOneLineOrOnePerLine: true # false
 FixNamespaceComments: false # true
+# Clang13 IndentAccessModifiers : false # true
 IndentGotoLabels: false # true
 IndentPPDirectives: BeforeHash # None
 IndentRequires: true # false
@@ -48,7 +50,7 @@ IndentWrappedFunctionNames: true # false
 KeepEmptyLinesAtTheStartOfBlocks: false # true
 MaxEmptyLinesToKeep: 2 # 1
 NamespaceIndentation: All # None
-#Clang13 PPIndentWidth: 4 # -1
+# Clang13 PPIndentWidth: 4 # -1
 PenaltyBreakFirstLessLess: 3 # 120
 PointerAlignment: Left # Right
 SortIncludes: false # CaseSensitive
