@@ -175,7 +175,7 @@ namespace blurringshadow::utility
 
     template<std::default_initializable Functor, typename... Args>
         requires std::invocable<Functor, Args...>
-    constexpr auto functor_invoke(Args&&... args) { return functor(std::forward<Args>(args)...); }
+    constexpr auto functor_invoke(Args&&... args) { return Functor{}(std::forward<Args>(args)...); }
 
     template<typename T>
     struct auto_cast
