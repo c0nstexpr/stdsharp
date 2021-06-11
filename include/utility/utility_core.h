@@ -21,19 +21,6 @@ namespace blurringshadow::utility
     inline constexpr auto less_equal_v = std::ranges::less_equal{};
     inline constexpr auto greater_equal_v = std::ranges::greater_equal{};
 
-    struct increment
-    {
-        constexpr auto operator()(auto&& v) const noexcept(noexcept(++v)) { return ++v; }
-    };
-
-    struct decrement
-    {
-        constexpr auto operator()(auto&& v) const noexcept(noexcept(--v)) { return --v; }
-    };
-
-    inline constexpr auto increment_v = increment{};
-    inline constexpr auto decrement_v = decrement{};
-
     inline constexpr auto plus_v = std::plus<>{};
     inline constexpr auto minus_v = std::minus<>{};
     inline constexpr auto divides_v = std::divides<>{};
@@ -52,17 +39,143 @@ namespace blurringshadow::utility
 
     inline constexpr auto identity_v = std::identity{};
 
+    namespace details
+    {
+        template<typename T>
+        concept random_incrementable = requires(T t, std::size_t i)
+        {
+            plus_v(t + i);
+        };
+
+        template<typename T>
+        concept random_decrementable = requires(T t, std::size_t i)
+        {
+            minus_v(t - i);
+        };
+
+        template<typename T>
+        concept has_increase_cpo = requires(T t)
+        {
+            increase(t);
+        };
+
+        template<typename T>
+        concept has_decrease_cpo = requires(T t)
+        {
+            decrease(t);
+        };
+
+        template<typename T>
+        concept has_random_increase_cpo = requires(T t, std::size_t i)
+        {
+            increase(t, i);
+        };
+
+        template<typename T>
+        concept has_random_decrease_cpo = requires(T t, std::size_t i)
+        {
+            decrease(t, i);
+        };
+
+        inline constexpr auto increase_impl = []<typename T>(T&& v, std::size_t i)
+        {
+            using real_t = std::remove_cvref_t<T>;
+
+            if constexpr(has_random_increase_cpo<real_t>) return increase(std::forward<T>(v), i);
+            else if constexpr(random_incrementable<real_t>)
+                return plus_v(std::forward<T>(v), i);
+            else
+            {
+                auto res = v;
+
+                // clang-format off
+                for(; i > 0; --i)
+                    if constexpr(has_increase_cpo<real_t>) res = increase(res);
+                    else ++res;
+                // clang-format on
+                return res;
+            }
+        };
+
+        inline constexpr auto decrease_impl = []<typename T>(T&& v, std::size_t i)
+        {
+            using real_t = std::remove_cvref_t<T>;
+
+            if constexpr(has_random_decrease_cpo<real_t>) return decrease(std::forward<T>(v), i);
+            else if constexpr(random_decrementable<real_t>)
+                return minus_v(std::forward<T>(v), i);
+            else
+            {
+                auto res = v;
+
+                // clang-format off
+                for(; i > 0; --i)
+                    if constexpr(has_decrease_cpo<real_t>) res = decrease(res);
+                    else --res;
+                // clang-format on
+                return res;
+            }
+        };
+
+    }
+
+    struct increase
+    {
+        template<typename T>
+        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i = 1) const
+            noexcept(noexcept(details::increase_impl(std::forward<T>(v), i)))
+        {
+            return details::increase_impl(std::forward<T>(v), i);
+        }
+    };
+
+    struct decrease
+    {
+        template<typename T>
+        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i = 1) const
+            noexcept(noexcept(details::decrease_impl(std::forward<T>(v), i)))
+        {
+            return details::decrease_impl(std::forward<T>(v), i);
+        }
+    };
+
+    inline constexpr auto increase_v = increase{};
+    inline constexpr auto decrease_v = decrease{};
+
+    namespace details
+    {
+        template<typename T, typename Distance>
+        concept has_advance_cpo = requires(T& t, Distance d)
+        {
+            advance(t, d);
+        };
+
+        inline constexpr auto advance_impl = []<typename T, typename Distance>(T& v, Distance&& i)
+        {
+            // clang-format off
+            if constexpr(details::has_advance_cpo<std::remove_cvref_t<T>, Distance>)
+                return advance(v, std::forward<Distance>(i));
+            else return v += i;
+            // clang-format on
+        };
+
+    }
+
+    struct advance
+    {
+        template<typename T, typename Distance>
+        [[nodiscard]] constexpr auto operator()(T& v, Distance&& distance) const
+            noexcept(noexcept(details::advance_impl(v, distance)))
+        {
+            return details::advance_impl(v, std::forward<Distance>(distance));
+        }
+    };
+
+    inline constexpr auto advance_v = advance{};
+
     template<std::default_initializable Functor, typename... Args>
         requires std::invocable<Functor, Args...>
-    constexpr auto functor_invoke(Args&&... args)
-    {
-        // clang-format off
-        if constexpr(auto functor = Functor{};
-                     std::same_as<std::invoke_result<Functor, Args...>, void>)
-            functor(std::forward<Args>(args)...);
-       else return functor(std::forward<Args>(args)...);
-        // clang-format on
-    }
+    constexpr auto functor_invoke(Args&&... args) { return functor(std::forward<Args>(args)...); }
 
     template<typename T>
     struct auto_cast
