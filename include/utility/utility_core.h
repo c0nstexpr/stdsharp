@@ -221,7 +221,7 @@ namespace blurringshadow::utility
         const T& v,
         const std::type_identity_t<T>& min,
         const std::type_identity_t<T>& max,
-       Compare&& cmp
+        Compare&& cmp
     )
     // clang-format on
     {
