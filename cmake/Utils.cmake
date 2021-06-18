@@ -199,7 +199,7 @@ function(config_lib lib_name includes src lib_type)
     list(JOIN src "\n    " src_str)
     verbose_message("Found the following source files:\n    ${src_str}")
 
-    add_library(${lib_name} ${lib_type} ${includes} ${src})
+    add_library(${lib_name} ${lib_type} ${src})
 
     if(lib_type STREQUAL "SHARED")
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
@@ -239,26 +239,33 @@ endfunction()
 #
 function(config_exe exe_name exe_src)
     cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" ${ARGN})
+    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
 
     list(JOIN exe_src "\n    " exe_src_str)
     verbose_message("Found the following executable source files:\n    ${exe_src_str}")
 
     add_executable(${exe_name} ${exe_src})
 
-    if(${${CMAKE_CURRENT_FUNCTION}_INCLUDES})
-        if(${${CMAKE_CURRENT_FUNCTION}_SOURCES})
-            config_lib(${exe_name}_LIB "${config_interface_lib_INCLUDES}" "${config_interface_lib_SOURCES}" STATIC )
+    if(${CMAKE_CURRENT_FUNCTION}_INCLUDES)
+        verbose_message("Configuring executable library")
+
+        if(${CMAKE_CURRENT_FUNCTION}_SOURCES)
+            config_lib(
+                ${exe_name}_LIB
+                "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}"
+                "${${CMAKE_CURRENT_FUNCTION}_SOURCES}"
+                STATIC
+                STD ${std}
+            )
         else()
-            config_interface_lib(${exe_name}_LIB "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}")
+            config_interface_lib(
+                ${exe_name}_LIB
+                "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}"
+                STD ${std}
+            )
         endif()
 
-        target_link_libraries(${exe_name} ${exe_name}_LIB)
-    endif()
-
-    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
-    if(${std})
-        target_compile_features(${exe_name} PUBLIC cxx_std_${std})
-        message(STATUS "Using c++ ${std}.\n")
+        target_link_libraries(${exe_name} PUBLIC ${exe_name}_LIB)
     endif()
 
     target_set_warnings(${exe_name} PUBLIC TRUE)
@@ -362,10 +369,3 @@ function(target_export_header target_name)
         )
     endif()
 endfunction()
-
-CPMAddPackage(
-  NAME Format.cmake
-  VERSION 1.7.0
-  GITHUB_REPOSITORY TheLartians/Format.cmake
-  OPTIONS "FORMAT_SKIP_CMAKE YES"
-)
