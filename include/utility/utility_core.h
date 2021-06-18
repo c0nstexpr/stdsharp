@@ -173,24 +173,16 @@ namespace blurringshadow::utility
 
     inline constexpr auto advance_v = advance{};
 
-    template<std::default_initializable Functor, typename... Args>
-        requires std::invocable<Functor, Args...>
-    constexpr auto functor_invoke(Args&&... args) { return Functor{}(std::forward<Args>(args)...); }
-
     template<typename T>
     struct auto_cast
     {
         T&& t;
 
-        // clang-format off
         template<typename U>
-            requires requires { static_cast<std::decay_t<U>>(std::forward<T>(t)); }
-        [[nodiscard]] constexpr operator U()
-            noexcept(std::is_nothrow_constructible_v<T, std::decay_t<U>>)
+        [[nodiscard]] constexpr operator U() && noexcept(noexcept(static_cast<U>(t)))
         {
-            return static_cast<std::decay_t<U>>(std::forward<T>(t));
+            return static_cast<U>(t);
         }
-        // clang-format on
     };
 
     template<typename T>
@@ -199,29 +191,29 @@ namespace blurringshadow::utility
     template<typename T, typename U, typename Comp>
     constexpr T& set_if(T& left, U&& right, Comp&& comp)
     {
-        if(comp(right, left)) left = std::forward<U>(right);
+        if(std::invoke(std::forward<Comp>(comp), right, left)) left = std::forward<U>(right);
         return left;
     }
 
     template<typename T, typename U>
     constexpr T& set_if_greater(T& left, U&& right)
     {
-        return set_if(left, std::forward<U>(right), std::greater<>{});
+        return set_if(left, std::forward<U>(right), greater_v);
     }
 
     template<typename T, typename U>
-    constexpr T& set_if_lesser(T& left, U&& right)
+    constexpr T& set_if_less(T& left, U&& right)
     {
-        return set_if(left, std::forward<U>(right), std::less<>{});
+        return set_if(left, std::forward<U>(right), less_v);
     }
 
     // clang-format off
-    template<typename T, typename Compare>
+    template<typename T, std::predicate<T, T> Compare>
     [[nodiscard]] constexpr bool is_between(
         const T& v,
         const std::type_identity_t<T>& min,
         const std::type_identity_t<T>& max,
-        Compare&& cmp
+        Compare&& cmp = less_v
     )
     // clang-format on
     {
@@ -232,12 +224,13 @@ namespace blurringshadow::utility
     // clang-format off
     template<typename T>
     [[nodiscard]] constexpr bool is_between(
-        const T& v, const std::type_identity_t<T>& min, 
+        const T& v, 
+        const std::type_identity_t<T>& min, 
         const std::type_identity_t<T>& max
     )
     // clang-format on
     {
-        return is_between(v, min, max, std::less<>{});
+        return is_between(v, min, max, less_v);
     }
 
     [[nodiscard]] inline auto& get_random_device()
@@ -251,5 +244,24 @@ namespace blurringshadow::utility
     [[nodiscard]] constexpr auto to_underlying(const T v)
     {
         return static_cast<std::underlying_type_t<T>>(v);
+    }
+
+    // clang-format off
+    template<std::invocable... Func>
+    [[nodiscard]] constexpr auto merge_invoke(Func&&... func)
+        noexcept(noexcept(std::tuple{std::invoke(std::forward<Func>(func))...}))
+    // clang-format on
+    {
+        return std::tuple{std::invoke(std::forward<Func>(func))...};
+    }
+
+    // clang-format off
+    template<std::invocable... Func>
+        requires(std::same_as<std::invoke_result_t<Func>, void> || ...)
+    [[nodiscard]] constexpr auto merge_invoke(Func&&... func)
+        noexcept((std::is_nothrow_invocable_v<Func> && ...))
+    // clang-format on
+    {
+        (std::invoke(std::forward<Func>(func)), ...);
     }
 }
