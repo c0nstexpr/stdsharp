@@ -20,6 +20,7 @@ namespace blurringshadow::utility
     inline constexpr auto greater_v = std::ranges::greater{};
     inline constexpr auto less_equal_v = std::ranges::less_equal{};
     inline constexpr auto greater_equal_v = std::ranges::greater_equal{};
+    inline constexpr auto compare_three_way_v = std::compare_three_way{};
 
     inline constexpr auto plus_v = std::plus<>{};
     inline constexpr auto minus_v = std::minus<>{};
@@ -36,6 +37,71 @@ namespace blurringshadow::utility
     inline constexpr auto bit_not_v = std::bit_not<>{};
     inline constexpr auto bit_or_v = std::bit_or<>{};
     inline constexpr auto bit_xor_v = std::bit_xor<>{};
+
+    // clang-format off
+    inline constexpr auto left_shift = []<typename T, typename U>(T&& left, U&& right)
+        noexcept(noexcept(std::forward<T>(left) << std::forward<U>(right)))
+    {
+        return std::forward<T>(left) << std::forward<U>(right);
+    };
+
+    inline constexpr auto right_shift = []<typename T, typename U>(T&& left, U&& right)
+        noexcept(noexcept(std::forward<T>(left) >> std::forward<U>(right)))
+    {
+        return std::forward<T>(left) >> std::forward<U>(right);
+    };
+    // clang-format on
+
+    namespace details
+    {
+        template<bool Requirement, auto Operation, auto AlternativeOperation>
+        // clang-format off
+       inline constexpr auto operator_assign = []<typename T>(auto& left, T&& right) noexcept(
+            Requirement&& noexcept(Operation(left, std::forward<T>(right))) ||
+            noexcept(left = AlternativeOperation(left, std::forward<T>(right)))
+       )
+        // clang-format on
+        {
+            if constexpr(Requirement) return Operation(left, std::forward<T>(right));
+            else
+            {
+                left = AlternativeOperation(left, std::forward<T>(right));
+                return left;
+            }
+        };
+    }
+
+#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                            \
+    namespace details                                                                        \
+    {                                                                                        \
+        template<typename T, typename U>                                                     \
+        concept operator_type##_assignable = requires(T a, U b)                              \
+        {                                                                                    \
+            a op## = b;                                                                      \
+        };                                                                                   \
+    }                                                                                        \
+    inline constexpr auto operator_type##_assign =                                           \
+        []<typename T>(auto& left, T&& right) noexcept(                                      \
+            noexcept(details::operator_assign<                                               \
+                     details::operator_type##_assignable<decltype(left), T>,                 \
+                     []<typename U>(auto& l, U&& r) { return l op## = std::forward<U>(r); }, \
+                     operator_type##_v>(left, std::forward<T>(right))))                      \
+    {                                                                                        \
+        return details::operator_assign<                                                     \
+            details::operator_type##_assignable<decltype(left), T>,                          \
+            []<typename U>(auto& l, U&& r) { return l op## = std::forward<U>(r); },          \
+            operator_type##_v>(left, std::forward<T>(right));                                \
+    };
+
+    BS_UTIL_ASSIGN_OPERATE(plus, +)
+    BS_UTIL_ASSIGN_OPERATE(minus, -)
+    BS_UTIL_ASSIGN_OPERATE(divides, /)
+    BS_UTIL_ASSIGN_OPERATE(multiplies, *)
+    BS_UTIL_ASSIGN_OPERATE(modulus, %)
+    BS_UTIL_ASSIGN_OPERATE(bit_and, &)
+    BS_UTIL_ASSIGN_OPERATE(bit_or, |)
+
+#undef BS_UTIL_ASSIGN_OPERATE
 
     inline constexpr auto identity_v = std::identity{};
 
@@ -92,7 +158,7 @@ namespace blurringshadow::utility
                 return plus_v(std::forward<T>(v), i);
             else
             {
-                auto res = v;
+                auto res = std::forward<T>(v);
 
                 // clang-format off
                 for(; i > 0; --i)
@@ -118,7 +184,7 @@ namespace blurringshadow::utility
                 return minus_v(std::forward<T>(v), i);
             else
             {
-                auto res = v;
+                auto res = std::forward<T>(v);
 
                 // clang-format off
                 for(; i > 0; --i)
@@ -162,21 +228,32 @@ namespace blurringshadow::utility
             advance(t, d);
         };
 
+        // clang-format off
         inline constexpr auto advance_impl = []<typename T, typename Distance>(T& v, Distance&& i)
+            noexcept(
+                details::has_advance_cpo<T, Distance> && noexcept(advance(v, std::forward<Distance>(i))) ||
+                noexcept(plus_assign(v, i)) ||
+                noexcept(increase_v(v, i), decrease_v(v, i))
+            )
+        // clang-format on
         {
-            // clang-format off
-            if constexpr(details::has_advance_cpo<std::remove_cvref_t<T>, Distance>)
+            if constexpr(details::has_advance_cpo<T, Distance>)
                 return advance(v, std::forward<Distance>(i));
-            else return v += i;
-            // clang-format on
+            else if constexpr(std::invocable<decltype(plus_assign), T&, Distance>)
+                return plus_assign(v, i);
+            else
+            {
+                if(i > 0) return increase_v(v, i);
+                return decrease_v(v, i);
+            }
         };
 
     }
 
     struct advance
     {
-        template<typename T, typename Distance>
-        [[nodiscard]] constexpr auto operator()(T& v, Distance&& distance) const
+        template<typename Distance>
+        [[nodiscard]] constexpr auto operator()(auto& v, Distance&& distance) const
             noexcept(noexcept(details::advance_impl(v, distance)))
         {
             return details::advance_impl(v, std::forward<Distance>(distance));
