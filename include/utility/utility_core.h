@@ -77,12 +77,18 @@ namespace blurringshadow::utility
             decrease(t, i);
         };
 
-        inline constexpr auto increase_impl = []<typename T>(T&& v, std::size_t i)
+        // clang-format off
+        static inline constexpr auto increase_impl = []<typename T>(T&& v, std::size_t i) noexcept(
+            has_random_increase_cpo<T> && noexcept(increase(std::forward<T>(v), i)) ||
+            random_incrementable<T> &&
+                std::is_nothrow_invocable_v<std::plus<>, T, std::size_t> ||
+            (!has_increase_cpo<T> ||
+                noexcept(increase(v)) &&
+                std::is_nothrow_assignable_v<T, std::add_rvalue_reference_t<decltype(increase(v))>>))
+        // clang-format on
         {
-            using real_t = std::remove_cvref_t<T>;
-
-            if constexpr(has_random_increase_cpo<real_t>) return increase(std::forward<T>(v), i);
-            else if constexpr(random_incrementable<real_t>)
+            if constexpr(has_random_increase_cpo<T>) return increase(std::forward<T>(v), i);
+            else if constexpr(random_incrementable<T>)
                 return plus_v(std::forward<T>(v), i);
             else
             {
@@ -90,19 +96,25 @@ namespace blurringshadow::utility
 
                 // clang-format off
                 for(; i > 0; --i)
-                    if constexpr(has_increase_cpo<real_t>) res = increase(res);
+                    if constexpr(has_increase_cpo<T>) res = increase(res);
                     else ++res;
                 // clang-format on
                 return res;
             }
         };
 
-        inline constexpr auto decrease_impl = []<typename T>(T&& v, std::size_t i)
+        // clang-format off
+        static inline constexpr auto decrease_impl = []<typename T>(T&& v, std::size_t i) noexcept(
+            has_random_increase_cpo<T> && noexcept(increase(std::forward<T>(v), i)) ||
+            random_decrementable<T> &&
+                std::is_nothrow_invocable_v<std::minus<>, T, std::size_t> ||
+            (!has_decrease_cpo<T> ||
+                noexcept(decrease(v)) &&
+                std::is_nothrow_assignable_v<T, std::add_rvalue_reference_t<decltype(decrease(v))>>))
+        // clang-format on
         {
-            using real_t = std::remove_cvref_t<T>;
-
-            if constexpr(has_random_decrease_cpo<real_t>) return decrease(std::forward<T>(v), i);
-            else if constexpr(random_decrementable<real_t>)
+            if constexpr(has_random_decrease_cpo<T>) return decrease(std::forward<T>(v), i);
+            else if constexpr(random_decrementable<T>)
                 return minus_v(std::forward<T>(v), i);
             else
             {
@@ -110,7 +122,7 @@ namespace blurringshadow::utility
 
                 // clang-format off
                 for(; i > 0; --i)
-                    if constexpr(has_decrease_cpo<real_t>) res = decrease(res);
+                    if constexpr(has_decrease_cpo<T>) res = decrease(res);
                     else --res;
                 // clang-format on
                 return res;
