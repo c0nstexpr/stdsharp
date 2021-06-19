@@ -280,7 +280,8 @@ namespace blurringshadow::utility
     template<typename T, typename U, typename Comp>
     constexpr T& set_if(T& left, U&& right, Comp&& comp)
     {
-        if(std::invoke(std::forward<Comp>(comp), right, left)) left = std::forward<U>(right);
+        if(std::invoke(std::forward<Comp>(comp), std::forward<U>(right), left))
+            left = std::forward<U>(right);
         return left;
     }
 
