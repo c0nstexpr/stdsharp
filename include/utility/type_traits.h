@@ -36,6 +36,12 @@ namespace blurringshadow::utility
         [[nodiscard]] constexpr auto& operator()() const noexcept { return value; }
     };
 
+    template<auto Value>
+    inline constexpr auto constant_v = constant<Value>::value;
+
+    template<auto Value>
+    inline constexpr auto constant_t = constant<Value>::value_type;
+
     template<typename Func, typename... Args>
     concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
 
