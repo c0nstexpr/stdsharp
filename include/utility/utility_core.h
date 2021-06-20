@@ -267,57 +267,111 @@ namespace blurringshadow::utility
     {
         T&& t;
 
+
         template<typename U>
-        [[nodiscard]] constexpr operator U() && noexcept(noexcept(static_cast<U>(t)))
+        // clang-format off
+        [[nodiscard]] constexpr operator U() && 
+            noexcept(noexcept(static_cast<U>(std::forward<T>(t))))
+        // clang-format on
         {
-            return static_cast<U>(t);
+            return static_cast<U>(std::forward<T>(t));
         }
     };
 
     template<typename T>
     auto_cast(T&& t) -> auto_cast<T>;
 
-    template<typename T, typename U, typename Comp>
+    // clang-format off
+    template<typename T, typename U, std::predicate<T, U> Comp>
     constexpr T& set_if(T& left, U&& right, Comp&& comp)
+        noexcept(
+            std::is_nothrow_invocable_r_v<bool, Comp, U, T&> &&
+            std::is_nothrow_assignable_v<T, U>
+        )
+    // clang-format on
     {
         if(std::invoke(std::forward<Comp>(comp), std::forward<U>(right), left))
             left = std::forward<U>(right);
         return left;
     }
 
+    // clang-format off
     template<typename T, typename U>
     constexpr T& set_if_greater(T& left, U&& right)
+        noexcept(noexcept(set_if(left, std::forward<U>(right), greater_v)))
+    // clang-format on
     {
         return set_if(left, std::forward<U>(right), greater_v);
     }
 
+    // clang-format off
     template<typename T, typename U>
     constexpr T& set_if_less(T& left, U&& right)
+        noexcept(noexcept(set_if(left, std::forward<U>(right), less_v)))
+    // clang-format on
     {
         return set_if(left, std::forward<U>(right), less_v);
     }
 
-    // clang-format off
-    template<typename T, std::predicate<T, T> Compare>
-    [[nodiscard]] constexpr bool is_between(
-        const T& v,
-        const std::type_identity_t<T>& min,
-        const std::type_identity_t<T>& max,
-        Compare&& cmp = less_v
-    )
-    // clang-format on
+    namespace details
     {
-        return std::addressof(std::clamp(v, min, max, std::forward<Compare>(cmp))) ==
-            std::addressof(v);
+        template<typename T, typename U, typename V, typename Compare>
+        struct is_between_requirement : std::type_identity<std::common_type_t<T, U, V>>
+        {
+            // clang-format off
+            static constexpr auto value = std::predicate<
+                Compare,
+                typename is_between_requirement::type,
+                typename is_between_requirement::type
+            >;
+            // clang-format on
+        };
+
+        template<typename T, typename Compare>
+        // clang-format off
+        [[nodiscard]] constexpr bool is_between_impl(
+            const T& v,
+            const T& min,
+            const T& max,
+            Compare&& cmp
+        ) noexcept(noexcept(std::clamp(v, min, max, std::forward<Compare>(cmp))))
+        // clang-format on
+        {
+            return std::addressof(std::clamp(v, min, max, std::forward<Compare>(cmp))) ==
+                std::addressof(v);
+        }
     }
 
     // clang-format off
-    template<typename T>
-    [[nodiscard]] constexpr bool is_between(
-        const T& v, 
-        const std::type_identity_t<T>& min, 
-        const std::type_identity_t<T>& max
-    )
+    template<typename T, typename U, typename V, typename Compare>
+        requires details::is_between_requirement<T, U, V, Compare>::value
+    [[nodiscard]] constexpr bool is_between(const T& v, const U& min, const V& max, Compare&& cmp)
+        noexcept(
+            noexcept(
+                details::is_between_impl(
+                    static_cast<std::common_type_t<T, U, V>>(v),
+                    static_cast<std::common_type_t<T, U, V>>(min),
+                    static_cast<std::common_type_t<T, U, V>>(max),
+                    std::forward<Compare>(cmp)
+                )
+            )
+        )
+    {
+        using common_t = std::common_type_t<T, U, V>;
+
+        return details::is_between_impl(
+            static_cast<common_t>(v),
+            static_cast<common_t>(min),
+            static_cast<common_t>(max),
+            std::forward<Compare>(cmp)
+        );
+    }
+    // clang-format on
+
+    // clang-format off
+    template<typename T, typename U, typename V>
+    [[nodiscard]] constexpr bool is_between(const T& v, const U& min, const V& max)
+        noexcept(noexcept(is_between(v, min, max, less_v)))
     // clang-format on
     {
         return is_between(v, min, max, less_v);
