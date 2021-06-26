@@ -3,39 +3,52 @@
 #pragma once
 
 #include <gsl/gsl>
+#include <utility>
 #include <concepts>
 
 namespace blurringshadow::utility
 {
     using namespace std::literals;
 
-    template<typename T>
-    struct auto_cast
+    namespace details
     {
-        T&& t;
-
-
-        template<typename U>
-        // clang-format off
-        [[nodiscard]] constexpr operator U() && 
-            noexcept(noexcept(static_cast<U>(std::forward<T>(t))))
-        // clang-format on
+        template<typename T>
+        struct auto_cast
         {
-            return static_cast<U>(std::forward<T>(t));
-        }
-    };
+            T t;
 
-    template<typename T>
-    auto_cast(T&& t) -> auto_cast<T>;
+            template<typename U>
+            [[nodiscard]] constexpr operator U() const&& noexcept(noexcept(static_cast<U>(t)))
+            {
+                return static_cast<U>(t);
+            }
 
-    template<typename T>
-        requires std::is_enum_v<T>
-    [[nodiscard]] constexpr auto to_underlying(const T v)
-    {
-        return static_cast<std::underlying_type_t<T>>(v);
+            template<typename U>
+            [[nodiscard]] constexpr U operator()() const&& noexcept(noexcept(static_cast<U>(t)))
+            {
+                return static_cast<U>(t);
+            }
+        };
     }
 
-    template<typename T>
-        requires std::convertible_to<T, std::remove_const_t<T>>
-    constexpr std::remove_const_t<T> another(T&& t) { return std::forward<T>(t); }
+    inline constexpr auto auto_cast = []<typename T>(T&& t) // clang-format off
+        noexcept(std::is_nothrow_constructible_v<details::auto_cast<T>, T>)
+    {
+        return details::auto_cast<T>{std::forward<T>(t)};
+    }; // clang-format on
+
+    namespace details
+    {
+        struct to_underlying_fn
+        {
+            template<typename T>
+                requires std::is_enum_v<T>
+            [[nodiscard]] constexpr std::underlying_type_t<T> operator()(const T v) const noexcept
+            {
+                return v;
+            }
+        };
+    }
+
+    inline constexpr details::to_underlying_fn to_underlying;
 }
