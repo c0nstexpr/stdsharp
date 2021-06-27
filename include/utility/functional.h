@@ -52,9 +52,9 @@ namespace blurringshadow::utility
         }
     };
 
-    inline constexpr left_shift left_shift_v;
+    inline constexpr left_shift left_shift_v{};
 
-    inline constexpr right_shift right_shift_v;
+    inline constexpr right_shift right_shift_v{};
 
     namespace details
     {
@@ -202,8 +202,8 @@ namespace blurringshadow::utility
         }
     };
 
-    inline constexpr increase increase_v;
-    inline constexpr decrease decrease_v;
+    inline constexpr increase increase_v{};
+    inline constexpr decrease decrease_v{};
 
     namespace details
     {
@@ -253,7 +253,7 @@ namespace blurringshadow::utility
         }
     };
 
-    inline constexpr advance advance_v;
+    inline constexpr advance advance_v{};
 
     template<std::invocable... Func> // clang-format off
     [[nodiscard]] constexpr auto merge_invoke(Func&&... func)
@@ -294,5 +294,5 @@ namespace blurringshadow::utility
         };
     }
 
-    inline constexpr details::clone_fn clone;
+    inline constexpr details::clone_fn clone{};
 }

@@ -75,5 +75,5 @@ namespace blurringshadow::utility
         };
     }
 
-    inline constexpr details::is_between_fn is_between;
+    inline constexpr details::is_between_fn is_between{};
 }
