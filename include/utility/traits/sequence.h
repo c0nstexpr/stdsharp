@@ -253,6 +253,14 @@ namespace blurringshadow::utility::traits
             }
         };
 
+        struct contains_fn
+        {
+            [[nodiscard]] constexpr auto operator()(const auto& v) const noexcept(noexcept(find(v)))
+            {
+                return find(v) != size();
+            }
+        };
+
         template<auto... Func>
         static constexpr auto transform() noexcept // clang-format off
         {         
@@ -293,6 +301,8 @@ namespace blurringshadow::utility::traits
         static constexpr any_of_fn any_of{};
 
         static constexpr none_of_fn none_of{};
+
+        static constexpr contains_fn contains{};
 
         template<auto... Func>
         using transform_t = decltype(transform<Func...>());
