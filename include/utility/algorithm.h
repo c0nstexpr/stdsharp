@@ -44,13 +44,14 @@ namespace blurringshadow::utility
                 typename T,
                 typename U,
                 typename V, // clang-format off
-                predicate<common_type_t<T, U, V>, common_type_t<T, U, V>> Compare
-            > // clang-format on
+                predicate<
+                    common_type_t<T, U, V>,
+                    common_type_t<T, U, V>
+                > Compare = ranges::less,
+                typename Proj = std::identity
+            >
             [[nodiscard]] constexpr bool operator()(
-                const T& v,
-                const U& min,
-                const V& max,
-                Compare&& cmp // clang-format off
+                const T& v, const U& min, const V& max, Compare&& cmp = {}, Proj&& proj = {}
             ) const // clang-format on
             {
                 using common_t = common_type_t<T, U, V>;
@@ -59,18 +60,13 @@ namespace blurringshadow::utility
                 const auto cast_min = static_cast<common_t>(min);
                 const auto cast_max = static_cast<common_t>(max);
 
-                return addressof(clamp(
+                return addressof(ranges::clamp(
                            cast_v,
                            cast_min,
                            cast_max,
-                           forward<Compare>(cmp) // clang-format off
+                           forward<Compare>(cmp),
+                           forward<Proj>(proj) // clang-format off
                 )) == addressof(cast_v); // clang-format on
-            }
-
-            template<typename T, typename U, typename V>
-            [[nodiscard]] constexpr bool operator()(const T& v, const U& min, const V& max) const
-            {
-                return operator()(v, min, max, less_v);
             }
         };
     }

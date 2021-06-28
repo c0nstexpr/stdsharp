@@ -53,17 +53,21 @@ namespace blurringshadow::utility::traits
 
             static constexpr auto size() noexcept { return sizeof...(Values); }
 
-            template<typename T>
-            static constexpr auto get_value_equality_comparer(const T& value) noexcept
+            template<typename T, typename Proj = identity>
+            static constexpr auto get_value_equality_comparer( // clang-format off
+                const T& value,
+                Proj proj = {}
+            ) noexcept // clang-format on
             {
+                using projected_t = std::invoke_result_t<Proj, T>;
+
                 return [&]<typename U>(const U& other) noexcept( // clang-format off
-                    !invocable<ranges::equal_to, T, U> ||
-                    nothrow_invocable<ranges::equal_to, T, U>
+                    !invocable<ranges::equal_to, projected_t, U> ||
+                    nothrow_invocable<ranges::equal_to, projected_t, U>
                 )
                 {
-
-                    if constexpr(invocable<ranges::equal_to, T, U>)
-                        return equal_to_v(other, value);
+                    if constexpr(invocable<ranges::equal_to, projected_t, U>)
+                        return equal_to_v(value, proj(other));
                     else return false;
                 }; // clang-format on
             }
@@ -132,6 +136,24 @@ namespace blurringshadow::utility::traits
             }
         };
 
+        struct for_each_n_fn
+        {
+            constexpr auto operator()(auto size, auto func) const
+                noexcept(noexcept((std::invoke(func, Values), ...)))
+            {
+                return for_each(
+                    [&size, &func](auto v) noexcept(noexcept(std::invoke(func, v)))
+                    {
+                        if(size == 0) return false;
+
+                        std::invoke(func, v);
+                        --size;
+                        return true;
+                    } // clang-format off
+                ); // clang-format on
+            }
+        };
+
         struct find_if_fn
         {
             template<details::seq_predicate<Values...> Func>
@@ -170,11 +192,12 @@ namespace blurringshadow::utility::traits
 
         struct find_fn
         {
-            template<typename T>
-            [[nodiscard]] constexpr auto operator()(const T& v) const
-                noexcept(noexcept((base::get_value_equality_comparer(v)(Values), ...)))
+            template<typename Proj = std::identity> // clang-format off
+            [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const noexcept(
+                noexcept(find_if(base::get_value_equality_comparer(v, std::forward<Proj>(proj))))
+            ) // clang-format on
             {
-                return find_if(base::get_value_equality_comparer(v));
+                return find_if(base::get_value_equality_comparer(v, std::forward<Proj>(proj)));
             }
         };
 
@@ -215,11 +238,12 @@ namespace blurringshadow::utility::traits
 
         struct count_fn
         {
-            template<typename T>
-            [[nodiscard]] constexpr auto operator()(const T& v) const
-                noexcept(noexcept((base::get_value_equality_comparer(v)(Values), ...)))
+            template<typename Proj = std::identity> // clang-format off
+            [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const noexcept(
+                noexcept(count_if(base::get_value_equality_comparer(v, std::forward<Proj>(proj))))
+            ) // clang-format on
             {
-                return count_if(base::get_value_equality_comparer(v));
+                return count_if(base::get_value_equality_comparer(v, std::forward<Proj>(proj)));
             }
         };
 
@@ -255,9 +279,11 @@ namespace blurringshadow::utility::traits
 
         struct contains_fn
         {
-            [[nodiscard]] constexpr auto operator()(const auto& v) const noexcept(noexcept(find(v)))
+            template<typename Proj = std::identity>
+            [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const
+                noexcept(noexcept(find(v, std::forward<Proj>(proj))))
             {
-                return find(v) != size();
+                return find(v, std::forward<Proj>(proj)) != size();
             }
         };
 
@@ -283,6 +309,8 @@ namespace blurringshadow::utility::traits
 
     public: // clang-format off
         static constexpr for_each_fn for_each{};
+
+        static constexpr for_each_n_fn for_each_n{};
 
         static constexpr find_if_fn find_if{};
 
