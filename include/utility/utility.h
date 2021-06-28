@@ -39,11 +39,13 @@ namespace blurringshadow::utility
 
     namespace details
     {
+        using namespace std;
+
         struct to_underlying_fn
         {
             template<typename T>
-                requires std::is_enum_v<T>
-            [[nodiscard]] constexpr std::underlying_type_t<T> operator()(const T v) const noexcept
+                requires is_enum_v<T>
+            [[nodiscard]] constexpr underlying_type_t<T> operator()(const T v) const noexcept
             {
                 return v;
             }

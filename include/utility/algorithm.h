@@ -36,16 +36,15 @@ namespace blurringshadow::utility
 
     namespace details
     {
+        using namespace std;
+
         struct is_between_fn
         {
-            // clang-format off
             template<
                 typename T,
                 typename U,
-                typename V,
-                std::predicate<
-                    std::common_type_t<T, U, V>, std::common_type_t<T, U, V>
-                > Compare
+                typename V, // clang-format off
+                predicate<common_type_t<T, U, V>, common_type_t<T, U, V>> Compare
             > // clang-format on
             [[nodiscard]] constexpr bool operator()(
                 const T& v,
@@ -54,19 +53,20 @@ namespace blurringshadow::utility
                 Compare&& cmp // clang-format off
             ) const // clang-format on
             {
-                using common_t = std::common_type_t<T, U, V>;
+                using common_t = common_type_t<T, U, V>;
 
                 const auto cast_v = static_cast<common_t>(v);
                 const auto cast_min = static_cast<common_t>(min);
                 const auto cast_max = static_cast<common_t>(max);
 
-                return std::addressof(std::ranges::clamp(
+                return addressof(clamp(
                            cast_v,
                            cast_min,
                            cast_max,
-                           std::forward<Compare>(cmp) // clang-format off
-                )) == std::addressof(cast_v); // clang-format on
+                           forward<Compare>(cmp) // clang-format off
+                )) == addressof(cast_v); // clang-format on
             }
+
             template<typename T, typename U, typename V>
             [[nodiscard]] constexpr bool operator()(const T& v, const U& min, const V& max) const
             {

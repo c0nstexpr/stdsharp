@@ -7,14 +7,14 @@
 
 namespace blurringshadow::utility
 {
+    template<typename T>
+    concept enumeration = std::is_enum_v<T>;
+
     template<typename T, typename U>
     concept not_same_as = !std::same_as<T, U>;
 
     template<typename T>
     using add_const_lvalue_ref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
-
-    template<typename T>
-    concept const_lvalue_ref = std::is_lvalue_reference_v<T> && std::is_const_v<T>;
 
     template<typename T, typename... Args>
     concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
@@ -41,7 +41,7 @@ namespace blurringshadow::utility
     concept nothrow_swappable = std::is_nothrow_swappable_v<T>;
 
     template<typename T, typename U>
-    concept nothrow_swappable_with = std::is_nothrow_swappable_with_v<T>;
+    concept nothrow_swappable_with = std::is_nothrow_swappable_with_v<T, U>;
 
     template<typename T, typename U>
     concept nothrow_convertible_to = std::is_nothrow_convertible_v<T, U>;
@@ -83,18 +83,15 @@ namespace blurringshadow::utility
     template<typename Func, typename... Args>
     concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
 
-    // clang-format off
-    template<typename Func, typename... Args>
-    concept invocable_and_return_any = std::invocable<Func, Args...> && 
-        not_same_as<std::invoke_result_t<Func, Args...>, void>;
-    // clang-format on
+    template<typename Func, typename... Args> // clang-format off
+    concept invocable_rnonvoid = std::invocable<Func, Args...> && 
+        not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
-    // clang-format off
-    template<typename Func, typename... Args>
-    concept nothrow_invocable_and_return_any = nothrow_invocable<Func, Args...> && 
-        not_same_as<std::invoke_result_t<Func, Args...>, void>;
-    // clang-format on
+    template<typename Func, typename... Args> // clang-format off
+    concept nothrow_invocable_rnonvoid = nothrow_invocable<Func, Args...> && 
+        not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
+    // c++23 feature
     template<typename Func, typename ReturnT, typename... Args>
     concept invocable_r = std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
