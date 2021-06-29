@@ -61,15 +61,17 @@ namespace blurringshadow::utility
         using namespace std;
 
         template<bool Requirement, auto Operation, auto AlternativeOperation> // clang-format off
-        inline constexpr auto operator_assign = []<typename T>(auto& left, T&& right) noexcept(
-            Requirement && noexcept(Operation(left, forward<T>(right))) ||
-            noexcept(left = AlternativeOperation(left, forward<T>(right)))
-        ) // clang-format on
+        inline constexpr auto operator_assign = []<typename T, typename U>(T& left, U&& right)
+            noexcept(
+                Requirement && nothrow_invocable<decltype(Operation), T&, U&&> ||
+                nothrow_invocable<decltype(AlternativeOperation), T&, U&&> && 
+                nothrow_assignable_from<T, invoke_result_t<decltype(AlternativeOperation), T&, U&&>>
+            ) // clang-format on
         {
-            if constexpr(Requirement) return Operation(left, forward<T>(right));
+            if constexpr(Requirement) return std::invoke(Operation, left, forward<U>(right));
             else
             {
-                left = AlternativeOperation(left, forward<T>(right));
+                left = std::invoke(AlternativeOperation, left, forward<U>(right));
                 return left;
             }
         };
@@ -124,27 +126,27 @@ namespace blurringshadow::utility
         using namespace std;
 
         template<typename T>
-        concept has_increase_cpo = requires(T t, const size_t i)
+        concept has_increase_cpo = requires(T&& t, const size_t i)
         {
-            increase(t, i);
+            increase(forward<T>(t), i);
         };
 
-        template<typename T> // clang-format off
-        constexpr auto invoke_increase_cpo(T&& v, const size_t i)
-            noexcept(noexcept(increase(forward<T>(v), i))) // clang-format on
+        template<typename T>
+        constexpr auto invoke_increase_cpo(T&& v, const size_t i) //
+            noexcept(noexcept(increase(forward<T>(v), i)))
         {
             return increase(forward<T>(v), i);
         }
 
         template<typename T>
-        concept has_decrease_cpo = requires(T t, const size_t i)
+        concept has_decrease_cpo = requires(T&& t, const size_t i)
         {
-            decrease(t, i);
+            decrease(forward<T>(t), i);
         };
 
-        template<typename T> // clang-format off
-        constexpr auto invoke_decrease_cpo(T&& v, const size_t i)
-            noexcept(noexcept(decrease(forward<T>(v), i))) // clang-format on
+        template<typename T>
+        constexpr auto invoke_decrease_cpo(T&& v, const size_t i) //
+            noexcept(noexcept(decrease(forward<T>(v), i)))
         {
             return decrease(forward<T>(v), i);
         }
@@ -152,22 +154,19 @@ namespace blurringshadow::utility
 
     struct increase
     {
-        template<details::has_increase_cpo T> // clang-format off
-        [[nodiscard]] constexpr auto operator()(T v, const std::size_t i) const noexcept(
-            noexcept(details::invoke_increase_cpo(std::move(v), i))
-        ) // clang-format on
+        template<details::has_increase_cpo T>
+        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
+            noexcept(noexcept(details::invoke_increase_cpo(std::forward<T>(v), i)))
         {
-            return details::invoke_increase_cpo(std::move(v), i);
+            return details::invoke_increase_cpo(std::forward<T>(v), i);
         }
 
         template<typename T>
             requires(!details::has_increase_cpo<T> && std::invocable<std::plus<>, T, std::size_t>)
-        // clang-format off
-        [[nodiscard]] constexpr auto operator()(T v, const std::size_t i) const noexcept(
-            nothrow_invocable<std::plus<>, T, std::size_t>
-        ) // clang-format on
+        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
+            noexcept(nothrow_invocable<std::plus<>, T&&, std::size_t>)
         {
-            return plus_v(std::move(v), i);
+            return plus_v(std::forward<T>(v), i);
         }
 
         template<typename T>
@@ -180,24 +179,19 @@ namespace blurringshadow::utility
 
     struct decrease
     {
-        template<details::has_decrease_cpo T> // clang-format off
-        [[nodiscard]] constexpr auto operator()(T v, const std::size_t i) const noexcept(
-            noexcept(details::invoke_decrease_cpo(std::move(v), i))
-        )
-        // clang-format on
+        template<details::has_decrease_cpo T>
+        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
+            noexcept(noexcept(details::invoke_decrease_cpo(std::forward<T>(v), i)))
         {
-            return details::invoke_decrease_cpo(std::move(v), i);
+            return details::invoke_decrease_cpo(std::forward<T>(v), i);
         }
 
         template<typename T>
             requires(!details::has_decrease_cpo<T> && std::invocable<std::minus<>, T, std::size_t>)
-        // clang-format off
-        [[nodiscard]] constexpr auto operator()(T v, const std::size_t i) const noexcept(
-            nothrow_invocable<std::minus<>, T, std::size_t>
-        )
-        // clang-format on
+        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
+            noexcept(nothrow_invocable<std::minus<>, T, std::size_t>)
         {
-            return minus_v(std::move(v), i);
+            return minus_v(std::forward<T>(v), i);
         }
 
         template<typename T>
@@ -214,7 +208,7 @@ namespace blurringshadow::utility
     namespace details
     {
         template<typename T, typename Distance>
-        concept has_advance_cpo = requires(T& t, const Distance d)
+        concept has_advance_cpo = requires(T& t, const Distance& d)
         {
             advance(t, d);
         };
@@ -229,30 +223,27 @@ namespace blurringshadow::utility
     struct advance
     {
         template<typename T, typename Distance>
-            requires details::has_advance_cpo<T, Distance> // clang-format off
-        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const noexcept(
-             noexcept(details::invoke_advance_cpo(v, distance))
-        ) // clang-format on
+            requires details::has_advance_cpo<T, Distance>
+        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
+            noexcept(noexcept(details::invoke_advance_cpo(v, distance)))
         {
             return details::invoke_advance_cpo(v, distance);
         }
 
-        template<typename T, typename Distance> // clang-format off
-            requires (
+        template<typename T, typename Distance>
+            requires( //
                 !details::has_advance_cpo<T, Distance> &&
-                std::invocable<std::plus<>, T, Distance>
+                std::invocable<std::plus<>, T, Distance> //
             )
-        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const noexcept(
-            noexcept(plus_assign(v, distance))
-        ) // clang-format on
+        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
+            noexcept(noexcept(plus_assign(v, distance)))
         {
             return plus_assign(v, distance);
         }
 
-        template<typename T, typename Distance> // clang-format off
-        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const noexcept(
-            noexcept(increase_v(v, distance), decrease_v(v, distance))
-        ) // clang-format on
+        template<typename T, typename Distance>
+        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
+            noexcept(noexcept(increase_v(v, distance), decrease_v(v, distance)))
         {
             if(distance > 0) return increase_v(v, distance);
             return decrease_v(v, distance);
@@ -261,17 +252,17 @@ namespace blurringshadow::utility
 
     inline constexpr advance advance_v{};
 
-    template<std::invocable... Func> // clang-format off
-    [[nodiscard]] constexpr auto merge_invoke(Func&&... func)
-        noexcept(noexcept(std::tuple{std::invoke(std::forward<Func>(func))...})) // clang-format on
+    template<std::invocable... Func>
+    [[nodiscard]] constexpr auto merge_invoke(Func&&... func) //
+        noexcept(noexcept(std::tuple{std::invoke(std::forward<Func>(func))...}))
     {
         return std::tuple{std::invoke(std::forward<Func>(func))...};
     }
 
-    template<std::invocable... Func> // clang-format off
+    template<std::invocable... Func>
         requires(std::same_as<std::invoke_result_t<Func>, void> || ...)
-    [[nodiscard]] constexpr auto merge_invoke(Func&&... func)
-        noexcept((std::is_nothrow_invocable_v<Func> && ...)) // clang-format on
+    [[nodiscard]] constexpr auto merge_invoke(Func&&... func) //
+        noexcept((nothrow_invocable<Func&&> && ...))
     {
         (std::invoke(std::forward<Func>(func)), ...);
     }
@@ -279,9 +270,9 @@ namespace blurringshadow::utility
     // c++23 feature
     template<typename ReturnT, typename Func, typename... Args>
         requires std::invocable<Func, Args...> &&
-            std::convertible_to<std::invoke_result_t<Func, Args...>, ReturnT> // clang-format off
-    [[nodiscard]] constexpr ReturnT invoke_r(Func&& func, Args&&... args)
-        noexcept(std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>) // clang-format on
+            std::convertible_to<std::invoke_result_t<Func, Args...>, ReturnT>
+    [[nodiscard]] constexpr ReturnT invoke_r(Func&& func, Args&&... args) //
+        noexcept(nothrow_invocable_r<ReturnT, Func, Args...>)
     {
         return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
     }
@@ -295,7 +286,7 @@ namespace blurringshadow::utility
             template<typename T>
                 requires convertible_to<T, remove_cvref_t<T>>
             [[nodiscard]] constexpr remove_cvref_t<T> operator()(T&& t) const
-                noexcept(is_nothrow_convertible_v<T, remove_cvref_t<T>>)
+                noexcept(nothrow_convertible_to<T, remove_cvref_t<T>>)
             {
                 return forward<T>(t);
             }

@@ -31,11 +31,11 @@ namespace blurringshadow::utility
         };
     }
 
-    inline constexpr auto auto_cast = []<typename T>(T&& t) // clang-format off
+    inline constexpr auto auto_cast = []<typename T>(T&& t) //
         noexcept(std::is_nothrow_constructible_v<details::auto_cast<T>, T>)
     {
-        return details::auto_cast<T>{std::forward<T>(t)};
-    }; // clang-format on
+        return details::auto_cast<T>{std::forward<T>(t)}; //
+    };
 
     namespace details
     {

@@ -10,12 +10,10 @@ namespace blurringshadow::utility
     inline constexpr auto set_if = []<typename T, typename U, std::predicate<T, U> Comp>(
         T& left,
         U&& right,
-        Comp comp
-    ) noexcept(
-        std::is_nothrow_invocable_r_v<bool, Comp, U&, T&> &&
-        std::is_nothrow_assignable_v<T, U>
-    )  -> T& // clang-format on
+        Comp comp = {}
+    ) noexcept(nothrow_invocable_r<bool, Comp, U&, T&> && nothrow_assignable_from<T, U>)  -> T& 
     {
+        // clang-format on
         if(std::invoke(std::move(comp), right, left)) left = std::forward<U>(right);
         return left;
     };
@@ -51,7 +49,11 @@ namespace blurringshadow::utility
                 typename Proj = std::identity
             >
             [[nodiscard]] constexpr bool operator()(
-                const T& v, const U& min, const V& max, Compare&& cmp = {}, Proj&& proj = {}
+                const T& v,
+                const U& min,
+                const V& max,
+                Compare&& cmp = {},
+                Proj&& proj = {}
             ) const // clang-format on
             {
                 using common_t = common_type_t<T, U, V>;
