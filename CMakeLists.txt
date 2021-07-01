@@ -12,21 +12,27 @@ init_proj()
 # Create library, setup header and source files
 #
 set(utility_header_dir "include/utility")
+set(utility_tratis_header_dir "${utility_header_dir}/traits")
+set(utility_property_header_dir "${utility_header_dir}/property")
 
 set(
     headers
-    ${utility_header_dir}/property/member_setter.h
-    ${utility_header_dir}/property/member_getter.h
+    ${utility_property_header_dir}/member_setter.h
+    ${utility_property_header_dir}/member_getter.h
 
-    ${utility_header_dir}/traits/function.h
-    ${utility_header_dir}/traits/integer_sequence.h
-    ${utility_header_dir}/traits/member.h
-    ${utility_header_dir}/traits/type_container.h
+    ${utility_tratis_header_dir}/function.h
+    ${utility_tratis_header_dir}/value_sequence.h
+    ${utility_tratis_header_dir}/sequence_set.h
+    ${utility_tratis_header_dir}/member.h
+    ${utility_tratis_header_dir}/type_container.h
 
     ${utility_header_dir}/concurrent_object.h
     ${utility_header_dir}/string_conversion.h
     ${utility_header_dir}/type_traits.h
-    ${utility_header_dir}/utility_core.h
+    ${utility_header_dir}/algorithm.h
+    ${utility_header_dir}/functional.h
+    ${utility_header_dir}/random.h
+    ${utility_header_dir}/utility.h
 )
 
 config_interface_lib(blurringshadow_utility "${headers}" STD 20)
