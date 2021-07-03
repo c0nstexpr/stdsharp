@@ -2,7 +2,6 @@
 # Print a message only if the `VERBOSE_OUTPUT` option is on
 #
 include(cmake/StandardSettings.cmake)
-include(cmake/Format.cmake)
 include(cmake/CPM.cmake)
 include(cmake/CCache.cmake)
 include(GenerateExportHeader)
@@ -15,24 +14,7 @@ function(verbose_message content)
 endfunction()
 
 include(cmake/Conan.cmake)
-include(cmake/Vcpkg.cmake)
-#
-# Add a target for formating the project using `clang-format` (i.e: cmake --build build --target clang-format)
-#
-function(target_add_clang_format file_paths)
-    if(NOT ${PROJECT_NAME}_CLANG_FORMAT_BINARY)
-	    find_program(${PROJECT_NAME}_CLANG_FORMAT_BINARY clang-format)
-    endif()
-
-    if(${PROJECT_NAME}_CLANG_FORMAT_BINARY)
-		add_custom_target(
-            clang-format
-			COMMAND ${${PROJECT_NAME}_CLANG_FORMAT_BINARY} -i $${CMAKE_CURRENT_LIST_DIR}/${file_paths}
-        )
-
-		message(STATUS "Format using the `clang-format` target (i.e: cmake --build build --target clang-format).\n")
-    endif()
-endfunction()
+conan()
 
 function(target_set_warnings target access)
     cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "WARNING_AS_ERROR" "" "" ${ARGN})
@@ -140,12 +122,6 @@ function(init_proj)
     if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
       message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there.\n")
     endif()
-
-    #
-    # Enable package managers
-    #
-    conan()
-    vcpkg()
 endfunction()
 
 #
@@ -165,7 +141,6 @@ function(config_interface_lib lib_name includes)
     #
     # Set the project standard and warnings
     #
-
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
     if(${std})
         target_compile_features(${lib_name} INTERFACE cxx_std_${std})
@@ -173,7 +148,6 @@ function(config_interface_lib lib_name includes)
     endif()
 
     target_set_warnings(${lib_name} INTERFACE WARNING_AS_ERROR)
-
 
     #
     # Set the build/user include directories
@@ -207,13 +181,11 @@ function(config_lib lib_name includes src lib_type)
         set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
     endif()
 
-
     message(STATUS "Added all header and implementation files.\n")
 
     #
     # Set the project standard and warnings
     #
-
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
     if(${std})
         target_compile_features(${lib_name} PUBLIC cxx_std_${std})
@@ -299,7 +271,6 @@ function(target_install target_name)
     #
     # Add version header
     #
-
     configure_file(
         ${CMAKE_SOURCE_DIR}/cmake/version.h.in
         include/${target_name}/version.h
@@ -314,7 +285,6 @@ function(target_install target_name)
     #
     # Install the `include` directory
     #
-
     install(
         DIRECTORY include/${target_name}
         DESTINATION include
@@ -325,7 +295,6 @@ function(target_install target_name)
     #
     # Quick `ConfigVersion.cmake` creation
     #
-
     set(VERSION_FILE_NAME ${target_name}Version.cmake)
     set(CONFIG_FILE_NAME ${target_name}Config.cmake)
 

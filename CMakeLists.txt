@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 include(cmake/Utils.cmake)
+
 #
 # Project details
 #
@@ -41,11 +42,6 @@ config_interface_lib(blurringshadow_utility "${headers}" STD 20)
 # Provide alias to library
 #
 add_library(blurringshadow::utility ALIAS blurringshadow_utility)
-
-#
-# Format the lib
-#
-clang_format(blurringshadow_utility)
 
 #
 # Model project dependencies 

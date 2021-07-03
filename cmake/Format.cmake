@@ -1,8 +1,0 @@
-set(url https://raw.githubusercontent.com/StableCoder/cmake-scripts/main/formatting.cmake)
-set(cmake_path ${CMAKE_BINARY_DIR}/format.cmake)
-if(NOT EXISTS "${cmake_path}")
-    message(STATUS "Downloading format tool `format.cmake` from ${url}")
-    file(DOWNLOAD "${url}" "${cmake_path}")
-    message(STATUS "Downloaded succesfully.")
-endif()
-include(${cmake_path})
