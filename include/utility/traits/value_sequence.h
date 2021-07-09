@@ -449,7 +449,7 @@ namespace blurringshadow::utility::traits
                     const std::index_sequence<I...> // clang-format off
                 ) noexcept(noexcept((by_index<I, Comp, Proj>::invoke(comp, proj), ...))) // clang-format on
                 {
-                    std::size_t res;
+                    std::size_t res{};
                     ((
                          [&]<std::size_t J>(const constant<J>) //
                          noexcept(noexcept(by_index<J, Comp, Proj>::invoke(comp, proj)))

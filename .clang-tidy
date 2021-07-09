@@ -1,0 +1,5 @@
+---
+Checks:            '-*,boost-*,bugprone-*,cert-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*,clang-analyzer-*,-modernize-use-trailing-return-type,-readability-named-parameter,-hicpp-named-parameter,-hicpp-braces-around-statements,-readability-braces-around-statements,-readability-misleading-indentation,-cppcoreguidelines-macro-usage'
+WarningsAsErrors:  ''
+FormatStyle:       'file'
+User:              blurringshadow

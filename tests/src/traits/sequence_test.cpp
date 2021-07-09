@@ -302,7 +302,7 @@ boost::ut::suite& sequence_test()
 
                 if constexpr(pack_size > 0)
                 {
-                    constexpr const auto& single_format_str = std::to_array("{}, ");
+                    constexpr auto single_format_str = std::to_array("{}, ");
                     format_str.reserve(
                         format_str.size() + pack_size * single_format_str.size() //
                     );

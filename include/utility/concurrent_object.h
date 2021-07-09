@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "utility_core.h"
+#include "type_traits.h"
 
 #include <shared_mutex>
 
@@ -14,11 +14,15 @@ namespace blurringshadow::utility
     public:
         template<typename... Args>
             requires std::constructible_from<T, Args...>
-        constexpr concurrent_object(Args&&... args): object_(std::forward<Args>(args)...) {}
+        constexpr concurrent_object(Args&&... args) //
+            noexcept(nothrow_constructible_from<T, Args...>):
+            object_(std::forward<Args>(args)...)
+        {
+        }
 
-        constexpr auto& raw() { return object_; }
+        constexpr auto& raw() noexcept { return object_; }
 
-        constexpr auto& raw() const { return object_; }
+        constexpr auto& raw() const noexcept { return object_; }
 
         template<std::invocable<const T&> Func>
         void read(Func&& func) const
@@ -39,7 +43,4 @@ namespace blurringshadow::utility
 
         mutable std::shared_mutex mutex_;
     };
-
-    template<typename T>
-    concurrent_object(T&&) -> concurrent_object<std::remove_cvref_t<T>>;
 }

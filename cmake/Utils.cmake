@@ -7,6 +7,9 @@ include(cmake/CCache.cmake)
 include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 
+# TODO for now clang doesn't fully support c++20
+# set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+
 function(verbose_message content)
     if(VERBOSE_OUTPUT)
 	    message(STATUS ${content})
@@ -273,7 +276,7 @@ function(target_install target_name)
     #
     configure_file(
         ${CMAKE_SOURCE_DIR}/cmake/version.h.in
-        include/${target_name}/version.h
+        ${CMAKE_CURRENT_BINARY_DIR}/include/${target_name}/version.h
         @ONLY
     )
 
@@ -286,7 +289,7 @@ function(target_install target_name)
     # Install the `include` directory
     #
     install(
-        DIRECTORY include/${target_name}
+        DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/${target_name}
         DESTINATION include
     )
 

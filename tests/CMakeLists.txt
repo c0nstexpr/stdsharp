@@ -29,7 +29,7 @@ set(
     ${utility_src_dir}/algorithm_test.cpp
     ${utility_tratis_src_dir}/sequence_test.cpp
 )
-config_exe(${PROJECT_NAME} ${exe_src} STD 20 INCLUDES "${headers}" SOURCES "${src}")
+config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
 #
 # Load the desired unit testing framework

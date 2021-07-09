@@ -6,29 +6,29 @@
 
 namespace blurringshadow::utility
 {
-    inline constexpr std::ranges::equal_to equal_to_v;
-    inline constexpr std::ranges::not_equal_to not_equal_to_v;
-    inline constexpr std::ranges::less less_v;
-    inline constexpr std::ranges::greater greater_v;
-    inline constexpr std::ranges::less_equal less_equal_v;
-    inline constexpr std::ranges::greater_equal greater_equal_v;
-    inline constexpr std::compare_three_way compare_three_way_v;
+    inline constexpr std::ranges::equal_to equal_to_v{};
+    inline constexpr std::ranges::not_equal_to not_equal_to_v{};
+    inline constexpr std::ranges::less less_v{};
+    inline constexpr std::ranges::greater greater_v{};
+    inline constexpr std::ranges::less_equal less_equal_v{};
+    inline constexpr std::ranges::greater_equal greater_equal_v{};
+    inline constexpr std::compare_three_way compare_three_way_v{};
 
-    inline constexpr std::plus<> plus_v;
-    inline constexpr std::minus<> minus_v;
-    inline constexpr std::divides<> divides_v;
-    inline constexpr std::multiplies<> multiplies_v;
-    inline constexpr std::modulus<> modulus_v;
-    inline constexpr std::negate<> negate_v;
+    inline constexpr std::plus<> plus_v{};
+    inline constexpr std::minus<> minus_v{};
+    inline constexpr std::divides<> divides_v{};
+    inline constexpr std::multiplies<> multiplies_v{};
+    inline constexpr std::modulus<> modulus_v{};
+    inline constexpr std::negate<> negate_v{};
 
-    inline constexpr std::logical_and<> logical_and_v;
-    inline constexpr std::logical_not<> logical_not_v;
-    inline constexpr std::logical_or<> logical_or_v;
+    inline constexpr std::logical_and<> logical_and_v{};
+    inline constexpr std::logical_not<> logical_not_v{};
+    inline constexpr std::logical_or<> logical_or_v{};
 
-    inline constexpr std::bit_and<> bit_and_v;
-    inline constexpr std::bit_not<> bit_not_v;
-    inline constexpr std::bit_or<> bit_or_v;
-    inline constexpr std::bit_xor<> bit_xor_v;
+    inline constexpr std::bit_and<> bit_and_v{};
+    inline constexpr std::bit_not<> bit_not_v{};
+    inline constexpr std::bit_or<> bit_or_v{};
+    inline constexpr std::bit_xor<> bit_xor_v{};
 
     struct left_shift
     {
@@ -119,17 +119,11 @@ namespace blurringshadow::utility
 
 #undef BS_UTIL_ASSIGN_OPERATE
 
-    inline constexpr std::identity identity_v;
+    inline constexpr std::identity identity_v{};
 
     namespace details
     {
         using namespace std;
-
-        template<typename T>
-        concept has_increase_cpo = requires(T&& t, const size_t i)
-        {
-            increase(forward<T>(t), i);
-        };
 
         template<typename T>
         constexpr auto invoke_increase_cpo(T&& v, const size_t i) //
@@ -139,9 +133,9 @@ namespace blurringshadow::utility
         }
 
         template<typename T>
-        concept has_decrease_cpo = requires(T&& t, const size_t i)
+        concept has_increase_cpo = requires(T&& t, const size_t i)
         {
-            decrease(forward<T>(t), i);
+            invoke_increase_cpo(forward<T>(t), i);
         };
 
         template<typename T>
@@ -150,6 +144,12 @@ namespace blurringshadow::utility
         {
             return decrease(forward<T>(v), i);
         }
+
+        template<typename T>
+        concept has_decrease_cpo = requires(T&& t, const size_t i)
+        {
+            invoke_decrease_cpo(forward<T>(t), i);
+        };
     }
 
     struct increase
@@ -195,7 +195,7 @@ namespace blurringshadow::utility
         }
 
         template<typename T>
-        [[nodiscard]] constexpr auto operator()(T v, std::size_t i) const noexcept(noexcept(++v))
+        [[nodiscard]] constexpr auto operator()(T v, std::size_t i) const noexcept(noexcept(--v))
         {
             for(; i > 0; --i) --v;
             return v;
@@ -208,16 +208,16 @@ namespace blurringshadow::utility
     namespace details
     {
         template<typename T, typename Distance>
-        concept has_advance_cpo = requires(T& t, const Distance& d)
-        {
-            advance(t, d);
-        };
-
-        template<typename T, typename Distance>
         constexpr auto invoke_advance_cpo(T& t, const Distance& d) noexcept(noexcept(advance(t, d)))
         {
             return advance(t, d);
         }
+
+        template<typename T, typename Distance>
+        concept has_advance_cpo = requires(T& t, const Distance& d)
+        {
+            invoke_advance_cpo(t, d);
+        };
     }
 
     struct advance

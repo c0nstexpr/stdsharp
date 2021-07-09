@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 
 include(cmake/Utils.cmake)
 
+set(CMAKE_CXX_STANDARD 20)
+
 #
 # Project details
 #
@@ -36,7 +38,7 @@ set(
     ${utility_header_dir}/utility.h
 )
 
-config_interface_lib(blurringshadow_utility "${headers}" STD 20)
+config_interface_lib(blurringshadow_utility "${headers}")
 
 #
 # Provide alias to library

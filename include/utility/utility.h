@@ -17,14 +17,14 @@ namespace blurringshadow::utility
         {
             T t;
 
-            template<typename U>
+            template<typename U> // NOLINTNEXTLINE(hicpp-explicit-conversions)
             [[nodiscard]] constexpr operator U() const&& noexcept(noexcept(static_cast<U>(t)))
             {
                 return static_cast<U>(t);
             }
 
             template<typename U>
-            [[nodiscard]] constexpr U operator()() const&& noexcept(noexcept(static_cast<U>(t)))
+            [[nodiscard]] constexpr auto operator()() const&& noexcept(noexcept(static_cast<U>(t)))
             {
                 return static_cast<U>(t);
             }
@@ -52,5 +52,5 @@ namespace blurringshadow::utility
         };
     }
 
-    inline constexpr details::to_underlying_fn to_underlying;
+    inline constexpr details::to_underlying_fn to_underlying{};
 }
