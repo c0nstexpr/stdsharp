@@ -49,13 +49,10 @@ add_library(blurringshadow::utility ALIAS blurringshadow_utility)
 # Model project dependencies 
 #
 find_package(fmt CONFIG REQUIRED)
-find_package(Microsoft.GSL CONFIG REQUIRED)
 
 target_link_libraries(
     blurringshadow_utility 
-    INTERFACE 
-        fmt::fmt
-        Microsoft.GSL::GSL
+    INTERFACE fmt::fmt
 )
 
 verbose_message("Successfully added all dependencies and linked against them.")

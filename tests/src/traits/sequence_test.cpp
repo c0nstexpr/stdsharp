@@ -133,20 +133,21 @@ boost::ut::suite& sequence_test()
         } | std::tuple<apply_t_test_params<static_params>>{}; // clang-format on
 
         // TODO here the braces to avoid strange MSVC compile error
+        // TODO clang lambda NTTP
         {
+            constexpr auto lam_1 = [](const int v) mutable { return v + 1; };
+            constexpr auto lam_2 = [](const int v) { return v + 42; };
+            constexpr auto lam_3 = [](const std::size_t v) { return v + 42; };
+            constexpr auto lam_4 = [](const int v) { return v + 6; };
+            constexpr auto lam_5 = []<auto Size>(const std::array<char, Size>& str) { return str[0]; };
+
             feature("transform_t") = []<auto... Functor>(const static_params<Functor...>)
             {
                 static_expect<std::default_initializable<test_seq::transform_t<Functor...>>>();
                 // clang-format off
             } | std::tuple<
                 static_params<identity_v>,
-                static_params<
-                    [](const int v) mutable { return v + 1; },
-                    [](const int v) { return v + 42; },
-                    [](const std::size_t v) { return v + 42; },
-                    [](const int v) { return v + 6; },
-                    []<auto Size>(const std::array<char, Size>& str) { return str[0]; }
-                >
+                static_params<lam_1, lam_2, lam_3, lam_4, lam_5>
             >{}; // clang-format on
         }
 

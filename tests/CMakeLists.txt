@@ -1,3 +1,5 @@
+add_subdirectory(ut)
+
 #
 # Project details
 #
@@ -22,25 +24,34 @@ set(
     headers 
     ${utility_header_dir}/test_utils.h
     ${utility_header_dir}/algorithm_test.h
+    ${utility_header_dir}/random_test.h
+    ${utility_header_dir}/utility_test.h
     ${utility_tratis_header_dir}/sequence_test.h
 )
 set(
     src
     ${utility_src_dir}/algorithm_test.cpp
     ${utility_tratis_src_dir}/sequence_test.cpp
+    ${utility_src_dir}/utility_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
-#
-# Load the desired unit testing framework
-#
-CPMAddPackage(
-  NAME ut
-  GITHUB_REPOSITORY boost-ext/ut
-  GIT_TAG 248ee8a37cc1d6e4178f3220bff5f82d380f0f05
-  OPTIONS "BOOST_UT_DISABLE_MODULE ON"
+target_include_directories(
+    ${PROJECT_NAME}_LIB 
+    SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut blurringshadow::utility)
+
+if(MSVC) # visual studio doesn't support clang-tidy directly by cmake
+    set_target_properties(
+        ${PROJECT_NAME} 
+        PROPERTIES
+            VS_GLOBAL_RunCodeAnalysis true
+            VS_GLOBAL_EnableClangTidyCodeAnalysis true
+    )
+else()
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY clang-tidy)
+endif()
 
 #
 # Add the unit tests

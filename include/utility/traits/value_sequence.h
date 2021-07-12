@@ -38,19 +38,24 @@ namespace blurringshadow::utility::traits
     template<typename Sequence>
     using make_value_seq_t = typename take_seq<Sequence>::as_value_sequence_t;
 
-    template<auto From, std::size_t Size, auto IncreaseF = increase_v>
-        requires invocable_rnonvoid<decltype(IncreaseF), decltype(From), std::size_t>
-    using make_sequence_t = decltype(
-        []<std::size_t... I>(std::index_sequence<I...>) noexcept //
-        {
-            return traits::regular_value_sequence<IncreaseF(From, I)...>{}; //
-        }(std::make_index_sequence<Size>{}) //
-    );
-
     namespace details
     {
         using namespace std;
 
+        template<auto From, auto IncreaseF, std::size_t... I>
+        constexpr traits::regular_value_sequence<IncreaseF(From, I)...>
+            make_sequence(std::index_sequence<I...>);
+    }
+
+    // clang-format off
+    template<auto From, std::size_t Size, auto IncreaseF = increase_v>
+        requires invocable_rnonvoid<decltype(IncreaseF), decltype(From), std::size_t>
+    using make_sequence_t = decltype(
+        details::make_sequence<From, IncreaseF>(std::make_index_sequence<Size>{})
+    ); //clang-format on
+
+    namespace details
+    {
         template<auto... Values>
         struct reverse_seq
         {
@@ -472,27 +477,13 @@ namespace blurringshadow::utility::traits
                 return impl{}(comp, proj, std::make_index_sequence<size() - 2>{});
             }
 
-            template<typename Comp = nullptr_t, typename Proj = nullptr_t>
+            template<typename Comp = std::nullptr_t, typename Proj = std::nullptr_t>
             [[nodiscard]] constexpr auto operator()(const Comp& = {}, const Proj& = {}) const //
                 noexcept requires(size() < 2)
             {
                 return size();
             }
         };
-
-        template<auto... Func>
-        static constexpr auto transform() noexcept // clang-format off
-        {         
-            if constexpr(sizeof...(Func) == 1) return []<auto F>(const constant<F>) noexcept
-            {
-                return value_sequence<std::invoke(F, Values)...>{};
-            }(constant<Func...>{}); // clang-format on
-            else
-            {
-                static_assert((invocable_rnonvoid<decltype(Func), decltype(Values)> && ...));
-                return value_sequence<std::invoke(Func, Values)...>{};
-            }
-        }
 
         // TODO replace it with lambda cause compile errors
         template<std::size_t From, std::size_t... I>
@@ -526,6 +517,20 @@ namespace blurringshadow::utility::traits
         static constexpr contains_fn contains{};
 
         static constexpr adjacent_find_fn adjacent_find{};
+
+        template<auto... Func>
+        static constexpr auto transform() noexcept // clang-format off
+        {         
+            if constexpr(sizeof...(Func) == 1) return []<auto F>(const constant<F>) noexcept
+            {
+                return value_sequence<std::invoke(F, Values)...>{};
+            }(constant<Func...>{}); // clang-format on
+            else
+            {
+                static_assert((invocable_rnonvoid<decltype(Func), decltype(Values)> && ...));
+                return value_sequence<std::invoke(Func, Values)...>{};
+            }
+        }
 
         template<auto... Func>
         using transform_t = decltype(transform<Func...>());

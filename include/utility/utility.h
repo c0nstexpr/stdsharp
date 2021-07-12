@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include <gsl/gsl>
 #include <utility>
-#include <concepts>
+#include <array>
+#include <vector>
+#include <string>
+#include <string_view>
 
 namespace blurringshadow::utility
 {

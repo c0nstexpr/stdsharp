@@ -69,13 +69,13 @@ namespace blurringshadow::utility
 
         static constexpr auto value = Value;
 
-        constexpr operator const value_type&() const noexcept { return value; }
+        explicit constexpr operator const value_type&() const noexcept { return value; }
 
         [[nodiscard]] constexpr auto& operator()() const noexcept { return value; }
     };
 
     template<auto Value>
-    inline constexpr auto constant_v = constant<Value>::value;
+    inline constexpr auto constant_v = Value;
 
     template<auto Value>
     inline constexpr auto constant_t = constant<Value>::value_type;

@@ -60,51 +60,61 @@ namespace blurringshadow::utility
     {
         using namespace std;
 
-        template<bool Requirement, auto Operation, auto AlternativeOperation> // clang-format off
-        inline constexpr auto operator_assign = []<typename T, typename U>(T& left, U&& right)
-            noexcept(
-                Requirement && nothrow_invocable<decltype(Operation), T&, U&&> ||
-                nothrow_invocable<decltype(AlternativeOperation), T&, U&&> && 
-                nothrow_assignable_from<T, invoke_result_t<decltype(AlternativeOperation), T&, U&&>>
-            ) // clang-format on
+        template<bool Requirement> // clang-format off
+        inline constexpr auto operator_assign = []<
+            typename T,
+            typename U,
+            typename Operation,
+            typename AlternativeOperation
+        >(
+            T& left,
+            U&& right,
+            Operation op,
+            AlternativeOperation al_op
+        ) noexcept(
+            Requirement && nothrow_invocable<Operation, T&, U&&> ||
+            nothrow_invocable<AlternativeOperation, T&, U&&> && 
+            nothrow_assignable_from<T, invoke_result_t<AlternativeOperation, T&, U&&>>
+        ) // clang-format on
         {
-            if constexpr(Requirement) return std::invoke(Operation, left, forward<U>(right));
+            if constexpr(Requirement) return std::invoke(op, left, forward<U>(right));
             else
             {
-                left = std::invoke(AlternativeOperation, left, forward<U>(right));
+                left = std::invoke(al_op, left, forward<U>(right));
                 return left;
             }
         };
     }
 
-#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                     \
-    namespace details                                                                 \
-    {                                                                                 \
-        using namespace std;                                                          \
-                                                                                      \
-        template<typename T, typename U>                                              \
-        concept operator_type##_assignable = requires(T a, U b)                       \
-        {                                                                             \
-            a op## = b;                                                               \
-        };                                                                            \
-                                                                                      \
-        struct operator_type##_assign_fn                                              \
-        {                                                                             \
-            template<typename T, typename U>                                          \
-            static constexpr auto operator_assign_fn = operator_assign<               \
-                operator_type##_assignable<T, U>,                                     \
-                []<typename FwU>(T& l, FwU&& r) { return l op## = forward<FwU>(r); }, \
-                operator_type##_v>;                                                   \
-                                                                                      \
-            template<typename T, typename U>                                          \
-            [[nodiscard]] constexpr auto operator()(T& left, U&& right) const         \
-                noexcept(noexcept(operator_assign_fn<T, U>(left, forward<U>(right)))) \
-            {                                                                         \
-                return operator_assign_fn<T, U>(left, forward<U>(right));             \
-            }                                                                         \
-        };                                                                            \
-    }                                                                                 \
-                                                                                      \
+#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                         \
+    namespace details                                                                     \
+    {                                                                                     \
+        template<typename T, typename U>                                                  \
+        concept operator_type##_assignable = requires(T a, U b)                           \
+        {                                                                                 \
+            a op## = b;                                                                   \
+        };                                                                                \
+                                                                                          \
+        struct operator_type##_assign_fn                                                  \
+        {                                                                                 \
+            template<typename T, typename U>                                              \
+            static constexpr auto operator_assign_fn =                                    \
+                operator_assign<operator_type##_assignable<T, U>>;                        \
+                                                                                          \
+            template<typename T, typename U>                                              \
+            [[nodiscard]] constexpr auto operator()(T& left, U&& right) const             \
+                noexcept(noexcept(operator_assign_fn<T, U>(left, forward<U>(right))))     \
+            {                                                                             \
+                return operator_assign_fn<T, U>(                                          \
+                    left,                                                                 \
+                    forward<U>(right),                                                    \
+                    []<typename FwU>(T& l, FwU&& r) { return l op## = forward<FwU>(r); }, \
+                    operator_type##_v /**/                                                \
+                );                                                                        \
+            }                                                                             \
+        };                                                                                \
+    }                                                                                     \
+                                                                                          \
     inline constexpr details::operator_type##_assign_fn operator_type##_assign;
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
@@ -126,30 +136,31 @@ namespace blurringshadow::utility
         using namespace std;
 
         template<typename T>
+        concept has_increase_cpo = requires(T v, const size_t i)
+        {
+            increase(v, i);
+        };
+
+        template<has_increase_cpo T>
         constexpr auto invoke_increase_cpo(T&& v, const size_t i) //
-            noexcept(noexcept(increase(forward<T>(v), i)))
+            noexcept(increase(forward<T>(v), i))
         {
             return increase(forward<T>(v), i);
         }
 
-        template<typename T>
-        concept has_increase_cpo = requires(T&& t, const size_t i)
-        {
-            invoke_increase_cpo(forward<T>(t), i);
-        };
 
         template<typename T>
+        concept has_decrease_cpo = requires(T v, const size_t i)
+        {
+            decrease(v, i);
+        };
+
+        template<has_decrease_cpo T>
         constexpr auto invoke_decrease_cpo(T&& v, const size_t i) //
             noexcept(noexcept(decrease(forward<T>(v), i)))
         {
             return decrease(forward<T>(v), i);
         }
-
-        template<typename T>
-        concept has_decrease_cpo = requires(T&& t, const size_t i)
-        {
-            invoke_decrease_cpo(forward<T>(t), i);
-        };
     }
 
     struct increase
@@ -279,14 +290,11 @@ namespace blurringshadow::utility
 
     namespace details
     {
-        using namespace std;
-
         struct clone_fn
         {
             template<typename T>
-                requires convertible_to<T, remove_cvref_t<T>>
-            [[nodiscard]] constexpr remove_cvref_t<T> operator()(T&& t) const
-                noexcept(nothrow_convertible_to<T, remove_cvref_t<T>>)
+            [[nodiscard]] constexpr std::remove_cvref_t<T> operator()(T&& t) const 
+                noexcept(nothrow_constructible_from<std::remove_cvref_t<T>, T>)
             {
                 return forward<T>(t);
             }
