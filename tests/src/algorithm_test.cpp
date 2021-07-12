@@ -14,20 +14,18 @@ boost::ut::suite& algorithm_test()
             given("given two values") = []
             {
                 // clang-format off
-                auto get_when_test = []<auto CompareTo, auto Func>(
-                    const static_params<CompareTo, Func>
-                )
+                auto get_when_test = [](const auto compare_to, const auto func)
                 // clang-format on
                 {
-                    constexpr auto is_set = std::partial_order(Second, First) == CompareTo;
-                    constexpr auto then_name = is_set ?
+                    const auto is_set = std::partial_order(Second, First) == compare_to;
+                    const auto then_name = is_set ?
                         "should set first value to second value" :
                         "should not set first value to second value";
-                    then(then_name) = [is_set = is_set]
+                    then(then_name) = [=]
                     {
                         auto first = First;
-                        auto second = Second;
-                        expect(Func(first, second) == second == is_set);
+                        const auto second = Second;
+                        expect(func(first, second) == second == is_set);
                     };
                 };
 
@@ -35,12 +33,12 @@ boost::ut::suite& algorithm_test()
 
                 when("set the value if greater") = [&get_when_test] // clang-format off
                 {
-                    get_when_test(static_params<std::partial_ordering::greater, set_if_greater>{});
+                    get_when_test(std::partial_ordering::greater, set_if_greater);
                 };
 
                 when("set the value if less") = [&get_when_test]
                 {
-                    get_when_test(static_params<std::partial_ordering::less, set_if_less>{});
+                    get_when_test(std::partial_ordering::less, set_if_less);
                 };
             };
             
