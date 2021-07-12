@@ -10,6 +10,9 @@ jobs:
   job:          
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
+    env:
+      Target: blurringshadowTests
+      buildDir: '${{ github.workspace }}/build'
     strategy:
       fail-fast: false
       matrix:
@@ -18,20 +21,23 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             cmakeOptions: '-DBOOST_UT_DISABLE_MODULE:BOOL="True"'
-            Target: blurringshadowTests
+            buildOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DCMAKE_BUILD_TYPE=RELEASE
-            Target: blurringshadowTests
+            buildOptions: '-Wno-logical-op-parentheses'
           - os: macos-latest
             triplet: x64-osx
+            buildOptions: '-Wno-logical-op-parentheses'
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
-            Target: blurringshadowTests
-    env:
-      Target: blurringshadowTests
-      buildDir: '${{ github.workspace }}/out'
-      
     steps:
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/${{ env.buildDir }}
+          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+      
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -66,4 +72,4 @@ jobs:
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           buildDirectory: '${{ env.buildDir }}'
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }}
+          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} ${{ matrix.buildOptions }}
