@@ -25,12 +25,6 @@ jobs:
           - os: macos-latest
             triplet: x64-osx
     steps:
-      - name: Cache paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/${{ env.buildDir }}
-      
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -44,7 +38,7 @@ jobs:
           setupOnly: true
           vcpkgGitCommitId: 'b2544fd780b2e9a05d903314cbbd37268ba43d81'
           # Ensure the cache key changes any time the content of the manifest file changes.
-          appendedCacheKey: ${{ hashFiles( 'vcpkg.json' ) }}
+          appendedCacheKey: ${{ hashFiles('vcpkg.json') }}
           vcpkgTriplet: ${{ matrix.triplet }}
        
       - name: Run CMake with vcpkg.json manifest
