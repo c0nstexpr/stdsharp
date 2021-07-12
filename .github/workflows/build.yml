@@ -20,13 +20,10 @@ jobs:
         include:
           - os: windows-latest
             triplet: x64-windows
-            cmakeOptions: '-DBOOST_UT_DISABLE_MODULE:BOOL="True"'
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DCMAKE_BUILD_TYPE=RELEASE
           - os: macos-latest
             triplet: x64-osx
-            cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
     steps:
       - name: Cache paths
         uses: actions/cache@v2
@@ -58,7 +55,6 @@ jobs:
           buildDirectory: '${{ env.buildDir }}'
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
-          cmakeAppendedArgs : ${{ matrix.cmakeOptions }}
 
       - name: Build Project
         uses: lukka/run-cmake@main
