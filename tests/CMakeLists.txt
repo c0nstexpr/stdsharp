@@ -1,5 +1,3 @@
-add_subdirectory(./ut)
-
 #
 # Project details
 #
@@ -36,12 +34,6 @@ set(
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
-target_include_directories(
-    ${PROJECT_NAME}_LIB 
-    SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut blurringshadow::utility)
-
 if(MSVC) # visual studio doesn't support clang-tidy directly by cmake
     set_target_properties(
         ${PROJECT_NAME} 
@@ -49,21 +41,26 @@ if(MSVC) # visual studio doesn't support clang-tidy directly by cmake
             VS_GLOBAL_RunCodeAnalysis true
             VS_GLOBAL_EnableClangTidyCodeAnalysis true
     )
-    if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-        set(additional_option /W0)
-    else()
-        set(additional_option /W0 /experimental:module)
-    endif()
+    set(additional_option /W0)
+    set(BOOST_UT_DISABLE_MODULE true)
 else()
     set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY clang-tidy)
-    if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-        set(additional_option -w)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "(.*Clang)|GNU")
         set(additional_option -w)
     endif()
 endif()
 
 target_compile_options(${PROJECT_NAME}_LIB PUBLIC ${additional_option})
+
+target_include_directories(
+    ${PROJECT_NAME}_LIB 
+    SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+add_subdirectory(./ut)
+
+target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut blurringshadow::utility)
+
 
 #
 # Add the unit tests
