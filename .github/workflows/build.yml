@@ -21,22 +21,18 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             cmakeOptions: '-DBOOST_UT_DISABLE_MODULE:BOOL="True"'
-            buildOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10 -DCMAKE_BUILD_TYPE=RELEASE
-            buildOptions: '-Wno-logical-op-parentheses'
           - os: macos-latest
             triplet: x64-osx
-            buildOptions: '-Wno-logical-op-parentheses'
             cmakeOptions: -DCMAKE_CXX_COMPILER=gcc-10
     steps:
-      - name: Cache multiple paths
+      - name: Cache paths
         uses: actions/cache@v2
         with:
           path: |
             ~/${{ env.buildDir }}
-          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
       
       - uses: actions/checkout@v2
         with:
@@ -72,4 +68,4 @@ jobs:
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           buildDirectory: '${{ env.buildDir }}'
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }} ${{ matrix.buildOptions }}
+          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }}

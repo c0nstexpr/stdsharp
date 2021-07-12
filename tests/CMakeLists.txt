@@ -49,9 +49,19 @@ if(MSVC) # visual studio doesn't support clang-tidy directly by cmake
             VS_GLOBAL_RunCodeAnalysis true
             VS_GLOBAL_EnableClangTidyCodeAnalysis true
     )
+    if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+        set(additional_option /W0)
+    else()
+        set(additional_option /W0 /experimental:module)
+    endif()
 else()
     set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY clang-tidy)
+    if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" or CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(additional_option -w)
+    endif()
 endif()
+
+target_compile_options(${PROJECT_NAME}_LIB PUBLIC ${additional_option})
 
 #
 # Add the unit tests
