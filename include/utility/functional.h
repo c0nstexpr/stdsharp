@@ -143,7 +143,7 @@ namespace blurringshadow::utility
 
         template<has_increase_cpo T>
         constexpr auto invoke_increase_cpo(T&& v, const size_t i) //
-            noexcept(increase(std::forward<T>(v), i))
+            noexcept(increase(std::declval<T>(), size_t{}))
         {
             return increase(forward<T>(v), i);
         }
@@ -157,7 +157,7 @@ namespace blurringshadow::utility
 
         template<has_decrease_cpo T>
         constexpr auto invoke_decrease_cpo(T&& v, const size_t i) //
-            noexcept(noexcept(decrease(std::forward<T>(v), i)))
+            noexcept(noexcept(decrease(std::declval<T>(), size_t{})))
         {
             return decrease(forward<T>(v), i);
         }
