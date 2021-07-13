@@ -52,6 +52,7 @@ jobs:
           buildDirectory: '${{ env.buildDir }}'
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
+          cmakeAppendedArgs: ${{ matrix.cmakeOptions }}
 
       - name: Build Project
         uses: lukka/run-cmake@main
