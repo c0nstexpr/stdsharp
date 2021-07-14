@@ -21,7 +21,7 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             cmakeOptions: ''
-            testOptions: '--test-dir ${{ env.buildDir }}'
+            testOptions: '--test-dir build'
           - os: ubuntu-latest
             triplet: x64-linux
             cmakeOptions: -DCMAKE_CXX_COMPILER=g++-11
