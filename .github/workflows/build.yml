@@ -21,9 +21,11 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             cmakeOptions: ''
+            testOptions: '--test-dir ${{ env.buildDir }}'
           - os: ubuntu-latest
             triplet: x64-linux
             cmakeOptions: -DCMAKE_CXX_COMPILER=g++-11
+            testOptions: ''
     steps:
       - uses: actions/checkout@v2
         with:
@@ -57,13 +59,4 @@ jobs:
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs: ${{ matrix.cmakeOptions }}
-
-      - name: Build Project
-        uses: lukka/run-cmake@main
-        with:
-          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          useVcpkgToolchainFile: true
-          vcpkgTriplet: ${{ matrix.triplet }}
-          buildDirectory: '${{ env.buildDir }}'
-          cmakeAppendedArgs : --build ${{ env.buildDir }} -t ${{ env.Target }}
+          ctestCommandArgs: ${{ matrix.testOptions }}

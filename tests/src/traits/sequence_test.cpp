@@ -63,7 +63,7 @@ boost::ut::suite& sequence_test()
                 then("indexed value should be expected value") = []
                 {
                     print(fmt::format("expected value: {}", Expect));
-                    static_expect<test_seq::get_by_index<I>() == _t<std::size_t>{Expect}>();
+                    static_expect<test_seq::get_by_index<I>() == Expect>();
                 };
             }; // clang-format off
         } | std::tuple<
@@ -94,8 +94,9 @@ boost::ut::suite& sequence_test()
 
                 then("found index should be expected") = []
                 {
+                    constexpr auto i = test_seq::find(V);
                     print(fmt::format("expected: {}", Expect));
-                    static_expect<test_seq::find(V) == _t{Expect}>();
+                    static_expect<i == Expect>() << fmt::format("actual value: {}", i);
                 };
             }; // clang-format off
         } | std::tuple<
@@ -112,8 +113,9 @@ boost::ut::suite& sequence_test()
 
                 then("count should be expected") = []
                 {
+                    constexpr auto count = test_seq::count(V);
                     print(fmt::format("expected: {}", Expect));
-                    static_expect<test_seq::count(V) == _t(Expect)>();
+                    static_expect<count == Expect>() << fmt::format("actual value: {}", count);
                 };
             }; // clang-format off
         } | std::tuple<static_params<0, 1>, static_params<1, 2>, static_params<'?', 0>>{};

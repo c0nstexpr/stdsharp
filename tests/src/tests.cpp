@@ -8,6 +8,4 @@ int main()
 {
     algorithm_test();
     sequence_test();
-
-    return 0;
 }
