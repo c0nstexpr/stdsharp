@@ -21,11 +21,9 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             cmakeOptions: ''
-            testOptions: '--test-dir build'
           - os: ubuntu-latest
             triplet: x64-linux
             cmakeOptions: -DCMAKE_CXX_COMPILER=g++-11
-            testOptions: ''
     steps:
       - uses: actions/checkout@v2
         with:
@@ -59,4 +57,8 @@ jobs:
           useVcpkgToolchainFile: true
           vcpkgTriplet: ${{ matrix.triplet }}
           cmakeAppendedArgs: ${{ matrix.cmakeOptions }}
-          ctestCommandArgs: ${{ matrix.testOptions }}
+
+      - name: Run test
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: cd build ctest

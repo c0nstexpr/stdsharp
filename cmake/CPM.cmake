@@ -12,7 +12,7 @@ if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
       DOWNLOAD
       https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
       SHOW_PROGRESS
-      ${CPM_DOWNLOAD_LOCATION}
+      "${CPM_DOWNLOAD_LOCATION}"
   )
 endif()
 

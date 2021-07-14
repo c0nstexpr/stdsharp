@@ -370,3 +370,5 @@ MigrationBackup/
 out/*
 *.DotSettings
 /CMakeSettings.json
+clang-build/*
+wsl-gcc-build/*

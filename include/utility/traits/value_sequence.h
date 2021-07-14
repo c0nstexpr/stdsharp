@@ -320,8 +320,11 @@ namespace blurringshadow::utility::traits
                 const auto& v,
                 Comp comp = {},
                 Proj&& proj = {} //
-            ) const
-                noexcept(noexcept(find_if(base::value_comparer(v, comp), std::forward<Proj>(proj))))
+            ) const noexcept(nothrow_invocable< // clang-format off
+                find_if_fn,
+                decltype(base::value_comparer(v, comp)),
+                Proj
+            >) // clang-format on
             {
                 return find_if(base::value_comparer(v, comp), std::forward<Proj>(proj));
             }
@@ -414,7 +417,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const
-                noexcept(noexcept(find(v, std::forward<Proj>(proj))))
+                noexcept(nothrow_invocable<find_fn, decltype(v), Proj>)
             {
                 return find(v, std::forward<Proj>(proj)) != size();
             }
