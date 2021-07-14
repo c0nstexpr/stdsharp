@@ -63,7 +63,7 @@ boost::ut::suite& sequence_test()
                 then("indexed value should be expected value") = []
                 {
                     print(fmt::format("expected value: {}", Expect));
-                    static_expect<test_seq::get_by_index<I>() == _t{Expect}>();
+                    static_expect<test_seq::get_by_index<I>() == _t<std::size_t>{Expect}>();
                 };
             }; // clang-format off
         } | std::tuple<
