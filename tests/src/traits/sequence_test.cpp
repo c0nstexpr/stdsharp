@@ -95,7 +95,7 @@ boost::ut::suite& sequence_test()
                 then("found index should be expected") = []
                 {
                     print(fmt::format("expected: {}", Expect));
-                    static_expect<test_seq::find(V) == _t(Expect)>();
+                    static_expect<test_seq::find(V) == _t{Expect}>();
                 };
             }; // clang-format off
         } | std::tuple<

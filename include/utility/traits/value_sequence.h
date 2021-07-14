@@ -263,7 +263,7 @@ namespace blurringshadow::utility::traits
                 noexcept(details::seq_nothrow_invocable<Proj, Func, Values...>)
             {
                 const auto f = [&]<typename T>(T&& v) //
-                    noexcept(std::invoke(func, std::invoke(proj, std::forward<T>(v))))
+                    noexcept(std::invoke(func, std::invoke(proj, std::declval<T>())))
                 {
                     if(size == 0) return false;
                     std::invoke(func, std::invoke(proj, std::forward<T>(v)));

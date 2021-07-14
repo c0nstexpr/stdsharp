@@ -24,9 +24,6 @@ jobs:
           - os: ubuntu-latest
             triplet: x64-linux
             cmakeOptions: -DCMAKE_CXX_COMPILER=g++-11
-          - os: macos-latest
-            triplet: x64-osx
-            cmakeOptions: -DCMAKE_CXX_COMPILER=g++-11
     steps:
       - uses: actions/checkout@v2
         with:
@@ -34,6 +31,7 @@ jobs:
       
       - name: Set up G++
         uses: egor-tensin/setup-gcc@v1
+        if: ${{ runner.os }} == Linux
         with:
           version: 11
           platform: x64
