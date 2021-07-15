@@ -131,8 +131,6 @@ namespace blurringshadow::utility::traits
 
             using index_seq = index_sequence<I...>;
 
-            static constexpr auto size() noexcept { return sizeof...(Values); }
-
             template<typename T, typename Comp>
             static constexpr auto value_comparer(const T& value, Comp& comp = {}) noexcept
             {
@@ -181,6 +179,8 @@ namespace blurringshadow::utility::traits
             return base::template get_value<I>();
         }
 
+        static constexpr auto size() noexcept { return sizeof...(Values); }
+
     private:
         using base = details::value_sequence<
             value_sequence<Values...>,
@@ -188,8 +188,6 @@ namespace blurringshadow::utility::traits
         >; // clang-format on
 
     public:
-        using base::size;
-
         using index_seq = typename base::index_seq;
 
         template<typename Func>
@@ -319,8 +317,8 @@ namespace blurringshadow::utility::traits
             [[nodiscard]] constexpr auto operator()( //
                 const auto& v,
                 Comp comp = {},
-                Proj&& proj = {} //
-            ) const noexcept(nothrow_invocable< // clang-format off
+                Proj&& proj = {} // clang-format off
+            ) const noexcept(nothrow_invocable<
                 find_if_fn,
                 decltype(base::value_comparer(v, comp)),
                 Proj
@@ -373,11 +371,13 @@ namespace blurringshadow::utility::traits
             [[nodiscard]] constexpr auto operator()( //
                 const auto& v,
                 Comp comp = {},
-                Proj&& proj = {} //
-            ) const
-                noexcept(
-                    noexcept(count_if(base::value_comparer(v, comp), std::forward<Proj>(proj))) //
-                )
+                Proj&& proj = {} // clang-format off
+            ) const noexcept(nothrow_invocable<
+                count_if_fn,
+                decltype(base::value_comparer(v, comp)), 
+                Proj
+            >
+            ) // clang-format on
             {
                 return count_if(base::value_comparer(v, comp), std::forward<Proj>(proj));
             }
@@ -387,7 +387,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(noexcept(find_if_not(std::forward<Func>(func), std::forward<Proj>(proj))))
+                noexcept(nothrow_invocable<find_if_not_fn, Func, Proj>)
             {
                 return find_if_not(std::forward<Func>(func), std::forward<Proj>(proj)) == size();
             }
@@ -397,7 +397,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(noexcept(find_if(std::forward<Func>(func), std::forward<Proj>(proj))))
+                noexcept(nothrow_invocable<find_if_fn, Func, Proj>)
             {
                 return find_if(std::forward<Func>(func), std::forward<Proj>(proj)) != size();
             }
@@ -407,7 +407,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(noexcept(find_if(std::forward<Func>(func), std::forward<Proj>(proj))))
+                noexcept(nothrow_invocable<find_if_fn, Func, Proj>)
             {
                 return find_if(std::forward<Func>(func), std::forward<Proj>(proj)) == size();
             }
@@ -488,7 +488,6 @@ namespace blurringshadow::utility::traits
             }
         };
 
-        // TODO replace it with lambda cause compile errors
         template<std::size_t From, std::size_t... I>
         static constexpr indexed_t<From + I...> select_range_indexed( // clang-format off
             std::index_sequence<I...>
@@ -541,16 +540,11 @@ namespace blurringshadow::utility::traits
         template<std::size_t From, std::size_t Size>
         using select_range_indexed_t =
             decltype(select_range_indexed<From>(std::make_index_sequence<Size>{}));
-        /*decltype([]<std::size_t... I>(const std::index_sequence<I...>) {
-        return sequence::indexed_t<From + I...>{};
-        }(std::make_index_sequence<Size>{}));*/
 
         template<std::size_t Size>
-            requires(Size <= size())
         using back_t = select_range_indexed_t<size() - Size, Size>;
 
         template<std::size_t Size>
-            requires(Size <= size())
         using front_t = select_range_indexed_t<0, Size>;
 
         template<auto... Others>
