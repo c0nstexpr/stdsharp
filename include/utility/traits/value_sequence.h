@@ -179,7 +179,7 @@ namespace blurringshadow::utility::traits
             return base::template get_value<I>();
         }
 
-        static constexpr auto size() noexcept { return sizeof...(Values); }
+        static constexpr std::size_t size() noexcept { return sizeof...(Values); }
 
     private:
         using base = details::value_sequence<
