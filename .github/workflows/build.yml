@@ -63,4 +63,4 @@ jobs:
         shell: pwsh
         run: |
           cd build
-          ctest
+          ctest -C Debug
