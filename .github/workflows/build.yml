@@ -61,4 +61,6 @@ jobs:
       - name: Run test
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
-        run: cd build ctest
+        run: |
+          cd build
+          ctest
