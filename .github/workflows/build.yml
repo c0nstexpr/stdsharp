@@ -36,6 +36,13 @@ jobs:
           version: 11
           platform: x64
 
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        if: ${{ runner.os == 'Linux' }}
+        with:
+          version: "12"
+          cached: true
+
       - uses: lukka/get-cmake@latest
  
       - name: Restore artifacts, or setup vcpkg (do not install any package)
