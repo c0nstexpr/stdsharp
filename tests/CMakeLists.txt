@@ -44,7 +44,7 @@ if(MSVC) # visual studio doesn't support clang-tidy directly by cmake
     set(additional_option /W0)
     set(BOOST_UT_DISABLE_MODULE true)
 else()
-    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY clang-tidy)
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY $ENV{CLANG_TIDY_WHERE})
     if(CMAKE_CXX_COMPILER_ID MATCHES "(.*Clang)|GNU")
         set(additional_option -w)
     endif()
