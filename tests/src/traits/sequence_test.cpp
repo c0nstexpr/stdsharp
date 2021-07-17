@@ -293,46 +293,48 @@ boost::ut::suite& sequence_test()
             >
         >{}; // clang-format on
 
-        // clang-format off
-        feature("unique_seq_t") = []<typename Expect, auto... Values>(
-            const unique_seq_t_test_params<Expect, Values...>
-        ) // clang-format on
-        {
-            given("given values") = []
-            {
-                constexpr auto pack_size = sizeof...(Values);
-                std::string format_str = "values: ";
+        //// clang-format off
+        //feature("unique_seq_t") = []<typename Expect, auto... Values>(
+        //    const unique_seq_t_test_params<Expect, Values...>
+        //) // clang-format on
+        //{
+        //    given("given values") = []
+        //    {
+        //        constexpr auto pack_size = sizeof...(Values);
+        //        std::string format_str = "values: ";
 
-                if constexpr(pack_size > 0)
-                {
-                    constexpr auto single_format_str = std::to_array("{}, ");
-                    format_str.reserve(
-                        format_str.size() + pack_size * single_format_str.size() //
-                    );
-                    for([[maybe_unused]] const auto _ :
-                        std::ranges::iota_view{std::size_t{0}, pack_size - 1})
-                        format_str += single_format_str.data();
-                    format_str += "{}";
-                }
+        //        if constexpr(pack_size > 0)
+        //        {
+        //            constexpr auto single_format_str = std::to_array("{}, ");
+        //            format_str.reserve(
+        //                format_str.size() + pack_size * single_format_str.size() //
+        //            );
+        //            for([[maybe_unused]] const auto _ :
+        //                std::ranges::iota_view{std::size_t{0}, pack_size - 1})
+        //                format_str += single_format_str.data();
+        //            format_str += "{}";
+        //        }
 
-                print(fmt::format(format_str, Values...));
+        //        print(fmt::format(format_str, Values...));
 
-                then("use seq as unique_seq_t template arg, "
-                     "type should be expected") = []
-                {
-                    print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
-                    using actual_t = traits::unique_seq_t<Values...>;
-                    static_expect<_b(std::same_as<actual_t, Expect>)>() << //
-                        fmt::format("actual type: {}", reflection::type_name<actual_t>());
-                };
-            }; // clang-format off
-        } | std::tuple<
-            unique_seq_t_test_params<traits::regular_value_sequence<>>,
-            unique_seq_t_test_params<
-                traits::regular_value_sequence<0, 10, 1, 5>,
-                0, 10, 1, 5, 10, 1
-            >
-        >{}; // clang-format on
+        //        then("use seq as unique_seq_t template arg, "
+        //             "type should be expected") = []
+        //        {
+        //            print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
+        //            using actual_t = traits::unique_seq_t<Values...>;
+        //            static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+        //                fmt::format("actual type: {}", reflection::type_name<actual_t>());
+        //        };
+        //    }; // clang-format off
+        //} | std::tuple<
+        //    unique_seq_t_test_params<traits::regular_value_sequence<>>,
+        //    unique_seq_t_test_params<
+        //        traits::regular_value_sequence<0, 10, 1, 5>,
+        //        0, 10, 1, 5, 10, 1
+        //    >
+        //>{}; // clang-format on
+
+        using t = traits::make_sequence_t<0, 1>;
     };
 
     return suite;

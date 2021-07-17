@@ -42,17 +42,17 @@ namespace blurringshadow::utility::traits
     {
         using namespace std;
 
-        template<auto From, auto IncreaseF, std::size_t... I>
-        constexpr traits::regular_value_sequence<IncreaseF(From, I)...>
-            make_sequence(std::index_sequence<I...>);
+        template<auto From, auto PlusF, std::size_t... I>
+            requires requires { traits::regular_value_sequence<invoke(PlusF, From, I)...>{}; }
+        constexpr auto make_sequence(std::index_sequence<I...>) noexcept
+        {
+            return traits::regular_value_sequence<invoke(PlusF, From, I)...>{};
+        }
     }
 
-    // clang-format off
-    template<auto From, std::size_t Size, auto IncreaseF = increase_v>
-        requires invocable_rnonvoid<decltype(IncreaseF), decltype(From), std::size_t>
-    using make_sequence_t = decltype(
-        details::make_sequence<From, IncreaseF>(std::make_index_sequence<Size>{})
-    ); //clang-format on
+    template<auto From, std::size_t Size, auto PlusF = plus_v>
+    using make_sequence_t =
+        decltype(details::make_sequence<From, PlusF>(std::make_index_sequence<Size>{}));
 
     namespace details
     {
@@ -61,7 +61,7 @@ namespace blurringshadow::utility::traits
         {
             using seq = value_sequence<Values...>;
             using type = typename seq::template indexed_by_seq_t<
-                make_sequence_t<seq::size(), seq::size(), decrease_v> // clang-format off
+                make_sequence_t<seq::size(), seq::size(), random_pre_decrease_v> // clang-format off
             >; // clang-format on
         };
 

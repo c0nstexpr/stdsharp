@@ -86,36 +86,38 @@ namespace blurringshadow::utility
         };
     }
 
-#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                         \
-    namespace details                                                                     \
-    {                                                                                     \
-        template<typename T, typename U>                                                  \
-        concept operator_type##_assignable = requires(T a, U b)                           \
-        {                                                                                 \
-            a op## = b;                                                                   \
-        };                                                                                \
-                                                                                          \
-        struct operator_type##_assign_fn                                                  \
-        {                                                                                 \
-            template<typename T, typename U>                                              \
-            static constexpr auto operator_assign_fn =                                    \
-                operator_assign<operator_type##_assignable<T, U>>;                        \
-                                                                                          \
-            template<typename T, typename U>                                              \
-            [[nodiscard]] constexpr auto operator()(T& left, U&& right) const             \
-                noexcept(noexcept(operator_assign_fn<T, U>(left, forward<U>(right))))     \
-            {                                                                             \
-                return operator_assign_fn<T, U>(                                          \
-                    left,                                                                 \
-                    forward<U>(right),                                                    \
-                    []<typename FwU>(T& l, FwU&& r) { return l op## = forward<FwU>(r); }, \
-                    operator_type##_v /**/                                                \
-                );                                                                        \
-            }                                                                             \
-        };                                                                                \
-    }                                                                                     \
-                                                                                          \
-    inline constexpr details::operator_type##_assign_fn operator_type##_assign;
+#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                     \
+    namespace details                                                                 \
+    {                                                                                 \
+        template<typename T, typename U>                                              \
+        concept operator_type##_assignable = requires(T a, U b)                       \
+        {                                                                             \
+            a op## = b;                                                               \
+        };                                                                            \
+    }                                                                                 \
+                                                                                      \
+    struct operator_type##_assign                                                     \
+    {                                                                                 \
+    private:                                                                          \
+        template<typename T, typename U>                                              \
+        static constexpr auto operator_assign_fn =                                    \
+            details::operator_assign<details::operator_type##_assignable<T, U>>;      \
+                                                                                      \
+    public:                                                                           \
+        template<typename T, typename U>                                              \
+        [[nodiscard]] constexpr auto operator()(T& left, U&& right) const             \
+            noexcept(noexcept(operator_assign_fn<T, U>(left, forward<U>(right))))     \
+        {                                                                             \
+            return operator_assign_fn<T, U>(                                          \
+                left,                                                                 \
+                forward<U>(right),                                                    \
+                []<typename FwU>(T& l, FwU&& r) { return l op## = forward<FwU>(r); }, \
+                operator_type##_v /**/                                                \
+            );                                                                        \
+        }                                                                             \
+    };                                                                                \
+                                                                                      \
+    inline constexpr operator_type##_assign operator_type##_assign_v;
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
     BS_UTIL_ASSIGN_OPERATE(minus, -)
@@ -131,125 +133,88 @@ namespace blurringshadow::utility
 
     inline constexpr std::identity identity_v{};
 
-    namespace details
-    {
-        using namespace std;
+#define BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(operator_prefix, op)                      \
+    struct pre_##operator_prefix##crease                                                \
+    {                                                                                   \
+        template<typename T>                                                            \
+        [[nodiscard]] constexpr auto operator()(T& v) noexcept(noexcept(op##op v))      \
+        {                                                                               \
+            return op##op v;                                                            \
+        }                                                                               \
+    };                                                                                  \
+                                                                                        \
+    inline constexpr pre_##operator_prefix##crease pre_##operator_prefix##crease_v{};   \
+                                                                                        \
+    struct post_##operator_prefix##crease                                               \
+    {                                                                                   \
+        template<typename T>                                                            \
+        [[nodiscard]] constexpr auto operator()(T& v) noexcept(noexcept(v op##op))      \
+        {                                                                               \
+            return v op##op;                                                            \
+        }                                                                               \
+    };                                                                                  \
+    inline constexpr post_##operator_prefix##crease post_##operator_prefix##crease_v{}; \
+                                                                                        \
+    struct random_pre_##operator_prefix##crease                                         \
+    {                                                                                   \
+        template<typename T>                                                            \
+            requires std::invocable<plus_assign, T, std::size_t>                        \
+        [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i) const        \
+            noexcept(nothrow_invocable<std::plus<>, T&, std::size_t>)                   \
+        {                                                                               \
+            return plus_assign_v(v, i);                                                 \
+        }                                                                               \
+                                                                                        \
+        template<typename T>                                                            \
+        [[nodiscard]] constexpr auto operator()(T& v, std::size_t i) const              \
+            noexcept(noexcept(pre_operator_prefix##crease_v(v)))                        \
+        {                                                                               \
+            for(; i > 0; --i) pre_operator_prefix##crease_v(v);                         \
+            return v;                                                                   \
+        }                                                                               \
+    };                                                                                  \
+                                                                                        \
+    inline constexpr random_pre_##operator_prefix##crease                               \
+        random_pre_##operator_prefix##crease_v{};                                       \
+                                                                                        \
+    struct random_post_##operator_prefix##crease                                        \
+    {                                                                                   \
+    public:                                                                             \
+        template<typename T>                                                            \
+            requires std::invocable<plus_assign, T, std::size_t>                        \
+        [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i) const        \
+            noexcept(nothrow_invocable<std::plus<>, T&, std::size_t>)                   \
+        {                                                                               \
+            const auto old = v;                                                         \
+            plus_assign_v(std::forward<T>(v), i);                                       \
+            return old;                                                                 \
+        }                                                                               \
+        template<typename T>                                                            \
+        [[nodiscard]] constexpr auto operator()(T& v, std::size_t i) const              \
+            noexcept(noexcept(pre_operator_prefix##crease_v(v)))                        \
+        {                                                                               \
+            const auto old = v;                                                         \
+            for(; i > 0; --i) pre_operator_prefix##crease_v(v);                         \
+            return old;                                                                 \
+        }                                                                               \
+    };                                                                                  \
+                                                                                        \
+    inline constexpr random_post_##operator_prefix##crease                              \
+        random_post_##operator_prefix##crease_v{};
 
-        template<typename T>
-        concept has_increase_cpo = requires(T v, const size_t i)
-        {
-            increase(v, i);
-        };
+    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(in, +)
+    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(de, -)
 
-        template<has_increase_cpo T>
-        constexpr auto invoke_increase_cpo(T&& v, const size_t i) //
-            noexcept(increase(std::declval<T>(), size_t{}))
-        {
-            return increase(forward<T>(v), i);
-        }
-
-
-        template<typename T>
-        concept has_decrease_cpo = requires(T v, const size_t i)
-        {
-            decrease(v, i);
-        };
-
-        template<has_decrease_cpo T>
-        constexpr auto invoke_decrease_cpo(T&& v, const size_t i) //
-            noexcept(noexcept(decrease(std::declval<T>(), size_t{})))
-        {
-            return decrease(forward<T>(v), i);
-        }
-    }
-
-    struct increase
-    {
-        template<details::has_increase_cpo T>
-        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
-            noexcept(noexcept(details::invoke_increase_cpo(std::forward<T>(v), i)))
-        {
-            return details::invoke_increase_cpo(std::forward<T>(v), i);
-        }
-
-        template<typename T>
-            requires(!details::has_increase_cpo<T> && std::invocable<std::plus<>, T, std::size_t>)
-        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
-            noexcept(nothrow_invocable<std::plus<>, T&&, std::size_t>)
-        {
-            return plus_v(std::forward<T>(v), i);
-        }
-
-        template<typename T>
-        [[nodiscard]] constexpr auto operator()(T v, std::size_t i) const noexcept(noexcept(++v))
-        {
-            for(; i > 0; --i) ++v;
-            return v;
-        }
-    };
-
-    struct decrease
-    {
-        template<details::has_decrease_cpo T>
-        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
-            noexcept(noexcept(details::invoke_decrease_cpo(std::forward<T>(v), i)))
-        {
-            return details::invoke_decrease_cpo(std::forward<T>(v), i);
-        }
-
-        template<typename T>
-            requires(!details::has_decrease_cpo<T> && std::invocable<std::minus<>, T, std::size_t>)
-        [[nodiscard]] constexpr auto operator()(T&& v, const std::size_t i) const
-            noexcept(nothrow_invocable<std::minus<>, T, std::size_t>)
-        {
-            return minus_v(std::forward<T>(v), i);
-        }
-
-        template<typename T>
-        [[nodiscard]] constexpr auto operator()(T v, std::size_t i) const noexcept(noexcept(--v))
-        {
-            for(; i > 0; --i) --v;
-            return v;
-        }
-    };
-
-    inline constexpr increase increase_v{};
-    inline constexpr decrease decrease_v{};
-
-    namespace details
-    {
-        template<typename T, typename Distance>
-        constexpr auto invoke_advance_cpo(T& t, const Distance& d) noexcept(noexcept(advance(t, d)))
-        {
-            return advance(t, d);
-        }
-
-        template<typename T, typename Distance>
-        concept has_advance_cpo = requires(T& t, const Distance& d)
-        {
-            invoke_advance_cpo(t, d);
-        };
-    }
+#undef BS_UTIL_INCREAMENT_DECREAMENT_OPERATE
 
     struct advance
     {
         template<typename T, typename Distance>
-            requires details::has_advance_cpo<T, Distance>
+            requires std::invocable<plus_assign, T, Distance>
         [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
-            noexcept(noexcept(details::invoke_advance_cpo(v, distance)))
+            noexcept(noexcept(plus_assign_v(v, distance)))
         {
-            return details::invoke_advance_cpo(v, distance);
-        }
-
-        template<typename T, typename Distance>
-            requires( //
-                !details::has_advance_cpo<T, Distance> &&
-                std::invocable<std::plus<>, T, Distance> //
-            )
-        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
-            noexcept(noexcept(plus_assign(v, distance)))
-        {
-            return plus_assign(v, distance);
+            return plus_assign_v(v, distance);
         }
 
         template<typename T, typename Distance>
@@ -257,7 +222,7 @@ namespace blurringshadow::utility
             noexcept(noexcept(increase_v(v, distance), decrease_v(v, distance)))
         {
             if(distance > 0) return increase_v(v, distance);
-            return decrease_v(v, distance);
+            return decrease_v(v, -distance);
         }
     };
 
@@ -293,7 +258,7 @@ namespace blurringshadow::utility
         struct clone_fn
         {
             template<typename T>
-            [[nodiscard]] constexpr std::remove_cvref_t<T> operator()(T&& t) const 
+            [[nodiscard]] constexpr std::remove_cvref_t<T> operator()(T&& t) const
                 noexcept(nothrow_constructible_from<std::remove_cvref_t<T>, T>)
             {
                 return forward<T>(t);
