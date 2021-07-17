@@ -1,8 +1,11 @@
 #include "utility_test.h"
 #include "utility/utility.h"
 
-boost::ut::suite& utility_test()
+namespace blurringshadow::test::utility
 {
-    static boost::ut::suite suite{[] {}};
-    return suite;
+    boost::ut::suite& utility_test()
+    {
+        static boost::ut::suite suite{[] {}};
+        return suite;
+    }
 }

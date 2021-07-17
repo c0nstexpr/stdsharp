@@ -1,4 +1,7 @@
 #pragma once
 #include "test_utils.h"
 
-boost::ut::suite& random_test();
+namespace blurringshadow::test::utility
+{
+    boost::ut::suite& random_test();
+}

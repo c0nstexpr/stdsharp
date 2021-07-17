@@ -1,37 +1,39 @@
 #include "algorithm_test.h"
 #include "utility/algorithm.h"
 
-boost::ut::suite& algorithm_test()
+namespace blurringshadow::test::utility
 {
-    static boost::ut::suite suite = []
+    boost::ut::suite& algorithm_test()
     {
-        using namespace boost::ut;
-        using namespace bdd;
-        using namespace blurringshadow::utility;
-
-        feature("set_if") = []<auto First, auto Second>(const static_params<First, Second>)
+        static boost::ut::suite suite = []
         {
-            given("given two values") = []
+            using namespace boost::ut;
+            using namespace bdd;
+            using namespace blurringshadow::utility;
+
+            feature("set_if") = []<auto First, auto Second>(const static_params<First, Second>)
             {
-                // clang-format off
-                auto get_when_test = [](const auto compare_to, const auto func)
-                // clang-format on
+                given("given two values") = []
                 {
-                    const auto is_set = std::partial_order(Second, First) == compare_to;
-                    const auto then_name = is_set ?
-                        "should set first value to second value" :
-                        "should not set first value to second value";
-                    then(then_name) = [=]
+                    // clang-format off
+                auto get_when_test = [](const auto compare_to, const auto func)
+                    // clang-format on
                     {
-                        auto first = First;
-                        const auto second = Second;
-                        expect(func(first, second) == second == is_set);
+                        const auto is_set = std::partial_order(Second, First) == compare_to;
+                        const auto then_name = is_set ?
+                            "should set first value to second value" :
+                            "should not set first value to second value";
+                        then(then_name) = [=]
+                        {
+                            auto first = First;
+                            const auto second = Second;
+                            expect(func(first, second) == second == is_set);
+                        };
                     };
-                };
 
-                print(fmt::format("first value: {}, second value: {}", First, Second));
+                    print(fmt::format("first value: {}, second value: {}", First, Second));
 
-                when("set the value if greater") = [&get_when_test] // clang-format off
+                    when("set the value if greater") = [&get_when_test] // clang-format off
                 {
                     get_when_test(std::partial_ordering::greater, set_if_greater);
                 };
@@ -43,20 +45,20 @@ boost::ut::suite& algorithm_test()
             };
             
         } | std::tuple<static_params<1, 2>, static_params<2, 1>>{};
-        // clang-format on
+            // clang-format on
 
-        // clang-format off
+            // clang-format off
         feature("is_between") = []<auto Value, auto Min, auto Max>(
           const static_params<Value, Min, Max>
         )
-        // clang-format on
-        {
-            given("given three values") = []
+            // clang-format on
             {
-                print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
-                constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
-                then(
-                    is_in_range ? // clang-format off
+                given("given three values") = []
+                {
+                    print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
+                    constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
+                    then(
+                        is_in_range ? // clang-format off
                     "value should between min-max" :
                     "value should not between min-max"
                 ) = [is_in_range = is_in_range] { expect(is_between(Value, Min, Max) == is_in_range); };
@@ -69,8 +71,9 @@ boost::ut::suite& algorithm_test()
             static_params<10, -1, 9>,
             static_params<100u, 50l, 900ll>
         >{};
-        // clang-format on
-    };
+            // clang-format on
+        };
 
-    return suite;
+        return suite;
+    }
 }

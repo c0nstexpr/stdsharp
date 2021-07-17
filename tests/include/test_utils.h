@@ -2,10 +2,13 @@
 #include <boost/ut.hpp>
 #include <fmt/format.h>
 
-template<auto...>
-struct static_params
+namespace blurringshadow::test::utility
 {
-};
+    template<auto...>
+    struct static_params
+    {
+    };
+}
 
 namespace boost::inline ext::ut
 {
