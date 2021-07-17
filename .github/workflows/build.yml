@@ -39,7 +39,6 @@ jobs:
       - name: Install clang-tidy
         if: ${{ runner.os == 'Linux' }}
         run: |
-          apt-get update
           apt-get upgrade clang-tidy
 
       - uses: lukka/get-cmake@latest
