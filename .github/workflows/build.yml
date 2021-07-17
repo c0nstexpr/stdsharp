@@ -36,12 +36,10 @@ jobs:
           version: 11
           platform: x64
 
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
+      - name: Install clang-tidy
         if: ${{ runner.os == 'Linux' }}
-        with:
-          version: "12"
-          cached: true
+        run: |
+          sudo apt install clang-tidy
 
       - uses: lukka/get-cmake@latest
  
