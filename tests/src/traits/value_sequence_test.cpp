@@ -353,15 +353,14 @@ namespace blurringshadow::test::utility::traits
                 {
                     print("values: ");
                     for(const auto& variant : test_seq::get_range())
-                        //std::visit(
-                        //    []<typename T>(const T& v)
-                        //    {
-                        //        if constexpr(fmt::formattable<T>::value)
-                        //            print(fmt::format("{{ {} }}", v));
-                        //    },
-                        //    variant //
-                        //);
-                        ;
+                        std::visit(
+                            []<typename T>(const T& v)
+                            {
+                                if constexpr(fmt::formattable<T>::value)
+                                    print(fmt::format("{{ {} }}", v));
+                            },
+                            variant //
+                        );
                 };
             };
         };
