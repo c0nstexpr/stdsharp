@@ -6,6 +6,16 @@
 
 namespace blurringshadow::utility
 {
+    // c++23 feature
+    template<typename ReturnT, typename Func, typename... Args>
+        requires std::invocable<Func, Args...> &&
+            std::convertible_to<std::invoke_result_t<Func, Args...>, ReturnT>
+    [[nodiscard]] constexpr ReturnT invoke_r(Func&& func, Args&&... args) //
+        noexcept(nothrow_invocable_r<ReturnT, Func, Args...>)
+    {
+        return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
+    }
+
     inline constexpr std::ranges::equal_to equal_to_v{};
     inline constexpr std::ranges::not_equal_to not_equal_to_v{};
     inline constexpr std::ranges::less less_v{};
@@ -61,62 +71,58 @@ namespace blurringshadow::utility
         using namespace std;
 
         template<bool Requirement> // clang-format off
-        inline constexpr auto operator_assign = []<
-            typename T,
-            typename U,
-            typename Operation,
-            typename AlternativeOperation
-        >(
-            T& left,
-            U&& right,
+        inline constexpr auto operator_assign = []<typename T, typename U, typename Operation>(
             Operation op,
-            AlternativeOperation al_op
-        ) noexcept(
-            Requirement && nothrow_invocable<Operation, T&, U&&> ||
-            nothrow_invocable<AlternativeOperation, T&, U&&> && 
-            nothrow_assignable_from<T, invoke_result_t<AlternativeOperation, T&, U&&>>
-        ) // clang-format on
+            auto al_op,
+            T& left,
+            U&& right
+        ) noexcept(nothrow_invocable<Operation, T&, U&&>) // clang-format on
         {
-            if constexpr(Requirement) return std::invoke(op, left, forward<U>(right));
-            else
-            {
-                left = std::invoke(al_op, left, forward<U>(right));
-                return left;
-            }
+            return std::invoke(op, left, forward<U>(right)); //
+        };
+
+        template<> // clang-format off
+        inline constexpr auto operator_assign<false> = []<typename U>(
+            auto op,
+            auto al_op,
+            auto& left,
+            U&& right
+        ) noexcept(noexcept((left = std::invoke(al_op, left, forward<U>(right))))) // clang-format on
+        {
+            left = std::invoke(al_op, left, forward<U>(right));
+            return left;
         };
     }
 
-#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                     \
-    namespace details                                                                 \
-    {                                                                                 \
-        template<typename T, typename U>                                              \
-        concept operator_type##_assignable = requires(T a, U b)                       \
-        {                                                                             \
-            a op## = b;                                                               \
-        };                                                                            \
-    }                                                                                 \
-                                                                                      \
-    struct operator_type##_assign                                                     \
-    {                                                                                 \
-    private:                                                                          \
-        template<typename T, typename U>                                              \
-        static constexpr auto operator_assign_fn =                                    \
-            details::operator_assign<details::operator_type##_assignable<T, U>>;      \
-                                                                                      \
-    public:                                                                           \
-        template<typename T, typename U>                                              \
-        [[nodiscard]] constexpr auto operator()(T& left, U&& right) const             \
-            noexcept(noexcept(operator_assign_fn<T, U>(left, forward<U>(right))))     \
-        {                                                                             \
-            return operator_assign_fn<T, U>(                                          \
-                left,                                                                 \
-                forward<U>(right),                                                    \
-                []<typename FwU>(T& l, FwU&& r) { return l op## = forward<FwU>(r); }, \
-                operator_type##_v /**/                                                \
-            );                                                                        \
-        }                                                                             \
-    };                                                                                \
-                                                                                      \
+#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                 \
+    namespace details                                                             \
+    {                                                                             \
+        template<typename T, typename U>                                          \
+        concept operator_type##_assignable = requires(T a, U b)                   \
+        {                                                                         \
+            a op## = b;                                                           \
+        };                                                                        \
+    }                                                                             \
+                                                                                  \
+    struct operator_type##_assign                                                 \
+    {                                                                             \
+    private:                                                                      \
+        template<typename T, typename U>                                          \
+        static constexpr auto operator_assign_fn = std::bind_front(               \
+            details::operator_assign<details::operator_type##_assignable<T, U>>,  \
+            []<typename FwU>(T& l, FwU&& r) { return l op## = forward<FwU>(r); }, \
+            operator_type##_v /**/                                                \
+        );                                                                        \
+                                                                                  \
+    public:                                                                       \
+        template<typename T, typename U>                                          \
+        [[nodiscard]] constexpr auto operator()(T& left, U&& right) const         \
+            noexcept(noexcept(operator_assign_fn<T, U>(left, forward<U>(right)))) \
+        {                                                                         \
+            return operator_assign_fn<T, U>(left, forward<U>(right));             \
+        }                                                                         \
+    };                                                                            \
+                                                                                  \
     inline constexpr operator_type##_assign operator_type##_assign_v;
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
@@ -133,15 +139,15 @@ namespace blurringshadow::utility
 
     inline constexpr std::identity identity_v{};
 
-#define BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(operator_prefix, op)                    \
+#define BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(operator_prefix, op, al_op)             \
     struct pre_##operator_prefix##crease                                              \
     {                                                                                 \
         template<typename T>                                                          \
-            requires std::invocable<plus_assign, T, std::size_t>                      \
+            requires std::invocable<al_op##_assign, T&, std::size_t>                  \
         [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i = 1) const  \
-            noexcept(nothrow_invocable<plus_assign, T&, std::size_t>)                 \
+            noexcept(nothrow_invocable<al_op##_assign, T&, const std::size_t>)        \
         {                                                                             \
-            return plus_assign_v(v, i);                                               \
+            return al_op##_assign_v(v, i);                                            \
         }                                                                             \
                                                                                       \
         template<typename T>                                                          \
@@ -158,12 +164,12 @@ namespace blurringshadow::utility
     struct post_##operator_prefix##crease                                             \
     {                                                                                 \
         template<typename T>                                                          \
-            requires std::invocable<plus_assign, T, std::size_t>                      \
+            requires std::invocable<al_op##_assign, T, std::size_t>                   \
         [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i = 1) const  \
-            noexcept(nothrow_invocable<std::plus<>, T&, std::size_t>)                 \
+            noexcept(nothrow_invocable<al_op##_assign, T&, const std::size_t>)        \
         {                                                                             \
             const auto old = v;                                                       \
-            plus_assign_v(std::forward<T>(v), i);                                     \
+            al_op##_assign_v(v, i);                                                   \
             return old;                                                               \
         }                                                                             \
         template<typename T>                                                          \
@@ -180,8 +186,8 @@ namespace blurringshadow::utility
                                                                                       \
     inline constexpr post_##operator_prefix##crease post_##operator_prefix##crease_v{};
 
-    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(in, +)
-    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(de, -)
+    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(in, +, plus)
+    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(de, -, minus)
 
 #undef BS_UTIL_INCREAMENT_DECREAMENT_OPERATE
 #undef BS_DUPLICATE
@@ -190,10 +196,10 @@ namespace blurringshadow::utility
     {
         template<typename T, typename Distance>
             requires std::invocable<plus_assign, T, Distance>
-        [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
-            noexcept(noexcept(plus_assign_v(v, distance)))
+        [[nodiscard]] constexpr auto operator()(T& v, Distance&& distance) const
+            noexcept(nothrow_invocable<plus_assign, T&, Distance>)
         {
-            return plus_assign_v(v, distance);
+            return plus_assign_v(v, std::forward<Distance>(distance));
         }
 
         template<typename T, typename Distance>
@@ -205,35 +211,42 @@ namespace blurringshadow::utility
         }
     };
 
-    inline constexpr advance advance_v{};
+    inline constexpr advance advance_v{}; // clang-format off
 
-    template<std::invocable... Func>
-    [[nodiscard]] constexpr auto merge_invoke(Func&&... func) //
-        noexcept(noexcept(std::tuple{std::invoke(std::forward<Func>(func))...}))
+    inline constexpr auto returnable_invoke = []<typename Func, typename... Args>(
+        Func&& func,
+        Args&&... args 
+    ) noexcept(nothrow_invocable<Func, Args...>) // clang-format on
     {
-        return std::tuple{std::invoke(std::forward<Func>(func))...};
-    }
+        const auto invoker = [&]() noexcept(nothrow_invocable<Func, Args...>)
+        {
+            return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...); //
+        };
+        if constexpr(std::same_as<std::invoke_result_t<Func, Args...>, void>)
+        {
+            invoker();
+            return std::void_t{};
+        } // clang-format off
+        else return invoker();  
+    };
 
-    template<std::invocable... Func>
-        requires(std::same_as<std::invoke_result_t<Func>, void> || ...)
-    [[nodiscard]] constexpr auto merge_invoke(Func&&... func) //
-        noexcept((nothrow_invocable<Func&&> && ...))
+    inline constexpr auto merge_invoke = []<std::invocable... Func>(Func&& ... func)
+        noexcept(noexcept(std::tuple{returnable_invoke(std::forward<Func>(func))...}))
     {
-        (std::invoke(std::forward<Func>(func)), ...);
-    }
-
-    // c++23 feature
-    template<typename ReturnT, typename Func, typename... Args>
-        requires std::invocable<Func, Args...> &&
-            std::convertible_to<std::invoke_result_t<Func, Args...>, ReturnT>
-    [[nodiscard]] constexpr ReturnT invoke_r(Func&& func, Args&&... args) //
-        noexcept(nothrow_invocable_r<ReturnT, Func, Args...>)
-    {
-        return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
-    }
+        return std::tuple{returnable_invoke(std::forward<Func>(func))...}; // clang-format on
+    };
 
     namespace details
     {
+        struct make_returnable_fn
+        {
+            template<typename Func>
+            constexpr auto operator()(Func&& func) const
+            {
+                return std::bind_front(returnable_invoke, func);
+            };
+        };
+
         struct clone_fn
         {
             template<typename T>
@@ -244,6 +257,8 @@ namespace blurringshadow::utility
             }
         };
     }
+
+    inline constexpr details::make_returnable_fn make_returnable{};
 
     inline constexpr details::clone_fn clone{};
 }
