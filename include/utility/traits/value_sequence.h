@@ -61,7 +61,7 @@ namespace blurringshadow::utility::traits
         {
             using seq = value_sequence<Values...>;
             using type = typename seq::template indexed_by_seq_t<
-                make_sequence_t<seq::size(), seq::size(), random_pre_decrease_v> // clang-format off
+                make_sequence_t<seq::size() - 1, seq::size(), minus_v> // clang-format off
             >; // clang-format on
         };
 

@@ -133,79 +133,58 @@ namespace blurringshadow::utility
 
     inline constexpr std::identity identity_v{};
 
-#define BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(operator_prefix, op)                      \
-    struct pre_##operator_prefix##crease                                                \
-    {                                                                                   \
-        template<typename T>                                                            \
-        [[nodiscard]] constexpr auto operator()(T& v) noexcept(noexcept(op##op v))      \
-        {                                                                               \
-            return op##op v;                                                            \
-        }                                                                               \
-    };                                                                                  \
-                                                                                        \
-    inline constexpr pre_##operator_prefix##crease pre_##operator_prefix##crease_v{};   \
-                                                                                        \
-    struct post_##operator_prefix##crease                                               \
-    {                                                                                   \
-        template<typename T>                                                            \
-        [[nodiscard]] constexpr auto operator()(T& v) noexcept(noexcept(v op##op))      \
-        {                                                                               \
-            return v op##op;                                                            \
-        }                                                                               \
-    };                                                                                  \
-    inline constexpr post_##operator_prefix##crease post_##operator_prefix##crease_v{}; \
-                                                                                        \
-    struct random_pre_##operator_prefix##crease                                         \
-    {                                                                                   \
-        template<typename T>                                                            \
-            requires std::invocable<plus_assign, T, std::size_t>                        \
-        [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i) const        \
-            noexcept(nothrow_invocable<std::plus<>, T&, std::size_t>)                   \
-        {                                                                               \
-            return plus_assign_v(v, i);                                                 \
-        }                                                                               \
-                                                                                        \
-        template<typename T>                                                            \
-        [[nodiscard]] constexpr auto operator()(T& v, std::size_t i) const              \
-            noexcept(noexcept(pre_operator_prefix##crease_v(v)))                        \
-        {                                                                               \
-            for(; i > 0; --i) pre_operator_prefix##crease_v(v);                         \
-            return v;                                                                   \
-        }                                                                               \
-    };                                                                                  \
-                                                                                        \
-    inline constexpr random_pre_##operator_prefix##crease                               \
-        random_pre_##operator_prefix##crease_v{};                                       \
-                                                                                        \
-    struct random_post_##operator_prefix##crease                                        \
-    {                                                                                   \
-    public:                                                                             \
-        template<typename T>                                                            \
-            requires std::invocable<plus_assign, T, std::size_t>                        \
-        [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i) const        \
-            noexcept(nothrow_invocable<std::plus<>, T&, std::size_t>)                   \
-        {                                                                               \
-            const auto old = v;                                                         \
-            plus_assign_v(std::forward<T>(v), i);                                       \
-            return old;                                                                 \
-        }                                                                               \
-        template<typename T>                                                            \
-        [[nodiscard]] constexpr auto operator()(T& v, std::size_t i) const              \
-            noexcept(noexcept(pre_operator_prefix##crease_v(v)))                        \
-        {                                                                               \
-            const auto old = v;                                                         \
-            for(; i > 0; --i) pre_operator_prefix##crease_v(v);                         \
-            return old;                                                                 \
-        }                                                                               \
-    };                                                                                  \
-                                                                                        \
-    inline constexpr random_post_##operator_prefix##crease                              \
-        random_post_##operator_prefix##crease_v{};
+#define BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(operator_prefix, op)                    \
+    struct pre_##operator_prefix##crease                                              \
+    {                                                                                 \
+        template<typename T>                                                          \
+            requires std::invocable<plus_assign, T, std::size_t>                      \
+        [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i = 1) const  \
+            noexcept(nothrow_invocable<plus_assign, T&, std::size_t>)                 \
+        {                                                                             \
+            return plus_assign_v(v, i);                                               \
+        }                                                                             \
+                                                                                      \
+        template<typename T>                                                          \
+        [[nodiscard]] constexpr auto operator()(T& v, std::size_t i = 1) const        \
+            noexcept(noexcept(op##op v))                                              \
+        {                                                                             \
+            for(; i > 0; --i) op##op v;                                               \
+            return v;                                                                 \
+        }                                                                             \
+    };                                                                                \
+                                                                                      \
+    inline constexpr pre_##operator_prefix##crease pre_##operator_prefix##crease_v{}; \
+                                                                                      \
+    struct post_##operator_prefix##crease                                             \
+    {                                                                                 \
+        template<typename T>                                                          \
+            requires std::invocable<plus_assign, T, std::size_t>                      \
+        [[nodiscard]] constexpr auto operator()(T& v, const std::size_t i = 1) const  \
+            noexcept(nothrow_invocable<std::plus<>, T&, std::size_t>)                 \
+        {                                                                             \
+            const auto old = v;                                                       \
+            plus_assign_v(std::forward<T>(v), i);                                     \
+            return old;                                                               \
+        }                                                                             \
+        template<typename T>                                                          \
+        [[nodiscard]] constexpr auto operator()(T& v, std::size_t i = 1) const        \
+            noexcept(noexcept(v op##op) && noexcept(op##op v))                        \
+        {                                                                             \
+            if(i == 0) return v op##op;                                               \
+                                                                                      \
+            const auto old = v;                                                       \
+            for(; i > 0; --i) op##op v;                                               \
+            return old;                                                               \
+        }                                                                             \
+    };                                                                                \
+                                                                                      \
+    inline constexpr post_##operator_prefix##crease post_##operator_prefix##crease_v{};
 
     BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(in, +)
     BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(de, -)
 
 #undef BS_UTIL_INCREAMENT_DECREAMENT_OPERATE
+#undef BS_DUPLICATE
 
     struct advance
     {
@@ -219,10 +198,10 @@ namespace blurringshadow::utility
 
         template<typename T, typename Distance>
         [[nodiscard]] constexpr auto operator()(T& v, const Distance& distance) const
-            noexcept(noexcept(increase_v(v, distance), decrease_v(v, distance)))
+            noexcept(noexcept(pre_increase_v(v, distance), pre_decrease_v(v, distance)))
         {
-            if(distance > 0) return increase_v(v, distance);
-            return decrease_v(v, -distance);
+            if(distance > 0) return pre_increase_v(v, distance);
+            return pre_decrease_v(v, -distance);
         }
     };
 
