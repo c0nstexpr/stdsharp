@@ -73,7 +73,7 @@ namespace blurringshadow::test::utility::traits
                         static_expect<test_seq::get_by_index<I>() == Expect>();
                     };
                 }; // clang-format off
-        } | std::tuple<
+            } | std::tuple<
                 get_by_index_test_params<0, 0>,
                 get_by_index_test_params<1, 1>,
                 get_by_index_test_params<2, 7>,
@@ -106,7 +106,7 @@ namespace blurringshadow::test::utility::traits
                         static_expect<i == Expect>() << fmt::format("actual value: {}", i);
                     };
                 }; // clang-format off
-        } | std::tuple<
+            } | std::tuple<
                 static_params<0, 0>,
                 static_params<1, 1>,
                 static_params<'!', test_seq::size()>
@@ -347,7 +347,23 @@ namespace blurringshadow::test::utility::traits
                 >
             >{}; // clang-format on
 
-            using t = blurringshadow::utility::traits::make_sequence_t<0, 1>;
+            feature("get_range") = []
+            {
+                then("use seq get_range and print values") = []
+                {
+                    print("values: ");
+                    for(const auto& variant : test_seq::get_range())
+                        //std::visit(
+                        //    []<typename T>(const T& v)
+                        //    {
+                        //        if constexpr(fmt::formattable<T>::value)
+                        //            print(fmt::format("{{ {} }}", v));
+                        //    },
+                        //    variant //
+                        //);
+                        ;
+                };
+            };
         };
 
         return suite;

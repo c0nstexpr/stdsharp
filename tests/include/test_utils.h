@@ -1,6 +1,6 @@
 #pragma once
 #include <boost/ut.hpp>
-#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 namespace blurringshadow::test::utility
 {

@@ -214,32 +214,37 @@ namespace blurringshadow::utility::traits
 
         static constexpr auto get_range() noexcept
         {
-            return std::ranges::iota_view{std::size_t{0}, size()} |
-                std::ranges::views::transform(
-                       [](const std::size_t i)
-                       {
-                           std::variant<decltype(Values)...> var{};
+            using namespace std;
+            using namespace ranges;
 
-                           const auto f = [&var, i]<std::size_t I>(const constant<I>) //
-                               noexcept(var.emplace(std::in_place_index<I>, get_by_index<I>()))
-                           {
-                               if(i == I)
-                               {
-                                   var.emplace(std::in_place_index<I>, get_by_index<I>());
-                                   return true;
-                               }
+            return transform_view(
+                iota_view{size_t{0}, size()},
+                [](const size_t i)
+                {
+                    variant<remove_reference_t<decltype(Values)>...> var{};
 
-                               return false;
-                           };
+                    const auto f = [&var, i]<size_t I>(const constant<I>) //
+                        noexcept(noexcept(var.emplace<I>(get_by_index<I>())))
+                    {
+                        if(i == I)
+                        {
+                            var.emplace<I>(get_by_index<I>());
+                            return true;
+                        }
 
-                           [&f]<std::size_t... I>(const std::index_sequence<I...>) //
-                               noexcept(noexcept((f(constant_v<I>), ...)))
-                           {
-                               (f(constant_v<I>) || ...);
-                           }
-                           (index_seq{});
-                       } //
-                );
+                        return false;
+                    };
+
+                    [&f]<size_t... I>(const index_sequence<I...>) //
+                        noexcept(noexcept((f(constant<I>{}), ...)))
+                    {
+                        (f(constant<I>{}) || ...);
+                    }
+                    (index_seq{});
+
+                    return var;
+                } //
+            );
         }
 
     private:
