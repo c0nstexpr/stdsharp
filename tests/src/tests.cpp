@@ -9,5 +9,5 @@ using namespace blurringshadow::test::utility;
 int main()
 {
     algorithm_test();
-    traits::sequence_test();
+    traits::value_sequence_test();
 }

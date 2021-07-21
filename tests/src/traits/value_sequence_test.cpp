@@ -41,9 +41,9 @@ namespace blurringshadow::test::utility::traits
     template<auto... V>
     using regular_value_sequence = blurringshadow::utility::traits::regular_value_sequence<V...>;
 
-    boost::ut::suite& sequence_test()
+    boost::ut::suite& value_sequence_test() noexcept
     {
-        static boost::ut::suite suite = []
+        static boost::ut::suite suite = []() noexcept
         {
             using namespace boost::ut;
             using namespace bdd;
@@ -307,7 +307,7 @@ namespace blurringshadow::test::utility::traits
             >{}; // clang-format on
 
             // clang-format off
-            feature("unique_seq_t") = []<typename Expect, auto... Values>(
+            feature("unique_value_sequence_t") = []<typename Expect, auto... Values>(
                 const unique_seq_t_test_params<Expect, Values...>
             ) // clang-format on
             {
@@ -330,11 +330,11 @@ namespace blurringshadow::test::utility::traits
 
                     print(fmt::format(format_str, Values...));
 
-                    then("use seq as unique_seq_t template arg, "
+                    then("use seq as unique_value_sequence_t template arg, "
                          "type should be expected") = []
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
-                        using actual_t = blurringshadow::utility::traits::unique_seq_t<Values...>;
+                        using actual_t = blurringshadow::utility::traits::unique_value_sequence_t<Values...>;
                         static_expect<_b(std::same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };

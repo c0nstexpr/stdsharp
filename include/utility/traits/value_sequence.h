@@ -19,10 +19,10 @@ namespace blurringshadow::utility::traits
     struct value_sequence;
 
     template<typename>
-    struct take_seq;
+    struct take_value_sequence;
 
     template<template<auto...> typename T, auto... Values>
-    struct take_seq<T<Values...>>
+    struct take_value_sequence<T<Values...>>
     {
         template<template<auto...> typename U>
         using apply_t = U<Values...>;
@@ -33,10 +33,10 @@ namespace blurringshadow::utility::traits
     };
 
     template<typename Sequence>
-    using make_seq_t = typename take_seq<Sequence>::as_vsequence_t;
+    using to_regular_value_sequence_t = typename take_value_sequence<Sequence>::as_vsequence_t;
 
     template<typename Sequence>
-    using make_value_seq_t = typename take_seq<Sequence>::as_value_sequence_t;
+    using to_value_sequence_t = typename take_value_sequence<Sequence>::as_value_sequence_t;
 
     namespace details
     {
@@ -51,22 +51,22 @@ namespace blurringshadow::utility::traits
     }
 
     template<auto From, std::size_t Size, auto PlusF = plus_v>
-    using make_sequence_t =
+    using make_value_sequence_t =
         decltype(details::make_sequence<From, PlusF>(std::make_index_sequence<Size>{}));
 
     namespace details
     {
         template<auto... Values>
-        struct reverse_seq
+        struct reverse_value_sequence
         {
             using seq = value_sequence<Values...>;
             using type = typename seq::template indexed_by_seq_t<
-                make_sequence_t<seq::size() - 1, seq::size(), minus_v> // clang-format off
+                make_value_sequence_t<seq::size() - 1, seq::size(), minus_v> // clang-format off
             >; // clang-format on
         };
 
         template<auto... Values>
-        struct unique_seq
+        struct unique_value_sequence
         {
             using seq = value_sequence<Values...>;
 
@@ -106,9 +106,9 @@ namespace blurringshadow::utility::traits
             using filtered_seq =
                 regular_value_sequence<seq::template get_by_index<filtered_indices.first[I]>()...>;
 
-            using type = typename take_seq< //
-                make_sequence_t<std::size_t{}, filtered_indices.second> // clang-format off
-            >::template apply_t<filtered_seq>; //clang-format on
+            using type = typename take_value_sequence< //
+                make_value_sequence_t<std::size_t{}, filtered_indices.second> // clang-format off
+            >::template apply_t<filtered_seq>; // clang-format on
         };
 
         template<size_t I, auto Value>
@@ -124,7 +124,6 @@ namespace blurringshadow::utility::traits
 
         template<auto... Values, size_t... I>
         struct value_sequence<traits::value_sequence<Values...>, index_sequence<I...>> :
-            regular_value_sequence<Values...>,
             indexed_value<I, Values>...
         {
             using indexed_value<I, Values>::get_value...;
@@ -145,27 +144,28 @@ namespace blurringshadow::utility::traits
         };
 
         template<typename Proj, typename Func, auto... Values>
-        concept seq_invocable =
+        concept value_sequence_invocable =
             ((std::invocable<Proj, decltype(Values)> &&
               std::invocable<Func, invoke_result_t<Proj, decltype(Values)>>)&&...);
 
         template<typename Proj, typename Func, auto... Values>
-        concept seq_nothrow_invocable =
+        concept value_sequence_nothrow_invocable =
             ((nothrow_invocable<Func, invoke_result_t<Proj, decltype(Values)>>)&&...);
 
         template<typename Proj, typename Func, auto... Values>
-        concept seq_predicate = ((predicate<Func, invoke_result_t<Proj, decltype(Values)>>)&&...);
+        concept value_sequence_predicate =
+            ((predicate<Func, invoke_result_t<Proj, decltype(Values)>>)&&...);
 
         template<typename Proj, typename Func, auto... Values>
-        concept seq_nothrow_predicate =
+        concept value_sequence_nothrow_predicate =
             ((nothrow_invocable_r<Func, bool, invoke_result_t<Proj, decltype(Values)>>)&&...);
     }
 
     template<auto... Values>
-    using reverse_seq_t = typename details::reverse_seq<Values...>::type;
+    using reverse_value_sequence_t = typename details::reverse_value_sequence<Values...>::type;
 
     template<auto... Values>
-    using unique_seq_t = typename details::unique_seq<Values...>::type;
+    using unique_value_sequence_t = typename details::unique_value_sequence<Values...>::type;
 
     template<auto... Values> // clang-format off
     struct value_sequence : private details::value_sequence<
@@ -195,12 +195,11 @@ namespace blurringshadow::utility::traits
         static constexpr decltype(auto) invoke(Func&& func) //
             noexcept((nothrow_invocable<Func, decltype(Values)> && ...))
         {
-            return merge_invoke( //
-                [&func]() noexcept(nothrow_invocable<Func, decltype(Values)>)
-                {
-                    return std::invoke(std::forward<Func>(func), Values); //
-                }... //
-            );
+            const auto f = [&func]<typename T>(T&& v) noexcept(nothrow_invocable<Func, T>)
+            {
+                return std::invoke(std::forward<Func>(func), std::forward<T>(v)); //
+            };
+            return merge_invoke(std::bind(f, Values)...);
         }
 
         template<template<auto...> typename T>
@@ -210,7 +209,7 @@ namespace blurringshadow::utility::traits
         using indexed_t = regular_value_sequence<get_by_index<OtherInts>()...>;
 
         template<typename Seq>
-        using indexed_by_seq_t = typename take_seq<Seq>::template apply_t<indexed_t>;
+        using indexed_by_seq_t = typename take_value_sequence<Seq>::template apply_t<indexed_t>;
 
         static constexpr auto get_range() noexcept
         {
@@ -250,9 +249,11 @@ namespace blurringshadow::utility::traits
     private:
         struct for_each_fn
         {
-            template<typename Func, details::seq_invocable<Func, Values...> Proj = std::identity>
+            template<
+                typename Func,
+                details::value_sequence_invocable<Func, Values...> Proj = std::identity>
             constexpr auto operator()(Func func, Proj proj = {}) const
-                noexcept(details::seq_nothrow_invocable<Proj, Func, Values...>)
+                noexcept(details::value_sequence_nothrow_invocable<Proj, Func, Values...>)
             {
                 (std::invoke(func, std::invoke(proj, Values)), ...);
                 return func;
@@ -261,9 +262,11 @@ namespace blurringshadow::utility::traits
 
         struct for_each_n_fn
         {
-            template<typename Func, details::seq_invocable<Func, Values...> Proj = std::identity>
+            template<
+                typename Func,
+                details::value_sequence_invocable<Func, Values...> Proj = std::identity>
             constexpr auto operator()(auto size, Func func, Proj proj = {}) const
-                noexcept(details::seq_nothrow_invocable<Proj, Func, Values...>)
+                noexcept(details::value_sequence_nothrow_invocable<Proj, Func, Values...>)
             {
                 const auto f = [&]<typename T>(T&& v) //
                     noexcept(std::invoke(func, std::invoke(proj, std::declval<T>())))
@@ -281,9 +284,11 @@ namespace blurringshadow::utility::traits
 
         struct find_if_fn
         {
-            template<typename Func, details::seq_predicate<Func, Values...> Proj = std::identity>
+            template<
+                typename Func,
+                details::value_sequence_predicate<Func, Values...> Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj proj = {}) const
-                noexcept(details::seq_nothrow_predicate<Proj, Func, Values...>)
+                noexcept(details::value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 std::size_t i = 0;
                 const auto f = [&func, &proj, &i]<typename T>(T&& v) //
@@ -304,7 +309,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(details::seq_nothrow_predicate<Proj, Func, Values...>)
+                noexcept(details::value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 return find_if(
                     [&](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)>)
@@ -337,7 +342,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(details::seq_nothrow_predicate<Proj, Func, Values...>)
+                noexcept(details::value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 std::size_t i = 0;
                 for_each(
@@ -358,7 +363,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(details::seq_nothrow_predicate<Proj, Func, Values...>)
+                noexcept(details::value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 return count_if(
                     [&](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)>)
@@ -556,21 +561,22 @@ namespace blurringshadow::utility::traits
         using append_t = regular_value_sequence<Values..., Others...>;
 
         template<typename Seq>
-        using append_by_seq_t = typename take_seq<Seq>::template apply_t<append_t>;
+        using append_by_seq_t = typename take_value_sequence<Seq>::template apply_t<append_t>;
 
         template<auto... Others>
         using append_front_t = regular_value_sequence<Others..., Values...>;
 
         template<typename Seq>
-        using append_front_by_seq_t = typename take_seq<Seq>::template apply_t<append_front_t>;
+        using append_front_by_seq_t =
+            typename take_value_sequence<Seq>::template apply_t<append_front_t>;
 
     private:
         template<std::size_t Index>
         struct insert
         {
             template<auto... Others>
-            using type = typename make_value_seq_t<
-                typename make_value_seq_t<front_t<Index>>:: //
+            using type = typename to_value_sequence_t<
+                typename to_value_sequence_t<front_t<Index>>:: //
                 template append_t<Others...> // clang-format off
             >::template append_by_seq_t<back_t<size() - Index>>; // clang-format on
         };
@@ -611,17 +617,18 @@ namespace blurringshadow::utility::traits
 
         template<std::size_t Index, typename Seq>
         using insert_by_seq_t =
-            typename take_seq<Seq>::template apply_t<insert<Index>::template type>;
+            typename take_value_sequence<Seq>::template apply_t<insert<Index>::template type>;
 
         template<std::size_t... Index>
         using remove_at_t = typename remove_at<Index...>::type;
 
         template<typename Seq>
-        using remove_at_by_seq_t = typename take_seq<Seq>::template apply_t<remove_at_t>;
+        using remove_at_by_seq_t = typename take_value_sequence<Seq>::template apply_t<remove_at_t>;
 
         template<std::size_t Index, auto Other>
-        using replace_t = typename make_value_seq_t<
-            typename make_value_seq_t<front_t<Index>>::template append_t<Other> // clang-format off
+        using replace_t = typename to_value_sequence_t<
+            typename to_value_sequence_t<front_t<Index>>::template append_t<
+                Other> // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
 }

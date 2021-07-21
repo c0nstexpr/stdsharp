@@ -23,11 +23,10 @@ set(
     ${utility_property_header_dir}/member_setter.h
     ${utility_property_header_dir}/member_getter.h
 
-    ${utility_tratis_header_dir}/function.h
     ${utility_tratis_header_dir}/value_sequence.h
-    ${utility_tratis_header_dir}/sequence_set.h
+    ${utility_tratis_header_dir}/type_sequence.h
+    ${utility_tratis_header_dir}/function.h
     ${utility_tratis_header_dir}/member.h
-    ${utility_tratis_header_dir}/type_container.h
 
     ${utility_header_dir}/concurrent_object.h
     ${utility_header_dir}/string_conversion.h
@@ -36,6 +35,7 @@ set(
     ${utility_header_dir}/functional.h
     ${utility_header_dir}/random.h
     ${utility_header_dir}/utility.h
+    ${utility_header_dir}/pattern_match.h
 )
 
 config_interface_lib(blurringshadow_utility "${headers}")

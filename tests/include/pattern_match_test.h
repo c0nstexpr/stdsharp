@@ -1,7 +1,6 @@
-#pragma once
 #include "test_utils.h"
 
 namespace blurringshadow::test::utility
 {
-    boost::ut::suite& utility_test() noexcept;
+    boost::ut::suite& pattern_match_test() noexcept;
 }

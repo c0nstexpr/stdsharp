@@ -21,6 +21,7 @@ set(exe_src ${utility_src_dir}/tests.cpp)
 set(
     headers 
     ${utility_header_dir}/test_utils.h
+    ${utility_header_dir}/pattern_match_test.h
     ${utility_header_dir}/algorithm_test.h
     ${utility_header_dir}/random_test.h
     ${utility_header_dir}/utility_test.h
@@ -29,8 +30,10 @@ set(
 set(
     src
     ${utility_src_dir}/algorithm_test.cpp
-    ${utility_tratis_src_dir}/value_sequence_test.cpp
     ${utility_src_dir}/utility_test.cpp
+    ${utility_src_dir}/pattern_match_test.cpp
+    ${utility_tratis_src_dir}/value_sequence_test.cpp
+    ${utility_tratis_src_dir}/type_sequence_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
@@ -38,7 +41,6 @@ if(MSVC) # visual studio doesn't support clang-tidy directly by cmake
     set_target_properties(
         ${PROJECT_NAME} 
         PROPERTIES
-            VS_GLOBAL_RunCodeAnalysis true
             VS_GLOBAL_EnableClangTidyCodeAnalysis true
     )
     set(additional_option /W0)

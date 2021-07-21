@@ -3,9 +3,9 @@
 
 namespace blurringshadow::test::utility
 {
-    boost::ut::suite& algorithm_test()
+    boost::ut::suite& algorithm_test() noexcept
     {
-        static boost::ut::suite suite = []
+        static boost::ut::suite suite = []() noexcept
         {
             using namespace boost::ut;
             using namespace bdd;

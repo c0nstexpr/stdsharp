@@ -3,5 +3,5 @@
 
 namespace blurringshadow::test::utility
 {
-    boost::ut::suite& algorithm_test();
+    boost::ut::suite& algorithm_test() noexcept;
 }
