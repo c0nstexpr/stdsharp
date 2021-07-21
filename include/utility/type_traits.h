@@ -97,4 +97,8 @@ namespace blurringshadow::utility
 
     template<typename Func, typename ReturnT, typename... Args>
     concept nothrow_invocable_r = std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
+
+    template<typename Func, typename... Args>
+    concept nothrow_predicate = std::predicate<Func, Args...> && //
+        std::is_nothrow_invocable_r_v<bool, Func, Args...>;
 }
