@@ -225,7 +225,7 @@ namespace blurringshadow::utility
         if constexpr(std::same_as<std::invoke_result_t<Func, Args...>, void>)
         {
             invoker();
-            return std::void_t{};
+            return empty{};
         } // clang-format off
         else return invoker();  
     };

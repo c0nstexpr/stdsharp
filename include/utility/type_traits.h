@@ -7,6 +7,13 @@
 
 namespace blurringshadow::utility
 {
+    struct empty
+    {
+    };
+
+    template<typename T>
+    inline constexpr std::type_identity<T> type_identity_v{};
+
     template<typename T>
     concept enumeration = std::is_enum_v<T>;
 
