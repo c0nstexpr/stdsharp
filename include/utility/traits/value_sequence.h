@@ -78,7 +78,7 @@ namespace blurringshadow::utility::traits
                     {
                         if(j == I) return true;
                         ++j;
-                        return equal_to_v(seq::template get_by_index<I>(), v);
+                        return equal_to_v(seq::template get<I>(), v);
                     } 
                 ) == I; // clang-format on
             }
@@ -104,7 +104,7 @@ namespace blurringshadow::utility::traits
 
             template<std::size_t... I>
             using filtered_seq =
-                regular_value_sequence<seq::template get_by_index<filtered_indices.first[I]>()...>;
+                regular_value_sequence<seq::template get<filtered_indices.first[I]>()...>;
 
             using type = typename take_value_sequence< //
                 make_value_sequence_t<std::size_t{}, filtered_indices.second> // clang-format off
@@ -174,7 +174,7 @@ namespace blurringshadow::utility::traits
     > // clang-format on
     {
         template<std::size_t I>
-        static constexpr auto get_by_index() noexcept
+        static constexpr auto get() noexcept
         {
             return base::template get_value<I>();
         }
@@ -188,65 +188,74 @@ namespace blurringshadow::utility::traits
         >; // clang-format on
 
     public:
-        using index_seq = typename base::index_seq;
+        using index_seq = typename base::index_seq; // clang-format off
 
-        template<typename Func>
+        static constexpr auto invoke = []<typename Func>(Func && func) // clang-format on
+            noexcept((nothrow_invocable<Func, decltype(Values)> && ...)) //
+            -> decltype(auto) //
             requires(std::invocable<Func, decltype(Values)>&&...)
-        static constexpr decltype(auto) invoke(Func&& func) //
-            noexcept((nothrow_invocable<Func, decltype(Values)> && ...))
         {
             const auto f = [&func]<typename T>(T&& v) noexcept(nothrow_invocable<Func, T>)
             {
                 return std::invoke(std::forward<Func>(func), std::forward<T>(v)); //
             };
             return merge_invoke(std::bind(f, Values)...);
-        }
+        };
 
         template<template<auto...> typename T>
         using apply_t = T<Values...>;
 
         template<std::size_t... OtherInts>
-        using indexed_t = regular_value_sequence<get_by_index<OtherInts>()...>;
+        using indexed_t = regular_value_sequence<get<OtherInts>()...>;
 
         template<typename Seq>
         using indexed_by_seq_t = typename take_value_sequence<Seq>::template apply_t<indexed_t>;
 
-        static constexpr auto get_range() noexcept
+        // clang-format off
+        static constexpr auto get_range = []() noexcept // clang-format on
         {
             using namespace std;
             using namespace ranges;
 
             return transform_view(
                 iota_view{size_t{0}, size()},
-                [](const size_t i)
+                [](const size_t i) noexcept(
+                    (nothrow_move_constructible<remove_reference_t<decltype(Values)>> && ...) //
+                )
                 {
-                    variant<remove_reference_t<decltype(Values)>...> var{};
-
-                    const auto f = [&var, i]<size_t I>(const constant<I>) //
-                        noexcept(noexcept(var.emplace<I>(get_by_index<I>())))
+                    if constexpr(size() == 0) return variant<monostate>{};
+                    else
                     {
-                        if(i == I)
+                        variant<remove_reference_t<decltype(Values)>...> var{};
+
+                        const auto f = [&var, i]<size_t I>(const constant<I>) // clang-format off
+                            noexcept(
+                                nothrow_move_constructible<variant_alternative_t<I, decltype(var)>> 
+                            ) // clang-format on
                         {
-                            var.emplace<I>(get_by_index<I>());
-                            return true;
+                            if(i == I)
+                            {
+                                var.emplace<I>(get<I>());
+                                return true;
+                            }
+
+                            return false;
+                        };
+
+                        [&f]<size_t... I>(const index_sequence<I...>) //
+                            noexcept(noexcept((f(constant<I>{}), ...)))
+                        {
+                            (f(constant<I>{}) || ...);
                         }
+                        (index_seq{});
 
-                        return false;
-                    };
-
-                    [&f]<size_t... I>(const index_sequence<I...>) //
-                        noexcept(noexcept((f(constant<I>{}), ...)))
-                    {
-                        (f(constant<I>{}) || ...);
+                        return var;
                     }
-                    (index_seq{});
-
-                    return var;
                 } //
             );
-        }
+        };
 
-    private:
+    private: //
         struct for_each_fn
         {
             template<
@@ -439,9 +448,8 @@ namespace blurringshadow::utility::traits
             template<std::size_t I, typename Comp, typename Proj>
             struct by_index
             {
-                using left_projected_t = std::invoke_result_t<Proj, decltype(get_by_index<I>())>;
-                using right_projected_t =
-                    std::invoke_result_t<Proj, decltype(get_by_index<I + 1>())>;
+                using left_projected_t = std::invoke_result_t<Proj, decltype(get<I>())>;
+                using right_projected_t = std::invoke_result_t<Proj, decltype(get<I + 1>())>;
 
                 static constexpr auto invoke(Comp& comp, Proj& proj) noexcept(
                     nothrow_invocable_r<Comp, bool, left_projected_t, right_projected_t>) requires
@@ -449,9 +457,7 @@ namespace blurringshadow::utility::traits
 
                 {
                     return invoke_r<bool>(
-                        comp,
-                        std::invoke(proj, get_by_index<I>()),
-                        std::invoke(proj, get_by_index<I + 1>()) //
+                        comp, std::invoke(proj, get<I>()), std::invoke(proj, get<I + 1>()) //
                     );
                 }
 
@@ -630,5 +636,17 @@ namespace blurringshadow::utility::traits
             typename to_value_sequence_t<front_t<Index>>::template append_t<
                 Other> // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
+    };
+
+    template<std::size_t I, auto... Values>
+    struct std::tuple_element<I, value_sequence<Values...>> :
+        std::type_identity<decltype(typename value_sequence<Values...>::template get<I>())>
+    {
+    };
+
+    template<auto... Values>
+    struct std::tuple_size<value_sequence<Values...>> :
+        index_constant<value_sequence<Values...>::size()>
+    {
     };
 }

@@ -3,5 +3,5 @@
 
 namespace blurringshadow::test::utility::traits
 {
-    boost::ut::suite& type_sequence_test();
+    boost::ut::suite& type_sequence_test() noexcept;
 }
