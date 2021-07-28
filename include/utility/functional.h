@@ -6,6 +6,11 @@
 
 namespace blurringshadow::utility
 {
+    inline constexpr auto empty_invoke = [](auto&&...) noexcept
+    {
+        return empty{}; //
+    };
+
     // c++23 feature
     template<typename ReturnT, typename Func, typename... Args>
         requires std::invocable<Func, Args...> &&
