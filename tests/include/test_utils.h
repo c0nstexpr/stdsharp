@@ -21,6 +21,12 @@ namespace boost::inline ext::ut
         };
     }
 
+    inline auto& get_empty_suite() noexcept
+    {
+        static suite s{[]() noexcept {}};
+        return s;
+    }
+
     template<auto Value>
     auto static_expect()
     {

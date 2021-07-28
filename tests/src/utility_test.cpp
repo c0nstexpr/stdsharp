@@ -5,7 +5,6 @@ namespace blurringshadow::test::utility
 {
     boost::ut::suite& utility_test() noexcept
     {
-        static boost::ut::suite suite{[]() noexcept {}};
-        return suite;
+        return boost::ut::get_empty_suite();
     }
 }

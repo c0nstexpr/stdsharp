@@ -7,71 +7,67 @@ namespace blurringshadow::test::utility
     {
         static boost::ut::suite suite = []() noexcept
         {
+            using namespace std;
             using namespace boost::ut;
             using namespace bdd;
             using namespace blurringshadow::utility;
 
-            feature("set_if") = []<auto First, auto Second>(const static_params<First, Second>)
+            feature("set_if") = []<auto First, auto Second>( // clang-format off
+                const static_params<First, Second> 
+            ) noexcept // clang-format on
             {
-                given("given two values") = []
+                given("given two values") = []() noexcept
                 {
-                    // clang-format off
-                auto get_when_test = [](const auto compare_to, const auto func)
-                    // clang-format on
-                    {
-                        const auto is_set = std::partial_order(Second, First) == compare_to;
-                        const auto then_name = is_set ?
-                            "should set first value to second value" :
-                            "should not set first value to second value";
-                        then(then_name) = [=]
-                        {
-                            auto first = First;
-                            const auto second = Second;
-                            expect(func(first, second) == second == is_set);
-                        };
-                    };
-
                     print(fmt::format("first value: {}, second value: {}", First, Second));
 
-                    when("set the value if greater") = [&get_when_test] // clang-format off
-                {
-                    get_when_test(std::partial_ordering::greater, set_if_greater);
-                };
+                    then("base on comparision result to set value") = []
+                    {
+                        constexpr auto order = std::partial_order(Second, First);
+                        constexpr auto greater = order > 0;
+                        constexpr auto less = order < 0;
+                        constexpr auto f = [](const auto expect, auto&& func)
+                        {
+                            auto first = First;
+                            return !(expect ^ (func(first, Second) == Second));
+                        };
 
-                when("set the value if less") = [&get_when_test]
-                {
-                    get_when_test(std::partial_ordering::less, set_if_less);
-                };
-            };
-            
-        } | std::tuple<static_params<1, 2>, static_params<2, 1>>{};
+                        static_expect<f(greater, set_if_greater)>() << //
+                            fmt::format(
+                                "value should {} be set in set_if_greater",
+                                greater ? "" : "not" //
+                            );
+                        static_expect<f(less, set_if_less)>() << //
+                            fmt::format("value should {} be set in set_if_less", less ? "" : "not");
+                    };
+                }; // clang-format off
+            } | std::tuple<static_params<1, 2>, static_params<2, 1>>{};
             // clang-format on
 
-            // clang-format off
-        feature("is_between") = []<auto Value, auto Min, auto Max>(
-          const static_params<Value, Min, Max>
-        )
-            // clang-format on
+
+            feature("is_between") = []<auto Value, auto Min, auto Max>( // clang-format off
+              const static_params<Value, Min, Max>
+            ) noexcept // clang-format on
             {
-                given("given three values") = []
+                given("given three values") = []() noexcept
                 {
                     print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
                     constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
-                    then(
-                        is_in_range ? // clang-format off
-                    "value should between min-max" :
-                    "value should not between min-max"
-                ) = [is_in_range = is_in_range] { expect(is_between(Value, Min, Max) == is_in_range); };
-            };
-        } | std::tuple<
-            static_params<1, 1, 2>,
-            static_params<3, 2, 3>,
-            static_params<4, 2, 4>,
-            static_params<3, 5, 10>,
-            static_params<10, -1, 9>,
-            static_params<100u, 50l, 900ll>
-        >{};
-            // clang-format on
+                    constexpr auto res = is_between(Value, Min, Max) == is_in_range;
+
+                    then( // clang-format off
+                            is_in_range ? 
+                            "value should between min-max" :
+                            "value should not between min-max" 
+                    ) = &static_expect<res>;
+                }; 
+            } | std::tuple<
+                static_params<1, 1, 2>,
+                static_params<3, 2, 3>,
+                static_params<4, 2, 4>,
+                static_params<3, 5, 10>,
+                static_params<10, -1, 9>,
+                static_params<100u, 50l, 900ll>
+            >{}; // clang-format on
         };
 
         return suite;

@@ -21,19 +21,23 @@ set(exe_src ${utility_src_dir}/tests.cpp)
 set(
     headers 
     ${utility_header_dir}/test_utils.h
-    ${utility_header_dir}/pattern_match_test.h
+    ${utility_header_dir}/utility_test.h
     ${utility_header_dir}/algorithm_test.h
     ${utility_header_dir}/random_test.h
-    ${utility_header_dir}/utility_test.h
+    ${utility_header_dir}/pattern_match_test.h
     ${utility_tratis_header_dir}/value_sequence_test.h
+    ${utility_tratis_header_dir}/type_sequence_test.h
+    ${utility_tratis_header_dir}/member_test.h
 )
 set(
     src
-    ${utility_src_dir}/algorithm_test.cpp
     ${utility_src_dir}/utility_test.cpp
+    ${utility_src_dir}/algorithm_test.cpp
+    ${utility_src_dir}/random_test.cpp
     ${utility_src_dir}/pattern_match_test.cpp
     ${utility_tratis_src_dir}/value_sequence_test.cpp
     ${utility_tratis_src_dir}/type_sequence_test.cpp
+    ${utility_tratis_src_dir}/member_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
