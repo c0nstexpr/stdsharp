@@ -234,14 +234,14 @@ namespace blurringshadow::utility::traits
     };
 
     template<std::size_t I, typename... Types>
-    struct std::tuple_element<I, type_sequence<Types...>> :
-        std::type_identity<typename type_sequence<Types...>::template get_t<I>>
+    struct ::std::tuple_element<I, type_sequence<Types...>> :
+        std::type_identity<typename blurringshadow::utility::traits::type_sequence<Types...>::template get_t<I>>
     {
     };
 
     template<typename... Types>
-    struct std::tuple_size<type_sequence<Types...>> :
-        index_constant<type_sequence<Types...>::size()>
+    struct ::std::tuple_size<type_sequence<Types...>> :
+        blurringshadow::utility::index_constant<blurringshadow::utility::traits::type_sequence<Types...>::size()>
     {
     };
 }

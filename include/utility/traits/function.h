@@ -1,7 +1,7 @@
 ﻿// Created by BlurringShadow at 2021-03-03-下午 4:33
 
 #pragma once
-#include "type_container.h"
+#include "type_sequence.h"
 
 namespace blurringshadow::utility::traits
 {
@@ -20,23 +20,31 @@ namespace blurringshadow::utility::traits
         struct function_traits_helper_base
         {
             using result_t = R;
-            using args_t = type_container<Args...>;
+            using args_t = type_sequence<Args...>;
         };
 
         template<typename R, typename... Args>
-        struct function_traits_helper<R(*)(Args ...)> :
+        struct function_traits_helper<R (*)(Args...)> :
             function_traits_helper_base<R, Args...>,
-            function_qualifiers_traits<false> {};
+            function_qualifiers_traits<false>
+        {
+        };
 
         template<typename R, typename... Args>
-        struct function_traits_helper<R(*)(Args ...) noexcept> :
+        struct function_traits_helper<R (*)(Args...) noexcept> :
             function_traits_helper_base<R, Args...>,
-            function_qualifiers_traits<true> {};
+            function_qualifiers_traits<true>
+        {
+        };
     }
 
     template<typename T>
-    struct function_traits : details::function_traits_helper<std::decay_t<T>> {};
+    struct function_traits : details::function_traits_helper<std::decay_t<T>>
+    {
+    };
 
     template<auto Ptr>
-    struct function_pointer_traits : function_traits<std::decay_t<decltype(Ptr)>> {};
+    struct function_pointer_traits : function_traits<std::decay_t<decltype(Ptr)>>
+    {
+    };
 }

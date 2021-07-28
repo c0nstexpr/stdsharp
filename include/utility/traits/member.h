@@ -33,48 +33,42 @@ namespace blurringshadow::utility::traits
         rvalue
     };
 
-    namespace details
-    {
-        template<typename R, typename ClassT, typename... Args>
-        struct mem_fn_traits : function_traits<R (*)(Args...)>
-        {
-            using class_t = ClassT;
-        };
-
-        template<bool IsConst, bool IsVolatile, member_ref_qualifier RefType>
-        struct mem_fn_qualifier_traits
-        {
-            static constexpr auto is_const = IsConst;
-            static constexpr auto is_volatile = IsVolatile;
-            static constexpr member_ref_qualifier ref_type = RefType;
-        };
-    }
-
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(is_const, is_volatile, ref_type, qualifiers)      \
+#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)   \
     template<typename R, typename ClassT, typename... Args>                                     \
-    struct member_function_traits<R (ClassT::*)(Args...)(qualifiers)> :                         \
-        details::mem_fn_traits<R, ClassT, Args...>,                                             \
-        details::mem_fn_qualifier_traits<is_const, is_volatile, member_ref_qualifier::ref_type> \
+    struct member_function_traits<R (ClassT::*)(Args...) qualifiers> :                          \
+        function_traits<std::conditional_t<noexcept_, R (*)(Args...) noexcept, R (*)(Args...)>> \
     {                                                                                           \
+        using class_t = ClassT;                                                                 \
+        static constexpr auto is_const = const_;                                                \
+        static constexpr auto is_volatile = volatile_;                                          \
+        static constexpr auto ref_type = member_ref_qualifier::ref_;                            \
     };
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(true, is_volatile, ref_type, const qualifiers)    \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, qualifiers)
+#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(               \
+    is_volatile, ref_type, is_noexcept, qualifiers /**/                 \
+)                                                                       \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(                              \
+        true, is_volatile, ref_type, is_noexcept, const qualifiers /**/ \
+    )                                                                   \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, is_noexcept, qualifiers)
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, qualifiers)          \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(true, ref_type, volatile(qualifiers)) \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(false, ref_type, qualifiers)
+#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, is_noexcept, qualifiers) \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(                                          \
+        true, ref_type, is_noexcept, volatile qualifiers /**/                                  \
+    )                                                                                          \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(false, ref_type, is_noexcept, qualifiers)
 
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK             \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(none, )    \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(lvalue, &) \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, &&)
+#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK(is_noexcept, qualifiers)           \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(none, is_noexcept, qualifiers)    \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(lvalue, is_noexcept, &qualifiers) \
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, is_noexcept, &&qualifiers)
 
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK(true, noexcept)
+    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK(false)
 
 #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK
 #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK
+#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_NOEXCEPT_PACK
 #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK
 #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS
 
