@@ -7,7 +7,7 @@
 
 namespace blurringshadow::utility
 {
-    struct empty
+    struct empty final
     {
     };
 
