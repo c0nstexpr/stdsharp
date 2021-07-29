@@ -35,7 +35,7 @@ namespace boost::inline ext::ut
         else return expect(_t{Value}); // clang-format on
     }
 
-    inline auto print(const std::string& str) { return log << fmt::format(" \"{}\"", str); }
+    inline auto print(const std::string_view& str) { return log << fmt::format(" \"{}\"", str); }
 
-    inline auto println(const std::string& str) { return log << fmt::format(" \"{}\"\n", str); }
+    inline auto println(std::string str) { return print(std::move(str) + "\n"); }
 }
