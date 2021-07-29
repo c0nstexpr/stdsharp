@@ -29,12 +29,12 @@ set(
     ${utility_tratis_header_dir}/member.h
 
     ${utility_header_dir}/concurrent_object.h
-    ${utility_header_dir}/string_conversion.h
     ${utility_header_dir}/type_traits.h
     ${utility_header_dir}/algorithm.h
     ${utility_header_dir}/functional.h
     ${utility_header_dir}/random.h
     ${utility_header_dir}/utility.h
+    ${utility_header_dir}/assert.h
     ${utility_header_dir}/pattern_match.h
 )
 
