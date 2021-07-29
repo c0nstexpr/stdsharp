@@ -66,7 +66,7 @@ namespace blurringshadow::test::utility
                 static_params<4, 2, 4>,
                 static_params<3, 5, 10>,
                 static_params<10, -1, 9>,
-                static_params<100u, 50l, 900ll>
+                static_params<100, 50, 900>
             >{}; // clang-format on
         };
 
