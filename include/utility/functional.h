@@ -21,6 +21,18 @@ namespace blurringshadow::utility
         return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
     }
 
+    struct assign
+    {
+        template<typename T, typename U>
+        constexpr auto operator()(T& left, U&& right) const
+            noexcept(noexcept(left = std::forward<U>(right)))
+        {
+            return left = std::forward<U>(right);
+        }
+    };
+
+    inline constexpr assign assign_v{};
+
     inline constexpr std::ranges::equal_to equal_to_v{};
     inline constexpr std::ranges::not_equal_to not_equal_to_v{};
     inline constexpr std::ranges::less less_v{};
@@ -47,10 +59,9 @@ namespace blurringshadow::utility
 
     struct left_shift
     {
-        template<typename T, typename U> // clang-format off
-        [[nodiscard]] constexpr auto operator()(T&& left, U&& right) const noexcept(
-            noexcept(std::forward<T>(left) << std::forward<U>(right))
-        ) // clang-format on
+        template<typename T, typename U>
+        [[nodiscard]] constexpr auto operator()(T&& left, U&& right) const
+            noexcept(noexcept(std::forward<T>(left) << std::forward<U>(right)))
         {
             return std::forward<T>(left) << std::forward<U>(right);
         }
@@ -58,10 +69,9 @@ namespace blurringshadow::utility
 
     struct right_shift
     {
-        template<typename T, typename U> // clang-format off
-        [[nodiscard]] constexpr auto operator()(T&& left, U&& right) const noexcept(
-            noexcept(std::forward<T>(left) >> std::forward<U>(right))
-        ) // clang-format on
+        template<typename T, typename U>
+        [[nodiscard]] constexpr auto operator()(T&& left, U&& right) const
+            noexcept(noexcept(std::forward<T>(left) >> std::forward<U>(right)))
         {
             return std::forward<T>(left) >> std::forward<U>(right);
         }
