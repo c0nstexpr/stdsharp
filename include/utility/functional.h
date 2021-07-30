@@ -24,7 +24,7 @@ namespace blurringshadow::utility
     struct assign
     {
         template<typename T, typename U>
-        constexpr auto operator()(T& left, U&& right) const
+        constexpr decltype(auto) operator()(T& left, U&& right) const
             noexcept(noexcept(left = std::forward<U>(right)))
         {
             return left = std::forward<U>(right);
