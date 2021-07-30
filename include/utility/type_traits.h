@@ -87,6 +87,30 @@ namespace blurringshadow::utility
     template<auto Value>
     inline constexpr auto constant_t = constant<Value>::value_type;
 
+    template<typename T, typename... Args>
+    concept constant_value = std::constructible_from<T, Args...> && requires(Args&&... args)
+    {
+        T{std::forward<Args>(args)...}.value; // clang-format off
+        { T{std::forward<Args>(args)...}.value } -> not_same_as<void>; // clang-format on
+    };
+
+    namespace details
+    {
+        template<typename T>
+        struct constant_from_type
+        {
+            template<typename... Args>
+                requires constant_value<T, Args...>
+            constexpr auto opeartor(Args&&... args)
+            {
+                return T{std::forward<Args>(args)...}.value;
+            };
+        };
+    }
+
+    template<typename T>
+    inline constexpr details::constant_from_type<T> get{};
+
     template<typename Func, typename... Args>
     concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
 
