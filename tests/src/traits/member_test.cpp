@@ -3,16 +3,16 @@
 
 namespace blurringshadow::test::utility::traits
 {
-    boost::ut::suite& member_test() noexcept
+    boost::ut::suite& member_test()
     {
-        static boost::ut::suite suite = []() noexcept
+        static boost::ut::suite suite = []()
         {
             using namespace boost::ut;
             using namespace bdd;
             using namespace blurringshadow::utility;
             using namespace blurringshadow::utility::traits;
 
-            feature("member") = []() noexcept
+            feature("member") = []()
             {
                 struct my_class
                 {
@@ -22,10 +22,11 @@ namespace blurringshadow::test::utility::traits
                     using mem_func_r_t = char;
                     using mem_func_args_t = type_sequence<long, double>;
 
-                    char mem_f(long, double) { return {}; };
+                    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+                    char mem_f(long, double) { return {}; }
                 };
 
-                given("custom class type") = []() noexcept
+                given("custom class type") = []()
                 {
                     print( //
                         fmt::format(
@@ -40,7 +41,7 @@ namespace blurringshadow::test::utility::traits
 
                     then(
                         "use member traits to get member type, type should be expected" // clang-format off
-                    ) = []() noexcept // clang-format on
+                    ) = []() // clang-format on
                     {
                         using mem_p_t = member_pointer_traits<&my_class::m>;
                         using mem_p_func_t = member_function_pointer_traits<&my_class::mem_f>;

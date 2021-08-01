@@ -41,7 +41,7 @@ namespace blurringshadow::utility::traits
             using seq = type_sequence<Types...>;
             using type = typename seq::template indexed_by_seq_t<
                 make_value_sequence_t<seq::size() - 1, seq::size(), minus_v> // clang-format off
-            >; // clang-format on
+  >; // clang-format on
         };
 
         template<typename... Types>
@@ -53,13 +53,14 @@ namespace blurringshadow::utility::traits
             static constexpr auto is_valid()
             {
                 return seq::find_if( // clang-format off
-                    [j = size_t{0}]<typename T>(const type_identity<T>) mutable
-                    {
-                        if(j == I) return true;
-                        ++j;
-                        return std::same_as<typename seq::template get_t<I>, T>;
-                    } 
-                ) == I; // clang-format on
+    [j = size_t{0}] < typename T >(const type_identity<T>) mutable
+    {
+      if (j == I)
+        return true;
+      ++j;
+      return std::same_as<typename seq::template get_t<I>, T>;
+    }
+    ) == I; // clang-format on
             }
 
             static constexpr auto filtered_indices = []<size_t... I>(const index_sequence<I...>)
@@ -82,7 +83,7 @@ namespace blurringshadow::utility::traits
             (typename seq::index_seq{});
 
             template<std::size_t... I>
-            using filtered_seq = 
+            using filtered_seq =
                 regular_type_sequence<typename seq::template get_t<filtered_indices.first[I]>...>;
 
             using type = typename take_value_sequence< //
@@ -95,8 +96,7 @@ namespace blurringshadow::utility::traits
             ((std::invocable<Proj, type_identity<Types>> &&
               std::invocable<Func, invoke_result_t<Proj, type_identity<Types>>>)&&...);
 
-        template<typename Proj, 
-            typename Func, typename... Types>
+        template<typename Proj, typename Func, typename... Types>
         concept type_sequence_nothrow_invocable =
             ((nothrow_invocable<Func, invoke_result_t<Proj, type_identity<Types>>>)&&...);
 
@@ -140,7 +140,6 @@ namespace blurringshadow::utility::traits
         using typename base::index_seq;
         using base::size;
         using base::invoke;
-        using base::get_range;
         using base::for_each;
         using base::for_each_n;
         using base::find_if;
@@ -232,16 +231,21 @@ namespace blurringshadow::utility::traits
         using select_range_indexed_t =
             decltype(select_range_indexed<From>(std::make_index_sequence<Size>{}));
     };
+}
 
+namespace std
+{
     template<std::size_t I, typename... Types>
-    struct ::std::tuple_element<I, type_sequence<Types...>> :
-        std::type_identity<typename blurringshadow::utility::traits::type_sequence<Types...>::template get_t<I>>
+    struct tuple_element<I, blurringshadow::utility::traits::type_sequence<Types...>> :
+        std::type_identity<
+            typename blurringshadow::utility::traits::type_sequence<Types...>::template get_t<I>>
     {
     };
 
     template<typename... Types>
-    struct ::std::tuple_size<type_sequence<Types...>> :
-        blurringshadow::utility::index_constant<blurringshadow::utility::traits::type_sequence<Types...>::size()>
+    struct tuple_size<blurringshadow::utility::traits::type_sequence<Types...>> :
+        blurringshadow::utility::index_constant<
+            blurringshadow::utility::traits::type_sequence<Types...>::size()>
     {
     };
 }

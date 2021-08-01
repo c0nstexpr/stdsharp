@@ -211,50 +211,6 @@ namespace blurringshadow::utility::traits
         template<typename Seq>
         using indexed_by_seq_t = typename take_value_sequence<Seq>::template apply_t<indexed_t>;
 
-        // clang-format off
-        static constexpr auto get_range = []() noexcept // clang-format on
-        {
-            using namespace std;
-            using namespace ranges;
-
-            return transform_view(
-                iota_view{size_t{0}, size()},
-                [](const size_t i) noexcept(
-                    (nothrow_move_constructible<remove_reference_t<decltype(Values)>> && ...) //
-                )
-                {
-                    if constexpr(size() == 0) return variant<monostate>{};
-                    else
-                    {
-                        variant<remove_reference_t<decltype(Values)>...> var{};
-
-                        const auto f = [&var, i]<size_t I>(const constant<I>) // clang-format off
-                            noexcept(
-                                nothrow_move_constructible<variant_alternative_t<I, decltype(var)>> 
-                            ) // clang-format on
-                        {
-                            if(i == I)
-                            {
-                                var.emplace<I>(get<I>());
-                                return true;
-                            }
-
-                            return false;
-                        };
-
-                        [&f]<size_t... I>(const index_sequence<I...>) //
-                            noexcept(noexcept((f(constant<I>{}), ...)))
-                        {
-                            (f(constant<I>{}) || ...);
-                        }
-                        (index_seq{});
-
-                        return var;
-                    }
-                } //
-            );
-        };
-
     private: //
         struct for_each_fn
         {
@@ -637,16 +593,27 @@ namespace blurringshadow::utility::traits
                 Other> // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
+}
 
+namespace std
+{
     template<std::size_t I, auto... Values>
-    struct std::tuple_element<I, value_sequence<Values...>> :
-        std::type_identity<decltype(typename value_sequence<Values...>::template get<I>())>
+    struct std::tuple_element<I, blurringshadow::utility::traits::value_sequence<Values...>> :
+        std::type_identity< // clang-format off
+            decltype(
+                typename blurringshadow::utility::traits::
+                    value_sequence<Values...>::
+                    template get<I>()
+            )
+        > // clang-format on
     {
     };
 
     template<auto... Values>
-    struct std::tuple_size<value_sequence<Values...>> :
-        index_constant<value_sequence<Values...>::size()>
+    struct std::tuple_size<blurringshadow::utility::traits::value_sequence<Values...>> :
+        blurringshadow::utility::index_constant<
+            blurringshadow::utility::traits::value_sequence<Values...>::size() // clang-format off
+        > // clang-format on
     {
     };
 }

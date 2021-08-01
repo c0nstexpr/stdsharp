@@ -1,49 +1,87 @@
-#include "type_traits.h"
+#include "functional.h"
 
 namespace blurringshadow::utility
 {
-    /*
-    constexpr auto pattern_match = []< // clang-format off
+    template< //
         typename Condition,
-        template<typename, typename> typename Pair,
-        std::predicate<Condition>... Predicate,
-        std::invocable... Func
-    >(const Condition& condition, Pair<Predicate, Func>&&... patterns) // clang-format on
-        noexcept(((nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func>)&&...)) //
-        requires(
-            std::same_as<std::remove_cvref_t<Pair<Predicate, Func>>, std::pair<Predicate, Func>> &&
-            ...)
+        std::predicate<const Condition>... Predicate,
+        std::invocable<const Condition>... Func // clang-format off
+    > // clang-format on
+    constexpr auto pattern_match(
+        const Condition& condition, //
+        std::pair<Predicate, Func>... cases // clang-format off
+    ) noexcept(((nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func>)&&...))
     {
-        (
-            []<typename P>(P&& pair)
+        using namespace std;
+        ( // clang-format on
+            [&condition]<typename P>(P& pair)
             {
-                auto&& [predicate, func] = std::forward<P>(pair);
-                if(predicate(condition)) std::invoke(std::forward<decltype(func)>(func));
-            }(patterns),
-            ...);
-    };
+                if(invoke_r<bool>(pair.first, condition))
+                {
+                    invoke(pair.second, condition);
+                    return true;
+                }
+                return false;
+            }(cases) ||
+            ... //
+        );
+    }
 
-    template<typename Func>
-    struct pattern
+    namespace details
     {
-        Func func;
-
-        template<auto Condition>
-        constexpr decltype(auto) operator()() noexcept(noexcept(func(constant<Condition>{}))) //
-            requires std::invocable<Func, constant<Condition>>
+        template<typename ConditionT>
+        struct constexpr_pattern_match
         {
-            return func(constant<Condition>{});
-        }
-    };
+            template<typename Case>
+            struct case_
+            {
+                Case c;
 
-    inline constexpr auto constexpr_pattern_match = []<auto Condition, typename... Patterns>(
-        Patterns && ... patterns //
-    )
+                constexpr bool operator()(const auto) noexcept
+                {
+                    return invocable<type_identity<ConditionT>>;
+                }
+
+                constexpr void operator()(const auto) //
+                    noexcept(nothrow_invocable<Case, type_identity<ConditionT>>) //
+                    requires invocable<type_identity<ConditionT>>
+                {
+                    invoke(c, type_identity<ConditionT>{});
+                }
+
+                constexpr void operator()(const auto) noexcept
+                {
+                    return [](const auto) noexcept {};
+                }
+            };
+
+            template<typename Case>
+            constexpr auto get_case_pair(Case& c) noexcept
+            {
+                return pair{case_{reference_wrapper{c}}, case_{reference_wrapper{c}}};
+            }
+        };
+    }
+
+    template<typename ConditionT, typename... Cases>
+    constexpr auto constexpr_pattern_match(Cases... cases) noexcept( // clang-format off
+        noexcept( 
+            pattern_match(
+                empty{},
+                details::constexpr_pattern_match<ConditionT>::get_case_pair(cases)...
+            ) 
+        ) 
+    ) // clang-format on
     {
-        []<typename P>()
-        {
-            if constexpr(std::invocable<P>) p();
-        }();
-    };
-    */
+        return pattern_match(
+            empty{}, //
+            details::constexpr_pattern_match<ConditionT>::get_case_pair(cases)... //
+        );
+    }
+
+    template<auto Condition, typename... Cases>
+    constexpr auto constexpr_pattern_match(Cases&&... cases)
+    {
+        return constexpr_pattern_match<constant<Condition>>(std::forward<Cases>(cases)...);
+    }
 }

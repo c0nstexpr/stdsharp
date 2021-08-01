@@ -372,3 +372,5 @@ out/*
 /CMakeSettings.json
 clang-build/*
 wsl-gcc-build/*
+.idea/
+cmake-build-debug/

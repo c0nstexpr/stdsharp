@@ -47,9 +47,9 @@ namespace blurringshadow::utility
         {
             template<typename T>
                 requires is_enum_v<T>
-            [[nodiscard]] constexpr underlying_type_t<T> operator()(const T v) const noexcept
+            [[nodiscard]] constexpr auto operator()(const T v) const noexcept
             {
-                return v;
+                return static_cast<underlying_type_t<std::remove_cvref_t<T>>>(v);
             }
         };
     }

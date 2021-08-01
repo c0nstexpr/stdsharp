@@ -3,9 +3,9 @@
 
 namespace blurringshadow::test::utility
 {
-    boost::ut::suite& algorithm_test() noexcept
+    boost::ut::suite& algorithm_test()
     {
-        static boost::ut::suite suite = []() noexcept
+        static boost::ut::suite suite = []()
         {
             using namespace std;
             using namespace boost::ut;
@@ -16,11 +16,11 @@ namespace blurringshadow::test::utility
                 const static_params<First, Second> 
             ) noexcept // clang-format on
             {
-                given("given two values") = []() noexcept
+                given("given two values") = []()
                 {
                     print(fmt::format("first value: {}, second value: {}", First, Second));
 
-                    then("base on comparision result to set value") = []
+                    then("base on comparison result to set value") = []
                     {
                         constexpr auto order = std::partial_order(Second, First);
                         constexpr auto greater = order > 0;
@@ -46,19 +46,18 @@ namespace blurringshadow::test::utility
 
             feature("is_between") = []<auto Value, auto Min, auto Max>( // clang-format off
               const static_params<Value, Min, Max>
-            ) noexcept // clang-format on
+            ) // clang-format on
             {
-                given("given three values") = []() noexcept
+                given("given three values") = []()
                 {
                     print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
                     constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
-                    constexpr auto res = is_between(Value, Min, Max) == is_in_range;
 
                     then( // clang-format off
                             is_in_range ? 
                             "value should between min-max" :
                             "value should not between min-max" 
-                    ) = &static_expect<res>;
+                    ) = &static_expect<is_between(Value, Min, Max) == is_in_range>;
                 }; 
             } | std::tuple<
                 static_params<1, 1, 2>,

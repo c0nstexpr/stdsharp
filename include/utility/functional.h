@@ -88,7 +88,7 @@ namespace blurringshadow::utility
         template<bool Requirement> // clang-format off
         inline constexpr auto operator_assign = []<typename T, typename U, typename Operation>(
             Operation op,
-            auto al_op,
+            const auto&,
             T& left,
             U&& right
         ) noexcept(nothrow_invocable<Operation, T&, U&&>) // clang-format on
@@ -154,7 +154,7 @@ namespace blurringshadow::utility
 
     inline constexpr std::identity identity_v{};
 
-#define BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(operator_prefix, op, al_op)             \
+#define BS_UTIL_INCREMENT_DECREMENT_OPERATE(operator_prefix, op, al_op)               \
     struct pre_##operator_prefix##crease                                              \
     {                                                                                 \
         template<typename T>                                                          \
@@ -201,10 +201,10 @@ namespace blurringshadow::utility
                                                                                       \
     inline constexpr post_##operator_prefix##crease post_##operator_prefix##crease_v{};
 
-    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(in, +, plus)
-    BS_UTIL_INCREAMENT_DECREAMENT_OPERATE(de, -, minus)
+    BS_UTIL_INCREMENT_DECREMENT_OPERATE(in, +, plus)
+    BS_UTIL_INCREMENT_DECREMENT_OPERATE(de, -, minus)
 
-#undef BS_UTIL_INCREAMENT_DECREAMENT_OPERATE
+#undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
 #undef BS_DUPLICATE
 
     struct advance

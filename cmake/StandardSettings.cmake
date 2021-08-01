@@ -6,7 +6,7 @@
 option(ENABLE_CONAN "Enable the Conan package manager for this project." OFF)
 
 #
-# Miscelanious options
+# Miscellaneous options
 #
 
 option(VERBOSE_OUTPUT "Enable verbose output, allowing for a better understanding of each step taken." ON)

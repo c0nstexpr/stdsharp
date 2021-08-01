@@ -44,9 +44,9 @@ namespace blurringshadow::test::utility::traits
     template<auto... V>
     using regular_value_sequence = blurringshadow::utility::traits::regular_value_sequence<V...>;
 
-    boost::ut::suite& value_sequence_test() noexcept
+    boost::ut::suite& value_sequence_test()
     {
-        static boost::ut::suite suite = []() noexcept
+        static boost::ut::suite suite = []()
         {
             using namespace boost::ut;
             using namespace bdd;
@@ -62,9 +62,7 @@ namespace blurringshadow::test::utility::traits
                 static_expect<std::default_initializable<test_seq>>();
             };
 
-            feature("get") = []<auto I, std::size_t Expect>( //
-                const get_test_params<I, Expect> //
-            )
+            feature("get") = []<auto I, std::size_t Expect>(const get_test_params<I, Expect>)
             {
                 given("given index") = []
                 {
@@ -158,7 +156,8 @@ namespace blurringshadow::test::utility::traits
 
                 feature("transform_t") = []<auto... Functor>(const static_params<Functor...>)
                 {
-                    static_expect<std::default_initializable<test_seq::transform_t<Functor...>>>();
+                    static_expect<
+                        std::default_initializable<test_seq::template transform_t<Functor...>>>();
                     // clang-format off
                 } | std::tuple<
                     static_params<identity_v>,
@@ -337,7 +336,8 @@ namespace blurringshadow::test::utility::traits
                          "type should be expected") = []
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
-                        using actual_t = blurringshadow::utility::traits::unique_value_sequence_t<Values...>;
+                        using actual_t =
+                            blurringshadow::utility::traits::unique_value_sequence_t<Values...>;
                         static_expect<_b(std::same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
@@ -349,23 +349,6 @@ namespace blurringshadow::test::utility::traits
                     0, 10, 1, 5, 10, 1
                 >
             >{}; // clang-format on
-
-            feature("get_range") = []
-            {
-                then("use seq get_range and print values") = []
-                {
-                    print("values: ");
-                    for(const auto& variant : test_seq::get_range())
-                        std::visit(
-                            []<typename T>(const T& v)
-                            {
-                                if constexpr(fmt::formattable<T>::value)
-                                    print(fmt::format("{{ {} }}", v));
-                            },
-                            variant //
-                        );
-                };
-            };
         };
 
         return suite;

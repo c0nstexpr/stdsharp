@@ -10,7 +10,7 @@ namespace blurringshadow::test::utility
     };
 }
 
-namespace boost::inline ext::ut
+namespace boost::inline ext::ut // NOLINT(modernize-concat-nested-namespaces)
 {
     namespace details
     {

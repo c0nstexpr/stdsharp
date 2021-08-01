@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-#include "assert.h"
+#include "utility/assert.h"
 #include "functional.h"
 
 namespace blurringshadow::utility
@@ -57,8 +57,8 @@ namespace blurringshadow::utility
                 using proj_min = std::invoke_result_t<Proj, const Min>;
                 using proj_max = std::invoke_result_t<Proj, const Max>;
 
-                static constexpr auto value = predicate<Compare, proj_min, proj_t> && //
-                    predicate<Compare, proj_t, proj_max> && //
+                static constexpr auto value = predicate<Compare, proj_t, proj_min> && //
+                    predicate<Compare, proj_max, proj_t> && //
                     predicate<Compare, proj_max, proj_min>;
             };
 
@@ -105,8 +105,8 @@ namespace blurringshadow::utility
                         }; // clang-format on
                     }
 
-                return invoke_r<bool>(cmp, projected_min, projected_v) &&
-                    invoke_r<bool>(cmp, projected_v, projected_max);
+                return !invoke_r<bool>(cmp, projected_v, projected_min) &&
+                    !invoke_r<bool>(cmp, projected_max, projected_v);
             }
         };
     }

@@ -27,7 +27,8 @@ namespace blurringshadow::utility
     concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
 
     template<typename T>
-    concept nothrow_default_initializable = std::is_nothrow_default_constructible_v<T>;
+    concept nothrow_default_initializable =
+        std::default_initializable<T> && std::is_nothrow_default_constructible_v<T>;
 
     template<typename T>
     concept nothrow_move_constructible = std::is_nothrow_move_constructible_v<T>;
@@ -101,7 +102,7 @@ namespace blurringshadow::utility
         {
             template<typename... Args>
                 requires constant_value<T, Args...>
-            constexpr auto opeartor(Args&&... args)
+            constexpr auto operator()(Args&&... args)
             {
                 return T{std::forward<Args>(args)...}.value;
             };

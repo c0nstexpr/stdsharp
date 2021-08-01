@@ -57,9 +57,9 @@ namespace blurringshadow::test::utility::traits
     template<typename... T>
     using regular_type_sequence = blurringshadow::utility::traits::regular_type_sequence<T...>;
 
-    boost::ut::suite& type_sequence_test() noexcept
+    boost::ut::suite& type_sequence_test()
     {
-        static boost::ut::suite suite = []() noexcept
+        static boost::ut::suite suite = []()
         {
             using namespace boost::ut;
             using namespace bdd;
@@ -322,20 +322,6 @@ namespace blurringshadow::test::utility::traits
                     int, float, void, char
                 >
             >{}; // clang-format on
-
-            feature("get_range") = []
-            {
-                then("use seq get_range and print types") = []
-                {
-                    print("types: ");
-                    for(const auto& variant : test_seq::get_range())
-                        std::visit(
-                            []<typename T>(const std::type_identity<T>)
-                            { print(fmt::format("{{ {} }}", reflection::type_name<T>())); },
-                            variant //
-                        );
-                };
-            };
         };
 
         return suite;
