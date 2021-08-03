@@ -89,8 +89,10 @@ namespace blurringshadow::test::utility
                                     {
                                         matched = my_enum::one; //
                                     },
-                                    [&matched](const type_identity<constant<my_enum::two>>) noexcept
+                                    [&matched,
+                                     &flag](const type_identity<constant<my_enum::two>>) noexcept
                                     {
+                                        flag = true;
                                         matched = my_enum::two; //
                                     },
                                     [&matched]<my_enum E>( // clang-format off
