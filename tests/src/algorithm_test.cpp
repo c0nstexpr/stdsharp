@@ -49,14 +49,15 @@ namespace blurringshadow::test::utility
                 given("given three values") = []()
                 {
                     print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
-                    constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
+                    static constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
+                    static constexpr auto res = is_between(Value, Min, Max) == is_in_range;
 
                     then( // clang-format off
-                            is_in_range ? 
-                            "value should between min-max" :
-                            "value should not between min-max" 
-                    ) = []() { static_expect<is_between(Value, Min, Max) == is_in_range>(); };
-                }; 
+                        is_in_range ?
+                        "value should between min-max" :
+                        "value should not between min-max"
+                    ) = []() { static_expect<res>(); };
+                };
             } | std::tuple<
                 static_params<1, 1, 2>,
                 static_params<3, 2, 3>,
