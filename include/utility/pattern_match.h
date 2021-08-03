@@ -1,4 +1,5 @@
 #include "functional.h"
+#include <range/v3/functional/overload.hpp>
 
 namespace blurringshadow::utility
 {
@@ -50,25 +51,30 @@ namespace blurringshadow::utility
         }
     }
 
-    template<typename ConditionT, typename... Cases>
-    constexpr auto constexpr_pattern_match(Cases... cases) noexcept( // clang-format off
-    noexcept(
-        pattern_match(
-            type_identity_v<ConditionT>,
-            details::get_constexpr_case_pair<ConditionT>(cases)...
-        )
-    )
-    ) // clang-format on
+    namespace constexpr_pattern_match
     {
-        return pattern_match(
-            type_identity_v<ConditionT>, //
-            details::get_constexpr_case_pair<ConditionT>(cases)... //
-        );
-    }
+        template<typename ConditionT>
+        inline constexpr auto from_type = [](auto... cases) // clang-format off
+            noexcept(
+                noexcept(
+                    pattern_match(
+                        type_identity_v<ConditionT>,
+                        details::get_constexpr_case_pair<ConditionT>(cases)...
+                    )
+                )
+            ) // clang-format on
+        {
+            return pattern_match(
+                type_identity_v<ConditionT>, //
+                details::get_constexpr_case_pair<ConditionT>(cases)... //
+            );
+        };
 
-    template<auto Condition, typename... Cases>
-    constexpr auto constexpr_pattern_match(Cases&&... cases)
-    {
-        return constexpr_pattern_match<constant<Condition>>(std::forward<Cases>(cases)...);
+        template<auto Condition>
+        inline constexpr auto from_constant = []<typename... Cases>(Cases&&... cases) //
+            noexcept(noexcept(from_type<constant<Condition>>(std::forward<Cases>(cases)...)))
+        {
+            return from_type<constant<Condition>>(std::forward<Cases>(cases)...);
+        };
     }
 }

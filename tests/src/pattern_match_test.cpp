@@ -84,7 +84,7 @@ namespace blurringshadow::test::utility
                                 auto flag = false;
                                 my_enum matched{};
 
-                                constexpr_pattern_match<constant<my_enum::two>>(
+                                constexpr_pattern_match::from_constant<my_enum::two>(
                                     [&matched](const type_identity<constant<my_enum::one>>) noexcept
                                     {
                                         matched = my_enum::one; //

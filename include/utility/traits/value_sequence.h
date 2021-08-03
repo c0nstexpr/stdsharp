@@ -173,21 +173,18 @@ namespace blurringshadow::utility::traits
         std::make_index_sequence<sizeof...(Values)>
     > // clang-format on
     {
-        template<std::size_t I>
-        static constexpr auto get() noexcept
-        {
-            return base::template get_value<I>();
-        }
-
-        static constexpr std::size_t size() noexcept { return sizeof...(Values); }
-
     private:
         using base = details::value_sequence<
             value_sequence<Values...>,
             std::make_index_sequence<sizeof...(Values)> // clang-format off
-        >; // clang-format on
+            >; // clang-format on
 
     public:
+        template<std::size_t I>
+        static constexpr auto get = []() noexcept { return base::template get_value<I>(); };
+
+        static constexpr auto size = []() noexcept { return sizeof...(Values); };
+
         using index_seq = typename base::index_seq; // clang-format off
 
         static constexpr auto invoke = []<typename Func>(Func && func) // clang-format on
@@ -493,18 +490,14 @@ namespace blurringshadow::utility::traits
         static constexpr adjacent_find_fn adjacent_find{};
 
         template<auto... Func>
-        static constexpr auto transform() noexcept // clang-format off
+        static constexpr auto transform = []() noexcept // clang-format off
         {         
             if constexpr(sizeof...(Func) == 1) return []<auto F>(const constant<F>) noexcept
             {
                 return value_sequence<std::invoke(F, Values)...>{};
-            }(constant<Func...>{}); // clang-format on
-            else
-            {
-                static_assert((invocable_rnonvoid<decltype(Func), decltype(Values)> && ...));
-                return value_sequence<std::invoke(Func, Values)...>{};
-            }
-        }
+            }(constant<Func...>{});
+            else return value_sequence<std::invoke(Func, Values)...>{}; // clang-format on
+        };
 
         template<auto... Func>
         using transform_t = decltype(transform<Func...>());
