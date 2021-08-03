@@ -14,7 +14,7 @@ namespace blurringshadow::utility
     public:
         template<typename... Args>
             requires std::constructible_from<T, Args...>
-        constexpr concurrent_object(Args&&... args) //
+        constexpr explicit concurrent_object(Args&&... args) //
             noexcept(nothrow_constructible_from<T, Args...>):
             object_(std::forward<Args>(args)...)
         {

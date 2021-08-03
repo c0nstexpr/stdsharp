@@ -14,7 +14,7 @@ namespace blurringshadow::test::utility
 
             feature("set_if") = []<auto First, auto Second>( // clang-format off
                 const static_params<First, Second> 
-            ) noexcept // clang-format on
+            ) // clang-format on
             {
                 given("given two values") = []()
                 {
@@ -23,8 +23,8 @@ namespace blurringshadow::test::utility
                     then("base on comparison result to set value") = []
                     {
                         constexpr auto order = std::partial_order(Second, First);
-                        constexpr auto greater = order > 0;
-                        constexpr auto less = order < 0;
+                        constexpr auto greater = order > 0; // NOLINT(hicpp-use-nullptr)
+                        constexpr auto less = order < 0; // NOLINT(hicpp-use-nullptr)
                         constexpr auto f = [](const auto expect, auto&& func)
                         {
                             auto first = First;
@@ -43,10 +43,8 @@ namespace blurringshadow::test::utility
             } | std::tuple<static_params<1, 2>, static_params<2, 1>>{};
             // clang-format on
 
-
-            feature("is_between") = []<auto Value, auto Min, auto Max>( // clang-format off
-              const static_params<Value, Min, Max>
-            ) // clang-format on
+            feature("is_between") =
+                []<auto Value, auto Min, auto Max>(const static_params<Value, Min, Max>)
             {
                 given("given three values") = []()
                 {
@@ -57,7 +55,7 @@ namespace blurringshadow::test::utility
                             is_in_range ? 
                             "value should between min-max" :
                             "value should not between min-max" 
-                    ) = &static_expect<is_between(Value, Min, Max) == is_in_range>;
+                    ) = []() { static_expect<is_between(Value, Min, Max) == is_in_range>(); };
                 }; 
             } | std::tuple<
                 static_params<1, 1, 2>,

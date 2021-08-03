@@ -5,7 +5,7 @@ namespace blurringshadow::test::utility::traits
 {
     namespace
     {
-        template<auto I, std::size_t Expect>
+        template<auto I, size_t Expect>
         using get_test_params = static_params<I, Expect>;
 
         template<template<auto...> typename T>
@@ -13,7 +13,7 @@ namespace blurringshadow::test::utility::traits
         {
         };
 
-        template<typename, std::size_t...>
+        template<typename, size_t...>
         struct indexed_by_seq_t_test_params
         {
         };
@@ -27,7 +27,7 @@ namespace blurringshadow::test::utility::traits
         template<typename Seq, typename Expect>
         using remove_t_test_params = std::tuple<Seq, Expect>;
 
-        template<std::size_t, typename, typename>
+        template<size_t, typename, typename>
         struct insert_by_seq_t_test_params
         {
         };
@@ -48,21 +48,22 @@ namespace blurringshadow::test::utility::traits
     {
         static boost::ut::suite suite = []()
         {
+            using namespace std;
             using namespace boost::ut;
             using namespace bdd;
             using namespace blurringshadow::utility;
 
-            using test_seq = value_sequence<0, 1, std::size_t{7}, 1, std::to_array("my literal")>;
+            using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
 
             println(fmt::format("test_seq type: {}", reflection::type_name<test_seq>()));
 
             feature("construct") = []
             {
-                static_expect<std::default_initializable<value_sequence<>>>();
-                static_expect<std::default_initializable<test_seq>>();
+                static_expect<default_initializable<value_sequence<>>>();
+                static_expect<default_initializable<test_seq>>();
             };
 
-            feature("get") = []<auto I, std::size_t Expect>(const get_test_params<I, Expect>)
+            feature("get") = []<auto I, size_t Expect>(const get_test_params<I, Expect>)
             {
                 given("given index") = []
                 {
@@ -74,7 +75,7 @@ namespace blurringshadow::test::utility::traits
                         static_expect<test_seq::get<I>() == Expect>();
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 get_test_params<0, 0>,
                 get_test_params<1, 1>,
                 get_test_params<2, 7>,
@@ -89,10 +90,10 @@ namespace blurringshadow::test::utility::traits
 
                     then("sequence invoke should be invocable") = [] //
                     {
-                        static_expect<std::invocable<decltype(test_seq::invoke), T>>(); //
+                        static_expect<invocable<decltype(test_seq::invoke), T>>(); //
                     };
                 };
-            } | std::tuple<std::identity>{};
+            } | tuple<identity>{};
 
             feature("find") = []<auto V, auto Expect>(const static_params<V, Expect>)
             {
@@ -107,7 +108,7 @@ namespace blurringshadow::test::utility::traits
                         static_expect<i == Expect>() << fmt::format("actual value: {}", i);
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 static_params<0, 0>,
                 static_params<1, 1>,
                 static_params<'!', test_seq::size()>
@@ -126,7 +127,7 @@ namespace blurringshadow::test::utility::traits
                         static_expect<count == Expect>() << fmt::format("actual count: {}", count);
                     };
                 }; // clang-format off
-            } | std::tuple<static_params<0, 1>, static_params<1, 2>, static_params<'?', 0>>{};
+            } | tuple<static_params<0, 1>, static_params<1, 2>, static_params<'?', 0>>{};
 
             // clang-format on
             feature("apply_t") = []<template<auto...> typename T>(const apply_t_test_params<T>)
@@ -137,19 +138,19 @@ namespace blurringshadow::test::utility::traits
 
                     then("type that is applied sequence values should be constructible") = []
                     {
-                        static_expect<_b(std::default_initializable<test_seq::apply_t<T>>)>(); //
+                        static_expect<_b(default_initializable<test_seq::apply_t<T>>)>(); //
                     };
                 }; // clang-format off
-            } | std::tuple<apply_t_test_params<static_params>>{}; // clang-format on
+            } | tuple<apply_t_test_params<static_params>>{}; // clang-format on
 
             // TODO here the braces to avoid strange MSVC compile error
             // TODO clang lambda NTTP
             {
                 constexpr auto lam_1 = [](const int v) mutable { return v + 1; };
                 constexpr auto lam_2 = [](const int v) { return v + 42; };
-                constexpr auto lam_3 = [](const std::size_t v) { return v + 42; };
+                constexpr auto lam_3 = [](const size_t v) { return v + 42; };
                 constexpr auto lam_4 = [](const int v) { return v + 6; };
-                constexpr auto lam_5 = []<auto Size>(const std::array<char, Size>& str)
+                constexpr auto lam_5 = []<auto Size>(const array<char, Size>& str)
                 {
                     return str[0];
                 };
@@ -157,9 +158,9 @@ namespace blurringshadow::test::utility::traits
                 feature("transform_t") = []<auto... Functor>(const static_params<Functor...>)
                 {
                     static_expect<
-                        std::default_initializable<test_seq::template transform_t<Functor...>>>();
+                        default_initializable<test_seq::template transform_t<Functor...>>>();
                     // clang-format off
-                } | std::tuple<
+                } | tuple<
                     static_params<identity_v>,
                     static_params<lam_1, lam_2, lam_3, lam_4, lam_5>
                 >{}; // clang-format on
@@ -179,18 +180,18 @@ namespace blurringshadow::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t = test_seq::indexed_by_seq_t<T>;
-                        static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+                        static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 indexed_t_test_params<
                     regular_value_sequence<1, 2>,
-                    regular_value_sequence<1, std::size_t{7}>
+                    regular_value_sequence<1, size_t{7}>
                 >,
                 indexed_t_test_params<
                     regular_value_sequence<2, 4>,
-                    regular_value_sequence<std::size_t{7}, std::to_array("my literal")>
+                    regular_value_sequence<size_t{7}, to_array("my literal")>
                 >
             >{}; // clang-format on
 
@@ -209,7 +210,7 @@ namespace blurringshadow::test::utility::traits
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
 
                         using actual_t = test_seq::append_by_seq_t<Seq>;
-                        static_expect<std::same_as<actual_t, Expect>>() << //
+                        static_expect<same_as<actual_t, Expect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
 
@@ -219,33 +220,33 @@ namespace blurringshadow::test::utility::traits
                         print(
                             fmt::format("expected type: {}", reflection::type_name<FrontExpect>()));
                         using actual_t = test_seq::append_front_by_seq_t<Seq>;
-                        static_expect<std::same_as<actual_t, FrontExpect>>() << //
+                        static_expect<same_as<actual_t, FrontExpect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 append_by_seq_t_test_params<
                     regular_value_sequence<1, 2>,
                     regular_value_sequence<
-                        0, 1, std::size_t{7}, 1, std::to_array("my literal"), 1, 2
+                        0, 1, size_t{7}, 1, to_array("my literal"), 1, 2
                     >,
                     regular_value_sequence<
-                        1, 2, 0, 1, std::size_t{7}, 1, std::to_array("my literal")
+                        1, 2, 0, 1, size_t{7}, 1, to_array("my literal")
                     >
                 >,
                 append_by_seq_t_test_params<
                     regular_value_sequence<2, 4>,
                     regular_value_sequence<
-                        0, 1, std::size_t{7}, 1, std::to_array("my literal"), 2, 4
+                        0, 1, size_t{7}, 1, to_array("my literal"), 2, 4
                     >,
                     regular_value_sequence<
-                        2, 4, 0, 1, std::size_t{7}, 1, std::to_array("my literal")
+                        2, 4, 0, 1, size_t{7}, 1, to_array("my literal")
                     >
                 >
             >{}; // clang-format on
 
             // clang-format off
-            feature("insert_by_seq_t") = []<std::size_t Index, typename Seq, typename Expect>(
+            feature("insert_by_seq_t") = []<size_t Index, typename Seq, typename Expect>(
                 const insert_by_seq_t_test_params<Index, Seq, Expect>
             ) // clang-format on
             {
@@ -258,23 +259,23 @@ namespace blurringshadow::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t = test_seq::insert_by_seq_t<Index, Seq>;
-                        static_expect<std::same_as<actual_t, Expect>>() << //
+                        static_expect<same_as<actual_t, Expect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 insert_by_seq_t_test_params<
                     3,
                     regular_value_sequence<1, 2>,
                     regular_value_sequence<
-                        0, 1, std::size_t{7}, 1, 2, 1, std::to_array("my literal")
+                        0, 1, size_t{7}, 1, 2, 1, to_array("my literal")
                     >
                 >,
                 insert_by_seq_t_test_params<
                     5,
                     regular_value_sequence<2, 4>,
                     regular_value_sequence<
-                        0, 1, std::size_t{7}, 1, std::to_array("my literal"), 2, 4
+                        0, 1, size_t{7}, 1, to_array("my literal"), 2, 4
                     >
                 >
             >{}; // clang-format on
@@ -293,14 +294,14 @@ namespace blurringshadow::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t = test_seq::remove_at_by_seq_t<T>;
-                        static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+                        static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 indexed_t_test_params<
                     regular_value_sequence<1, 2>,
-                    regular_value_sequence<0, 1, std::to_array("my literal")>
+                    regular_value_sequence<0, 1, to_array("my literal")>
                 >,
                 indexed_t_test_params<
                     regular_value_sequence<2, 4>,
@@ -316,16 +317,15 @@ namespace blurringshadow::test::utility::traits
                 given("given values") = []
                 {
                     constexpr auto pack_size = sizeof...(Values);
-                    std::string format_str = "values: ";
+                    string format_str = "values: ";
 
                     if constexpr(pack_size > 0)
                     {
-                        constexpr auto single_format_str = std::to_array("{}, ");
+                        constexpr auto single_format_str = to_array("{}, ");
                         format_str.reserve(
                             format_str.size() + pack_size * single_format_str.size() //
                         );
-                        for([[maybe_unused]] const auto _ :
-                            std::ranges::iota_view{std::size_t{0}, pack_size - 1})
+                        for(size_t i = 0; i < pack_size - 1; ++i)
                             format_str += single_format_str.data();
                         format_str += "{}";
                     }
@@ -338,11 +338,11 @@ namespace blurringshadow::test::utility::traits
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t =
                             blurringshadow::utility::traits::unique_value_sequence_t<Values...>;
-                        static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+                        static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 unique_seq_t_test_params<regular_value_sequence<>>,
                 unique_seq_t_test_params<
                     regular_value_sequence<0, 10, 1, 5>,

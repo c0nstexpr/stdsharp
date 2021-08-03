@@ -367,10 +367,7 @@ healthchecksdb
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
 
-out/*
-*.DotSettings
-/CMakeSettings.json
-clang-build/*
-wsl-gcc-build/*
+out/
+CMakeSettings.json
+*-build/
 .idea/
-cmake-build-debug/

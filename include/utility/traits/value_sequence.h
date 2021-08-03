@@ -234,7 +234,7 @@ namespace blurringshadow::utility::traits
                 noexcept(details::value_sequence_nothrow_invocable<Proj, Func, Values...>)
             {
                 const auto f = [&]<typename T>(T&& v) //
-                    noexcept(std::invoke(func, std::invoke(proj, std::declval<T>())))
+                    noexcept(nothrow_invocable<Func, std::invoke_result_t<Proj, T>>)
                 {
                     if(size == 0) return false;
                     std::invoke(func, std::invoke(proj, std::forward<T>(v)));
@@ -257,7 +257,7 @@ namespace blurringshadow::utility::traits
             {
                 std::size_t i = 0;
                 const auto f = [&func, &proj, &i]<typename T>(T&& v) //
-                    noexcept(noexcept(invoke_r<bool>(func, std::invoke(proj, std::forward<T>(v)))))
+                    noexcept(nothrow_invocable_r<Func, bool, std::invoke_result_t<Proj, T>>)
                 {
                     if(invoke_r<bool>(func, std::invoke(proj, std::forward<T>(v)))) return false;
                     ++i;
@@ -554,16 +554,21 @@ namespace blurringshadow::utility::traits
 
                 array<std::size_t, size()> res{};
                 array excepted = {Index...};
+                size_t res_i = 0;
 
                 ranges::sort(excepted);
 
-                const auto& [_, last] = ranges::set_difference( // clang-format off
-                    iota_view{size_t{0}, size()},
-                    excepted,
-                    res.begin() // clang-format on
-                );
+                {
+                    size_t index = 0;
+                    for(const auto excepted_i : excepted)
+                    {
+                        for(; index < excepted_i; ++index, ++res_i) res[res_i] = index;
+                        ++index;
+                    }
+                    for(; index < size(); ++index, ++res_i) res[res_i] = index;
+                }
 
-                return pair{res, last - res.cbegin()};
+                return pair{res, res_i};
             }();
 
             template<std::size_t... I>
@@ -598,7 +603,7 @@ namespace blurringshadow::utility::traits
 namespace std
 {
     template<std::size_t I, auto... Values>
-    struct std::tuple_element<I, blurringshadow::utility::traits::value_sequence<Values...>> :
+    struct tuple_element<I, blurringshadow::utility::traits::value_sequence<Values...>> :
         std::type_identity< // clang-format off
             decltype(
                 typename blurringshadow::utility::traits::
@@ -610,7 +615,7 @@ namespace std
     };
 
     template<auto... Values>
-    struct std::tuple_size<blurringshadow::utility::traits::value_sequence<Values...>> :
+    struct tuple_size<blurringshadow::utility::traits::value_sequence<Values...>> :
         blurringshadow::utility::index_constant<
             blurringshadow::utility::traits::value_sequence<Values...>::size() // clang-format off
         > // clang-format on

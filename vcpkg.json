@@ -2,6 +2,7 @@
     "name": "blurringshadow-utility",
     "version": "0.1.0",
     "dependencies": [
-        "fmt"
+        "fmt",
+        "range-v3"
     ]
 }

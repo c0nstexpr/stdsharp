@@ -297,8 +297,7 @@ namespace blurringshadow::test::utility::traits
                         format_str.reserve(
                             format_str.size() + pack_size * single_format_str.size() //
                         );
-                        for([[maybe_unused]] const auto _ :
-                            std::ranges::iota_view{std::size_t{0}, pack_size - 1})
+                        for(std::size_t i = 0; i < pack_size - 1; ++i)
                             format_str += single_format_str.data();
                         format_str += "{}";
                     }

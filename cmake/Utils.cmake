@@ -8,9 +8,9 @@ include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 
 function(verbose_message content)
-    if(VERBOSE_OUTPUT)
-	    message(STATUS ${content})
-    endif()
+    if (VERBOSE_OUTPUT)
+        message(STATUS ${content})
+    endif ()
 endfunction()
 
 include(cmake/Conan.cmake)
@@ -18,38 +18,34 @@ conan()
 
 
 function(init_proj)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" "${ARGN}")
     message(STATUS "Started CMake for ${PROJECT_NAME} v${PROJECT_VERSION}...\n")
 
     #
     # Setup alternative names
     #
-	set(PROJECT_NAME_LOWERCASE ${PROJECT_NAME} PARENT_SCOPE)
-	set(PROJECT_NAME_UPPERCASE ${PROJECT_NAME} PARENT_SCOPE)
-    if(${${CMAKE_CURRENT_FUNCTION}_USE_ALT_NAMES})
-	    string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
-	    string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)
-    endif()
+    set(PROJECT_NAME_LOWERCASE ${PROJECT_NAME} PARENT_SCOPE)
+    set(PROJECT_NAME_UPPERCASE ${PROJECT_NAME} PARENT_SCOPE)
+    if (${${CMAKE_CURRENT_FUNCTION}_USE_ALT_NAMES})
+        string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
+        string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)
+    endif ()
 
     #
     # Prevent building in the source directory
     #
-    if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-      message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there.\n")
-    endif()
+    if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
+        message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there.\n")
+    endif ()
 endfunction()
 
 #
 # Create header only library
 #
-function(config_interface_lib lib_name includes)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
-    
-    # Find all headers and implementation files
-    list(JOIN includes "\n    " includes_str)
-    verbose_message("Found the following header files:\n    ${includes_str}")
+function(config_interface_lib lib_name)
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" "${ARGN}")
 
-    add_library(${lib_name} INTERFACE ${includes})
+    add_library(${lib_name} INTERFACE)
 
     message(STATUS "Added all header files.\n")
 
@@ -57,10 +53,10 @@ function(config_interface_lib lib_name includes)
     # Set the project standard and warnings
     #
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
-    if(${std})
+    if (${std})
         target_compile_features(${lib_name} INTERFACE cxx_std_${std})
         message(STATUS "Using c++ ${std}.\n")
-    endif()
+    endif ()
 
     #
     # Set the build/user include directories
@@ -68,8 +64,8 @@ function(config_interface_lib lib_name includes)
     target_include_directories(
         ${lib_name}
         INTERFACE
-            $<INSTALL_INTERFACE:include>    
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
 endfunction()
 
@@ -77,7 +73,7 @@ endfunction()
 # Create static or shared library, setup header and source files
 #
 function(config_lib lib_name includes src lib_type)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" "${ARGN}")
 
     # Find all headers and implementation files
     list(JOIN includes "\n    " includes_str)
@@ -88,11 +84,11 @@ function(config_lib lib_name includes src lib_type)
 
     add_library(${lib_name} ${lib_type} ${src})
 
-    if(lib_type STREQUAL "SHARED")
+    if (lib_type STREQUAL "SHARED")
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
         set(CMAKE_CXX_VISIBILITY_PRESET hidden)
         set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
-    endif()
+    endif ()
 
     message(STATUS "Added all header and implementation files.\n")
 
@@ -100,19 +96,19 @@ function(config_lib lib_name includes src lib_type)
     # Set the project standard and warnings
     #
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
-    if(${std})
+    if (${std})
         target_compile_features(${lib_name} PUBLIC cxx_std_${std})
         message(STATUS "Using c++ ${std}.\n")
-    endif()
+    endif ()
 
     #
     # Set the build/user include directories
     #
     target_include_directories(
-        ${lib_name} 
-        PUBLIC 
-            $<INSTALL_INTERFACE:include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        ${lib_name}
+        PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 endfunction()
@@ -121,7 +117,7 @@ endfunction()
 # Create executable, setup header and source files
 #
 function(config_exe exe_name exe_src)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" "${ARGN}")
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
 
     list(JOIN exe_src "\n    " exe_src_str)
@@ -129,10 +125,10 @@ function(config_exe exe_name exe_src)
 
     add_executable(${exe_name} ${exe_src})
 
-    if(${CMAKE_CURRENT_FUNCTION}_INCLUDES)
+    if (${CMAKE_CURRENT_FUNCTION}_INCLUDES)
         verbose_message("Configuring executable library")
 
-        if(${CMAKE_CURRENT_FUNCTION}_SOURCES)
+        if (${CMAKE_CURRENT_FUNCTION}_SOURCES)
             config_lib(
                 ${exe_name}_LIB
                 "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}"
@@ -140,16 +136,15 @@ function(config_exe exe_name exe_src)
                 STATIC
                 STD ${std}
             )
-        else()
+        else ()
             config_interface_lib(
                 ${exe_name}_LIB
-                "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}"
                 STD ${std}
             )
-        endif()
+        endif ()
 
         target_link_libraries(${exe_name} PUBLIC ${exe_name}_LIB)
-    endif()
+    endif ()
 endfunction()
 
 #
@@ -158,23 +153,23 @@ endfunction()
 function(target_install target_name)
     include(GNUInstallDirs)
 
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "VER;NAMESPACE" "" ${ARGN})
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "VER;NAMESPACE" "" "${ARGN}")
 
     install(
-      TARGETS ${target_name}
-      EXPORT ${target_name}Targets
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      INCLUDES DESTINATION include
-      PUBLIC_HEADER DESTINATION include
+        TARGETS ${target_name}
+        EXPORT ${target_name}Targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        INCLUDES DESTINATION include
+        PUBLIC_HEADER DESTINATION include
     )
 
     install(
-      EXPORT ${target_name}Targets
-      FILE ${target_name}Targets.cmake
-      NAMESPACE ${${CMAKE_CURRENT_FUNCTION}_NAMESPACE}
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
+        EXPORT ${target_name}Targets
+        FILE ${target_name}Targets.cmake
+        NAMESPACE ${${CMAKE_CURRENT_FUNCTION}_NAMESPACE}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
     )
 
     #
@@ -216,14 +211,14 @@ function(target_install target_name)
     configure_package_config_file(
         ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}
-        INSTALL_DESTINATION 
+        INSTALL_DESTINATION
         ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
     )
 
     install(
         FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}
-            ${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}
+        ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}
+        ${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
     )
 
@@ -240,10 +235,10 @@ function(target_export_header target_name)
 
     message(STATUS "Generated the export header `${target_name}_export.h`")
 
-    if(${${CMAKE_CURRENT_FUNCTION}_INSTALL})
+    if (${${CMAKE_CURRENT_FUNCTION}_INSTALL})
         install(
-            FILES ${PROJECT_BINARY_DIR}/${target_name}_export.h 
+            FILES ${PROJECT_BINARY_DIR}/${target_name}_export.h
             DESTINATION include
         )
-    endif()
+    endif ()
 endfunction()

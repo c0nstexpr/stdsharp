@@ -34,8 +34,10 @@ namespace blurringshadow::test::utility
                             {
                                 auto flag = false;
                                 my_enum matched{};
-                                const auto matched_assign = [&matched](const my_enum e) noexcept
-                                { matched = e; };
+                                const auto matched_assign = [&matched](const my_enum e) noexcept //
+                                {
+                                    matched = e; //
+                                };
 
                                 pattern_match(
                                     my_enum::two,
@@ -54,6 +56,48 @@ namespace blurringshadow::test::utility
                                     pair{
                                         bind_front(equal_to_v, my_enum::three),
                                         matched_assign //
+                                    } //
+                                );
+
+                                return pair{flag, matched};
+                            }();
+
+                            static_expect<pair_v.first>()
+                                << fmt::format("actually match {}", to_underlying(pair_v.second));
+                        };
+                    };
+                };
+            };
+
+            feature("constexpr_pattern_match") = []()
+            {
+                given(R"(given enum class has three values: "one", "two", "three")") = []()
+                {
+                    given("given three cases matches separate value") = []()
+                    {
+                        print("case 1 match one, case 2 match two, case 3 match three");
+
+                        when("when case 2 match set the flag to true") = []()
+                        {
+                            constexpr auto pair_v = []()
+                            {
+                                auto flag = false;
+                                my_enum matched{};
+
+                                constexpr_pattern_match<constant<my_enum::two>>(
+                                    [&matched](const type_identity<constant<my_enum::one>>) noexcept
+                                    {
+                                        matched = my_enum::one; //
+                                    },
+                                    [&matched](const type_identity<constant<my_enum::two>>) noexcept
+                                    {
+                                        matched = my_enum::two; //
+                                    },
+                                    [&matched]<my_enum E>( // clang-format off
+                                        const type_identity<constant<my_enum::three>>
+                                    ) noexcept // clang-format on
+                                    {
+                                        matched = my_enum::three; //
                                     } //
                                 );
 

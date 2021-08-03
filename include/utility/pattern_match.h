@@ -29,53 +29,40 @@ namespace blurringshadow::utility
 
     namespace details
     {
-        template<typename ConditionT>
-        struct constexpr_pattern_match
+        template<typename ConditionT, typename Case>
+        static constexpr auto get_constexpr_case_pair(Case& c) noexcept
         {
-            template<typename Case>
-            struct case_
-            {
-                Case c;
+            using type_identity = type_identity<ConditionT>;
 
-                constexpr bool operator()(const auto) noexcept
+            return pair{
+                [](const type_identity) noexcept { return invocable<Case, type_identity>; },
+                [&c]
                 {
-                    return invocable<type_identity<ConditionT>>;
-                }
-
-                constexpr void operator()(const auto) //
-                    noexcept(nothrow_invocable<Case, type_identity<ConditionT>>) //
-                    requires invocable<type_identity<ConditionT>>
-                {
-                    invoke(c, type_identity<ConditionT>{});
-                }
-
-                constexpr void operator()(const auto) noexcept
-                {
-                    return [](const auto) noexcept {};
-                }
+                    if constexpr(invocable<Case, type_identity>)
+                        return [&c]<typename T>(const T t) noexcept(nothrow_invocable<Case, T>)
+                        {
+                            invoke(c, t);
+                            return true;
+                        }; // clang-format off
+                    else return [](const type_identity) noexcept { return false; };
+                }() // clang-format on
             };
-
-            template<typename Case>
-            constexpr auto get_case_pair(Case& c) noexcept
-            {
-                return pair{case_{reference_wrapper{c}}, case_{reference_wrapper{c}}};
-            }
-        };
+        }
     }
 
     template<typename ConditionT, typename... Cases>
     constexpr auto constexpr_pattern_match(Cases... cases) noexcept( // clang-format off
-        noexcept( 
-            pattern_match(
-                empty{},
-                details::constexpr_pattern_match<ConditionT>::get_case_pair(cases)...
-            ) 
-        ) 
+    noexcept(
+        pattern_match(
+            type_identity_v<ConditionT>,
+            details::get_constexpr_case_pair<ConditionT>(cases)...
+        )
+    )
     ) // clang-format on
     {
         return pattern_match(
-            empty{}, //
-            details::constexpr_pattern_match<ConditionT>::get_case_pair(cases)... //
+            type_identity_v<ConditionT>, //
+            details::get_constexpr_case_pair<ConditionT>(cases)... //
         );
     }
 
