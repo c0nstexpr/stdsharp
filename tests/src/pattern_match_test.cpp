@@ -79,7 +79,7 @@ namespace blurringshadow::test::utility
 
                         when("when case 2 match set the flag to true") = []()
                         {
-                            constexpr auto pair_v = []()
+                            constexpr auto pair_v = []() noexcept
                             {
                                 auto flag = false;
                                 my_enum matched{};
@@ -88,10 +88,9 @@ namespace blurringshadow::test::utility
                                     [&matched](const type_identity<constant<my_enum::one>>) noexcept
                                     {
                                         matched = my_enum::one; //
-                                    },
-                                    [&matched,
-                                     &flag](const type_identity<constant<my_enum::two>>) noexcept
-                                    {
+                                    }, // clang-format off
+                                    [&matched, &flag](const type_identity<constant<my_enum::two>>) noexcept
+                                    { // clang-format on
                                         flag = true;
                                         matched = my_enum::two; //
                                     },
@@ -106,8 +105,8 @@ namespace blurringshadow::test::utility
                                 return pair{flag, matched};
                             }();
 
-                            static_expect<pair_v.first>()
-                                << fmt::format("actually match {}", to_underlying(pair_v.second));
+                            static_expect<pair_v.first>() << //
+                                fmt::format("actually match {}", to_underlying(pair_v.second));
                         };
                     };
                 };
