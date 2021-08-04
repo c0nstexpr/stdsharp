@@ -53,4 +53,24 @@ namespace blurringshadow::utility
     }
 
     inline constexpr ::blurringshadow::utility::details::to_underlying_fn to_underlying{};
+
+    template<typename T>
+    struct value_wrapper : ::std::type_identity<T>
+    {
+        T value;
+    };
+
+    template<typename T>
+    struct value_wrapper<T&> : ::std::type_identity<T&>
+    {
+        T& value;
+
+        constexpr value_wrapper(T& v) noexcept: value(v) {} // NOLINT(hicpp-explicit-conversions)
+    };
+
+    template<typename T>
+    using extend_t = ::std::conditional_t<::std::is_rvalue_reference_v<T&&>, T, T&>;
+
+    template<typename T>
+    value_wrapper(T&&) -> value_wrapper<extend_t<T>>;
 }
