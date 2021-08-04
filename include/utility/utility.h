@@ -58,6 +58,9 @@ namespace blurringshadow::utility
     struct value_wrapper : ::std::type_identity<T>
     {
         T value;
+
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr value_wrapper(T&& v) noexcept: value(::std::move(v)) {}
     };
 
     template<typename T>
