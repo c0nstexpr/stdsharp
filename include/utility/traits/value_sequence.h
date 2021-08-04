@@ -208,21 +208,15 @@ namespace blurringshadow::utility::traits
 
         static constexpr auto size = sizeof...(Values);
 
-        using index_seq = typename base::index_seq; // clang-format off
+        using index_seq = typename base::index_seq;
 
-        static constexpr auto invoke = []<typename Func>(Func&& func)
-            noexcept(
+        static constexpr auto invoke = []<typename Func>
+            requires(std::invocable<Func, decltype(Values)>&&...) // clang-format off
+            (Func&& func) noexcept(
                 (::blurringshadow::utility::nothrow_invocable<Func, decltype(Values)> && ...)
-            )
-            -> decltype(auto) // clang-format on
-            requires(std::invocable<Func, decltype(Values)>&&...)
+            ) ->decltype(auto) // clang-format on
         {
-            const auto f = [&func]<typename T>(T&& v) noexcept(
-                               ::blurringshadow::utility::nothrow_invocable<Func, T>)
-            {
-                return ::std::invoke(::std::forward<Func>(func), ::std::forward<T>(v)); //
-            };
-            return ::blurringshadow::utility::merge_invoke(::std::bind(f, Values)...);
+            return ::blurringshadow::utility::merge_invoke(::std::bind_front(func, Values)...);
         };
 
         template<template<auto...> typename T>
