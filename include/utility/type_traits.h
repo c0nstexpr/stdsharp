@@ -17,6 +17,87 @@ namespace blurringshadow::utility
     template<typename T>
     concept enumeration = ::std::is_enum_v<T>;
 
+    template<typename T>
+    concept reference = ::std::is_reference_v<T>;
+
+    template<typename T>
+    concept lvalue_ref = ::std::is_lvalue_reference_v<T>;
+
+    template<typename T>
+    concept rvalue_ref = ::std::is_rvalue_reference_v<T>;
+
+    template<typename T>
+    concept const_ = ::std::is_const_v<T>;
+
+    template<typename T>
+    concept volatile_ = ::std::is_volatile_v<T>;
+
+    template<typename T>
+    concept abstract = ::std::is_abstract_v<T>;
+
+    template<typename T>
+    concept aggregate = ::std::is_aggregate_v<T>;
+
+    template<typename T>
+    concept arithmetic = ::std::is_arithmetic_v<T>;
+
+    template<typename T>
+    concept fundamental_array = ::std::is_array_v<T>;
+
+    template<typename T, typename U>
+    concept base_of = ::std::is_base_of_v<T, U>;
+
+    template<typename T>
+    concept class_ = ::std::is_class_v<T>;
+
+    template<typename T>
+    concept function = ::std::is_function_v<T>;
+
+    template<typename T>
+    concept pointer = ::std::is_pointer_v<T>;
+
+    template<typename T>
+    concept fundamental = ::std::is_fundamental_v<T>;
+
+    template<typename T>
+    concept scalar = ::std::is_scalar_v<T>;
+
+    template<typename T>
+    concept object = ::std::is_object_v<T>;
+
+    template<typename T>
+    concept compound = ::std::is_compound_v<T>;
+
+    template<typename T>
+    concept member_object_pointer = ::std::is_member_object_pointer_v<T>;
+
+    template<typename T>
+    concept member_function_pointer = ::std::is_member_function_pointer_v<T>;
+
+    template<typename T>
+    concept member_pointer = ::std::is_member_pointer_v<T>;
+
+    template<typename T>
+    concept trivial = ::std::is_trivial_v<T>;
+
+    template<typename T>
+    concept trivial_copyable = ::std::is_trivially_copyable_v<T>;
+
+    template<typename T>
+    concept trivial_constructible = ::std::is_trivially_constructible_v<T>;
+
+    template<typename T>
+    concept trivial_copy_constructible = ::std::is_trivially_copy_constructible_v<T>;
+
+    template<typename T>
+    concept trivial_copy_assignable = ::std::is_trivially_copy_assignable_v<T>;
+
+    template<typename T>
+    concept trivial_move_constructible = ::std::is_trivially_move_constructible_v<T>;
+
+    template<typename T>
+    concept trivial_move_assignable = ::std::is_trivially_move_assignable_v<T>;
+
     template<typename T, typename U>
     concept not_same_as = !::std::same_as<T, U>;
 
