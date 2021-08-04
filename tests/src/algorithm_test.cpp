@@ -5,7 +5,7 @@ namespace blurringshadow::test::utility
 {
     boost::ut::suite& algorithm_test()
     {
-        static boost::ut::suite suite = []()
+        static boost::ut::suite suite = []
         {
             using namespace std;
             using namespace boost::ut;
@@ -16,15 +16,17 @@ namespace blurringshadow::test::utility
                 const static_params<First, Second> 
             ) // clang-format on
             {
-                given("given two values") = []()
+                given("given two values") = []
                 {
                     print(fmt::format("first value: {}, second value: {}", First, Second));
 
                     then("base on comparison result to set value") = []
                     {
                         constexpr auto order = std::partial_order(Second, First);
-                        constexpr auto greater = order > 0; // NOLINT(hicpp-use-nullptr)
-                        constexpr auto less = order < 0; // NOLINT(hicpp-use-nullptr)
+                        constexpr auto greater =
+                            order > 0; // NOLINT(hicpp-use-nullptr,modernize-use-nullptr)
+                        constexpr auto less =
+                            order < 0; // NOLINT(hicpp-use-nullptr,modernize-use-nullptr)
                         constexpr auto f = [](const auto expect, auto&& func)
                         {
                             auto first = First;
@@ -43,20 +45,20 @@ namespace blurringshadow::test::utility
             } | std::tuple<static_params<1, 2>, static_params<2, 1>>{};
             // clang-format on
 
-            feature("is_between") =
-                []<auto Value, auto Min, auto Max>(const static_params<Value, Min, Max>)
+            feature("is_between") = []<auto Value, auto Min, auto Max>( //
+                const static_params<Value, Min, Max> //
+            )
             {
-                given("given three values") = []()
+                given("given three values") = []
                 {
                     print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
                     static constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
-                    static constexpr auto res = is_between(Value, Min, Max) == is_in_range;
 
                     then( // clang-format off
                         is_in_range ?
                         "value should between min-max" :
                         "value should not between min-max"
-                    ) = []() { static_expect<res>(); };
+                    ) = [] { static_expect<is_between(Value, Min, Max) == is_in_range>(); };
                 };
             } | std::tuple<
                 static_params<1, 1, 2>,

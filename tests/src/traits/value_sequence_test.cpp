@@ -46,7 +46,7 @@ namespace blurringshadow::test::utility::traits
 
     boost::ut::suite& value_sequence_test()
     {
-        static boost::ut::suite suite = []()
+        static boost::ut::suite suite = []
         {
             using namespace std;
             using namespace boost::ut;
@@ -111,7 +111,7 @@ namespace blurringshadow::test::utility::traits
             } | tuple<
                 static_params<0, 0>,
                 static_params<1, 1>,
-                static_params<'!', test_seq::size()>
+                static_params<'!', test_seq::size>
             >{}; // clang-format on
 
             feature("count") = []<auto V, auto Expect>(const static_params<V, Expect>)

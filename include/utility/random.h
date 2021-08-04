@@ -8,7 +8,7 @@ namespace blurringshadow::utility
 {
     [[nodiscard]] inline auto& get_random_device()
     {
-        static thread_local std::random_device random_device;
+        static thread_local ::std::random_device random_device;
         return random_device;
     }
 }

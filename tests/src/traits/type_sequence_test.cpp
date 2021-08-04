@@ -126,7 +126,7 @@ namespace blurringshadow::test::utility::traits
             } | std::tuple<
                 find_test_params<float, 1>,
                 find_test_params<char, 2>,
-                find_test_params<void, test_seq::size()>
+                find_test_params<void, test_seq::size>
             >{}; // clang-format on
 
             feature("count") = []<typename T, auto Expect>(const count_test_params<T, Expect>)

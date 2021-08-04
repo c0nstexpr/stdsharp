@@ -1,25 +1,29 @@
-#include "functional.h"
+#pragma once
+
 #include <range/v3/functional/overload.hpp>
+
+#include "functional.h"
 
 namespace blurringshadow::utility
 {
     template< //
         typename Condition,
-        std::predicate<const Condition>... Predicate,
-        std::invocable<const Condition>... Func // clang-format off
+        ::std::predicate<const Condition>... Predicate,
+        ::std::invocable<const Condition>... Func // clang-format off
     > // clang-format on
     constexpr auto pattern_match(
         const Condition& condition, //
-        std::pair<Predicate, Func>... cases // clang-format off
-    ) noexcept(((nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func>)&&...))
+        ::std::pair<Predicate, Func>... cases // clang-format off
+    ) noexcept(((::blurringshadow::utility::
+        nothrow_predicate<Predicate, Condition> && ::blurringshadow::utility::nothrow_invocable<Func>) && ...))
     {
         using namespace std;
         ( // clang-format on
             [&condition]<typename P>(P& pair)
             {
-                if(invoke_r<bool>(pair.first, condition))
+                if(::blurringshadow::utility::invoke_r<bool>(pair.first, condition))
                 {
-                    invoke(pair.second, condition);
+                    ::std::invoke(pair.second, condition);
                     return true;
                 }
                 return false;
@@ -57,24 +61,28 @@ namespace blurringshadow::utility
         inline constexpr auto from_type = [](auto... cases) // clang-format off
             noexcept(
                 noexcept(
-                    pattern_match(
-                        type_identity_v<ConditionT>,
-                        details::get_constexpr_case_pair<ConditionT>(cases)...
+                    ::blurringshadow::utility::pattern_match(
+                        ::blurringshadow::utility::type_identity_v<ConditionT>,
+                        ::blurringshadow::utility::details::get_constexpr_case_pair<ConditionT>(cases)...
                     )
                 )
             ) // clang-format on
         {
-            return pattern_match(
-                type_identity_v<ConditionT>, //
-                details::get_constexpr_case_pair<ConditionT>(cases)... //
+            return ::blurringshadow::utility::pattern_match(
+                ::blurringshadow::utility::type_identity_v<ConditionT>, //
+                ::blurringshadow::utility::details::get_constexpr_case_pair<ConditionT>(cases)... //
             );
         };
 
         template<auto Condition>
         inline constexpr auto from_constant = []<typename... Cases>(Cases&&... cases) //
-            noexcept(noexcept(from_type<constant<Condition>>(std::forward<Cases>(cases)...)))
+            noexcept(noexcept(::blurringshadow::utility::constexpr_pattern_match:: //
+                              from_type<::blurringshadow::utility:: //
+                                        constant<Condition>>(::std::forward<Cases>(cases)...)))
         {
-            return from_type<constant<Condition>>(std::forward<Cases>(cases)...);
+            return ::blurringshadow::utility::constexpr_pattern_match:: //
+                from_type<::blurringshadow::utility:: //
+                          constant<Condition>>(::std::forward<Cases>(cases)...);
         };
     }
 }

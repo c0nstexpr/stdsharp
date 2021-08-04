@@ -1,18 +1,18 @@
-#include "traits/member_test.h"
+#include "traits/property_test.h"
 #include "utility/traits/member.h"
 
 namespace blurringshadow::test::utility::traits
 {
     boost::ut::suite& member_test()
     {
-        static boost::ut::suite suite = []()
+        static boost::ut::suite suite = []
         {
             using namespace boost::ut;
             using namespace bdd;
             using namespace blurringshadow::utility;
             using namespace blurringshadow::utility::traits;
 
-            feature("member") = []()
+            feature("member") = []
             {
                 struct my_class
                 {
@@ -26,7 +26,7 @@ namespace blurringshadow::test::utility::traits
                     char mem_f(long, double) { return {}; }
                 };
 
-                given("custom class type") = []()
+                given("custom class type") = []
                 {
                     print( //
                         fmt::format(
@@ -41,7 +41,7 @@ namespace blurringshadow::test::utility::traits
 
                     then(
                         "use member traits to get member type, type should be expected" // clang-format off
-                    ) = []() // clang-format on
+                    ) = [] // clang-format on
                     {
                         using mem_p_t = member_pointer_traits<&my_class::m>;
                         using mem_p_func_t = member_function_pointer_traits<&my_class::mem_f>;

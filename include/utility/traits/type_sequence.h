@@ -22,26 +22,29 @@ namespace blurringshadow::utility::traits
         template<template<typename...> typename U>
         using apply_t = U<Types...>;
 
-        using as_sequence_t = regular_type_sequence<Types...>;
+        using as_sequence_t = ::blurringshadow::utility::traits::regular_type_sequence<Types...>;
 
-        using as_type_sequence_t = type_sequence<Types...>;
+        using as_type_sequence_t = ::blurringshadow::utility::traits::type_sequence<Types...>;
     };
 
     template<typename Sequence>
-    using to_regular_type_sequence_t = typename take_type_sequence<Sequence>::as_sequence_t;
+    using to_regular_type_sequence_t =
+        typename ::blurringshadow::utility::traits::take_type_sequence<Sequence>::as_sequence_t;
 
     template<typename Sequence>
-    using to_type_sequence_t = typename take_type_sequence<Sequence>::as_type_sequence_t;
+    using to_type_sequence_t = typename ::blurringshadow::utility::traits:: //
+        take_type_sequence<Sequence>::as_type_sequence_t;
 
     namespace details
     {
         template<typename... Types>
         struct reverse_type_sequence_t
         {
-            using seq = type_sequence<Types...>;
+            using seq = ::blurringshadow::utility::traits::type_sequence<Types...>;
             using type = typename seq::template indexed_by_seq_t<
-                make_value_sequence_t<seq::size() - 1, seq::size(), minus_v> // clang-format off
-  >; // clang-format on
+                ::blurringshadow::utility::traits::
+                    make_value_sequence_t<seq::size - 1, seq::size, minus_v> // clang-format off
+            >; // clang-format on
         };
 
         template<typename... Types>
@@ -53,88 +56,106 @@ namespace blurringshadow::utility::traits
             static constexpr auto is_valid()
             {
                 return seq::find_if( // clang-format off
-    [j = size_t{0}] < typename T >(const type_identity<T>) mutable
-    {
-      if (j == I)
-        return true;
-      ++j;
-      return std::same_as<typename seq::template get_t<I>, T>;
-    }
-    ) == I; // clang-format on
+                    [j = size_t{0}] < typename T >(const ::std::type_identity<T>) mutable
+                    {
+                      if (j == I) return true;
+                      ++j;
+                      return ::std::same_as<typename seq::template get_t<I>, T>;
+                    }
+                ) == I;
             }
 
-            static constexpr auto filtered_indices = []<size_t... I>(const index_sequence<I...>)
+            static constexpr auto filtered_indices = []<size_t... I>(const ::std::index_sequence<I...>)
             {
-                array<size_t, seq::size()> indices{};
-                size_t valid_size = 0;
-                const auto f = [&]<size_t J>(const constant<J>) noexcept
+                ::std::array<::std::size_t, seq::size> indices{};
+                ::std::size_t valid_size = 0;
+                const auto f = [&]<::std::size_t J>(
+                    const ::blurringshadow::utility::constant<J>
+                ) noexcept
                 {
                     if(is_valid<J>())
                     {
                         indices[valid_size] = J;
                         ++valid_size;
                     }
-                };
+                }; // clang-format on
 
-                (f(constant<I>{}), ...);
+                (f(::blurringshadow::utility::constant<I>{}), ...);
 
-                return pair{indices, valid_size};
+                return ::std::pair{indices, valid_size};
             }
             (typename seq::index_seq{});
 
             template<std::size_t... I>
-            using filtered_seq =
+            using filtered_seq = ::blurringshadow::utility::traits:: //
                 regular_type_sequence<typename seq::template get_t<filtered_indices.first[I]>...>;
 
-            using type = typename take_value_sequence< //
-                make_value_sequence_t<std::size_t{}, filtered_indices.second> // clang-format off
+            using type = typename ::blurringshadow::utility::traits::take_value_sequence< //
+                ::blurringshadow::utility::traits:: //
+                make_value_sequence_t<::std::size_t{}, filtered_indices.second> // clang-format off
             >::template apply_t<filtered_seq>; // clang-format on
         };
 
         template<typename Proj, typename Func, typename... Types>
         concept type_sequence_invocable =
-            ((std::invocable<Proj, type_identity<Types>> &&
-              std::invocable<Func, invoke_result_t<Proj, type_identity<Types>>>)&&...);
+            ((::std::invocable<Proj, ::std::type_identity<Types>> &&
+              ::std::
+                  invocable<Func, ::std::invoke_result_t<Proj, ::std::type_identity<Types>>>)&&...);
 
         template<typename Proj, typename Func, typename... Types>
         concept type_sequence_nothrow_invocable =
-            ((nothrow_invocable<Func, invoke_result_t<Proj, type_identity<Types>>>)&&...);
+            ((nothrow_invocable<
+                Func,
+                ::std::invoke_result_t<Proj, ::std::type_identity<Types>>>)&&...);
 
         template<typename Proj, typename Func, typename... Types>
         concept type_sequence_predicate =
-            ((predicate<Func, invoke_result_t<Proj, type_identity<Types>>>)&&...);
+            ((::std::
+                  predicate<Func, ::std::invoke_result_t<Proj, ::std::type_identity<Types>>>)&&...);
 
         template<typename Proj, typename Func, typename... Types>
         concept type_sequence_nothrow_predicate =
-            ((nothrow_invocable_r<Func, bool, invoke_result_t<Proj, type_identity<Types>>>)&&...);
+            ((::blurringshadow::utility::nothrow_invocable_r<
+                Func,
+                bool,
+                ::std::invoke_result_t<Proj, ::std::type_identity<Types>>>)&&...);
 
         template<typename>
         struct from_regular_value_sequence;
 
         template<auto... Values>
-        struct from_regular_value_sequence<regular_value_sequence<Values...>> :
-            std::type_identity<type_sequence<typename decltype(Values)::type...>>
+        struct from_regular_value_sequence<
+            ::blurringshadow::utility::traits::regular_value_sequence<Values...>> :
+            ::std::type_identity<::blurringshadow::utility::traits:: //
+                                 type_sequence<typename decltype(Values)::type...>>
         {
         };
 
         template<typename Seq>
-        using from_regular_value_sequence_t = typename from_regular_value_sequence<Seq>::type;
+        using from_regular_value_sequence_t =
+            typename ::blurringshadow::utility::traits::details:: //
+            from_regular_value_sequence<Seq>::type;
     }
 
     template<typename... Types>
-    using reverse_type_sequence_t = typename details::reverse_type_sequence_t<Types...>::type;
+    using reverse_type_sequence_t =
+        typename ::blurringshadow::utility::traits::details::reverse_type_sequence_t<
+            Types...>::type;
 
     template<typename... Types>
-    using unique_type_sequence_t = typename details::unique_type_sequence<Types...>::type;
+    using unique_type_sequence_t =
+        typename ::blurringshadow::utility::traits::details::unique_type_sequence<Types...>::type;
 
     template<typename... Types>
-    struct type_sequence : private traits::value_sequence<type_identity_v<Types>...>
+    struct type_sequence :
+        private ::blurringshadow::utility::traits::value_sequence<type_identity_v<Types>...>
     {
     private:
-        using base = traits::value_sequence<type_identity_v<Types>...>;
+        using base = ::blurringshadow::utility::traits::value_sequence<type_identity_v<Types>...>;
 
         template<typename Seq>
-        using from_value_seq_t = details::from_regular_value_sequence_t<Seq>;
+        using from_value_seq_t =
+            ::blurringshadow::utility::traits::details::from_regular_value_sequence_t<Seq>;
 
     public:
         using typename base::index_seq;
@@ -157,22 +178,24 @@ namespace blurringshadow::utility::traits
         template<template<typename...> typename T>
         using apply_t = T<Types...>;
 
-        template<std::size_t I>
+        template<::std::size_t I>
         using get_t = typename decltype(base::template get<I>())::type;
 
         template<std::size_t I, typename... Args>
             requires std::constructible_from<get_t<I>, Args...>
         static constexpr get_t<I> get(Args&&... args) //
-            noexcept(nothrow_constructible_from<get_t<I>, Args...>)
+            noexcept(::blurringshadow::utility::nothrow_constructible_from<get_t<I>, Args...>)
         {
-            return {std::forward<Args>(args)...};
+            return {::std::forward<Args>(args)...};
         }
 
         template<std::size_t... OtherInts>
-        using indexed_t = regular_type_sequence<get_t<OtherInts>...>;
+        using indexed_t =
+            ::blurringshadow::utility::traits::regular_type_sequence<get_t<OtherInts>...>;
 
         template<typename Seq>
-        using indexed_by_seq_t = typename take_value_sequence<Seq>::template apply_t<indexed_t>;
+        using indexed_by_seq_t = typename ::blurringshadow::utility::traits::take_value_sequence<
+            Seq>::template apply_t<indexed_t>;
 
         template<std::size_t Size>
         using back_t = from_value_seq_t<typename base::template back_t<Size>>;
@@ -181,20 +204,23 @@ namespace blurringshadow::utility::traits
         using front_t = from_value_seq_t<typename base::template front_t<Size>>;
 
         template<typename... Others>
-        using append_t = regular_type_sequence<Types..., Others...>;
+        using append_t =
+            ::blurringshadow::utility::traits::regular_type_sequence<Types..., Others...>;
 
         template<typename Seq>
-        using append_by_seq_t = typename take_type_sequence<Seq>::template apply_t<append_t>;
+        using append_by_seq_t = typename ::blurringshadow::utility::traits:: //
+            take_type_sequence<Seq>::template apply_t<append_t>;
 
         template<typename... Others>
-        using append_front_t = regular_type_sequence<Others..., Types...>;
+        using append_front_t =
+            ::blurringshadow::utility::traits::regular_type_sequence<Others..., Types...>;
 
         template<typename Seq>
-        using append_front_by_seq_t =
-            typename take_type_sequence<Seq>::template apply_t<append_front_t>;
+        using append_front_by_seq_t = typename ::blurringshadow::utility::traits:: //
+            take_type_sequence<Seq>::template apply_t<append_front_t>;
 
     private:
-        template<std::size_t Index>
+        template<::std::size_t Index>
         struct insert
         {
             template<typename... Others>
@@ -202,50 +228,50 @@ namespace blurringshadow::utility::traits
         };
 
     public:
-        template<std::size_t Index, typename... Other>
+        template<::std::size_t Index, typename... Other>
         using insert_t = typename insert<Index>::template type<Other...>;
 
-        template<std::size_t Index, typename Seq>
+        template<::std::size_t Index, typename Seq>
         using insert_by_seq_t =
             typename take_type_sequence<Seq>::template apply_t<insert<Index>::template type>;
 
-        template<std::size_t... Index>
+        template<::std::size_t... Index>
         using remove_at_t = from_value_seq_t<typename base::template remove_at_t<Index...>>;
 
         template<typename Seq>
         using remove_at_by_seq_t =
             from_value_seq_t<typename base::template remove_at_by_seq_t<Seq>>;
 
-        template<std::size_t Index, typename Other>
+        template<::std::size_t Index, typename Other>
         using replace_t =
             from_value_seq_t<typename base::template replace_t<Index, type_identity_v<Other>>>;
 
     private:
-        template<std::size_t From, std::size_t... I>
+        template<::std::size_t From, ::std::size_t... I>
         static constexpr indexed_t<From + I...> select_range_indexed( // clang-format off
-            std::index_sequence<I...>
+            ::std::index_sequence<I...>
         ) noexcept; // clang-format on
 
     public:
-        template<std::size_t From, std::size_t Size>
+        template<::std::size_t From, ::std::size_t Size>
         using select_range_indexed_t =
-            decltype(select_range_indexed<From>(std::make_index_sequence<Size>{}));
+            decltype(select_range_indexed<From>(::std::make_index_sequence<Size>{}));
     };
 }
 
 namespace std
 {
-    template<std::size_t I, typename... Types>
-    struct tuple_element<I, blurringshadow::utility::traits::type_sequence<Types...>> :
+    template<::std::size_t I, typename... Types>
+    struct tuple_element<I, ::blurringshadow::utility::traits::type_sequence<Types...>> :
         std::type_identity<
-            typename blurringshadow::utility::traits::type_sequence<Types...>::template get_t<I>>
+            typename ::blurringshadow::utility::traits::type_sequence<Types...>::template get_t<I>>
     {
     };
 
     template<typename... Types>
-    struct tuple_size<blurringshadow::utility::traits::type_sequence<Types...>> :
-        blurringshadow::utility::index_constant<
-            blurringshadow::utility::traits::type_sequence<Types...>::size()>
+    struct tuple_size<::blurringshadow::utility::traits::type_sequence<Types...>> :
+        ::blurringshadow::utility::index_constant<
+            ::blurringshadow::utility::traits::type_sequence<Types...>::size>
     {
     };
 }

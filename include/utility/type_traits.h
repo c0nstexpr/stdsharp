@@ -12,63 +12,64 @@ namespace blurringshadow::utility
     };
 
     template<typename T>
-    inline constexpr std::type_identity<T> type_identity_v{};
+    inline constexpr ::std::type_identity<T> type_identity_v{};
 
     template<typename T>
-    concept enumeration = std::is_enum_v<T>;
+    concept enumeration = ::std::is_enum_v<T>;
 
     template<typename T, typename U>
-    concept not_same_as = !std::same_as<T, U>;
+    concept not_same_as = !::std::same_as<T, U>;
 
     template<typename T>
-    using add_const_lvalue_ref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
+    using add_const_lvalue_ref_t = ::std::add_lvalue_reference_t<::std::add_const_t<T>>;
 
     template<typename T, typename... Args>
-    concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
+    concept nothrow_constructible_from = ::std::is_nothrow_constructible_v<T, Args...>;
 
     template<typename T>
     concept nothrow_default_initializable =
-        std::default_initializable<T> && std::is_nothrow_default_constructible_v<T>;
+        ::std::default_initializable<T> && ::std::is_nothrow_default_constructible_v<T>;
 
     template<typename T>
-    concept nothrow_move_constructible = std::is_nothrow_move_constructible_v<T>;
+    concept nothrow_move_constructible = ::std::is_nothrow_move_constructible_v<T>;
 
     template<typename T>
-    concept nothrow_copy_constructible = std::is_nothrow_copy_constructible_v<T>;
+    concept nothrow_copy_constructible = ::std::is_nothrow_copy_constructible_v<T>;
 
     template<typename T, typename U>
-    concept nothrow_assignable_from = std::is_nothrow_assignable_v<T, U>;
+    concept nothrow_assignable_from = ::std::is_nothrow_assignable_v<T, U>;
 
     template<typename T>
-    concept nothrow_copy_assignable = std::is_nothrow_copy_assignable_v<T>;
+    concept nothrow_copy_assignable = ::std::is_nothrow_copy_assignable_v<T>;
 
     template<typename T>
-    concept nothrow_move_assignable = std::is_nothrow_move_assignable_v<T>;
+    concept nothrow_move_assignable = ::std::is_nothrow_move_assignable_v<T>;
 
     template<typename T>
-    concept nothrow_swappable = std::is_nothrow_swappable_v<T>;
+    concept nothrow_swappable = ::std::is_nothrow_swappable_v<T>;
 
     template<typename T, typename U>
-    concept nothrow_swappable_with = std::is_nothrow_swappable_with_v<T, U>;
+    concept nothrow_swappable_with = ::std::is_nothrow_swappable_with_v<T, U>;
 
     template<typename T, typename U>
-    concept nothrow_convertible_to = std::is_nothrow_convertible_v<T, U>;
+    concept nothrow_convertible_to = ::std::is_nothrow_convertible_v<T, U>;
 
     template<typename T, typename U>
-    concept convertible_from = std::convertible_to<U, T>;
+    concept convertible_from = ::std::convertible_to<U, T>;
 
     template<typename T, typename U>
-    concept inter_convertible = std::convertible_to<T, U> && convertible_from<T, U>;
+    concept inter_convertible =
+        ::std::convertible_to<T, U> && ::blurringshadow::utility::convertible_from<T, U>;
 
     template<typename T, typename U>
-    concept nothrow_convertible_from = std::is_nothrow_convertible_v<U, T>;
+    concept nothrow_convertible_from = ::std::is_nothrow_convertible_v<U, T>;
 
     template<typename T, typename U>
-    concept nothrow_inter_convertible =
-        nothrow_convertible_to<T, U> && nothrow_convertible_from<T, U>;
+    concept nothrow_inter_convertible = ::blurringshadow::utility::nothrow_convertible_to<T, U> &&
+        ::blurringshadow::utility::nothrow_convertible_from<T, U>;
 
     template<std::size_t I>
-    using index_constant = std::integral_constant<std::size_t, I>;
+    using index_constant = ::std::integral_constant<::std::size_t, I>;
 
     template<auto Value>
     struct constant
@@ -85,14 +86,11 @@ namespace blurringshadow::utility
     template<auto Value>
     inline constexpr auto constant_v = Value;
 
-    template<auto Value>
-    inline constexpr auto constant_t = constant<Value>::value_type;
-
     template<typename T, typename... Args>
-    concept constant_value = std::constructible_from<T, Args...> && requires(Args&&... args)
+    concept constant_value = ::std::constructible_from<T, Args...> && requires(Args&&... args)
     {
-        T{std::forward<Args>(args)...}.value; // clang-format off
-        { T{std::forward<Args>(args)...}.value } -> not_same_as<void>; // clang-format on
+        T{::std::forward<Args>(args)...}.value; // clang-format off
+        { T{::std::forward<Args>(args)...}.value } -> ::blurringshadow::utility::not_same_as<void>; // clang-format on
     };
 
     namespace details
@@ -101,36 +99,36 @@ namespace blurringshadow::utility
         struct constant_from_type
         {
             template<typename... Args>
-                requires constant_value<T, Args...>
+                requires ::blurringshadow::utility::constant_value<T, Args...>
             constexpr auto operator()(Args&&... args)
             {
-                return T{std::forward<Args>(args)...}.value;
+                return T{::std::forward<Args>(args)...}.value;
             };
         };
     }
 
     template<typename T>
-    inline constexpr details::constant_from_type<T> get{};
+    inline constexpr ::blurringshadow::utility::details::constant_from_type<T> get{};
 
     template<typename Func, typename... Args>
-    concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
+    concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;
 
     template<typename Func, typename... Args> // clang-format off
-    concept invocable_rnonvoid = std::invocable<Func, Args...> && 
-        not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
+    concept invocable_rnonvoid = ::std::invocable<Func, Args...> &&
+        ::blurringshadow::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     template<typename Func, typename... Args> // clang-format off
-    concept nothrow_invocable_rnonvoid = nothrow_invocable<Func, Args...> && 
-        not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
+    concept nothrow_invocable_rnonvoid = ::blurringshadow::utility::nothrow_invocable<Func, Args...> &&
+        ::blurringshadow::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     // c++23 feature
     template<typename Func, typename ReturnT, typename... Args>
-    concept invocable_r = std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
+    concept invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename ReturnT, typename... Args>
-    concept nothrow_invocable_r = std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
+    concept nothrow_invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename... Args>
-    concept nothrow_predicate = std::predicate<Func, Args...> && //
-        std::is_nothrow_invocable_r_v<bool, Func, Args...>;
+    concept nothrow_predicate = ::std::predicate<Func, Args...> && //
+        ::std::is_nothrow_invocable_r_v<bool, Func, Args...>;
 }

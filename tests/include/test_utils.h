@@ -28,12 +28,12 @@ namespace boost::inline ext::ut // NOLINT(modernize-concat-nested-namespaces)
     }
 
     template<auto Value>
-    auto static_expect()
+    inline constexpr auto static_expect = []
     {
         // clang-format off
         if constexpr(details::ut_expectable<decltype(Value)>) return expect(Value);
         else return expect(_t{Value}); // clang-format on
-    }
+    };
 
     inline auto print(const std::string_view& str) { return log << fmt::format(" \"{}\"", str); }
 

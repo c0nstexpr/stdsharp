@@ -20,17 +20,17 @@ namespace blurringshadow::test::utility
             using namespace bdd;
             using namespace blurringshadow::utility;
 
-            feature("pattern_match") = []()
+            feature("pattern_match") = []
             {
-                given(R"(given enum class has three values: "one", "two", "three")") = []()
+                given(R"(given enum class has three values: "one", "two", "three")") = []
                 {
-                    given("given three cases matches separate value") = []()
+                    given("given three cases matches separate value") = []
                     {
                         print("case 1 match one, case 2 match two, case 3 match three");
 
-                        when("when case 2 match set the flag to true") = []()
+                        when("when case 2 match set the flag to true") = []
                         {
-                            constexpr auto pair_v = []()
+                            constexpr auto pair_v = []
                             {
                                 auto flag = false;
                                 my_enum matched{};
@@ -69,15 +69,15 @@ namespace blurringshadow::test::utility
                 };
             };
 
-            feature("constexpr_pattern_match") = []()
+            feature("constexpr_pattern_match") = []
             {
-                given(R"(given enum class has three values: "one", "two", "three")") = []()
+                given(R"(given enum class has three values: "one", "two", "three")") = []
                 {
-                    given("given three cases matches separate value") = []()
+                    given("given three cases matches separate value") = []
                     {
                         print("case 1 match one, case 2 match two, case 3 match three");
 
-                        when("when case 2 match set the flag to true") = []()
+                        when("when case 2 match set the flag to true") = []
                         {
                             constexpr auto pair_v = []() noexcept
                             {
