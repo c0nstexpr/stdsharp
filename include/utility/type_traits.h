@@ -212,4 +212,9 @@ namespace blurringshadow::utility
     template<typename Func, typename... Args>
     concept nothrow_predicate = ::std::predicate<Func, Args...> && //
         ::std::is_nothrow_invocable_r_v<bool, Func, Args...>;
+
+    template<typename T>
+    using to_lvalue_t = ::std::
+        conditional_t<::blurringshadow::utility::lvalue_ref<T&&>, T&&, ::std::remove_cvref_t<T>>;
+
 }
