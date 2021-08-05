@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include <fmt/format.h>
+#ifndef NDEBUG
+    #include <fmt/format.h>
 
-#include "utility/assert.h"
+    #include "utility/assert.h"
+#endif
+
 #include "functional.h"
 
 namespace blurringshadow::utility
