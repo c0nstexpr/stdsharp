@@ -177,7 +177,7 @@ namespace blurringshadow::utility::traits
         template<typename Proj, typename Func, auto... Values>
         concept value_sequence_nothrow_predicate = (
             ::blurringshadow::utility::
-                nothrow_invocable_r<Func, bool, ::std::invoke_result_t<Proj, decltype(Values)>> &&
+                nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
             ...
         );
     } // clang-format on
@@ -289,7 +289,7 @@ namespace blurringshadow::utility::traits
                 ::std::size_t i = 0; // clang-format off
                 const auto f = [&func, &proj, &i]<typename T>(T&& v) noexcept(
                     ::blurringshadow::utility::
-                        nothrow_invocable_r<Func, bool, ::std::invoke_result_t<Proj, T>>
+                        nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, T>>
                 ) // clang-format on
                 {
                     if(::blurringshadow::utility:: //
@@ -314,7 +314,7 @@ namespace blurringshadow::utility::traits
             {
                 return find_if(
                     [&](const auto& v) noexcept(
-                        ::blurringshadow::utility::nothrow_invocable_r<Func, bool, decltype(v)>)
+                        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
                     {
                         return !::blurringshadow::utility::invoke_r<bool>(func, v); //
                     },
@@ -352,7 +352,7 @@ namespace blurringshadow::utility::traits
                 std::size_t i = 0;
                 for_each(
                     [&i, &func](const auto& v) noexcept(
-                        ::blurringshadow::utility::nothrow_invocable_r<Func, bool, decltype(v)> //
+                        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, decltype(v)> //
                     )
                     {
                         if(::blurringshadow::utility::invoke_r<bool>(func, v)) ++i;
@@ -374,7 +374,7 @@ namespace blurringshadow::utility::traits
             {
                 return count_if(
                     [&](const auto& v) noexcept(
-                        ::blurringshadow::utility::nothrow_invocable_r<Func, bool, decltype(v)>)
+                        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
                     {
                         return !::blurringshadow::utility::invoke_r<bool>(func, v); //
                     },
@@ -451,8 +451,8 @@ namespace blurringshadow::utility::traits
                 using right_projected_t = std::invoke_result_t<Proj, decltype(get<I + 1>())>;
 
                 static constexpr auto invoke(Comp& comp, Proj& proj) noexcept(
-                    nothrow_invocable_r<Comp, bool, left_projected_t, right_projected_t>) requires
-                    invocable_r<Comp, bool, left_projected_t, right_projected_t>
+                    nothrow_invocable_r<bool, Comp, left_projected_t, right_projected_t>) requires
+                    invocable_r<bool, Comp, left_projected_t, right_projected_t>
 
                 {
                     return ::blurringshadow::utility::invoke_r<bool>(

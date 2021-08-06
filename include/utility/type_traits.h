@@ -167,6 +167,13 @@ namespace blurringshadow::utility
     template<auto Value>
     inline constexpr auto constant_v = Value;
 
+    template<bool conditional, auto left, auto right>
+    inline constexpr auto conditional_v = ::std::conditional_t<
+        conditional,
+        ::blurringshadow::utility::constant<left>,
+        ::blurringshadow::utility::constant<right> // clang-format off
+    >::value; // clang-format on
+
     template<typename T, typename... Args>
     concept constant_value = ::std::constructible_from<T, Args...> && requires(Args&&... args)
     {
@@ -203,15 +210,15 @@ namespace blurringshadow::utility
         ::blurringshadow::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     // c++23 feature
-    template<typename Func, typename ReturnT, typename... Args>
+    template<typename ReturnT, typename Func, typename... Args>
     concept invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
-    template<typename Func, typename ReturnT, typename... Args>
+    template<typename ReturnT, typename Func, typename... Args>
     concept nothrow_invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = ::std::predicate<Func, Args...> && //
-        ::std::is_nothrow_invocable_r_v<bool, Func, Args...>;
+        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, Args...>;
 
     template<typename T>
     using to_lvalue_t = ::std::
