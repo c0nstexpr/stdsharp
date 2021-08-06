@@ -211,7 +211,7 @@ namespace blurringshadow::utility
 
     // c++23 feature
     template<typename ReturnT, typename Func, typename... Args>
-    concept invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
+    concept invocable_r = ::std::is_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename ReturnT, typename Func, typename... Args>
     concept nothrow_invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
