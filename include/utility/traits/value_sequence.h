@@ -128,7 +128,7 @@ namespace blurringshadow::utility::traits
         {
             template<::std::size_t J>
                 requires(I == J)
-            static constexpr auto get_value() noexcept { return Value; }
+            static constexpr decltype(auto) get_value() noexcept { return Value; }
         };
 
         template<typename, typename>
@@ -202,9 +202,18 @@ namespace blurringshadow::utility::traits
             ::std::make_index_sequence<sizeof...(Values)> // clang-format off
         >; // clang-format on
 
+        template<::std::size_t I>
+        struct get_fn
+        {
+            [[nodiscard]] constexpr decltype(auto) operator()() const noexcept
+            {
+                return base::template get_value<I>();
+            }
+        };
+
     public:
         template<::std::size_t I>
-        static constexpr auto get = []() noexcept { return base::template get_value<I>(); };
+        static constexpr get_fn<I> get{};
 
         static constexpr auto size = sizeof...(Values);
 
