@@ -1,6 +1,7 @@
 ﻿// Created by BlurringShadow at 2021-03-03-下午 4:35
 
 #pragma once
+
 #include "value_sequence.h"
 
 namespace blurringshadow::utility::traits
@@ -181,13 +182,8 @@ namespace blurringshadow::utility::traits
         template<::std::size_t I>
         using get_t = typename decltype(base::template get<I>())::type;
 
-        template<std::size_t I, typename... Args>
-            requires std::constructible_from<get_t<I>, Args...>
-        static constexpr get_t<I> get(Args&&... args) //
-            noexcept(::blurringshadow::utility::nothrow_constructible_from<get_t<I>, Args...>)
-        {
-            return {::std::forward<Args>(args)...};
-        }
+        template<std::size_t I>
+        static constexpr auto get = ::blurringshadow::utility::constructor<get_t<I>>;
 
         template<std::size_t... OtherInts>
         using indexed_t =
