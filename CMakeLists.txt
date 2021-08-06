@@ -20,8 +20,9 @@ init_proj()
 #
 #set(
 #    headers
-#    ${utility_property_header_dir}/member_setter.h
-#    ${utility_property_header_dir}/member_getter.h
+#    ${utility_property_header_dir}/setter.h
+#    ${utility_property_header_dir}/getter.h
+#    ${utility_property_header_dir}/property.h
 #
 #    ${utility_traits_header_dir}/value_sequence.h
 #    ${utility_traits_header_dir}/type_sequence.h

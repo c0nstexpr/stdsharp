@@ -81,13 +81,20 @@ namespace blurringshadow::utility::traits
     };
 
     template<typename T, typename ClassT>
-    concept member_of = ::std::
-        same_as<typename ::blurringshadow::utility::traits::member_traits<T>::class_t, ClassT>;
+    concept member_of = requires
+    {
+        ::std::same_as<
+            typename ::blurringshadow::utility::traits:: //
+            member_traits<T>::class_t,
+            ClassT>;
+    };
 
     template<typename T, typename ClassT>
-    concept member_func_of = ::std::is_member_pointer_v<T> && // clang-format off
-        ::std::same_as<
+    concept member_func_of = requires
+    {
+        ::std::is_member_pointer_v<T>&& ::std::same_as< // clang-format off
             typename ::blurringshadow::utility::traits::member_function_traits<T>::class_t,
             ClassT
         >; // clang-format on
+    };
 }

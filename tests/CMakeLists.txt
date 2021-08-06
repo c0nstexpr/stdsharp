@@ -28,6 +28,7 @@ set(
     ${utility_traits_header_dir}/value_sequence_test.h
     ${utility_traits_header_dir}/type_sequence_test.h
     ${utility_traits_header_dir}/member_test.h
+    ${utility_property_header_dir}/property_test.h
 )
 set(
     src
@@ -38,6 +39,7 @@ set(
     ${utility_traits_src_dir}/value_sequence_test.cpp
     ${utility_traits_src_dir}/type_sequence_test.cpp
     ${utility_traits_src_dir}/member_test.cpp
+    ${utility_property_src_dir}/property_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
