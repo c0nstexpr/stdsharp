@@ -6,7 +6,7 @@
 #ifndef NDEBUG
     #include <fmt/format.h>
 
-    #include "utility/assert.h"
+    #include "utility/cassert.h"
 #endif
 
 #include "functional.h"
