@@ -34,10 +34,7 @@ namespace blurringshadow::test::utility
                             {
                                 auto flag = false;
                                 my_enum matched{};
-                                const auto matched_assign = [&matched](const my_enum e) noexcept //
-                                {
-                                    matched = e; //
-                                };
+                                auto matched_assign = bind_ref_front(assign_v, matched);
 
                                 pattern_match(
                                     my_enum::two,
