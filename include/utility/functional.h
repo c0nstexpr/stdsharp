@@ -2,6 +2,8 @@
 
 #include <functional>
 
+#include <range/v3/functional/overload.hpp>
+
 #include "type_traits.h"
 
 namespace blurringshadow::utility
@@ -24,13 +26,29 @@ namespace blurringshadow::utility
         {
             template<typename Func, typename... Args>
                 requires ::blurringshadow::utility::invocable_r<ReturnT, Func, Args...>
-            [[nodiscard]] constexpr ReturnT operator()(Func& func, Args&&... args) const
+            [[nodiscard]] constexpr ReturnT operator()(Func&& func, Args&&... args) const
                 noexcept(::blurringshadow::utility::nothrow_invocable_r<ReturnT, Func, Args...>)
             {
-                return ::std::invoke(func, ::std::forward<Args>(args)...);
+                return static_cast<ReturnT>(
+                    ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...) //
+                );
             }
         };
+
+        template<typename T>
+        struct constructor_fn
+        {
+            template<typename... Args>
+                requires ::std::constructible_from<T, Args...>
+            [[nodiscard]] constexpr T operator()(Args&&... args) const
+                noexcept(::blurringshadow::utility::nothrow_constructible_from<T, Args...>)
+            {
+                return {::std::forward<Args>(args)...};
+            };
+        };
     }
+    template<typename T>
+    inline constexpr ::blurringshadow::utility::details::constructor_fn<T> constructor{};
 
     template<typename ReturnT>
     inline constexpr ::blurringshadow::utility::details::invoke_r_fn<ReturnT> invoke_r{};
@@ -81,7 +99,7 @@ namespace blurringshadow::utility
                 using base::base;
 
                 template<typename... Args>
-                static constexpr auto noexcept_v =
+                static constexpr bool noexcept_v =
                     ::blurringshadow::utility::nothrow_invocable<Func, T..., Args...>;
 
             public:
@@ -206,65 +224,26 @@ namespace blurringshadow::utility
 
     inline constexpr ::blurringshadow::utility::right_shift right_shift_v{};
 
-    namespace details
-    {
-        using namespace ::std;
-
-        template<bool Requirement> // clang-format off
-        inline constexpr auto operator_assign = []<typename T, typename U, typename Operation>(
-            Operation op,
-            const auto&,
-            T& left,
-            U&& right
-        ) noexcept(::blurringshadow::utility::nothrow_invocable<Operation, T&, U&&>) // clang-format on
-        {
-            return ::std::invoke(op, left, ::std::forward<U>(right)); //
-        };
-
-        template<> // clang-format off
-        inline constexpr auto operator_assign<false> = []<typename U>(
-            auto op,
-            auto al_op,
-            auto& left,
-            U&& right
-        ) noexcept(noexcept((left = ::std::invoke(al_op, left, ::std::forward<U>(right))))) // clang-format on
-        {
-            left = ::std::invoke(al_op, left, forward<U>(right));
-            return left;
-        };
-    }
-
-#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                                 \
-    namespace details                                                                             \
-    {                                                                                             \
-        template<typename T, typename U>                                                          \
-        concept operator_type##_assignable = requires(T a, U b)                                   \
-        {                                                                                         \
-            a op## = b;                                                                           \
-        };                                                                                        \
-    }                                                                                             \
-                                                                                                  \
-    struct operator_type##_assign                                                                 \
-    {                                                                                             \
-    private:                                                                                      \
-        template<typename T, typename U>                                                          \
-        static constexpr auto operator_assign_fn = ::std::bind_front(                             \
-            ::blurringshadow::utility::details::operator_assign<                                  \
-                ::blurringshadow::utility::details::operator_type##_assignable<T, U>>,            \
-            []<typename FwU>(T& l, FwU&& r) { return l op## = ::std::forward<FwU>(r); },          \
-            operator_type##_v);                                                                   \
-                                                                                                  \
-    public:                                                                                       \
-        template<typename T, typename U>                                                          \
-        [[nodiscard]] constexpr auto operator()(T& left, U&& right) const noexcept(               \
-            noexcept(::blurringshadow::utility::operator_type##_assign::operator_assign_fn<T, U>( \
-                left, forward<U>(right))))                                                        \
-        {                                                                                         \
-            return ::blurringshadow::utility::operator_type##_assign::operator_assign_fn<T, U>(   \
-                left, forward<U>(right));                                                         \
-        }                                                                                         \
-    };                                                                                            \
-                                                                                                  \
+#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                              \
+    struct operator_type##_assign                                                              \
+    {                                                                                          \
+    private:                                                                                   \
+        static constexpr auto operator_assign_fn = ::ranges::overload(                         \
+            []<typename U>(auto& l, U&& u) noexcept(noexcept((l op## = ::std::forward<U>(u)))) \
+            { return l op## = ::std::forward<U>(u); },                                         \
+            []<typename U>(auto& l, U&& u) noexcept(                                           \
+                noexcept((l = operator_type##_v(l, ::std::forward<U>(u)))))                    \
+            { return l = operator_type##_v(l, ::std::forward<U>(u)); });                       \
+                                                                                               \
+    public:                                                                                    \
+        template<typename T, typename U>                                                       \
+        [[nodiscard]] constexpr auto operator()(T& left, U&& right) const noexcept(            \
+            noexcept(operator_type##_assign::operator_assign_fn(left, forward<U>(right))))     \
+        {                                                                                      \
+            return operator_type##_assign::operator_assign_fn(left, forward<U>(right));        \
+        }                                                                                      \
+    };                                                                                         \
+                                                                                               \
     inline constexpr ::blurringshadow::utility::operator_type##_assign operator_type##_assign_v;
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
