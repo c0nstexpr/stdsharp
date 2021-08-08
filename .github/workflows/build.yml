@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  job:          
+  job:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     env:
@@ -16,28 +16,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ ubuntu-latest, windows-latest ]
         include:
           - os: windows-latest
             triplet: x64-windows
             cmakeOptions: ''
           - os: ubuntu-latest
             triplet: x64-linux
-            cmakeOptions: -DCMAKE_CXX_COMPILER=g++-11
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-12
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      
-      - name: Set up G++
-        uses: egor-tensin/setup-gcc@v1
-        if: ${{ runner.os == 'Linux' }}
-        with:
-          version: 11
-          platform: x64
 
       - uses: lukka/get-cmake@latest
- 
+
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@main
         id: runvcpkg
@@ -47,7 +40,7 @@ jobs:
           # Ensure the cache key changes any time the content of the manifest file changes.
           appendedCacheKey: ${{ hashFiles('vcpkg.json') }}
           vcpkgTriplet: ${{ matrix.triplet }}
-       
+
       - name: Run CMake with vcpkg.json manifest
         uses: lukka/run-cmake@main
         with:
