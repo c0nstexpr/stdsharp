@@ -32,6 +32,6 @@ namespace blurringshadow::utility::traits
         friend T;
 
     private:
-        private_object() = default;
+        private_object() noexcept = default;
     };
 }

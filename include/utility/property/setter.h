@@ -7,46 +7,25 @@
 namespace blurringshadow::utility::property
 {
     template<typename SetterFn>
-    class setter
+    class setter : public ::blurringshadow::utility::invocable_obj<SetterFn>
     {
-        SetterFn fn_{};
-
     public:
-        template<typename... T>
-            requires ::std::constructible_from<SetterFn, T...> // clang-format off
-        constexpr explicit setter(T&&... t) // clang-format on
-            noexcept(::blurringshadow::utility::nothrow_constructible_from<SetterFn, T...>):
-            fn_(::std::forward<T>(t)...)
-        {
-        }
+        using base = ::blurringshadow::utility::invocable_obj<SetterFn>;
 
-        template<typename... Args>
-            requires ::std::invocable<const SetterFn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(::blurringshadow::utility::nothrow_invocable<const SetterFn, Args...>)
-        {
-            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires ::std::invocable<SetterFn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) //
-            noexcept(::blurringshadow::utility::nothrow_invocable<SetterFn, Args...>)
-        {
-            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
-        }
+        using base::base;
 
         template<typename T>
-        constexpr auto& operator=(T&& t) const noexcept(noexcept(operator()(::std::forward<T>(t))))
+        constexpr auto& operator=(T&& t) const
+            noexcept(noexcept(base::operator()(::std::forward<T>(t))))
         {
-            operator()(::std::forward<T>(t));
+            base::operator()(::std::forward<T>(t));
             return *this;
         }
 
         template<typename T>
-        constexpr auto& operator=(T&& t) noexcept(noexcept(operator()(::std::forward<T>(t))))
+        constexpr auto& operator=(T&& t) noexcept(noexcept(base::operator()(::std::forward<T>(t))))
         {
-            operator()(std::forward<T>(t));
+            base::operator()(std::forward<T>(t));
             return *this;
         }
     };
