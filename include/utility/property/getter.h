@@ -7,34 +7,14 @@
 namespace blurringshadow::utility::property
 {
     template<::std::invocable GetterFn>
-    class getter
+    class getter : public ::blurringshadow::utility::nodiscard_invocable_obj<GetterFn>
     {
     public:
+        using base = ::blurringshadow::utility::nodiscard_invocable_obj<GetterFn>;
+
+        using base::base;
+
         using value_type = ::std::invoke_result_t<GetterFn>;
-
-    private:
-        GetterFn fn_{};
-
-    public:
-        template<typename... T>
-            requires ::std::constructible_from<GetterFn, T...> // clang-format off
-        constexpr explicit getter(T&&... t) // clang-format on
-            noexcept(::blurringshadow::utility::nothrow_constructible_from<GetterFn, T...>):
-            fn_(::std::forward<T>(t)...)
-        {
-        }
-
-        constexpr value_type operator()() const
-            noexcept(::blurringshadow::utility::nothrow_invocable<GetterFn>)
-        {
-            return ::std::invoke(fn_);
-        }
-
-        constexpr value_type operator()() //
-            noexcept(::blurringshadow::utility::nothrow_invocable<GetterFn>)
-        {
-            return ::std::invoke(fn_);
-        }
     };
 
     template<typename T>
