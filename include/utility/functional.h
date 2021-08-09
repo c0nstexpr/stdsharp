@@ -134,7 +134,7 @@ namespace blurringshadow::utility
 
     inline constexpr ::blurringshadow::utility::details::bind_ref_front_fn bind_ref_front{};
 
-    template<typename Invocable>
+    template<typename Invocable, bool NoDiscard>
     class invocable_obj
     {
     protected:
@@ -160,6 +160,38 @@ namespace blurringshadow::utility
         template<typename... Args>
             requires ::std::invocable<Invocable, Args...>
         constexpr decltype(auto) operator()(Args&&... args) //
+            noexcept(::blurringshadow::utility::nothrow_invocable<Invocable, Args...>)
+        {
+            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
+        }
+    };
+
+    template<typename Invocable>
+    class invocable_obj<Invocable, true>
+    {
+    protected:
+        Invocable fn_{};
+
+    public:
+        template<typename... T>
+            requires ::std::constructible_from<Invocable, T...> // clang-format off
+        constexpr explicit invocable_obj(T&&... t) // clang-format on
+            noexcept(::blurringshadow::utility::nothrow_constructible_from<Invocable, T...>):
+            fn_(::std::forward<T>(t)...)
+        {
+        }
+
+        template<typename... Args>
+            requires ::std::invocable<const Invocable, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(::blurringshadow::utility::nothrow_invocable<const Invocable, Args...>)
+        {
+            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::invocable<Invocable, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) //
             noexcept(::blurringshadow::utility::nothrow_invocable<Invocable, Args...>)
         {
             return ::std::invoke(fn_, ::std::forward<Args>(args)...);
