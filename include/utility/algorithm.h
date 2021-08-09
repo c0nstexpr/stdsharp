@@ -90,53 +90,54 @@ namespace blurringshadow::utility
                     ::blurringshadow::utility::
                         nothrow_predicate<Compare, const proj_max, const proj_min>;
             };
-
-            template<
-                typename T,
-                typename U,
-                typename V,
-                typename Compare = ::std::ranges::less,
-                typename Proj = ::std::identity // clang-format off
-            > requires ::blurringshadow::utility::details::is_between_fn::require<T, U, V, Compare, Proj>::value
-            [[nodiscard]] constexpr bool operator()(
-                T&& v,
-                U&& min,
-                V&& max,
-                Compare cmp = {},
-                Proj proj = {}
-            ) const noexcept(!is_debug && ::blurringshadow::utility::details::
-                is_between_fn::require<T, U, V, Compare, Proj>::nothrow_value) // clang-format on
-            {
-                using traits = require<T, U, V, Compare, Proj>;
-
-                const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
-                const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
-                const auto& projected_max = ::std::invoke(proj, ::std::forward<V>(max));
-
-                if constexpr(is_debug)
-                    if(::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_min))
-                    {
-                        if constexpr(
-                            ::fmt::formattable<typename traits::proj_min>::value &&
-                            ::fmt::formattable<typename traits::proj_max>::value // clang-format off
-                        ) throw ::std::invalid_argument{
-                            ::fmt::format(
-                                "projected max value {} " 
-                                "should not less than projected min value {}",
-                                projected_max,
-                                projected_min
-                            )
-                        };
-                        else throw ::std::invalid_argument{
-                            "projected max value should not less than projected min value"
-                        }; // clang-format on
-                    } // clang-format off
-
-                return !::blurringshadow::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
-                    !::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_v);
-            } // clang-format on
         };
     }
 
-    inline constexpr details::is_between_fn is_between{};
+    inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj is_between{
+        []< //
+            typename T,
+            typename U,
+            typename V,
+            typename Compare = ::std::ranges::less,
+            typename Proj = ::std::identity // clang-format off
+        > requires ::blurringshadow::utility::details::is_between_fn::require<T, U, V, Compare, Proj>::value
+        (
+            T&& v,
+            U&& min,
+            V&& max,
+            Compare cmp = {},
+            Proj proj = {}
+        ) noexcept(!is_debug && ::blurringshadow::utility::details::
+                    is_between_fn::require<T, U, V, Compare, Proj>::nothrow_value)
+        {
+            using traits = ::blurringshadow::utility::details::
+                is_between_fn::require<T, U, V, Compare, Proj>;
+
+            const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
+            const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
+            const auto& projected_max = ::std::invoke(proj, ::std::forward<V>(max));
+
+            if constexpr(is_debug)
+                if(::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_min))
+                {
+                    if constexpr(
+                        ::fmt::formattable<typename traits::proj_min>::value &&
+                        ::fmt::formattable<typename traits::proj_max>::value
+                    ) throw ::std::invalid_argument{
+                        ::fmt::format(
+                            "projected max value {} "
+                            "should not less than projected min value {}",
+                            projected_max,
+                            projected_min
+                        )
+                    };
+                    else throw ::std::invalid_argument{
+                        "projected max value should not less than projected min value"
+                    };
+                }
+
+            return !::blurringshadow::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
+                !::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_v);
+        }
+    }; // clang-format on
 }

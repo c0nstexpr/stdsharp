@@ -8,12 +8,6 @@
 
 namespace blurringshadow::utility
 {
-    inline constexpr auto invoke = []<typename... Args>(Args && ... args) // clang-format off
-        noexcept(noexcept(::std::invoke(std::forward<Args>(args)...))) -> decltype(auto)
-    { // clang-format on
-        return ::std::invoke(std::forward<Args>(args)...); //
-    };
-
     inline constexpr auto empty_invoke = [](auto&&...) noexcept
     {
         return empty{}; //
@@ -134,69 +128,51 @@ namespace blurringshadow::utility
 
     inline constexpr ::blurringshadow::utility::details::bind_ref_front_fn bind_ref_front{};
 
-    template<typename Invocable, bool NoDiscard>
-    class invocable_obj
+    template<typename Invocable>
+    class invocable_obj : public ::ranges::overloaded<Invocable>
     {
-    protected:
-        Invocable fn_{};
-
     public:
+        using base = ::ranges::overloaded<Invocable>;
+
         template<typename... T>
             requires ::std::constructible_from<Invocable, T...> // clang-format off
         constexpr explicit invocable_obj(T&&... t) // clang-format on
             noexcept(::blurringshadow::utility::nothrow_constructible_from<Invocable, T...>):
-            fn_(::std::forward<T>(t)...)
+            base(::std::forward<T>(t)...)
         {
-        }
-
-        template<typename... Args>
-            requires ::std::invocable<const Invocable, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(::blurringshadow::utility::nothrow_invocable<const Invocable, Args...>)
-        {
-            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires ::std::invocable<Invocable, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) //
-            noexcept(::blurringshadow::utility::nothrow_invocable<Invocable, Args...>)
-        {
-            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
         }
     };
 
     template<typename Invocable>
-    class invocable_obj<Invocable, true>
+    class nodiscard_invocable_obj : ::blurringshadow::utility::invocable_obj<Invocable>
     {
-    protected:
-        Invocable fn_{};
+        using base = ::blurringshadow::utility::invocable_obj<Invocable>;
 
     public:
-        template<typename... T>
-            requires ::std::constructible_from<Invocable, T...> // clang-format off
-        constexpr explicit invocable_obj(T&&... t) // clang-format on
-            noexcept(::blurringshadow::utility::nothrow_constructible_from<Invocable, T...>):
-            fn_(::std::forward<T>(t)...)
-        {
-        }
+        using base::base;
 
         template<typename... Args>
             requires ::std::invocable<const Invocable, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(::blurringshadow::utility::nothrow_invocable<const Invocable, Args...>)
+            noexcept(noexcept(base::operator()(::std::forward<Args>(args)...)))
         {
-            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
+            return base::operator()(::std::forward<Args>(args)...);
         }
 
         template<typename... Args>
             requires ::std::invocable<Invocable, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) //
-            noexcept(::blurringshadow::utility::nothrow_invocable<Invocable, Args...>)
+            noexcept(noexcept(base::operator()(::std::forward<Args>(args)...)))
         {
-            return ::std::invoke(fn_, ::std::forward<Args>(args)...);
+            return base::operator()(::std::forward<Args>(args)...);
         }
     };
+
+    template<typename Invocable>
+    invocable_obj(Invocable&&) -> invocable_obj<::std::decay_t<Invocable>>;
+
+    template<typename Invocable>
+    nodiscard_invocable_obj(Invocable&&) -> nodiscard_invocable_obj<::std::decay_t<Invocable>>;
 
     inline constexpr auto assign_v = ::ranges::overload(
         []<typename T, typename U> // clang-format off
@@ -240,29 +216,20 @@ namespace blurringshadow::utility
     inline constexpr ::std::bit_or<> bit_or_v{};
     inline constexpr ::std::bit_xor<> bit_xor_v{};
 
-    struct left_shift
-    {
-        template<typename T, typename U>
-        [[nodiscard]] constexpr auto operator()(T&& left, U&& right) const
-            noexcept(noexcept(::std::forward<T>(left) << ::std::forward<U>(right)))
-        {
-            return ::std::forward<T>(left) << ::std::forward<U>(right);
-        }
-    };
+#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                            \
+    inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj direction##_shift_v{ \
+        []<typename T, typename U>(T&& left, U&& right) noexcept(                            \
+            noexcept(::std::forward<T>(left) operate ::std::forward<U>(right)))              \
+        {                                                                                    \
+            return ::std::forward<T>(left) operate ::std::forward<U>(right); /**/            \
+        }};                                                                                  \
+                                                                                             \
+    using direction##_shift = decltype(::blurringshadow::utility::direction##_shift_v);
 
-    struct right_shift
-    {
-        template<typename T, typename U>
-        [[nodiscard]] constexpr auto operator()(T&& left, U&& right) const
-            noexcept(noexcept(::std::forward<T>(left) >> ::std::forward<U>(right)))
-        {
-            return ::std::forward<T>(left) >> ::std::forward<U>(right);
-        }
-    };
+    BS_UTIL_SHIFT_OPERATE(left, <<)
+    BS_UTIL_SHIFT_OPERATE(right, >>)
 
-    inline constexpr ::blurringshadow::utility::left_shift left_shift_v{};
-
-    inline constexpr ::blurringshadow::utility::right_shift right_shift_v{};
+#undef BS_UTIL_SHIFT_OPERATE
 
 #define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                         \
     inline constexpr auto operator_type##_assign_v = ::ranges::overload(                  \
@@ -347,29 +314,32 @@ namespace blurringshadow::utility
 #undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
 #undef BS_DUPLICATE
 
-    inline constexpr auto advance_v = ::ranges::overload(
-        []<typename T, typename Distance> // clang-format off
-            requires ::std::invocable<plus_assign, T, Distance>
-        (T & v, Distance&& distance)
-            noexcept(::blurringshadow::utility::nothrow_invocable<plus_assign, T&, Distance>)
-            ->decltype(auto) // clang-format on
-        {
-            return ::blurringshadow::utility::plus_assign_v(
-                v,
-                ::std::forward<Distance>(distance) //
-            );
-        },
-        []<typename T, typename Distance>(T& v, const Distance& distance) noexcept( //
-            noexcept(
-                ::blurringshadow::utility::pre_increase_v(v, distance),
-                ::blurringshadow::utility::pre_decrease_v(v, distance) // clang-format off
-            )
-        ) -> decltype(auto) // clang-format on
-        {
-            if(distance > 0) return ::blurringshadow::utility::pre_increase_v(v, distance);
-            return ::blurringshadow::utility::pre_decrease_v(v, -distance);
-        } //
-    );
+    inline constexpr auto advance_v = ::blurringshadow::utility::nodiscard_invocable_obj{
+        ::ranges::overload(
+            []<typename T, typename Distance> // clang-format off
+                requires ::std::invocable<plus_assign, T, Distance>
+            (T & v, Distance&& distance)
+                noexcept(::blurringshadow::utility::nothrow_invocable<plus_assign, T&, Distance>)
+                ->decltype(auto) // clang-format on
+            {
+                return ::blurringshadow::utility::plus_assign_v(
+                    v,
+                    ::std::forward<Distance>(distance) //
+                );
+            },
+            []<typename T, typename Distance>(T& v, const Distance& distance) noexcept( //
+                noexcept(
+                    ::blurringshadow::utility::pre_increase_v(v, distance),
+                    ::blurringshadow::utility::pre_decrease_v(v, distance) // clang-format off
+                )
+            ) -> decltype(auto) // clang-format on
+            {
+                return distance > 0 ? //
+                    ::blurringshadow::utility::pre_increase_v(v, distance) :
+                    ::blurringshadow::utility::pre_decrease_v(v, -distance);
+            } // clang-format off
+        ) // clang-format on
+    };
 
     using advance = decltype(::blurringshadow::utility::advance_v); // clang-format off
 
