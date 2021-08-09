@@ -24,16 +24,4 @@ namespace blurringshadow::utility::traits
     private:
         private_object() = default;
     };
-
-    template<typename... T>
-    struct base : T...
-    {
-        using base_t = ::blurringshadow::utility::traits::type_sequence<T...>;
-    };
-
-    template<typename T>
-    struct base<T> : T
-    {
-        using base_t = T;
-    };
 }
