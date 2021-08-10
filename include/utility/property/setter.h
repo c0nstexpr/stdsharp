@@ -15,7 +15,8 @@ namespace blurringshadow::utility::property
         using base::base;
 
         template<typename T>
-        constexpr auto& operator=(T&& t) const
+            requires ::std::invocable<const SetterFn, T>
+        constexpr auto& operator=(T&& t) const& //
             noexcept(noexcept(base::operator()(::std::forward<T>(t))))
         {
             base::operator()(::std::forward<T>(t));
@@ -23,9 +24,29 @@ namespace blurringshadow::utility::property
         }
 
         template<typename T>
-        constexpr auto& operator=(T&& t) noexcept(noexcept(base::operator()(::std::forward<T>(t))))
+            requires ::std::invocable<SetterFn, T>
+        constexpr auto& operator=(T&& t) & //
+            noexcept(noexcept(base::operator()(::std::forward<T>(t))))
         {
             base::operator()(std::forward<T>(t));
+            return *this;
+        }
+
+        template<typename T>
+            requires ::std::invocable<const SetterFn, T>
+        constexpr auto& operator=(T&& t) const&& //
+            noexcept(::blurringshadow::utility::nothrow_invocable<const base, T>)
+        {
+            static_cast<const base&&> (*this)(::std::forward<T>(t));
+            return *this;
+        }
+
+        template<typename T>
+            requires ::std::invocable<SetterFn, T>
+        constexpr auto& operator=(T&& t) && //
+            noexcept(::blurringshadow::utility::nothrow_invocable<base, T>)
+        {
+            static_cast<base&&> (*this)(::std::forward<T>(t));
             return *this;
         }
     };

@@ -23,6 +23,9 @@ namespace blurringshadow::utility::traits
         fixed_object(fixed_object&&) noexcept = delete;
         fixed_object& operator=(const fixed_object&) noexcept = delete;
         fixed_object& operator=(fixed_object&&) noexcept = delete;
+
+        operator fixed_object&&() = delete;
+
         ~fixed_object() = default;
     };
 
@@ -31,7 +34,12 @@ namespace blurringshadow::utility::traits
     {
         friend T;
 
-    private:
+    protected:
         private_object() noexcept = default;
+        private_object(const private_object&) noexcept = default;
+        private_object& operator=(const private_object&) noexcept = default;
+        private_object(private_object&&) noexcept = default;
+        private_object& operator=(private_object&&) noexcept = default;
+        ~private_object() = default;
     };
 }
