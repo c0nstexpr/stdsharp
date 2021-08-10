@@ -68,8 +68,9 @@ namespace blurringshadow::utility
 
             public:
                 template<typename... Args>
-                constexpr decltype(auto) operator()(Args&&... args) const
-                    noexcept(invoker::noexcept_v<Args...>)
+                    requires ::std::invocable<const Func, const T..., Args...>
+                constexpr decltype(auto)
+                    operator()(Args&&... args) const& noexcept(invoker::noexcept_v<Args...>)
                 {
                     return ::std::apply(
                         [&args...](auto&... t) noexcept(invoker::noexcept_v<Args...>) //
@@ -82,7 +83,8 @@ namespace blurringshadow::utility
                 }
 
                 template<typename... Args>
-                constexpr decltype(auto) operator()(Args&&... args) //
+                    requires ::std::invocable<Func, T..., Args...>
+                constexpr decltype(auto) operator()(Args&&... args) & //
                     noexcept(invoker::noexcept_v<Args...>)
                 {
                     return ::std::apply(
@@ -92,6 +94,44 @@ namespace blurringshadow::utility
                             return ::std::invoke(t..., ::std::forward<Args>(args)...); //
                         },
                         static_cast<base&>(*this) //
+                    );
+                }
+
+                template<typename... Args>
+                    requires ::std::invocable<const Func, const T..., Args...>
+                constexpr decltype(auto)
+                    operator()(Args&&... args) const&& noexcept(invoker::noexcept_v<Args...>)
+                {
+                    return ::std::apply( // clang-format off
+                        [&]<typename... U>(U&&... t)
+                            noexcept(invoker::noexcept_v<Args...>)
+                            ->decltype(auto)
+                        {
+                            return ::std::invoke(
+                                ::std::forward<U>(t)...,
+                                ::std::forward<Args>(args)...
+                            );
+                        }, // clang-format on
+                        static_cast<const base&&>(*this) //
+                    );
+                }
+
+                template<typename... Args>
+                    requires ::std::invocable<Func, T..., Args...>
+                constexpr decltype(auto) operator()(Args&&... args) && //
+                    noexcept(invoker::noexcept_v<Args...>)
+                {
+                    return ::std::apply( // clang-format off
+                        [&]<typename... U>(U&&... t)
+                            noexcept(invoker::noexcept_v<Args...>)
+                            ->decltype(auto)
+                        {
+                            return ::std::invoke(
+                                ::std::forward<U>(t)...,
+                                ::std::forward<Args>(args)...
+                            );
+                        }, // clang-format on
+                        static_cast<base&&>(*this) //
                     );
                 }
             };
@@ -129,17 +169,63 @@ namespace blurringshadow::utility
     inline constexpr ::blurringshadow::utility::details::bind_ref_front_fn bind_ref_front{};
 
     template<typename Invocable>
-    class invocable_obj : public ::ranges::overloaded<Invocable>
+    class invocable_obj
     {
+        Invocable invocable_;
+
     public:
-        using base = ::ranges::overloaded<Invocable>;
+        using invocable_t = Invocable;
 
         template<typename... T>
             requires ::std::constructible_from<Invocable, T...> // clang-format off
         constexpr explicit invocable_obj(T&&... t) // clang-format on
             noexcept(::blurringshadow::utility::nothrow_constructible_from<Invocable, T...>):
-            base(::std::forward<T>(t)...)
+            invocable_(::std::forward<T>(t)...)
         {
+        }
+
+        template<typename... Args>
+            requires ::std::invocable<const Invocable, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const& //
+            noexcept(nothrow_invocable<const Invocable, Args...>)
+        {
+            return ::std::invoke(invocable_, ::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::invocable<Invocable&, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) & //
+            noexcept(nothrow_invocable<Invocable&, Args...>)
+        {
+            return ::std::invoke(invocable_, ::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::
+                invocable<::std::add_rvalue_reference_t<::std::decay_t<Invocable>>, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) && //
+            noexcept( //
+                nothrow_invocable<
+                    ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>,
+                    Args... // clang-format off
+                > // clang-format on
+            )
+        {
+            return ::std::invoke(::std::move(invocable_), ::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::
+                invocable<const ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const&& //
+            noexcept( //
+                nothrow_invocable<
+                    const ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>,
+                    Args... // clang-format off
+                > // clang-format on
+            )
+        {
+            return ::std::invoke(::std::move(invocable_), ::std::forward<Args>(args)...);
         }
     };
 
@@ -151,20 +237,50 @@ namespace blurringshadow::utility
     public:
         using base::base;
 
+        using typename base::invocable_t;
+
         template<typename... Args>
             requires ::std::invocable<const Invocable, Args...>
-        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(noexcept(base::operator()(::std::forward<Args>(args)...)))
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const& //
+            noexcept(::blurringshadow::utility::nothrow_invocable<const Invocable, Args...>)
         {
             return base::operator()(::std::forward<Args>(args)...);
         }
 
         template<typename... Args>
             requires ::std::invocable<Invocable, Args...>
-        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) //
-            noexcept(noexcept(base::operator()(::std::forward<Args>(args)...)))
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) & //
+            noexcept(::blurringshadow::utility::nothrow_invocable<Invocable, Args...>)
         {
             return base::operator()(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::
+                invocable<::std::add_rvalue_reference_t<::std::decay_t<Invocable>>, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const&& //
+            noexcept( //
+                nothrow_invocable<
+                    ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>,
+                    Args... // clang-format off
+                > // clang-format on
+            )
+        {
+            return static_cast<const base&&>(*this)(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::
+                invocable<const ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) && //
+            noexcept( //
+                nothrow_invocable<
+                    const ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>,
+                    Args... // clang-format off
+                > // clang-format on
+            )
+        {
+            return static_cast<base&&>(*this)(::std::forward<Args>(args)...);
         }
     };
 
@@ -182,7 +298,9 @@ namespace blurringshadow::utility
         {
             return left = ::std::forward<U>(right); //
         },
-        []<typename T, typename... U>(T& left, U&&... right) // clang-format off
+        []<typename T, typename... U> // clang-format off
+            requires ::std::constructible_from<::std::remove_cvref_t<T>, U...>
+        (T& left, U&&... right)
             noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
             ->decltype(auto) // clang-format on
         {
@@ -312,7 +430,6 @@ namespace blurringshadow::utility
     BS_UTIL_INCREMENT_DECREMENT_OPERATE(de, -, minus)
 
 #undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
-#undef BS_DUPLICATE
 
     inline constexpr auto advance_v = ::blurringshadow::utility::nodiscard_invocable_obj{
         ::ranges::overload(
@@ -346,7 +463,8 @@ namespace blurringshadow::utility
     inline constexpr auto returnable_invoke = []<typename Func, typename... Args>(
         Func&& func,
         Args&&... args 
-    ) noexcept(::blurringshadow::utility::nothrow_invocable<Func, Args...>) // clang-format on
+    ) noexcept(::blurringshadow::utility::nothrow_invocable<Func, Args...>)
+        -> decltype(auto) // clang-format on
     {
         const auto invoker = [&]() //
             noexcept(::blurringshadow::utility::nothrow_invocable<Func, Args...>)
@@ -358,19 +476,30 @@ namespace blurringshadow::utility
             invoker();
             return empty{};
         } // clang-format off
-        else return invoker();  
+        else return invoker();
     };
 
     inline constexpr auto merge_invoke = []<::std::invocable... Func>(Func&& ... func)
         noexcept(
             noexcept(
-                ::std::tuple{
+                ::std::tuple<
+                    ::std::invoke_result_t<
+                        decltype(::blurringshadow::utility::returnable_invoke),
+                        Func
+                    >...
+                >{
                     ::blurringshadow::utility::returnable_invoke(::std::forward<Func>(func))...
                 }
             )
         ) // clang-format on
     {
-        return ::std::tuple{
+        return ::std::tuple< //
+            ::std::invoke_result_t<
+                decltype(::blurringshadow::utility::returnable_invoke),
+                Func // clang-format off
+            >...
+        >{
+            // clang-format on
             ::blurringshadow::utility::returnable_invoke(::std::forward<Func>(func))... //
         };
     };
