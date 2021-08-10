@@ -22,25 +22,29 @@ namespace blurringshadow::utility::property
     public:
         struct func_obj
         { // clang-format off
-            static constexpr auto set = []<typename... Args>(property_member & p, Args&&... args)
+            static constexpr auto set = []<typename... Args>(property_member& p, Args&&... args)
                 noexcept(::blurringshadow::utility::nothrow_invocable<setter_t, Args...>) // clang-format on
                 -> decltype(auto)
             {
                 return p.setter_(::std::forward<Args>(args)...);
             };
 
-        private:
-            struct get_fn
-            {
-                [[nodiscard]] constexpr decltype(auto) operator()(const property_member& p) const
-                    noexcept(::blurringshadow::utility::nothrow_invocable<getter_t>)
-                {
-                    return p.getter_();
-                }
+            static constexpr ::blurringshadow::utility::nodiscard_invocable_obj get{
+                ::ranges::overload(
+                    [](const property_member& p) // clang-format off
+                        noexcept(::blurringshadow::utility::nothrow_invocable<getter_t>)
+                        -> decltype(auto) // clang-format on
+                    {
+                        return p.getter_(); //
+                    },
+                    [](property_member&& p) // clang-format off
+                        noexcept(::blurringshadow::utility::nothrow_invocable<getter_t>)
+                        -> decltype(auto) // clang-format on
+                    {
+                        return ::std::move(p.getter_()); //
+                    } // clang-format off
+                ) // clang-format on
             };
-
-        public:
-            static constexpr get_fn get{};
         };
 
         template<typename... Args>
@@ -50,10 +54,16 @@ namespace blurringshadow::utility::property
             return func_obj::set(*this, ::std::forward<Args>(args)...);
         };
 
-        constexpr decltype(auto) get() const
+        constexpr decltype(auto) get() const& //
             noexcept(::blurringshadow::utility::nothrow_invocable<getter_t>)
         {
             return func_obj::get(*this);
+        };
+
+        constexpr decltype(auto) get() && //
+            noexcept(::blurringshadow::utility::nothrow_invocable<getter_t>)
+        {
+            return func_obj::get(::std::move(*this));
         };
 
         template<typename T>
