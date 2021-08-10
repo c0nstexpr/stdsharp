@@ -17,7 +17,7 @@ namespace blurringshadow::utility
         template<typename T>
         struct auto_cast
         {
-            T t;
+            T&& t;
 
             template<typename U> // NOLINTNEXTLINE(hicpp-explicit-conversions)
             [[nodiscard]] constexpr operator U() const&& noexcept(noexcept(static_cast<U>(t)))
@@ -31,13 +31,24 @@ namespace blurringshadow::utility
                 return static_cast<U>(t);
             }
         };
+
+        struct auto_cast_fn
+        {
+            template<typename T>
+            [[nodiscard]] constexpr auto operator()(T&& t) const //
+                noexcept( //
+                    ::std::is_nothrow_constructible_v<
+                        ::blurringshadow::utility::details::auto_cast<T>,
+                        T // clang-format off
+                    > // clang-format on
+                )
+            {
+                return ::blurringshadow::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
+            }
+        };
     }
 
-    inline constexpr auto auto_cast = []<typename T>(T&& t) //
-        noexcept(::std::is_nothrow_constructible_v<details::auto_cast<T>, T>)
-    {
-        return ::blurringshadow::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
-    };
+    inline constexpr ::blurringshadow::utility::details::auto_cast_fn auto_cast{};
 
     namespace details
     {
