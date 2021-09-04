@@ -13,10 +13,10 @@ namespace blurringshadow::utility
     {
     public:
         template<typename... Args>
-            requires std::constructible_from<T, Args...>
+            requires ::std::constructible_from<T, Args...>
         constexpr explicit concurrent_object(Args&&... args) //
-            noexcept(nothrow_constructible_from<T, Args...>):
-            object_(std::forward<Args>(args)...)
+            noexcept(::blurringshadow::utility::nothrow_constructible_from<T, Args...>):
+            object_(::std::forward<Args>(args)...)
         {
         }
 
@@ -24,10 +24,10 @@ namespace blurringshadow::utility
 
         constexpr auto& raw() const noexcept { return object_; }
 
-        template<std::invocable<const T&> Func>
+        template<::std::invocable<const T&> Func>
         void read(Func&& func) const
         {
-            std::shared_lock _(mutex_);
+            ::std::shared_lock _(mutex_);
             func(object_);
         }
 
