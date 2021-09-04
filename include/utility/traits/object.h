@@ -24,8 +24,6 @@ namespace blurringshadow::utility::traits
         fixed_object& operator=(const fixed_object&) noexcept = delete;
         fixed_object& operator=(fixed_object&&) noexcept = delete;
 
-        operator fixed_object&&() = delete;
-
         ~fixed_object() = default;
     };
 
