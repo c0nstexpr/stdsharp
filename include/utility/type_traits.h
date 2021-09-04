@@ -5,6 +5,8 @@
 #include <concepts>
 #include <type_traits>
 
+#include <range/v3/functional/arithmetic.hpp>
+
 namespace blurringshadow::utility
 {
     struct empty final
@@ -184,7 +186,7 @@ namespace blurringshadow::utility
     namespace details
     {
         template<typename T>
-        struct constant_from_type
+        struct constant_from_type final
         {
             template<typename... Args>
                 requires ::blurringshadow::utility::constant_value<T, Args...>
@@ -221,7 +223,6 @@ namespace blurringshadow::utility
         ::blurringshadow::utility::nothrow_invocable_r<bool, Func, Args...>;
 
     template<typename T>
-    using to_lvalue_t = ::std::
-        conditional_t<::blurringshadow::utility::lvalue_ref<T&&>, T&&, ::std::remove_cvref_t<T>>;
+    using coerce_t = ::std::invoke_result_t<::ranges::coerce<T>, T&&>;
 
 }

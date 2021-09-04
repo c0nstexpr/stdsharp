@@ -10,7 +10,7 @@ namespace blurringshadow::utility
 {
     inline constexpr auto empty_invoke = [](auto&&...) noexcept
     {
-        return empty{}; //
+        return ::blurringshadow::utility::empty{}; //
     };
 
     namespace details
@@ -142,8 +142,8 @@ namespace blurringshadow::utility
                 noexcept( // clang-format on
                     ::blurringshadow::utility::nothrow_constructible_from<
                         invoker<
-                            ::blurringshadow::utility::to_lvalue_t<Func>,
-                            ::blurringshadow::utility::to_lvalue_t<Args>... // clang-format off
+                            ::blurringshadow::utility::coerce_t<Func>,
+                            ::blurringshadow::utility::coerce_t<Args>... // clang-format off
                         >,
                         Func,
                         Args...
@@ -151,8 +151,8 @@ namespace blurringshadow::utility
                 ) // clang-format on
             {
                 return invoker<
-                    ::blurringshadow::utility::to_lvalue_t<Func>,
-                    ::blurringshadow::utility::to_lvalue_t<Args>... // clang-format off
+                    ::blurringshadow::utility::coerce_t<Func>,
+                    ::blurringshadow::utility::coerce_t<Args>... // clang-format off
                 >{::std::forward<Func>(func), ::std::forward<Args>(args)...}; // clang-format on
             }
         };
@@ -163,8 +163,6 @@ namespace blurringshadow::utility
 
     template<typename T>
     inline constexpr ::blurringshadow::utility::details::constructor_fn<T> constructor{};
-
-    inline constexpr ::blurringshadow::utility::details::copy_fn copy{};
 
     inline constexpr ::blurringshadow::utility::details::bind_ref_front_fn bind_ref_front{};
 
@@ -519,4 +517,38 @@ namespace blurringshadow::utility
             ::std::forward<Func>(func) //
         );
     };
+
+    namespace details
+    {
+        template<typename Proj>
+        class projector : invocable_obj<Proj>
+        {
+            using base = invocable_obj<Proj>;
+
+        public:
+            using base::base;
+
+#define BS_UTILITY_PROJECTOR_OPERATOR_DEF(const_)                                              \
+    template<typename Func, typename... Args>                                                  \
+        requires(::std::invocable<const_ base, Args> && ...)                                   \
+    &&::std::                                                                                  \
+        invocable<Func, ::std::invoke_result_t<const_ base, Args>...> constexpr decltype(auto) \
+            operator()(Func&& func, Args&&... args) const_ noexcept(                           \
+                ::blurringshadow::utility::                                                    \
+                    nothrow_invocable<Func, ::std::invoke_result_t<const base, Args>...>)      \
+    {                                                                                          \
+        return ::std::invoke(                                                                  \
+            ::std::forward<Func>(func), base::operator()(::std::forward<Args>(args))...);      \
+    }
+
+            BS_UTILITY_PROJECTOR_OPERATOR_DEF(const)
+            BS_UTILITY_PROJECTOR_OPERATOR_DEF()
+#undef BS_UTILITY_PROJECTOR_OPERATOR_DEF
+        };
+    }
+
+    inline constexpr auto make_projector =
+        ::blurringshadow::utility::nodiscard_invocable_obj{[]<typename Func>(Func&& func) {
+            return ::blurringshadow::utility::details::projector<Func>{::std::forward<Func>(func)};
+        }};
 }
