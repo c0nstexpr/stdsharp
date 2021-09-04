@@ -1,4 +1,4 @@
-#include "traits/property_test.h"
+#include "traits/member_test.h"
 #include "utility/traits/member.h"
 
 namespace blurringshadow::test::utility::traits
