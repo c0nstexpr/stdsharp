@@ -202,11 +202,18 @@ namespace blurringshadow::utility::traits
             ::std::make_index_sequence<sizeof...(Values)> // clang-format off
         >; // clang-format on
 
+        template<::std::size_t I>
+        struct get_fn
+        {
+            [[nodiscard]] constexpr decltype(auto) operator()() const noexcept
+            {
+                return base::template get<I>();
+            }
+        };
+
     public:
         template<::std::size_t I>
-        static constexpr ::blurringshadow::utility::nodiscard_invocable_obj get{
-            []() noexcept -> decltype(auto) { return base::template get<I>(); } //
-        };
+        static constexpr value_sequence::get_fn<I> get{};
 
         static constexpr auto size = sizeof...(Values);
 

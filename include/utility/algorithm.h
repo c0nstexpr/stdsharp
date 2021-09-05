@@ -77,7 +77,7 @@ namespace blurringshadow::utility
                     requires ::std::predicate<Compare, const proj_t, const proj_min> &&
                         ::std::predicate<Compare, const proj_max, const proj_t> &&
                         ::std::predicate<Compare, const proj_max, const proj_min>
-                static constexpr auto nothrow_v = !::blurringshadow::utility::is_debug &&
+                static constexpr bool nothrow_v = !::blurringshadow::utility::is_debug &&
                     ::blurringshadow::utility::
                         nothrow_predicate<Compare, const proj_t, const proj_min> && //
                     ::blurringshadow::utility::

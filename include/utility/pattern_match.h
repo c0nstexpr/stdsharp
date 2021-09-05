@@ -44,7 +44,7 @@ namespace blurringshadow::utility
                 using condition_type_identity = ::std::type_identity<ConditionT>;
 
                 template<typename Case>
-                static constexpr auto case_nothrow_invocable =
+                static constexpr bool case_nothrow_invocable =
                     !::std::invocable<Case, from_type_fn::condition_type_identity> ||
                     ::blurringshadow::utility::
                         nothrow_invocable<Case, from_type_fn::condition_type_identity>;
