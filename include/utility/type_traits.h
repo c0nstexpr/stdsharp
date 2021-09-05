@@ -176,29 +176,11 @@ namespace blurringshadow::utility
         ::blurringshadow::utility::constant<right> // clang-format off
     >::value; // clang-format on
 
-    template<typename T, typename... Args>
-    concept constant_value = ::std::constructible_from<T, Args...> && requires(Args&&... args)
-    {
-        T{::std::forward<Args>(args)...}.value; // clang-format off
-        { T{::std::forward<Args>(args)...}.value } -> ::blurringshadow::utility::not_same_as<void>; // clang-format on
-    };
-
-    namespace details
-    {
-        template<typename T>
-        struct constant_from_type final
-        {
-            template<typename... Args>
-                requires ::blurringshadow::utility::constant_value<T, Args...>
-            constexpr auto operator()(Args&&... args)
-            {
-                return T{::std::forward<Args>(args)...}.value;
-            };
-        };
-    }
-
     template<typename T>
-    inline constexpr ::blurringshadow::utility::details::constant_from_type<T> get{};
+    concept constant_value = requires
+    {
+        ::std::bool_constant<(std::declval<T>().value, true)>{};
+    };
 
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;
@@ -224,5 +206,4 @@ namespace blurringshadow::utility
 
     template<typename T>
     using coerce_t = ::std::invoke_result_t<::ranges::coerce<T>, T&&>;
-
 }

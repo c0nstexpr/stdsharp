@@ -5,11 +5,10 @@
 
 #ifndef NDEBUG
     #include <fmt/format.h>
-
-    #include "utility/cassert.h"
 #endif
 
 #include "functional.h"
+#include "utility/cassert.h"
 
 namespace blurringshadow::utility
 {
@@ -66,58 +65,58 @@ namespace blurringshadow::utility
                 typename T,
                 typename Min,
                 typename Max,
-                typename Compare,
                 typename Proj // clang-format off
-            > requires ::blurringshadow::utility::invocable_rnonvoid<Proj, T> &&
-                ::blurringshadow::utility::invocable_rnonvoid<Proj, T> &&
-                ::blurringshadow::utility::invocable_rnonvoid<Proj, T> // clang-format on
+            > // clang-format on
             struct require
             {
                 using proj_t = ::std::invoke_result_t<Proj, T>;
                 using proj_min = ::std::invoke_result_t<Proj, Min>;
                 using proj_max = ::std::invoke_result_t<Proj, Max>;
 
-                static constexpr auto value =
-                    ::std::predicate<Compare, const proj_t, const proj_min> &&
-                    ::std::predicate<Compare, const proj_max, const proj_t> &&
-                    ::std::predicate<Compare, const proj_max, const proj_min>;
-
-                static constexpr auto nothrow_value =
+                template<typename Compare>
+                    requires ::std::predicate<Compare, const proj_t, const proj_min> &&
+                        ::std::predicate<Compare, const proj_max, const proj_t> &&
+                        ::std::predicate<Compare, const proj_max, const proj_min>
+                static constexpr auto nothrow_v = !::blurringshadow::utility::is_debug &&
                     ::blurringshadow::utility::
                         nothrow_predicate<Compare, const proj_t, const proj_min> && //
                     ::blurringshadow::utility::
                         nothrow_predicate<Compare, const proj_max, const proj_t> && //
                     ::blurringshadow::utility::
-                        nothrow_predicate<Compare, const proj_max, const proj_min>;
+                        nothrow_predicate<Compare, const proj_max, const proj_min> //
+
+                    ;
             };
         };
     }
 
+    // clang-format off
     inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj is_between{
-        []< //
+        []< // clang-format on
             typename T,
             typename U,
             typename V,
             typename Compare = ::std::ranges::less,
-            typename Proj = ::std::identity // clang-format off
-        > requires ::blurringshadow::utility::details::is_between_fn::require<T, U, V, Compare, Proj>::value
+            typename Proj = ::std::identity,
+            auto noexcept_ = ::blurringshadow::utility::details:: // clang-format off
+                is_between_fn::require<T, U, V, Proj>::template nothrow_v<Compare>
+        >
         (
             T&& v,
             U&& min,
             V&& max,
             Compare cmp = {},
             Proj proj = {}
-        ) noexcept(!is_debug && ::blurringshadow::utility::details::
-                    is_between_fn::require<T, U, V, Compare, Proj>::nothrow_value)
+        ) noexcept(noexcept_)
         {
             using traits = ::blurringshadow::utility::details::
-                is_between_fn::require<T, U, V, Compare, Proj>;
+                is_between_fn::require<T, U, V, Proj>;
 
             const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
             const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
             const auto& projected_max = ::std::invoke(proj, ::std::forward<V>(max));
 
-            if constexpr(is_debug)
+            if constexpr(::blurringshadow::utility::is_debug)
                 if(::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_min))
                 {
                     if constexpr(

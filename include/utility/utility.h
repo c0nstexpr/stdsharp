@@ -32,36 +32,32 @@ namespace blurringshadow::utility
             }
         };
 
-        struct auto_cast_fn
-        {
-            template<typename T>
-            [[nodiscard]] constexpr auto operator()(T&& t) const //
-                noexcept( //
-                    ::std::is_nothrow_constructible_v<
-                        ::blurringshadow::utility::details::auto_cast<T>,
-                        T // clang-format off
-                    > // clang-format on
-                )
-            {
-                return ::blurringshadow::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
-            }
-        };
+
     }
 
-    inline constexpr ::blurringshadow::utility::details::auto_cast_fn auto_cast{};
-
-    namespace details
+    inline constexpr struct
     {
-        struct to_underlying_fn
+        template<typename T>
+        [[nodiscard]] constexpr auto operator()(T&& t) const //
+            noexcept( //
+                ::std::is_nothrow_constructible_v<
+                    ::blurringshadow::utility::details::auto_cast<T>,
+                    T // clang-format off
+                    > // clang-format on
+            )
         {
-            template<typename T>
-                requires ::std::is_enum_v<T>
-            [[nodiscard]] constexpr auto operator()(const T v) const noexcept
-            {
-                return static_cast<::std::underlying_type_t<::std::remove_cvref_t<T>>>(v);
-            }
-        };
-    }
+            return ::blurringshadow::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
+        }
+    } auto_cast{};
 
-    inline constexpr ::blurringshadow::utility::details::to_underlying_fn to_underlying{};
+
+    inline constexpr struct
+    {
+        template<typename T>
+            requires ::std::is_enum_v<T>
+        [[nodiscard]] constexpr auto operator()(const T v) const noexcept
+        {
+            return static_cast<::std::underlying_type_t<::std::remove_cvref_t<T>>>(v);
+        }
+    } to_underlying{};
 }

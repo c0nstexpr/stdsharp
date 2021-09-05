@@ -20,10 +20,12 @@ namespace blurringshadow::utility::property
     template<typename T>
     getter(T&& t) -> getter<::std::remove_cvref_t<T>>;
 
-    inline constexpr auto value_getter = [](auto& t) noexcept
-    {
-        return ::blurringshadow::utility::property::getter{
-            ::blurringshadow::utility::bind_ref_front(identity_v, t) //
-        };
+    inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj value_getter{
+        [](auto& t) noexcept
+        {
+            return ::blurringshadow::utility::property::getter{
+                ::blurringshadow::utility::bind_ref_front(identity_v, t) //
+            };
+        } //
     };
 }

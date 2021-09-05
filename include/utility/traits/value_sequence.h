@@ -128,7 +128,7 @@ namespace blurringshadow::utility::traits
         {
             template<::std::size_t J>
                 requires(I == J)
-            static constexpr decltype(auto) get_value() noexcept { return Value; }
+            static constexpr decltype(auto) get() noexcept { return Value; }
         };
 
         template<typename, typename>
@@ -138,7 +138,7 @@ namespace blurringshadow::utility::traits
         struct value_sequence<traits::value_sequence<Values...>, ::std::index_sequence<I...>> :
             ::blurringshadow::utility::traits::details::indexed_value<I, Values>...
         {
-            using indexed_value<I, Values>::get_value...;
+            using indexed_value<I, Values>::get...;
 
             using index_seq = ::std::index_sequence<I...>;
 
@@ -202,18 +202,11 @@ namespace blurringshadow::utility::traits
             ::std::make_index_sequence<sizeof...(Values)> // clang-format off
         >; // clang-format on
 
-        template<::std::size_t I>
-        struct get_fn
-        {
-            [[nodiscard]] constexpr decltype(auto) operator()() const noexcept
-            {
-                return base::template get_value<I>();
-            }
-        };
-
     public:
         template<::std::size_t I>
-        static constexpr get_fn<I> get{};
+        static constexpr ::blurringshadow::utility::nodiscard_invocable_obj get{
+            []() noexcept -> decltype(auto) { return base::template get<I>(); } //
+        };
 
         static constexpr auto size = sizeof...(Values);
 
@@ -239,8 +232,31 @@ namespace blurringshadow::utility::traits
         using indexed_by_seq_t = typename ::blurringshadow::utility::traits:: //
             take_value_sequence<Seq>::template apply_t<indexed_t>;
 
-    private: //
-        struct for_each_fn
+    private:
+        template<auto... Func>
+        struct transform_fn
+        {
+            [[nodiscard]] constexpr auto operator()() const noexcept
+            {
+                if constexpr(sizeof...(Func) == 1)
+                    return []<auto F>(const ::blurringshadow::utility::constant<F>) noexcept
+                    {
+                        return ::blurringshadow::utility::traits:: //
+                            value_sequence<::std::invoke(F, Values)...>{};
+                    }
+                (::blurringshadow::utility::constant<Func...>{});
+                else return ::blurringshadow::utility::traits:: //
+                    value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
+            };
+        };
+
+        template<::std::size_t From, ::std::size_t... I>
+        static constexpr indexed_t<From + I...> select_range_indexed( // clang-format off
+            ::std::index_sequence<I...>
+        ) noexcept; // clang-format on
+
+    public:
+        static constexpr struct
         {
             template<
                 typename Func,
@@ -255,9 +271,9 @@ namespace blurringshadow::utility::traits
                 (::std::invoke(func, ::std::invoke(proj, Values)), ...);
                 return func;
             }
-        };
+        } for_each{};
 
-        struct for_each_n_fn
+        static constexpr struct
         {
             template<
                 typename Func,
@@ -283,9 +299,9 @@ namespace blurringshadow::utility::traits
                 (f(Values) && ...);
                 return func;
             }
-        };
+        } for_each_n{};
 
-        struct find_if_fn
+        static constexpr struct
         {
             template<
                 typename Func,
@@ -312,9 +328,9 @@ namespace blurringshadow::utility::traits
 
                 return i;
             }
-        };
+        } find_if{};
 
-        struct find_if_not_fn
+        static constexpr struct
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
@@ -330,9 +346,9 @@ namespace blurringshadow::utility::traits
                     ::std::forward<Proj>(proj) //
                 );
             }
-        };
+        } find_if_not{};
 
-        struct find_fn
+        static constexpr struct
         {
             template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()( //
@@ -341,7 +357,7 @@ namespace blurringshadow::utility::traits
                 Proj&& proj = {} // clang-format off
             ) const noexcept(
                 ::blurringshadow::utility::nothrow_invocable<
-                    find_if_fn,
+                    decltype(value_sequence::find_if),
                     decltype(base::value_comparer(v, comp)),
                     Proj
                 >
@@ -349,9 +365,9 @@ namespace blurringshadow::utility::traits
             {
                 return find_if(base::value_comparer(v, comp), std::forward<Proj>(proj));
             }
-        };
+        } find{};
 
-        struct count_if_fn
+        static constexpr struct
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
@@ -372,9 +388,9 @@ namespace blurringshadow::utility::traits
 
                 return i;
             }
-        };
+        } count_if{};
 
-        struct count_if_not_fn
+        static constexpr struct
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
@@ -390,9 +406,9 @@ namespace blurringshadow::utility::traits
                     ::std::forward<Proj>(proj) //
                 );
             }
-        };
+        } count_if_not{};
 
-        struct count_fn
+        static constexpr struct
         {
             template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()( //
@@ -400,57 +416,61 @@ namespace blurringshadow::utility::traits
                 Comp comp = {},
                 Proj&& proj = {} // clang-format off
             ) const noexcept(::blurringshadow::utility::nothrow_invocable<
-                count_if_fn,
-                decltype(base::value_comparer(v, comp)), 
+                decltype(count_if),
+                decltype(base::value_comparer(v, comp)),
                 Proj
             >
             ) // clang-format on
             {
                 return count_if(base::value_comparer(v, comp), ::std::forward<Proj>(proj));
             }
-        };
+        } count{};
 
-        struct all_of_fn
+        static constexpr struct
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::nothrow_invocable<find_if_not_fn, Func, Proj>)
+                noexcept(::blurringshadow::utility::
+                             nothrow_invocable<decltype(value_sequence::find_if_not), Func, Proj>)
             {
                 return find_if_not(std::forward<Func>(func), std::forward<Proj>(proj)) == size;
             }
-        };
+        } all_of{};
 
-        struct any_of_fn
+        static constexpr struct
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::nothrow_invocable<find_if_fn, Func, Proj>)
+                noexcept(::blurringshadow::utility::
+                             nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
             {
                 return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) != size;
             }
-        };
+        } any_of{};
 
-        struct none_of_fn
+        static constexpr struct
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::nothrow_invocable<find_if_fn, Func, Proj>)
+                noexcept(::blurringshadow::utility::
+                             nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
             {
                 return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) == size;
             }
-        };
+        } none_of{};
 
-        struct contains_fn
+        static constexpr struct
         {
             template<typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::nothrow_invocable<find_fn, decltype(v), Proj>)
+                noexcept(::blurringshadow::utility::
+                             nothrow_invocable<decltype(value_sequence::find), decltype(v), Proj>)
             {
                 return find(v, ::std::forward<Proj>(proj)) != size;
             }
-        };
+        } contains{};
 
-        struct adjacent_find_fn
+        static constexpr struct
         {
         private:
             template<::std::size_t I, typename Comp, typename Proj>
@@ -512,56 +532,7 @@ namespace blurringshadow::utility::traits
             {
                 return size;
             }
-        };
-
-        template<auto... Func>
-        struct transform_fn
-        {
-            [[nodiscard]] constexpr auto operator()() const noexcept
-            {
-                if constexpr(sizeof...(Func) == 1)
-                    return []<auto F>(const ::blurringshadow::utility::constant<F>) noexcept
-                    {
-                        return ::blurringshadow::utility::traits:: //
-                            value_sequence<::std::invoke(F, Values)...>{};
-                    }
-                (::blurringshadow::utility::constant<Func...>{});
-                else return ::blurringshadow::utility::traits:: //
-                    value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
-            };
-        };
-
-        template<::std::size_t From, ::std::size_t... I>
-        static constexpr indexed_t<From + I...> select_range_indexed( // clang-format off
-            ::std::index_sequence<I...>
-        ) noexcept; // clang-format on
-
-    public:
-        static constexpr for_each_fn for_each{};
-
-        static constexpr for_each_n_fn for_each_n{};
-
-        static constexpr find_if_fn find_if{};
-
-        static constexpr find_if_not_fn find_if_not{};
-
-        static constexpr find_fn find{};
-
-        static constexpr count_if_fn count_if{};
-
-        static constexpr count_if_not_fn count_if_not{};
-
-        static constexpr count_fn count{};
-
-        static constexpr all_of_fn all_of{};
-
-        static constexpr any_of_fn any_of{};
-
-        static constexpr none_of_fn none_of{};
-
-        static constexpr contains_fn contains{};
-
-        static constexpr adjacent_find_fn adjacent_find{};
+        } adjacent_find{};
 
         template<auto... Func>
         static constexpr transform_fn<Func...> transform{};

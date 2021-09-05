@@ -54,10 +54,12 @@ namespace blurringshadow::utility::property
     template<typename T>
     setter(T&& t) -> setter<::std::remove_cvref_t<T>>;
 
-    inline constexpr auto value_setter = [](auto& t) noexcept
-    {
-        return ::blurringshadow::utility::property::setter{
-            ::blurringshadow::utility::bind_ref_front(assign_v, t) //
-        };
+    inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj value_setter{
+        [](auto& t) noexcept
+        {
+            return ::blurringshadow::utility::property::setter{
+                ::blurringshadow::utility::bind_ref_front(assign_v, t) //
+            };
+        } //
     };
 }

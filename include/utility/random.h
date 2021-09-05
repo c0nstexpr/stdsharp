@@ -6,9 +6,12 @@
 
 namespace blurringshadow::utility
 {
-    [[nodiscard]] inline auto& get_random_device()
+    inline constexpr struct
     {
-        static thread_local ::std::random_device random_device;
-        return random_device;
-    }
+        [[nodiscard]] auto& operator()() const
+        {
+            static thread_local ::std::random_device random_device;
+            return random_device;
+        }
+    } get_random_device{};
 }
