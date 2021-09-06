@@ -3,7 +3,7 @@
 
 # stdsharp-utility
 
-Contains commonly used c++ code that not impl or well impl in other libs
+Contains commonly used c++ code that not impl or well impl in other libs. This project aim to supplement the c++ standard library with fundamental features. Headers are arranged in accordance with the standard library structure.
 
 ## Getting Started
 
