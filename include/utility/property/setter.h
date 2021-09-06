@@ -4,13 +4,13 @@
 
 #include "utility/functional.h"
 
-namespace std_sharp::utility::property
+namespace stdsharp::utility::property
 {
     template<typename SetterFn>
-    class setter : public ::std_sharp::utility::invocable_obj<SetterFn>
+    class setter : public ::stdsharp::utility::invocable_obj<SetterFn>
     {
     public:
-        using base = ::std_sharp::utility::invocable_obj<SetterFn>;
+        using base = ::stdsharp::utility::invocable_obj<SetterFn>;
 
         using base::base;
 
@@ -35,7 +35,7 @@ namespace std_sharp::utility::property
         template<typename T>
             requires ::std::invocable<const SetterFn, T>
         constexpr auto& operator=(T&& t) const&& //
-            noexcept(::std_sharp::utility::nothrow_invocable<const base, T>)
+            noexcept(::stdsharp::utility::nothrow_invocable<const base, T>)
         {
             static_cast<const base&&> (*this)(::std::forward<T>(t));
             return *this;
@@ -44,7 +44,7 @@ namespace std_sharp::utility::property
         template<typename T>
             requires ::std::invocable<SetterFn, T>
         constexpr auto& operator=(T&& t) && //
-            noexcept(::std_sharp::utility::nothrow_invocable<base, T>)
+            noexcept(::stdsharp::utility::nothrow_invocable<base, T>)
         {
             static_cast<base&&> (*this)(::std::forward<T>(t));
             return *this;
@@ -54,11 +54,11 @@ namespace std_sharp::utility::property
     template<typename T>
     setter(T&& t) -> setter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj value_setter{
+    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj value_setter{
         [](auto& t) noexcept
         {
-            return ::std_sharp::utility::property::setter{
-                ::std_sharp::utility::bind_ref_front(assign_v, t) //
+            return ::stdsharp::utility::property::setter{
+                ::stdsharp::utility::bind_ref_front(assign_v, t) //
             };
         } //
     };

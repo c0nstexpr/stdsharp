@@ -10,7 +10,7 @@
 #include "functional.h"
 #include "utility/cassert.h"
 
-namespace std_sharp::utility
+namespace stdsharp::utility
 {
     // clang-format off
     inline constexpr auto set_if = []<typename T, typename U, ::std::predicate<T, U> Comp>(
@@ -18,8 +18,8 @@ namespace std_sharp::utility
         U&& right,
         Comp comp = {}
     ) noexcept(
-        ::std_sharp::utility::nothrow_invocable_r<bool, Comp, U&, T&> &&
-        ::std_sharp::utility::nothrow_assignable_from<T, U>
+        ::stdsharp::utility::nothrow_invocable_r<bool, Comp, U&, T&> &&
+        ::stdsharp::utility::nothrow_assignable_from<T, U>
     ) -> T&
     {
         // clang-format on
@@ -30,31 +30,31 @@ namespace std_sharp::utility
     inline constexpr auto set_if_greater = []<typename T, typename U>(T& left, U&& right) //
         noexcept( //
             noexcept( //
-                ::std_sharp::utility::set_if(
+                ::stdsharp::utility::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::std_sharp::utility::greater_v // clang-format off
+                    ::stdsharp::utility::greater_v // clang-format off
                 )
             )
         ) -> T& // clang-format on
     {
-        return ::std_sharp::utility::set_if(
-            left, ::std::forward<U>(right), ::std_sharp::utility::greater_v //
+        return ::stdsharp::utility::set_if(
+            left, ::std::forward<U>(right), ::stdsharp::utility::greater_v //
         ); //
     };
 
     inline constexpr auto set_if_less = []<typename T, typename U>(T& left, U&& right) //
         noexcept( //
             noexcept( //
-                ::std_sharp::utility::set_if(
+                ::stdsharp::utility::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::std_sharp::utility::less_v // clang-format off
+                    ::stdsharp::utility::less_v // clang-format off
                 )
             )
         ) -> T& // clang-format on
     {
-        return ::std_sharp::utility::set_if(left, ::std::forward<U>(right), less_v); //
+        return ::stdsharp::utility::set_if(left, ::std::forward<U>(right), less_v); //
     };
 
     namespace details
@@ -77,12 +77,12 @@ namespace std_sharp::utility
                     requires ::std::predicate<Compare, const proj_t, const proj_min> &&
                         ::std::predicate<Compare, const proj_max, const proj_t> &&
                         ::std::predicate<Compare, const proj_max, const proj_min>
-                static constexpr bool nothrow_v = !::std_sharp::utility::is_debug &&
-                    ::std_sharp::utility::
+                static constexpr bool nothrow_v = !::stdsharp::utility::is_debug &&
+                    ::stdsharp::utility::
                         nothrow_predicate<Compare, const proj_t, const proj_min> && //
-                    ::std_sharp::utility::
+                    ::stdsharp::utility::
                         nothrow_predicate<Compare, const proj_max, const proj_t> && //
-                    ::std_sharp::utility::
+                    ::stdsharp::utility::
                         nothrow_predicate<Compare, const proj_max, const proj_min> //
 
                     ;
@@ -91,14 +91,14 @@ namespace std_sharp::utility
     }
 
     // clang-format off
-    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj is_between{
+    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj is_between{
         []< // clang-format on
         typename T,
         typename U,
         typename V,
         typename Compare = ::std::ranges::less,
         typename Proj = ::std::identity,
-        auto noexcept_ = ::std_sharp::utility::details:: // clang-format off
+        auto noexcept_ = ::stdsharp::utility::details:: // clang-format off
                 is_between_fn::require<T, U, V, Proj>::template nothrow_v<Compare>
         >
         (
@@ -109,15 +109,15 @@ namespace std_sharp::utility
             Proj proj = {}
         ) noexcept(noexcept_)
         {
-            using traits = ::std_sharp::utility::details::
+            using traits = ::stdsharp::utility::details::
                 is_between_fn::require<T, U, V, Proj>;
 
             const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
             const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
             const auto& projected_max = ::std::invoke(proj, ::std::forward<V>(max));
 
-            if constexpr(::std_sharp::utility::is_debug)
-                if(::std_sharp::utility::invoke_r<bool>(cmp, projected_max, projected_min))
+            if constexpr(::stdsharp::utility::is_debug)
+                if(::stdsharp::utility::invoke_r<bool>(cmp, projected_max, projected_min))
                 {
                     if constexpr(
                         ::fmt::formattable<typename traits::proj_min>::value &&
@@ -135,8 +135,8 @@ namespace std_sharp::utility
                     };
                 }
 
-            return !::std_sharp::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
-                !::std_sharp::utility::invoke_r<bool>(cmp, projected_max, projected_v);
+            return !::stdsharp::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
+                !::stdsharp::utility::invoke_r<bool>(cmp, projected_max, projected_v);
         }
     }; // clang-format on
 }

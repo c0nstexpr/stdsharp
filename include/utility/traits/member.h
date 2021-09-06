@@ -4,7 +4,7 @@
 
 #include "function.h"
 
-namespace std_sharp::utility::traits
+namespace stdsharp::utility::traits
 {
     template<typename>
     struct member_traits;
@@ -17,12 +17,12 @@ namespace std_sharp::utility::traits
 
     template<auto Ptr>
     struct member_pointer_traits :
-        ::std_sharp::utility::traits::member_traits<::std::decay_t<decltype(Ptr)>>
+        ::stdsharp::utility::traits::member_traits<::std::decay_t<decltype(Ptr)>>
     {
     };
 
     template<auto Ptr>
-    using member_t = typename ::std_sharp::utility::traits::member_pointer_traits<Ptr>::type;
+    using member_t = typename ::stdsharp::utility::traits::member_pointer_traits<Ptr>::type;
 
     template<typename>
     struct member_function_traits;
@@ -37,7 +37,7 @@ namespace std_sharp::utility::traits
 #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)     \
     template<typename R, typename ClassT, typename... Args>                                       \
     struct member_function_traits<R (ClassT::*)(Args...) qualifiers> :                            \
-        ::std_sharp::utility::traits::/**/                                                   \
+        ::stdsharp::utility::traits::/**/                                                   \
         function_traits<::std::conditional_t<noexcept_, R (*)(Args...) noexcept, R (*)(Args...)>> \
     {                                                                                             \
         using class_t = ClassT;                                                                   \
@@ -76,7 +76,7 @@ namespace std_sharp::utility::traits
 
     template<auto Ptr>
     struct member_function_pointer_traits :
-        ::std_sharp::utility::traits::member_function_traits<std::decay_t<decltype(Ptr)>>
+        ::stdsharp::utility::traits::member_function_traits<std::decay_t<decltype(Ptr)>>
     {
     };
 
@@ -84,7 +84,7 @@ namespace std_sharp::utility::traits
     concept member_of = requires
     {
         ::std::same_as<
-            typename ::std_sharp::utility::traits:: //
+            typename ::stdsharp::utility::traits:: //
             member_traits<T>::class_t,
             ClassT>;
     };
@@ -93,7 +93,7 @@ namespace std_sharp::utility::traits
     concept member_func_of = requires
     {
         ::std::is_member_pointer_v<T>&& ::std::same_as< // clang-format off
-            typename ::std_sharp::utility::traits::member_function_traits<T>::class_t,
+            typename ::stdsharp::utility::traits::member_function_traits<T>::class_t,
             ClassT
         >; // clang-format on
     };

@@ -6,7 +6,7 @@
 
 #include "type_traits.h"
 
-namespace std_sharp::utility
+namespace stdsharp::utility
 {
     template<typename Invocable>
     class invocable_obj
@@ -19,7 +19,7 @@ namespace std_sharp::utility
         template<typename... T>
             requires ::std::constructible_from<Invocable, T...> // clang-format off
         constexpr explicit invocable_obj(T&&... t) // clang-format on
-            noexcept(::std_sharp::utility::nothrow_constructible_from<Invocable, T...>):
+            noexcept(::stdsharp::utility::nothrow_constructible_from<Invocable, T...>):
             invocable_(::std::forward<T>(t)...)
         {
         }
@@ -73,9 +73,9 @@ namespace std_sharp::utility
     invocable_obj(Invocable&&) -> invocable_obj<::std::decay_t<Invocable>>;
 
     template<typename Invocable>
-    class nodiscard_invocable_obj : ::std_sharp::utility::invocable_obj<Invocable>
+    class nodiscard_invocable_obj : ::stdsharp::utility::invocable_obj<Invocable>
     {
-        using base = ::std_sharp::utility::invocable_obj<Invocable>;
+        using base = ::stdsharp::utility::invocable_obj<Invocable>;
 
     public:
         using base::base;
@@ -85,7 +85,7 @@ namespace std_sharp::utility
         template<typename... Args>
             requires ::std::invocable<const Invocable, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const& //
-            noexcept(::std_sharp::utility::nothrow_invocable<const Invocable, Args...>)
+            noexcept(::stdsharp::utility::nothrow_invocable<const Invocable, Args...>)
         {
             return base::operator()(::std::forward<Args>(args)...);
         }
@@ -93,7 +93,7 @@ namespace std_sharp::utility
         template<typename... Args>
             requires ::std::invocable<Invocable, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) & //
-            noexcept(::std_sharp::utility::nothrow_invocable<Invocable, Args...>)
+            noexcept(::stdsharp::utility::nothrow_invocable<Invocable, Args...>)
         {
             return base::operator()(::std::forward<Args>(args)...);
         }
@@ -132,7 +132,7 @@ namespace std_sharp::utility
 
     inline constexpr auto empty_invoke = [](auto&&...) noexcept
     {
-        return ::std_sharp::utility::empty{}; //
+        return ::stdsharp::utility::empty{}; //
     };
 
     namespace details
@@ -141,9 +141,9 @@ namespace std_sharp::utility
         struct invoke_r_fn
         {
             template<typename Func, typename... Args>
-                requires ::std_sharp::utility::invocable_r<ReturnT, Func, Args...>
+                requires ::stdsharp::utility::invocable_r<ReturnT, Func, Args...>
             [[nodiscard]] constexpr auto operator()(Func&& func, Args&&... args) const
-                noexcept(::std_sharp::utility::nothrow_invocable_r<ReturnT, Func, Args...>)
+                noexcept(::stdsharp::utility::nothrow_invocable_r<ReturnT, Func, Args...>)
             {
                 return static_cast<ReturnT>(
                     ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...) //
@@ -157,7 +157,7 @@ namespace std_sharp::utility
             template<typename... Args>
                 requires ::std::constructible_from<T, Args...>
             [[nodiscard]] constexpr T operator()(Args&&... args) const
-                noexcept(::std_sharp::utility::nothrow_constructible_from<T, Args...>)
+                noexcept(::stdsharp::utility::nothrow_constructible_from<T, Args...>)
             {
                 return {::std::forward<Args>(args)...};
             };
@@ -165,10 +165,10 @@ namespace std_sharp::utility
     }
 
     template<typename ReturnT>
-    inline constexpr ::std_sharp::utility::details::invoke_r_fn<ReturnT> invoke_r{};
+    inline constexpr ::stdsharp::utility::details::invoke_r_fn<ReturnT> invoke_r{};
 
     template<typename T>
-    inline constexpr ::std_sharp::utility::details::constructor_fn<T> constructor{};
+    inline constexpr ::stdsharp::utility::details::constructor_fn<T> constructor{};
 
     inline constexpr struct
     {
@@ -193,7 +193,7 @@ namespace std_sharp::utility
 
             template<typename... Args>
             static constexpr bool noexcept_v =
-                ::std_sharp::utility::nothrow_invocable<Func, T..., Args...>;
+                ::stdsharp::utility::nothrow_invocable<Func, T..., Args...>;
 
         public:
             template<typename... Args>
@@ -269,10 +269,10 @@ namespace std_sharp::utility
         template<typename Func, typename... Args>
         [[nodiscard]] constexpr auto operator()(Func&& func, Args&&... args) const
             noexcept( // clang-format on
-                ::std_sharp::utility::nothrow_constructible_from<
+                ::stdsharp::utility::nothrow_constructible_from<
                     invoker<
-                        ::std_sharp::utility::coerce_t<Func>,
-                        ::std_sharp::utility::coerce_t<Args>... // clang-format off
+                        ::stdsharp::utility::coerce_t<Func>,
+                        ::stdsharp::utility::coerce_t<Args>... // clang-format off
                         >,
                         Func,
                         Args...
@@ -280,8 +280,8 @@ namespace std_sharp::utility
                 ) // clang-format on
         {
             return invoker<
-                ::std_sharp::utility::coerce_t<Func>,
-                ::std_sharp::utility::coerce_t<Args>... // clang-format off
+                ::stdsharp::utility::coerce_t<Func>,
+                ::stdsharp::utility::coerce_t<Args>... // clang-format off
             >{::std::forward<Func>(func), ::std::forward<Args>(args)...}; // clang-format on
         }
     } bind_ref_front{};
@@ -304,7 +304,7 @@ namespace std_sharp::utility
         } //
     );
 
-    using assign = decltype(::std_sharp::utility::assign_v);
+    using assign = decltype(::stdsharp::utility::assign_v);
 
     inline constexpr ::std::ranges::equal_to equal_to_v{};
     inline constexpr ::std::ranges::not_equal_to not_equal_to_v{};
@@ -331,14 +331,14 @@ namespace std_sharp::utility
     inline constexpr ::std::bit_xor<> bit_xor_v{};
 
 #define BS_UTIL_SHIFT_OPERATE(direction, operate)                                       \
-    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj direction##_shift_v{ \
+    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj direction##_shift_v{ \
         []<typename T, typename U>(T&& left, U&& right) noexcept(                       \
             noexcept(::std::forward<T>(left) operate ::std::forward<U>(right)))         \
         {                                                                               \
             return ::std::forward<T>(left) operate ::std::forward<U>(right); /**/       \
         }};                                                                             \
                                                                                         \
-    using direction##_shift = decltype(::std_sharp::utility::direction##_shift_v);
+    using direction##_shift = decltype(::stdsharp::utility::direction##_shift_v);
 
     BS_UTIL_SHIFT_OPERATE(left, <<)
     BS_UTIL_SHIFT_OPERATE(right, >>)
@@ -379,7 +379,7 @@ namespace std_sharp::utility
         []<typename T> requires ::std::invocable<al_op##_assign, T&, ::std::size_t>(              \
             T & v,                                                                                \
             const ::std::size_t i =                                                               \
-                1) noexcept(::std_sharp::utility::                                                \
+                1) noexcept(::stdsharp::utility::                                                \
                                 nothrow_invocable<al_op##_assign, T&, const ::std::size_t>) {     \
             return al_op##_assign_v(v, i); /**/                                                   \
         },                                                                                        \
@@ -390,18 +390,18 @@ namespace std_sharp::utility
         });                                                                                       \
                                                                                                   \
     using pre_##operator_prefix##crease =                                                         \
-        decltype(::std_sharp::utility::pre_##operator_prefix##crease_v);                          \
+        decltype(::stdsharp::utility::pre_##operator_prefix##crease_v);                          \
                                                                                                   \
     struct post_##operator_prefix##crease                                                         \
     {                                                                                             \
         template<typename T>                                                                      \
-            requires ::std::invocable<::std_sharp::utility::al_op##_assign, T, ::std::size_t>     \
+            requires ::std::invocable<::stdsharp::utility::al_op##_assign, T, ::std::size_t>     \
         [[nodiscard]] constexpr auto operator()(T& v, const ::std::size_t i = 1) const noexcept(  \
-            ::std_sharp::utility::                                                                \
-                nothrow_invocable<::std_sharp::utility::al_op##_assign, T&, const ::std::size_t>) \
+            ::stdsharp::utility::                                                                \
+                nothrow_invocable<::stdsharp::utility::al_op##_assign, T&, const ::std::size_t>) \
         {                                                                                         \
             const auto old = v;                                                                   \
-            ::std_sharp::utility::al_op##_assign_v(v, i);                                         \
+            ::stdsharp::utility::al_op##_assign_v(v, i);                                         \
             return old;                                                                           \
         }                                                                                         \
                                                                                                   \
@@ -417,7 +417,7 @@ namespace std_sharp::utility
         }                                                                                         \
     };                                                                                            \
                                                                                                   \
-    inline constexpr ::std_sharp::utility::post_##operator_prefix##crease                         \
+    inline constexpr ::stdsharp::utility::post_##operator_prefix##crease                         \
         post_##operator_prefix##crease_v{};
 
     BS_UTIL_INCREMENT_DECREMENT_OPERATE(in, +, plus)
@@ -425,43 +425,43 @@ namespace std_sharp::utility
 
 #undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
 
-    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj advance_v{
+    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj advance_v{
         ::ranges::overload(
             []<typename T, typename Distance> // clang-format off
                 requires ::std::invocable<plus_assign, T, Distance>
             (T & v, Distance&& distance)
-                noexcept(::std_sharp::utility::nothrow_invocable<plus_assign, T&, Distance>)
+                noexcept(::stdsharp::utility::nothrow_invocable<plus_assign, T&, Distance>)
                 ->decltype(auto) // clang-format on
             {
-                return ::std_sharp::utility::plus_assign_v(
+                return ::stdsharp::utility::plus_assign_v(
                     v,
                     ::std::forward<Distance>(distance) //
                 );
             },
             []<typename T, typename Distance>(T& v, const Distance& distance) noexcept( //
                 noexcept(
-                    ::std_sharp::utility::pre_increase_v(v, distance),
-                    ::std_sharp::utility::pre_decrease_v(v, distance) // clang-format off
+                    ::stdsharp::utility::pre_increase_v(v, distance),
+                    ::stdsharp::utility::pre_decrease_v(v, distance) // clang-format off
                 )
             ) -> decltype(auto) // clang-format on
             {
                 return distance > 0 ? //
-                    ::std_sharp::utility::pre_increase_v(v, distance) :
-                    ::std_sharp::utility::pre_decrease_v(v, -distance);
+                    ::stdsharp::utility::pre_increase_v(v, distance) :
+                    ::stdsharp::utility::pre_decrease_v(v, -distance);
             } // clang-format off
         ) // clang-format on
     };
 
-    using advance = decltype(::std_sharp::utility::advance_v); // clang-format off
+    using advance = decltype(::stdsharp::utility::advance_v); // clang-format off
 
     inline constexpr auto returnable_invoke = []<typename Func, typename... Args>(
         Func&& func,
         Args&&... args 
-    ) noexcept(::std_sharp::utility::nothrow_invocable<Func, Args...>)
+    ) noexcept(::stdsharp::utility::nothrow_invocable<Func, Args...>)
         -> decltype(auto) // clang-format on
     {
         const auto invoker = [&]() //
-            noexcept(::std_sharp::utility::nothrow_invocable<Func, Args...>)
+            noexcept(::stdsharp::utility::nothrow_invocable<Func, Args...>)
         {
             return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
         };
@@ -478,23 +478,23 @@ namespace std_sharp::utility
             noexcept(
                 ::std::tuple<
                     ::std::invoke_result_t<
-                        decltype(::std_sharp::utility::returnable_invoke),
+                        decltype(::stdsharp::utility::returnable_invoke),
                         Func
                     >...
                 >{
-                    ::std_sharp::utility::returnable_invoke(::std::forward<Func>(func))...
+                    ::stdsharp::utility::returnable_invoke(::std::forward<Func>(func))...
                 }
             )
         ) // clang-format on
     {
         return ::std::tuple< //
             ::std::invoke_result_t<
-                decltype(::std_sharp::utility::returnable_invoke),
+                decltype(::stdsharp::utility::returnable_invoke),
                 Func // clang-format off
             >...
         >{
             // clang-format on
-            ::std_sharp::utility::returnable_invoke(::std::forward<Func>(func))... //
+            ::stdsharp::utility::returnable_invoke(::std::forward<Func>(func))... //
         };
     };
 
@@ -502,14 +502,14 @@ namespace std_sharp::utility
         noexcept( //
             noexcept( //
                 ::std::bind_front(
-                    ::std_sharp::utility::returnable_invoke,
+                    ::stdsharp::utility::returnable_invoke,
                     ::std::forward<Func>(func) // clang-format off
                 )
             ) // clang-format on
         )
     {
         return ::std::bind_front(
-            ::std_sharp::utility::returnable_invoke,
+            ::stdsharp::utility::returnable_invoke,
             ::std::forward<Func>(func) //
         );
     };
@@ -530,7 +530,7 @@ namespace std_sharp::utility
     &&::std::                                                                                  \
         invocable<Func, ::std::invoke_result_t<const_ base, Args>...> constexpr decltype(auto) \
             operator()(Func&& func, Args&&... args) const_ noexcept(                           \
-                ::std_sharp::utility::                                                         \
+                ::stdsharp::utility::                                                         \
                     nothrow_invocable<Func, ::std::invoke_result_t<const base, Args>...>)      \
     {                                                                                          \
         return ::std::invoke(                                                                  \
@@ -544,10 +544,10 @@ namespace std_sharp::utility
     }
 
     // clang-format off
-    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj make_projector{
+    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj make_projector{
         []<typename Func>(Func&& func)
         {
-            return ::std_sharp::utility::details::projector<Func>{::std::forward<Func>(func)};
+            return ::stdsharp::utility::details::projector<Func>{::std::forward<Func>(func)};
         } // clang-format on
     };
 }

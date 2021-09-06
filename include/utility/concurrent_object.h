@@ -6,7 +6,7 @@
 
 #include <shared_mutex>
 
-namespace std_sharp::utility
+namespace stdsharp::utility
 {
     template<typename T>
     class concurrent_object
@@ -15,7 +15,7 @@ namespace std_sharp::utility
         template<typename... Args>
             requires ::std::constructible_from<T, Args...>
         constexpr explicit concurrent_object(Args&&... args) //
-            noexcept(::std_sharp::utility::nothrow_constructible_from<T, Args...>):
+            noexcept(::stdsharp::utility::nothrow_constructible_from<T, Args...>):
             object_(::std::forward<Args>(args)...)
         {
         }

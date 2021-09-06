@@ -69,7 +69,7 @@ target_include_directories(
 
 add_subdirectory(./ut)
 
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut std_sharp::utility)
+target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp::utility)
 
 
 #

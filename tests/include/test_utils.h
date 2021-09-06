@@ -2,7 +2,7 @@
 #include <boost/ut.hpp>
 #include <fmt/ranges.h>
 
-namespace std_sharp::test::utility
+namespace stdsharp::test::utility
 {
     template<auto...>
     struct static_params

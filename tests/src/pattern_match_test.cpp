@@ -2,7 +2,7 @@
 #include "utility/utility.h"
 #include "utility/pattern_match.h"
 
-namespace std_sharp::test::utility
+namespace stdsharp::test::utility
 {
     enum class my_enum
     {
@@ -18,7 +18,7 @@ namespace std_sharp::test::utility
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace std_sharp::utility;
+            using namespace stdsharp::utility;
 
             feature("pattern_match") = []
             {

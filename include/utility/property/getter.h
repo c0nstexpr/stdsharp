@@ -4,13 +4,13 @@
 
 #include "utility/functional.h"
 
-namespace std_sharp::utility::property
+namespace stdsharp::utility::property
 {
     template<::std::invocable GetterFn>
-    class getter : public ::std_sharp::utility::nodiscard_invocable_obj<GetterFn>
+    class getter : public ::stdsharp::utility::nodiscard_invocable_obj<GetterFn>
     {
     public:
-        using base = ::std_sharp::utility::nodiscard_invocable_obj<GetterFn>;
+        using base = ::stdsharp::utility::nodiscard_invocable_obj<GetterFn>;
 
         using base::base;
 
@@ -20,11 +20,11 @@ namespace std_sharp::utility::property
     template<typename T>
     getter(T&& t) -> getter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj value_getter{
+    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj value_getter{
         [](auto& t) noexcept
         {
-            return ::std_sharp::utility::property::getter{
-                ::std_sharp::utility::bind_ref_front(identity_v, t) //
+            return ::stdsharp::utility::property::getter{
+                ::stdsharp::utility::bind_ref_front(identity_v, t) //
             };
         } //
     };

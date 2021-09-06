@@ -1,6 +1,6 @@
 #include "test_utils.h"
 
-namespace std_sharp::test::utility
+namespace stdsharp::test::utility
 {
     boost::ut::suite& pattern_match_test();
 }

@@ -2,7 +2,7 @@
 
 #include "functional.h"
 
-namespace std_sharp::utility
+namespace stdsharp::utility
 {
     inline constexpr struct
     {
@@ -14,13 +14,13 @@ namespace std_sharp::utility
         constexpr void operator()( // clang-format on
             const Condition& condition, //
             ::std::pair<Predicate, Func>... cases // clang-format off
-        ) const noexcept(((::std_sharp::utility::
-            nothrow_predicate<Predicate, Condition> && ::std_sharp::utility::nothrow_invocable<Func>) && ...))
+        ) const noexcept(((::stdsharp::utility::
+            nothrow_predicate<Predicate, Condition> && ::stdsharp::utility::nothrow_invocable<Func>) && ...))
         {
             ( // clang-format on
                 [&condition]<typename P>(P&& pair)
                 {
-                    if(::std_sharp::utility::invoke_r<bool>(::std::move(pair.first), condition))
+                    if(::stdsharp::utility::invoke_r<bool>(::std::move(pair.first), condition))
                     {
                         ::std::invoke(::std::move(pair.second), condition);
                         return true;
@@ -45,7 +45,7 @@ namespace std_sharp::utility
                 template<typename Case>
                 static constexpr bool case_nothrow_invocable =
                     !::std::invocable<Case, from_type_fn::condition_type_identity> ||
-                    ::std_sharp::utility::
+                    ::stdsharp::utility::
                         nothrow_invocable<Case, from_type_fn::condition_type_identity>;
 
             public:
@@ -70,18 +70,18 @@ namespace std_sharp::utility
         }
 
         template<typename ConditionT>
-        inline constexpr ::std_sharp::utility::constexpr_pattern_match::details:: //
+        inline constexpr ::stdsharp::utility::constexpr_pattern_match::details:: //
             from_type_fn<ConditionT>
                 from_type{};
 
         template<auto Condition>
         inline constexpr auto from_constant = []<typename... Cases>(Cases&&... cases) //
-            noexcept(noexcept(::std_sharp::utility::constexpr_pattern_match:: //
-                              from_type<::std_sharp::utility:: //
+            noexcept(noexcept(::stdsharp::utility::constexpr_pattern_match:: //
+                              from_type<::stdsharp::utility:: //
                                         constant<Condition>>(::std::forward<Cases>(cases)...)))
         {
-            return ::std_sharp::utility::constexpr_pattern_match:: //
-                from_type<::std_sharp::utility:: //
+            return ::stdsharp::utility::constexpr_pattern_match:: //
+                from_type<::stdsharp::utility:: //
                           constant<Condition>>(::std::forward<Cases>(cases)...);
         };
     }

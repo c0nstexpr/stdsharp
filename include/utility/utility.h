@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace std_sharp::utility
+namespace stdsharp::utility
 {
     using namespace std::literals;
 
@@ -41,12 +41,12 @@ namespace std_sharp::utility
         [[nodiscard]] constexpr auto operator()(T&& t) const //
             noexcept( //
                 ::std::is_nothrow_constructible_v<
-                    ::std_sharp::utility::details::auto_cast<T>,
+                    ::stdsharp::utility::details::auto_cast<T>,
                     T // clang-format off
                     > // clang-format on
             )
         {
-            return ::std_sharp::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
+            return ::stdsharp::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
         }
     } auto_cast{};
 

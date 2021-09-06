@@ -4,7 +4,7 @@
 
 #include "type_sequence.h"
 
-namespace std_sharp::utility::traits
+namespace stdsharp::utility::traits
 {
     struct unique_object
     {

@@ -3,7 +3,7 @@
 #pragma once
 #include "type_sequence.h"
 
-namespace std_sharp::utility::traits
+namespace stdsharp::utility::traits
 {
     namespace details
     {
@@ -20,19 +20,19 @@ namespace std_sharp::utility::traits
         struct function_traits_helper_base
         {
             using result_t = R;
-            using args_t = ::std_sharp::utility::traits::type_sequence<Args...>;
+            using args_t = ::stdsharp::utility::traits::type_sequence<Args...>;
         };
 
         template<typename R, typename... Args>
         struct function_traits_helper<R (*)(Args...)> :
-            ::std_sharp::utility::traits::details::function_traits_helper_base<R, Args...>,
-            ::std_sharp::utility::traits::details::function_qualifiers_traits<false>
+            ::stdsharp::utility::traits::details::function_traits_helper_base<R, Args...>,
+            ::stdsharp::utility::traits::details::function_qualifiers_traits<false>
         {
         };
 
         template<typename R, typename... Args>
         struct function_traits_helper<R (*)(Args...) noexcept> :
-            ::std_sharp::utility::traits::details::function_traits_helper_base<R, Args...>,
+            ::stdsharp::utility::traits::details::function_traits_helper_base<R, Args...>,
             function_qualifiers_traits<true>
         {
         };
@@ -40,13 +40,13 @@ namespace std_sharp::utility::traits
 
     template<typename T>
     struct function_traits :
-        ::std_sharp::utility::traits::details::function_traits_helper<::std::decay_t<T>>
+        ::stdsharp::utility::traits::details::function_traits_helper<::std::decay_t<T>>
     {
     };
 
     template<auto Ptr>
     struct function_pointer_traits :
-        ::std_sharp::utility::traits::function_traits<::std::decay_t<decltype(Ptr)>>
+        ::stdsharp::utility::traits::function_traits<::std::decay_t<decltype(Ptr)>>
     {
     };
 }

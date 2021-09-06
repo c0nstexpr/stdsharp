@@ -7,7 +7,7 @@
 
 #include <range/v3/functional/arithmetic.hpp>
 
-namespace std_sharp::utility
+namespace stdsharp::utility
 {
     struct empty final
     {
@@ -142,14 +142,14 @@ namespace std_sharp::utility
 
     template<typename T, typename U>
     concept inter_convertible =
-        ::std::convertible_to<T, U> && ::std_sharp::utility::convertible_from<T, U>;
+        ::std::convertible_to<T, U> && ::stdsharp::utility::convertible_from<T, U>;
 
     template<typename T, typename U>
     concept nothrow_convertible_from = ::std::is_nothrow_convertible_v<U, T>;
 
     template<typename T, typename U>
-    concept nothrow_inter_convertible = ::std_sharp::utility::nothrow_convertible_to<T, U> &&
-        ::std_sharp::utility::nothrow_convertible_from<T, U>;
+    concept nothrow_inter_convertible = ::stdsharp::utility::nothrow_convertible_to<T, U> &&
+        ::stdsharp::utility::nothrow_convertible_from<T, U>;
 
     template<std::size_t I>
     using index_constant = ::std::integral_constant<::std::size_t, I>;
@@ -172,8 +172,8 @@ namespace std_sharp::utility
     template<bool conditional, auto left, auto right>
     inline constexpr auto conditional_v = ::std::conditional_t<
         conditional,
-        ::std_sharp::utility::constant<left>,
-        ::std_sharp::utility::constant<right> // clang-format off
+        ::stdsharp::utility::constant<left>,
+        ::stdsharp::utility::constant<right> // clang-format off
     >::value; // clang-format on
 
     template<typename T>
@@ -187,11 +187,11 @@ namespace std_sharp::utility
 
     template<typename Func, typename... Args> // clang-format off
     concept invocable_rnonvoid = ::std::invocable<Func, Args...> &&
-        ::std_sharp::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
+        ::stdsharp::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     template<typename Func, typename... Args> // clang-format off
-    concept nothrow_invocable_rnonvoid = ::std_sharp::utility::nothrow_invocable<Func, Args...> &&
-        ::std_sharp::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
+    concept nothrow_invocable_rnonvoid = ::stdsharp::utility::nothrow_invocable<Func, Args...> &&
+        ::stdsharp::utility::not_same_as<std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     // c++23 feature
     template<typename ReturnT, typename Func, typename... Args>
@@ -202,7 +202,7 @@ namespace std_sharp::utility
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = ::std::predicate<Func, Args...> && //
-        ::std_sharp::utility::nothrow_invocable_r<bool, Func, Args...>;
+        ::stdsharp::utility::nothrow_invocable_r<bool, Func, Args...>;
 
     template<typename T>
     using coerce_t = ::std::invoke_result_t<::ranges::coerce<T>, T&&>;

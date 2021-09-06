@@ -1,7 +1,7 @@
 #include "traits/member_test.h"
 #include "utility/traits/member.h"
 
-namespace std_sharp::test::utility::traits
+namespace stdsharp::test::utility::traits
 {
     boost::ut::suite& member_test()
     {
@@ -9,8 +9,8 @@ namespace std_sharp::test::utility::traits
         {
             using namespace boost::ut;
             using namespace bdd;
-            using namespace std_sharp::utility;
-            using namespace std_sharp::utility::traits;
+            using namespace stdsharp::utility;
+            using namespace stdsharp::utility::traits;
 
             feature("member") = []
             {

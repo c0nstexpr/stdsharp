@@ -1,7 +1,7 @@
 #include "algorithm_test.h"
 #include "utility/algorithm.h"
 
-namespace std_sharp::test::utility
+namespace stdsharp::test::utility
 {
     boost::ut::suite& algorithm_test()
     {
@@ -10,7 +10,7 @@ namespace std_sharp::test::utility
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace std_sharp::utility;
+            using namespace stdsharp::utility;
 
             feature("set_if") = []<auto First, auto Second>( // clang-format off
                 const static_params<First, Second> 

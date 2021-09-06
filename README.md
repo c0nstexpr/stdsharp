@@ -1,7 +1,7 @@
-[![Build](https://github.com/BlurringShadow/std_sharp-utility/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/BlurringShadow/std_sharp-utility/actions/workflows/build.yml)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f08b08ddd5e146c69b39ac5001f06c6a)](https://www.codacy.com/gh/BlurringShadow/std_sharp-utility/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=BlurringShadow/std_sharp-utility&amp;utm_campaign=Badge_Grade)
+[![Build](https://github.com/BlurringShadow/stdsharp-utility/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/BlurringShadow/stdsharp-utility/actions/workflows/build.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f08b08ddd5e146c69b39ac5001f06c6a)](https://www.codacy.com/gh/BlurringShadow/stdsharp-utility/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=BlurringShadow/stdsharp-utility&amp;utm_campaign=Badge_Grade)
 
-# std_sharp-utility
+# stdsharp-utility
 
 Contains commonly used c++ code that not impl or well impl in other libs
 
@@ -14,7 +14,7 @@ Contains commonly used c++ code that not impl or well impl in other libs
 * **C++ Compiler** - needs to support at least the **C++20** standard, i.e. *MSVC*, *GCC*, *Clang*
 
 * **Vcpkg or Other Suitable Dependencies Manager** - this project use vcpkg manifest to maintain dependencies. check the
-  [vcpkg.json](https://github.com/BlurringShadow/std_sharp-utility/blob/master/vcpkg.json) for required dependencies
+  [vcpkg.json](https://github.com/BlurringShadow/stdsharp-utility/blob/master/vcpkg.json) for required dependencies
 
 ### Installing
 

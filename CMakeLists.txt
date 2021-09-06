@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 #
 # Project details
 #
-project("std_sharp" VERSION 0.1.0 LANGUAGES CXX)
+project("stdsharp" VERSION 0.1.0 LANGUAGES CXX)
 
 init_proj()
 
@@ -44,7 +44,7 @@ config_interface_lib(std_sharp_utility)
 #
 # Provide alias to library
 #
-add_library(std_sharp::utility ALIAS std_sharp_utility)
+add_library(stdsharp::utility ALIAS std_sharp_utility)
 
 #
 # Model project dependencies 
@@ -62,7 +62,7 @@ verbose_message("Successfully added all dependencies and linked against them.")
 #
 # Install library for easy downstream inclusion
 #
-target_install(std_sharp_utility VER ${PROJECT_VERSION} NAMESPACE "std_sharp::")
+target_install(std_sharp_utility VER ${PROJECT_VERSION} NAMESPACE "stdsharp::")
 
 #
 # Unit testing setup

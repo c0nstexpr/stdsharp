@@ -4,7 +4,7 @@
 
 #include "value_sequence.h"
 
-namespace std_sharp::utility::traits
+namespace stdsharp::utility::traits
 {
     template<typename...>
     struct regular_type_sequence
@@ -23,17 +23,17 @@ namespace std_sharp::utility::traits
         template<template<typename...> typename U>
         using apply_t = U<Types...>;
 
-        using as_sequence_t = ::std_sharp::utility::traits::regular_type_sequence<Types...>;
+        using as_sequence_t = ::stdsharp::utility::traits::regular_type_sequence<Types...>;
 
-        using as_type_sequence_t = ::std_sharp::utility::traits::type_sequence<Types...>;
+        using as_type_sequence_t = ::stdsharp::utility::traits::type_sequence<Types...>;
     };
 
     template<typename Sequence>
     using to_regular_type_sequence_t =
-        typename ::std_sharp::utility::traits::take_type_sequence<Sequence>::as_sequence_t;
+        typename ::stdsharp::utility::traits::take_type_sequence<Sequence>::as_sequence_t;
 
     template<typename Sequence>
-    using to_type_sequence_t = typename ::std_sharp::utility::traits:: //
+    using to_type_sequence_t = typename ::stdsharp::utility::traits:: //
         take_type_sequence<Sequence>::as_type_sequence_t;
 
     namespace details
@@ -41,9 +41,9 @@ namespace std_sharp::utility::traits
         template<typename... Types>
         struct reverse_type_sequence_t
         {
-            using seq = ::std_sharp::utility::traits::type_sequence<Types...>;
+            using seq = ::stdsharp::utility::traits::type_sequence<Types...>;
             using type = typename seq::template indexed_by_seq_t<
-                ::std_sharp::utility::traits::
+                ::stdsharp::utility::traits::
                     make_value_sequence_t<seq::size - 1, seq::size, minus_v> // clang-format off
             >; // clang-format on
         };
@@ -71,7 +71,7 @@ namespace std_sharp::utility::traits
                 ::std::array<::std::size_t, seq::size> indices{};
                 ::std::size_t valid_size = 0;
                 const auto f = [&]<::std::size_t J>(
-                    const ::std_sharp::utility::constant<J>
+                    const ::stdsharp::utility::constant<J>
                 ) noexcept
                 {
                     if(is_valid<J>())
@@ -81,18 +81,18 @@ namespace std_sharp::utility::traits
                     }
                 }; // clang-format on
 
-                (f(::std_sharp::utility::constant<I>{}), ...);
+                (f(::stdsharp::utility::constant<I>{}), ...);
 
                 return ::std::pair{indices, valid_size};
             }
             (typename seq::index_seq{});
 
             template<std::size_t... I>
-            using filtered_seq = ::std_sharp::utility::traits:: //
+            using filtered_seq = ::stdsharp::utility::traits:: //
                 regular_type_sequence<typename seq::template get_t<filtered_indices.first[I]>...>;
 
-            using type = typename ::std_sharp::utility::traits::take_value_sequence< //
-                ::std_sharp::utility::traits:: //
+            using type = typename ::stdsharp::utility::traits::take_value_sequence< //
+                ::stdsharp::utility::traits:: //
                 make_value_sequence_t<::std::size_t{}, filtered_indices.second> // clang-format off
             >::template apply_t<filtered_seq>; // clang-format on
         };
@@ -116,7 +116,7 @@ namespace std_sharp::utility::traits
 
         template<typename Proj, typename Func, typename... Types>
         concept type_sequence_nothrow_predicate =
-            ((::std_sharp::utility::nothrow_invocable_r<
+            ((::stdsharp::utility::nothrow_invocable_r<
                 Func,
                 bool,
                 ::std::invoke_result_t<Proj, ::std::type_identity<Types>>>)&&...);
@@ -126,37 +126,37 @@ namespace std_sharp::utility::traits
 
         template<auto... Values>
         struct from_regular_value_sequence<
-            ::std_sharp::utility::traits::regular_value_sequence<Values...>> :
-            ::std::type_identity<::std_sharp::utility::traits:: //
+            ::stdsharp::utility::traits::regular_value_sequence<Values...>> :
+            ::std::type_identity<::stdsharp::utility::traits:: //
                                  type_sequence<typename decltype(Values)::type...>>
         {
         };
 
         template<typename Seq>
         using from_regular_value_sequence_t =
-            typename ::std_sharp::utility::traits::details:: //
+            typename ::stdsharp::utility::traits::details:: //
             from_regular_value_sequence<Seq>::type;
     }
 
     template<typename... Types>
     using reverse_type_sequence_t =
-        typename ::std_sharp::utility::traits::details::reverse_type_sequence_t<
+        typename ::stdsharp::utility::traits::details::reverse_type_sequence_t<
             Types...>::type;
 
     template<typename... Types>
     using unique_type_sequence_t =
-        typename ::std_sharp::utility::traits::details::unique_type_sequence<Types...>::type;
+        typename ::stdsharp::utility::traits::details::unique_type_sequence<Types...>::type;
 
     template<typename... Types>
     struct type_sequence :
-        private ::std_sharp::utility::traits::value_sequence<type_identity_v<Types>...>
+        private ::stdsharp::utility::traits::value_sequence<type_identity_v<Types>...>
     {
     private:
-        using base = ::std_sharp::utility::traits::value_sequence<type_identity_v<Types>...>;
+        using base = ::stdsharp::utility::traits::value_sequence<type_identity_v<Types>...>;
 
         template<typename Seq>
         using from_value_seq_t =
-            ::std_sharp::utility::traits::details::from_regular_value_sequence_t<Seq>;
+            ::stdsharp::utility::traits::details::from_regular_value_sequence_t<Seq>;
 
     public:
         using typename base::index_seq;
@@ -183,14 +183,14 @@ namespace std_sharp::utility::traits
         using get_t = typename decltype(base::template get<I>())::type;
 
         template<std::size_t I>
-        static constexpr auto get = ::std_sharp::utility::constructor<get_t<I>>;
+        static constexpr auto get = ::stdsharp::utility::constructor<get_t<I>>;
 
         template<std::size_t... OtherInts>
         using indexed_t =
-            ::std_sharp::utility::traits::regular_type_sequence<get_t<OtherInts>...>;
+            ::stdsharp::utility::traits::regular_type_sequence<get_t<OtherInts>...>;
 
         template<typename Seq>
-        using indexed_by_seq_t = typename ::std_sharp::utility::traits::take_value_sequence<
+        using indexed_by_seq_t = typename ::stdsharp::utility::traits::take_value_sequence<
             Seq>::template apply_t<indexed_t>;
 
         template<std::size_t Size>
@@ -201,18 +201,18 @@ namespace std_sharp::utility::traits
 
         template<typename... Others>
         using append_t =
-            ::std_sharp::utility::traits::regular_type_sequence<Types..., Others...>;
+            ::stdsharp::utility::traits::regular_type_sequence<Types..., Others...>;
 
         template<typename Seq>
-        using append_by_seq_t = typename ::std_sharp::utility::traits:: //
+        using append_by_seq_t = typename ::stdsharp::utility::traits:: //
             take_type_sequence<Seq>::template apply_t<append_t>;
 
         template<typename... Others>
         using append_front_t =
-            ::std_sharp::utility::traits::regular_type_sequence<Others..., Types...>;
+            ::stdsharp::utility::traits::regular_type_sequence<Others..., Types...>;
 
         template<typename Seq>
-        using append_front_by_seq_t = typename ::std_sharp::utility::traits:: //
+        using append_front_by_seq_t = typename ::stdsharp::utility::traits:: //
             take_type_sequence<Seq>::template apply_t<append_front_t>;
 
     private:
@@ -258,16 +258,16 @@ namespace std_sharp::utility::traits
 namespace std
 {
     template<::std::size_t I, typename... Types>
-    struct tuple_element<I, ::std_sharp::utility::traits::type_sequence<Types...>> :
+    struct tuple_element<I, ::stdsharp::utility::traits::type_sequence<Types...>> :
         std::type_identity<
-            typename ::std_sharp::utility::traits::type_sequence<Types...>::template get_t<I>>
+            typename ::stdsharp::utility::traits::type_sequence<Types...>::template get_t<I>>
     {
     };
 
     template<typename... Types>
-    struct tuple_size<::std_sharp::utility::traits::type_sequence<Types...>> :
-        ::std_sharp::utility::index_constant<
-            ::std_sharp::utility::traits::type_sequence<Types...>::size>
+    struct tuple_size<::stdsharp::utility::traits::type_sequence<Types...>> :
+        ::stdsharp::utility::index_constant<
+            ::stdsharp::utility::traits::type_sequence<Types...>::size>
     {
     };
 }
