@@ -370,4 +370,5 @@ MigrationBackup/
 out/
 CMakeSettings.json
 *-build/
+build-preview/
 .idea/

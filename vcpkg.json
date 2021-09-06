@@ -1,5 +1,5 @@
 {
-    "name": "blurringshadow-utility",
+    "name": "stdsharp-utility",
     "version": "0.1.0",
     "dependencies": [
         "fmt",

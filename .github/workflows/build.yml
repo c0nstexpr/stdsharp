@@ -11,7 +11,7 @@ jobs:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     env:
-      Target: blurringshadowTests
+      Target: stdsharpTests
       buildDir: '${{ github.workspace }}/build'
     strategy:
       fail-fast: false
