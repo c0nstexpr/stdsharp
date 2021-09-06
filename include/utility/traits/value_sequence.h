@@ -8,7 +8,7 @@
 
 #include "utility/functional.h"
 
-namespace blurringshadow::utility::traits
+namespace std_sharp::utility::traits
 {
     template<auto...>
     struct regular_value_sequence
@@ -27,17 +27,17 @@ namespace blurringshadow::utility::traits
         template<template<auto...> typename U>
         using apply_t = U<Values...>;
 
-        using as_sequence_t = ::blurringshadow::utility::traits::regular_value_sequence<Values...>;
+        using as_sequence_t = ::std_sharp::utility::traits::regular_value_sequence<Values...>;
 
-        using as_value_sequence_t = ::blurringshadow::utility::traits::value_sequence<Values...>;
+        using as_value_sequence_t = ::std_sharp::utility::traits::value_sequence<Values...>;
     };
 
     template<typename Sequence>
     using to_regular_value_sequence_t =
-        typename ::blurringshadow::utility::traits::take_value_sequence<Sequence>::as_vsequence_t;
+        typename ::std_sharp::utility::traits::take_value_sequence<Sequence>::as_vsequence_t;
 
     template<typename Sequence> // clang-format off
-    using to_value_sequence_t = typename ::blurringshadow::utility::traits::
+    using to_value_sequence_t = typename ::std_sharp::utility::traits::
         take_value_sequence<Sequence>::as_value_sequence_t; // clang-format on
 
     namespace details
@@ -45,19 +45,19 @@ namespace blurringshadow::utility::traits
         template<auto From, auto PlusF, ::std::size_t... I>
             requires requires
             {
-                ::blurringshadow::utility::traits::regular_value_sequence<::std::invoke(
+                ::std_sharp::utility::traits::regular_value_sequence<::std::invoke(
                     PlusF, From, I)...>{};
             }
         constexpr auto make_sequence(::std::index_sequence<I...>) noexcept
         {
-            return ::blurringshadow::utility::traits::regular_value_sequence<::std::invoke(
+            return ::std_sharp::utility::traits::regular_value_sequence<::std::invoke(
                 PlusF, From, I)...>{};
         }
     }
 
-    template<auto From, ::std::size_t Size, auto PlusF = ::blurringshadow::utility::plus_v>
+    template<auto From, ::std::size_t Size, auto PlusF = ::std_sharp::utility::plus_v>
     using make_value_sequence_t = decltype( //
-        ::blurringshadow::utility::traits::details::make_sequence<From, PlusF>(
+        ::std_sharp::utility::traits::details::make_sequence<From, PlusF>(
             ::std::make_index_sequence<Size>{} // clang-format off
         ) // clang-format on
     );
@@ -67,9 +67,9 @@ namespace blurringshadow::utility::traits
         template<auto... Values>
         struct reverse_value_sequence
         {
-            using seq = ::blurringshadow::utility::traits::value_sequence<Values...>;
+            using seq = ::std_sharp::utility::traits::value_sequence<Values...>;
             using type = typename seq::template indexed_by_seq_t<
-                ::blurringshadow::utility::traits::
+                ::std_sharp::utility::traits::
                     make_value_sequence_t<seq::size - 1, seq::size, minus_v> // clang-format off
             >; // clang-format on
         };
@@ -87,7 +87,7 @@ namespace blurringshadow::utility::traits
                     {
                         if(j == I) return true;
                         ++j;
-                        return ::blurringshadow::utility::equal_to_v(seq::template get<I>(), v);
+                        return ::std_sharp::utility::equal_to_v(seq::template get<I>(), v);
                     } 
                 ) == I; // clang-format on
             }
@@ -98,7 +98,7 @@ namespace blurringshadow::utility::traits
                 ::std::array<size_t, seq::size> indices{};
                 ::std::size_t valid_size = 0;
                 const auto f =
-                    [&]<::std::size_t J>(const ::blurringshadow::utility::constant<J>) noexcept
+                    [&]<::std::size_t J>(const ::std_sharp::utility::constant<J>) noexcept
                 {
                     if(is_valid<J>())
                     {
@@ -107,24 +107,24 @@ namespace blurringshadow::utility::traits
                     }
                 };
 
-                (f(::blurringshadow::utility::constant<I>{}), ...);
+                (f(::std_sharp::utility::constant<I>{}), ...);
 
                 return ::std::pair{indices, valid_size};
             }
             (typename seq::index_seq{});
 
             template<::std::size_t... I>
-            using filtered_seq = ::blurringshadow::utility::traits:: //
+            using filtered_seq = ::std_sharp::utility::traits:: //
                 regular_value_sequence<seq::template get<filtered_indices.first[I]>()...>;
 
-            using type = typename ::blurringshadow::utility::traits::take_value_sequence< //
-                ::blurringshadow::utility::traits:: //
+            using type = typename ::std_sharp::utility::traits::take_value_sequence< //
+                ::std_sharp::utility::traits:: //
                 make_value_sequence_t<::std::size_t{}, filtered_indices.second> // clang-format off
             >::template apply_t<filtered_seq>; // clang-format on
         };
 
         template<::std::size_t I, auto Value>
-        struct indexed_value : ::blurringshadow::utility::constant<Value>
+        struct indexed_value : ::std_sharp::utility::constant<Value>
         {
             template<::std::size_t J>
                 requires(I == J)
@@ -136,7 +136,7 @@ namespace blurringshadow::utility::traits
 
         template<auto... Values, size_t... I>
         struct value_sequence<traits::value_sequence<Values...>, ::std::index_sequence<I...>> :
-            ::blurringshadow::utility::traits::details::indexed_value<I, Values>...
+            ::std_sharp::utility::traits::details::indexed_value<I, Values>...
         {
             using indexed_value<I, Values>::get...;
 
@@ -147,11 +147,11 @@ namespace blurringshadow::utility::traits
             {
                 return [&comp, &value]<typename U>(const U& other) noexcept( // clang-format off
                     !::std::invocable<Comp, U, T> ||
-                    ::blurringshadow::utility::nothrow_invocable_r<Comp, bool, U, T>
+                    ::std_sharp::utility::nothrow_invocable_r<Comp, bool, U, T>
                 ) // clang-format on
                 {
                     if constexpr(::std::predicate<Comp, U, T>)
-                        return ::blurringshadow::utility::invoke_r<bool>(
+                        return ::std_sharp::utility::invoke_r<bool>(
                             comp, value, other); // clang-format off
                     else return false; // clang-format on
                 };
@@ -165,7 +165,7 @@ namespace blurringshadow::utility::traits
 
         template<typename Proj, typename Func, auto... Values> // clang-format off
         concept value_sequence_nothrow_invocable = (
-            ::blurringshadow::utility::
+            ::std_sharp::utility::
                 nothrow_invocable<Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
             ...
         );
@@ -176,29 +176,29 @@ namespace blurringshadow::utility::traits
 
         template<typename Proj, typename Func, auto... Values>
         concept value_sequence_nothrow_predicate = (
-            ::blurringshadow::utility::
+            ::std_sharp::utility::
                 nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
             ...
         );
     } // clang-format on
 
     template<auto... Values>
-    using reverse_value_sequence_t = typename ::blurringshadow::utility::traits::details:: //
+    using reverse_value_sequence_t = typename ::std_sharp::utility::traits::details:: //
         reverse_value_sequence<Values...>::type;
 
     template<auto... Values>
     using unique_value_sequence_t =
-        typename ::blurringshadow::utility::traits::details::unique_value_sequence<Values...>::type;
+        typename ::std_sharp::utility::traits::details::unique_value_sequence<Values...>::type;
 
     template<auto... Values> // clang-format off
-    struct value_sequence : private ::blurringshadow::utility::traits::details::value_sequence<
-        ::blurringshadow::utility::traits::value_sequence<Values...>,
+    struct value_sequence : private ::std_sharp::utility::traits::details::value_sequence<
+        ::std_sharp::utility::traits::value_sequence<Values...>,
         ::std::make_index_sequence<sizeof...(Values)>
     > // clang-format on
     {
     private:
-        using base = ::blurringshadow::utility::traits::details::value_sequence<
-            ::blurringshadow::utility::traits::value_sequence<Values...>,
+        using base = ::std_sharp::utility::traits::details::value_sequence<
+            ::std_sharp::utility::traits::value_sequence<Values...>,
             ::std::make_index_sequence<sizeof...(Values)> // clang-format off
         >; // clang-format on
 
@@ -222,10 +222,10 @@ namespace blurringshadow::utility::traits
         static constexpr auto invoke = []<typename Func>
             requires(std::invocable<Func, decltype(Values)>&&...) // clang-format off
             (Func&& func) noexcept(
-                (::blurringshadow::utility::nothrow_invocable<Func, decltype(Values)> && ...)
+                (::std_sharp::utility::nothrow_invocable<Func, decltype(Values)> && ...)
             ) ->decltype(auto) // clang-format on
         {
-            return ::blurringshadow::utility::merge_invoke(::std::bind_front(func, Values)...);
+            return ::std_sharp::utility::merge_invoke(::std::bind_front(func, Values)...);
         };
 
         template<template<auto...> typename T>
@@ -233,10 +233,10 @@ namespace blurringshadow::utility::traits
 
         template<::std::size_t... OtherInts>
         using indexed_t =
-            ::blurringshadow::utility::traits::regular_value_sequence<get<OtherInts>()...>;
+            ::std_sharp::utility::traits::regular_value_sequence<get<OtherInts>()...>;
 
         template<typename Seq>
-        using indexed_by_seq_t = typename ::blurringshadow::utility::traits:: //
+        using indexed_by_seq_t = typename ::std_sharp::utility::traits:: //
             take_value_sequence<Seq>::template apply_t<indexed_t>;
 
     private:
@@ -246,13 +246,13 @@ namespace blurringshadow::utility::traits
             [[nodiscard]] constexpr auto operator()() const noexcept
             {
                 if constexpr(sizeof...(Func) == 1)
-                    return []<auto F>(const ::blurringshadow::utility::constant<F>) noexcept
+                    return []<auto F>(const ::std_sharp::utility::constant<F>) noexcept
                     {
-                        return ::blurringshadow::utility::traits:: //
+                        return ::std_sharp::utility::traits:: //
                             value_sequence<::std::invoke(F, Values)...>{};
                     }
-                (::blurringshadow::utility::constant<Func...>{});
-                else return ::blurringshadow::utility::traits:: //
+                (::std_sharp::utility::constant<Func...>{});
+                else return ::std_sharp::utility::traits:: //
                     value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
             };
         };
@@ -267,11 +267,11 @@ namespace blurringshadow::utility::traits
         {
             template<
                 typename Func,
-                ::blurringshadow::utility::traits::details:: //
+                ::std_sharp::utility::traits::details:: //
                 value_sequence_invocable<Func, Values...> Proj = ::std::identity // clang-format off
                 > // clang-format on
             constexpr auto operator()(Func func, Proj proj = {}) const noexcept( //
-                ::blurringshadow::utility::traits::details::
+                ::std_sharp::utility::traits::details::
                     value_sequence_nothrow_invocable<Proj, Func, Values...> //
             )
             {
@@ -284,17 +284,17 @@ namespace blurringshadow::utility::traits
         {
             template<
                 typename Func,
-                ::blurringshadow::utility::traits::details:: //
+                ::std_sharp::utility::traits::details:: //
                 value_sequence_invocable<Func, Values...> Proj = ::std::identity // clang-format off
             > // clang-format on
             constexpr auto operator()(auto for_each_n_count, Func func, Proj proj = {}) const
                 noexcept( //
-                    ::blurringshadow::utility::traits::details::
+                    ::std_sharp::utility::traits::details::
                         value_sequence_nothrow_invocable<Proj, Func, Values...> //
                 )
             {
                 const auto f = [&]<typename T>(T&& v) noexcept( // clang-format off
-                    ::blurringshadow::utility::nothrow_invocable<Func, std::invoke_result_t<Proj, T>>
+                    ::std_sharp::utility::nothrow_invocable<Func, std::invoke_result_t<Proj, T>>
                 ) // clang-format on
                 {
                     if(for_each_n_count == 0) return false;
@@ -312,7 +312,7 @@ namespace blurringshadow::utility::traits
         {
             template<
                 typename Func,
-                ::blurringshadow::utility::traits::details:: //
+                ::std_sharp::utility::traits::details:: //
                 value_sequence_predicate<Func, Values...> Proj = ::std::identity // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(Func func, Proj proj = {}) const
@@ -320,11 +320,11 @@ namespace blurringshadow::utility::traits
             {
                 ::std::size_t i = 0; // clang-format off
                 const auto f = [&func, &proj, &i]<typename T>(T&& v) noexcept(
-                    ::blurringshadow::utility::
+                    ::std_sharp::utility::
                         nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, T>>
                 ) // clang-format on
                 {
-                    if(::blurringshadow::utility:: //
+                    if(::std_sharp::utility:: //
                        invoke_r<bool>(func, ::std::invoke(proj, ::std::forward<T>(v))))
                         return false;
                     ++i;
@@ -341,14 +341,14 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::traits::details::
+                noexcept(::std_sharp::utility::traits::details::
                              value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 return find_if(
                     [&](const auto& v) noexcept(
-                        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
+                        ::std_sharp::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
                     {
-                        return !::blurringshadow::utility::invoke_r<bool>(func, v); //
+                        return !::std_sharp::utility::invoke_r<bool>(func, v); //
                     },
                     ::std::forward<Proj>(proj) //
                 );
@@ -363,7 +363,7 @@ namespace blurringshadow::utility::traits
                 Comp comp = {},
                 Proj&& proj = {} // clang-format off
             ) const noexcept(
-                ::blurringshadow::utility::nothrow_invocable<
+                ::std_sharp::utility::nothrow_invocable<
                     decltype(value_sequence::find_if),
                     decltype(base::value_comparer(v, comp)),
                     Proj
@@ -378,16 +378,16 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::traits::details::
+                noexcept(::std_sharp::utility::traits::details::
                              value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 std::size_t i = 0;
                 for_each(
                     [&i, &func](const auto& v) noexcept(
-                        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, decltype(v)> //
+                        ::std_sharp::utility::nothrow_invocable_r<bool, Func, decltype(v)> //
                     )
                     {
-                        if(::blurringshadow::utility::invoke_r<bool>(func, v)) ++i;
+                        if(::std_sharp::utility::invoke_r<bool>(func, v)) ++i;
                         return true;
                     },
                     ::std::forward<Proj>(proj) //
@@ -401,14 +401,14 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::traits::details::
+                noexcept(::std_sharp::utility::traits::details::
                              value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 return count_if(
                     [&](const auto& v) noexcept(
-                        ::blurringshadow::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
+                        ::std_sharp::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
                     {
-                        return !::blurringshadow::utility::invoke_r<bool>(func, v); //
+                        return !::std_sharp::utility::invoke_r<bool>(func, v); //
                     },
                     ::std::forward<Proj>(proj) //
                 );
@@ -422,7 +422,7 @@ namespace blurringshadow::utility::traits
                 const auto& v,
                 Comp comp = {},
                 Proj&& proj = {} // clang-format off
-            ) const noexcept(::blurringshadow::utility::nothrow_invocable<
+            ) const noexcept(::std_sharp::utility::nothrow_invocable<
                 decltype(count_if),
                 decltype(base::value_comparer(v, comp)),
                 Proj
@@ -437,7 +437,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::
+                noexcept(::std_sharp::utility::
                              nothrow_invocable<decltype(value_sequence::find_if_not), Func, Proj>)
             {
                 return find_if_not(std::forward<Func>(func), std::forward<Proj>(proj)) == size;
@@ -448,7 +448,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::
+                noexcept(::std_sharp::utility::
                              nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
             {
                 return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) != size;
@@ -459,7 +459,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::
+                noexcept(::std_sharp::utility::
                              nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
             {
                 return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) == size;
@@ -470,7 +470,7 @@ namespace blurringshadow::utility::traits
         {
             template<typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const
-                noexcept(::blurringshadow::utility::
+                noexcept(::std_sharp::utility::
                              nothrow_invocable<decltype(value_sequence::find), decltype(v), Proj>)
             {
                 return find(v, ::std::forward<Proj>(proj)) != size;
@@ -491,7 +491,7 @@ namespace blurringshadow::utility::traits
                     invocable_r<bool, Comp, left_projected_t, right_projected_t>
 
                 {
-                    return ::blurringshadow::utility::invoke_r<bool>(
+                    return ::std_sharp::utility::invoke_r<bool>(
                         comp, ::std::invoke(proj, get<I>()), ::std::invoke(proj, get<I + 1>()) //
                     );
                 }
@@ -510,13 +510,13 @@ namespace blurringshadow::utility::traits
                 {
                     ::std::size_t res{};
                     ((
-                         [&]<::std::size_t J>(const ::blurringshadow::utility::constant<J>) //
+                         [&]<::std::size_t J>(const ::std_sharp::utility::constant<J>) //
                          noexcept(noexcept(by_index<J, Comp, Proj>::invoke(comp, proj)))
                          {
                              if(by_index<J, Comp, Proj>::invoke(comp, proj)) return true;
                              ++res;
                              return false;
-                         }(::blurringshadow::utility::constant<I>{})) ||
+                         }(::std_sharp::utility::constant<I>{})) ||
                      ...);
                     return res;
                 }
@@ -526,7 +526,7 @@ namespace blurringshadow::utility::traits
             template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
                 requires(::std::invocable<Proj, decltype(Values)>&&...)
             [[nodiscard]] constexpr auto operator()(Comp comp = {}, Proj proj = {}) const noexcept(
-                ::blurringshadow::utility::
+                ::std_sharp::utility::
                     nothrow_invocable<impl, Comp, Proj, ::std::make_index_sequence<size - 2>> //
             )
             {
@@ -559,18 +559,18 @@ namespace blurringshadow::utility::traits
 
         template<auto... Others>
         using append_t =
-            ::blurringshadow::utility::traits::regular_value_sequence<Values..., Others...>;
+            ::std_sharp::utility::traits::regular_value_sequence<Values..., Others...>;
 
         template<typename Seq>
-        using append_by_seq_t = typename ::blurringshadow::utility::traits:: //
+        using append_by_seq_t = typename ::std_sharp::utility::traits:: //
             take_value_sequence<Seq>::template apply_t<append_t>;
 
         template<auto... Others>
         using append_front_t =
-            ::blurringshadow::utility::traits::regular_value_sequence<Others..., Values...>;
+            ::std_sharp::utility::traits::regular_value_sequence<Others..., Values...>;
 
         template<typename Seq>
-        using append_front_by_seq_t = typename ::blurringshadow::utility::traits:: //
+        using append_front_by_seq_t = typename ::std_sharp::utility::traits:: //
             take_value_sequence<Seq>::template apply_t<append_front_t>;
 
     private:
@@ -578,8 +578,8 @@ namespace blurringshadow::utility::traits
         struct insert
         {
             template<auto... Others>
-            using type = typename ::blurringshadow::utility::traits::to_value_sequence_t<
-                typename ::blurringshadow::utility::traits::to_value_sequence_t<front_t<Index>>:: //
+            using type = typename ::std_sharp::utility::traits::to_value_sequence_t<
+                typename ::std_sharp::utility::traits::to_value_sequence_t<front_t<Index>>:: //
                 template append_t<Others...> // clang-format off
             >::template append_by_seq_t<back_t<size - Index>>; // clang-format on
         };
@@ -631,8 +631,8 @@ namespace blurringshadow::utility::traits
         using remove_at_by_seq_t = typename take_value_sequence<Seq>::template apply_t<remove_at_t>;
 
         template<::std::size_t Index, auto Other>
-        using replace_t = typename ::blurringshadow::utility::traits::to_value_sequence_t<
-            typename ::blurringshadow::utility::traits:: //
+        using replace_t = typename ::std_sharp::utility::traits::to_value_sequence_t<
+            typename ::std_sharp::utility::traits:: //
             to_value_sequence_t<front_t<Index>>::template append_t<Other> // clang-format off
         >::template append_by_seq_t<back_t<size - Index - 1>>; // clang-format on
     };
@@ -641,10 +641,10 @@ namespace blurringshadow::utility::traits
 namespace std
 {
     template<::std::size_t I, auto... Values>
-    struct tuple_element<I, ::blurringshadow::utility::traits::value_sequence<Values...>> :
+    struct tuple_element<I, ::std_sharp::utility::traits::value_sequence<Values...>> :
         ::std::type_identity< // clang-format off
             decltype(
-                typename ::blurringshadow::utility::traits::
+                typename ::std_sharp::utility::traits::
                     value_sequence<Values...>::
                     template get<I>()
             )
@@ -653,9 +653,9 @@ namespace std
     };
 
     template<auto... Values>
-    struct tuple_size<::blurringshadow::utility::traits::value_sequence<Values...>> :
-        ::blurringshadow::utility::index_constant<
-            ::blurringshadow::utility::traits::value_sequence<Values...>::size // clang-format off
+    struct tuple_size<::std_sharp::utility::traits::value_sequence<Values...>> :
+        ::std_sharp::utility::index_constant<
+            ::std_sharp::utility::traits::value_sequence<Values...>::size // clang-format off
         > // clang-format on
     {
     };

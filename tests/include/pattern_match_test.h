@@ -1,6 +1,6 @@
 #include "test_utils.h"
 
-namespace blurringshadow::test::utility
+namespace std_sharp::test::utility
 {
     boost::ut::suite& pattern_match_test();
 }

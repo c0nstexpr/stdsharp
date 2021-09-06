@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace blurringshadow::utility
+namespace std_sharp::utility
 {
     using namespace std::literals;
 
@@ -41,12 +41,12 @@ namespace blurringshadow::utility
         [[nodiscard]] constexpr auto operator()(T&& t) const //
             noexcept( //
                 ::std::is_nothrow_constructible_v<
-                    ::blurringshadow::utility::details::auto_cast<T>,
+                    ::std_sharp::utility::details::auto_cast<T>,
                     T // clang-format off
                     > // clang-format on
             )
         {
-            return ::blurringshadow::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
+            return ::std_sharp::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
         }
     } auto_cast{};
 

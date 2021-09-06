@@ -2,7 +2,7 @@
 
 #include "functional.h"
 
-namespace blurringshadow::utility
+namespace std_sharp::utility
 {
     inline constexpr struct
     {
@@ -14,14 +14,13 @@ namespace blurringshadow::utility
         constexpr void operator()( // clang-format on
             const Condition& condition, //
             ::std::pair<Predicate, Func>... cases // clang-format off
-        ) const noexcept(((::blurringshadow::utility::
-            nothrow_predicate<Predicate, Condition> && ::blurringshadow::utility::nothrow_invocable<Func>) && ...))
+        ) const noexcept(((::std_sharp::utility::
+            nothrow_predicate<Predicate, Condition> && ::std_sharp::utility::nothrow_invocable<Func>) && ...))
         {
             ( // clang-format on
                 [&condition]<typename P>(P&& pair)
                 {
-                    if(::blurringshadow::utility::invoke_r<bool>(
-                           ::std::move(pair.first), condition))
+                    if(::std_sharp::utility::invoke_r<bool>(::std::move(pair.first), condition))
                     {
                         ::std::invoke(::std::move(pair.second), condition);
                         return true;
@@ -46,7 +45,7 @@ namespace blurringshadow::utility
                 template<typename Case>
                 static constexpr bool case_nothrow_invocable =
                     !::std::invocable<Case, from_type_fn::condition_type_identity> ||
-                    ::blurringshadow::utility::
+                    ::std_sharp::utility::
                         nothrow_invocable<Case, from_type_fn::condition_type_identity>;
 
             public:
@@ -71,18 +70,18 @@ namespace blurringshadow::utility
         }
 
         template<typename ConditionT>
-        inline constexpr ::blurringshadow::utility::constexpr_pattern_match::details:: //
+        inline constexpr ::std_sharp::utility::constexpr_pattern_match::details:: //
             from_type_fn<ConditionT>
                 from_type{};
 
         template<auto Condition>
         inline constexpr auto from_constant = []<typename... Cases>(Cases&&... cases) //
-            noexcept(noexcept(::blurringshadow::utility::constexpr_pattern_match:: //
-                              from_type<::blurringshadow::utility:: //
+            noexcept(noexcept(::std_sharp::utility::constexpr_pattern_match:: //
+                              from_type<::std_sharp::utility:: //
                                         constant<Condition>>(::std::forward<Cases>(cases)...)))
         {
-            return ::blurringshadow::utility::constexpr_pattern_match:: //
-                from_type<::blurringshadow::utility:: //
+            return ::std_sharp::utility::constexpr_pattern_match:: //
+                from_type<::std_sharp::utility:: //
                           constant<Condition>>(::std::forward<Cases>(cases)...);
         };
     }

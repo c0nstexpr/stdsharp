@@ -6,7 +6,7 @@
 
 #include <shared_mutex>
 
-namespace blurringshadow::utility
+namespace std_sharp::utility
 {
     template<typename T>
     class concurrent_object
@@ -15,7 +15,7 @@ namespace blurringshadow::utility
         template<typename... Args>
             requires ::std::constructible_from<T, Args...>
         constexpr explicit concurrent_object(Args&&... args) //
-            noexcept(::blurringshadow::utility::nothrow_constructible_from<T, Args...>):
+            noexcept(::std_sharp::utility::nothrow_constructible_from<T, Args...>):
             object_(::std::forward<Args>(args)...)
         {
         }

@@ -5,7 +5,7 @@
 #include "traits/value_sequence_test.h"
 #include "property/property_test.h"
 
-using namespace blurringshadow::test::utility;
+using namespace std_sharp::test::utility;
 
 int main()
 {

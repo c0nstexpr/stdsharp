@@ -4,13 +4,13 @@
 
 #include "utility/functional.h"
 
-namespace blurringshadow::utility::property
+namespace std_sharp::utility::property
 {
     template<typename SetterFn>
-    class setter : public ::blurringshadow::utility::invocable_obj<SetterFn>
+    class setter : public ::std_sharp::utility::invocable_obj<SetterFn>
     {
     public:
-        using base = ::blurringshadow::utility::invocable_obj<SetterFn>;
+        using base = ::std_sharp::utility::invocable_obj<SetterFn>;
 
         using base::base;
 
@@ -35,7 +35,7 @@ namespace blurringshadow::utility::property
         template<typename T>
             requires ::std::invocable<const SetterFn, T>
         constexpr auto& operator=(T&& t) const&& //
-            noexcept(::blurringshadow::utility::nothrow_invocable<const base, T>)
+            noexcept(::std_sharp::utility::nothrow_invocable<const base, T>)
         {
             static_cast<const base&&> (*this)(::std::forward<T>(t));
             return *this;
@@ -44,7 +44,7 @@ namespace blurringshadow::utility::property
         template<typename T>
             requires ::std::invocable<SetterFn, T>
         constexpr auto& operator=(T&& t) && //
-            noexcept(::blurringshadow::utility::nothrow_invocable<base, T>)
+            noexcept(::std_sharp::utility::nothrow_invocable<base, T>)
         {
             static_cast<base&&> (*this)(::std::forward<T>(t));
             return *this;
@@ -54,11 +54,11 @@ namespace blurringshadow::utility::property
     template<typename T>
     setter(T&& t) -> setter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj value_setter{
+    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj value_setter{
         [](auto& t) noexcept
         {
-            return ::blurringshadow::utility::property::setter{
-                ::blurringshadow::utility::bind_ref_front(assign_v, t) //
+            return ::std_sharp::utility::property::setter{
+                ::std_sharp::utility::bind_ref_front(assign_v, t) //
             };
         } //
     };

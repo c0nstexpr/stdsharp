@@ -1,7 +1,7 @@
 #include "traits/member_test.h"
 #include "utility/traits/member.h"
 
-namespace blurringshadow::test::utility::traits
+namespace std_sharp::test::utility::traits
 {
     boost::ut::suite& member_test()
     {
@@ -9,8 +9,8 @@ namespace blurringshadow::test::utility::traits
         {
             using namespace boost::ut;
             using namespace bdd;
-            using namespace blurringshadow::utility;
-            using namespace blurringshadow::utility::traits;
+            using namespace std_sharp::utility;
+            using namespace std_sharp::utility::traits;
 
             feature("member") = []
             {

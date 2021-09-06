@@ -4,7 +4,7 @@
 
 #include <random>
 
-namespace blurringshadow::utility
+namespace std_sharp::utility
 {
     inline constexpr struct
     {

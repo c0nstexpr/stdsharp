@@ -1,7 +1,7 @@
 #include "traits/type_sequence_test.h"
 #include "utility/traits/type_sequence.h"
 
-namespace blurringshadow::test::utility::traits
+namespace std_sharp::test::utility::traits
 {
     namespace
     {
@@ -49,13 +49,13 @@ namespace blurringshadow::test::utility::traits
     }
 
     template<typename... T>
-    using type_sequence = blurringshadow::utility::traits::type_sequence<T...>;
+    using type_sequence = std_sharp::utility::traits::type_sequence<T...>;
 
     template<auto... V>
-    using regular_value_sequence = blurringshadow::utility::traits::regular_value_sequence<V...>;
+    using regular_value_sequence = std_sharp::utility::traits::regular_value_sequence<V...>;
 
     template<typename... T>
-    using regular_type_sequence = blurringshadow::utility::traits::regular_type_sequence<T...>;
+    using regular_type_sequence = std_sharp::utility::traits::regular_type_sequence<T...>;
 
     boost::ut::suite& type_sequence_test()
     {
@@ -63,7 +63,7 @@ namespace blurringshadow::test::utility::traits
         {
             using namespace boost::ut;
             using namespace bdd;
-            using namespace blurringshadow::utility;
+            using namespace std_sharp::utility;
 
             using test_seq = type_sequence<int, float, char, unsigned, float>;
 
@@ -309,7 +309,7 @@ namespace blurringshadow::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t =
-                            blurringshadow::utility::traits::unique_type_sequence_t<Types...>;
+                            std_sharp::utility::traits::unique_type_sequence_t<Types...>;
                         static_expect<_b(std::same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };

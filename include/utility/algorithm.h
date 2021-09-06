@@ -10,7 +10,7 @@
 #include "functional.h"
 #include "utility/cassert.h"
 
-namespace blurringshadow::utility
+namespace std_sharp::utility
 {
     // clang-format off
     inline constexpr auto set_if = []<typename T, typename U, ::std::predicate<T, U> Comp>(
@@ -18,8 +18,8 @@ namespace blurringshadow::utility
         U&& right,
         Comp comp = {}
     ) noexcept(
-        ::blurringshadow::utility::nothrow_invocable_r<bool, Comp, U&, T&> &&
-        ::blurringshadow::utility::nothrow_assignable_from<T, U>
+        ::std_sharp::utility::nothrow_invocable_r<bool, Comp, U&, T&> &&
+        ::std_sharp::utility::nothrow_assignable_from<T, U>
     ) -> T&
     {
         // clang-format on
@@ -30,31 +30,31 @@ namespace blurringshadow::utility
     inline constexpr auto set_if_greater = []<typename T, typename U>(T& left, U&& right) //
         noexcept( //
             noexcept( //
-                ::blurringshadow::utility::set_if(
+                ::std_sharp::utility::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::blurringshadow::utility::greater_v // clang-format off
+                    ::std_sharp::utility::greater_v // clang-format off
                 )
             )
         ) -> T& // clang-format on
     {
-        return ::blurringshadow::utility::set_if(
-            left, ::std::forward<U>(right), ::blurringshadow::utility::greater_v //
+        return ::std_sharp::utility::set_if(
+            left, ::std::forward<U>(right), ::std_sharp::utility::greater_v //
         ); //
     };
 
     inline constexpr auto set_if_less = []<typename T, typename U>(T& left, U&& right) //
         noexcept( //
             noexcept( //
-                ::blurringshadow::utility::set_if(
+                ::std_sharp::utility::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::blurringshadow::utility::less_v // clang-format off
+                    ::std_sharp::utility::less_v // clang-format off
                 )
             )
         ) -> T& // clang-format on
     {
-        return ::blurringshadow::utility::set_if(left, ::std::forward<U>(right), less_v); //
+        return ::std_sharp::utility::set_if(left, ::std::forward<U>(right), less_v); //
     };
 
     namespace details
@@ -77,12 +77,12 @@ namespace blurringshadow::utility
                     requires ::std::predicate<Compare, const proj_t, const proj_min> &&
                         ::std::predicate<Compare, const proj_max, const proj_t> &&
                         ::std::predicate<Compare, const proj_max, const proj_min>
-                static constexpr bool nothrow_v = !::blurringshadow::utility::is_debug &&
-                    ::blurringshadow::utility::
+                static constexpr bool nothrow_v = !::std_sharp::utility::is_debug &&
+                    ::std_sharp::utility::
                         nothrow_predicate<Compare, const proj_t, const proj_min> && //
-                    ::blurringshadow::utility::
+                    ::std_sharp::utility::
                         nothrow_predicate<Compare, const proj_max, const proj_t> && //
-                    ::blurringshadow::utility::
+                    ::std_sharp::utility::
                         nothrow_predicate<Compare, const proj_max, const proj_min> //
 
                     ;
@@ -91,14 +91,14 @@ namespace blurringshadow::utility
     }
 
     // clang-format off
-    inline constexpr ::blurringshadow::utility::nodiscard_invocable_obj is_between{
+    inline constexpr ::std_sharp::utility::nodiscard_invocable_obj is_between{
         []< // clang-format on
-            typename T,
-            typename U,
-            typename V,
-            typename Compare = ::std::ranges::less,
-            typename Proj = ::std::identity,
-            auto noexcept_ = ::blurringshadow::utility::details:: // clang-format off
+        typename T,
+        typename U,
+        typename V,
+        typename Compare = ::std::ranges::less,
+        typename Proj = ::std::identity,
+        auto noexcept_ = ::std_sharp::utility::details:: // clang-format off
                 is_between_fn::require<T, U, V, Proj>::template nothrow_v<Compare>
         >
         (
@@ -109,15 +109,15 @@ namespace blurringshadow::utility
             Proj proj = {}
         ) noexcept(noexcept_)
         {
-            using traits = ::blurringshadow::utility::details::
+            using traits = ::std_sharp::utility::details::
                 is_between_fn::require<T, U, V, Proj>;
 
             const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
             const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
             const auto& projected_max = ::std::invoke(proj, ::std::forward<V>(max));
 
-            if constexpr(::blurringshadow::utility::is_debug)
-                if(::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_min))
+            if constexpr(::std_sharp::utility::is_debug)
+                if(::std_sharp::utility::invoke_r<bool>(cmp, projected_max, projected_min))
                 {
                     if constexpr(
                         ::fmt::formattable<typename traits::proj_min>::value &&
@@ -135,8 +135,8 @@ namespace blurringshadow::utility
                     };
                 }
 
-            return !::blurringshadow::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
-                !::blurringshadow::utility::invoke_r<bool>(cmp, projected_max, projected_v);
+            return !::std_sharp::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
+                !::std_sharp::utility::invoke_r<bool>(cmp, projected_max, projected_v);
         }
     }; // clang-format on
 }

@@ -2,7 +2,7 @@
 #include <boost/ut.hpp>
 #include <fmt/ranges.h>
 
-namespace blurringshadow::test::utility
+namespace std_sharp::test::utility
 {
     template<auto...>
     struct static_params

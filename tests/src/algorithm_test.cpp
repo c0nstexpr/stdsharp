@@ -1,7 +1,7 @@
 #include "algorithm_test.h"
 #include "utility/algorithm.h"
 
-namespace blurringshadow::test::utility
+namespace std_sharp::test::utility
 {
     boost::ut::suite& algorithm_test()
     {
@@ -10,7 +10,7 @@ namespace blurringshadow::test::utility
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace blurringshadow::utility;
+            using namespace std_sharp::utility;
 
             feature("set_if") = []<auto First, auto Second>( // clang-format off
                 const static_params<First, Second> 

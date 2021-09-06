@@ -4,7 +4,7 @@
 
 #include "type_sequence.h"
 
-namespace blurringshadow::utility::traits
+namespace std_sharp::utility::traits
 {
     struct unique_object
     {

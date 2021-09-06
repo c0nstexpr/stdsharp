@@ -4,7 +4,7 @@
 
 #include "function.h"
 
-namespace blurringshadow::utility::traits
+namespace std_sharp::utility::traits
 {
     template<typename>
     struct member_traits;
@@ -17,12 +17,12 @@ namespace blurringshadow::utility::traits
 
     template<auto Ptr>
     struct member_pointer_traits :
-        ::blurringshadow::utility::traits::member_traits<::std::decay_t<decltype(Ptr)>>
+        ::std_sharp::utility::traits::member_traits<::std::decay_t<decltype(Ptr)>>
     {
     };
 
     template<auto Ptr>
-    using member_t = typename ::blurringshadow::utility::traits::member_pointer_traits<Ptr>::type;
+    using member_t = typename ::std_sharp::utility::traits::member_pointer_traits<Ptr>::type;
 
     template<typename>
     struct member_function_traits;
@@ -37,7 +37,7 @@ namespace blurringshadow::utility::traits
 #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)     \
     template<typename R, typename ClassT, typename... Args>                                       \
     struct member_function_traits<R (ClassT::*)(Args...) qualifiers> :                            \
-        ::blurringshadow::utility::traits::/**/                                                   \
+        ::std_sharp::utility::traits::/**/                                                   \
         function_traits<::std::conditional_t<noexcept_, R (*)(Args...) noexcept, R (*)(Args...)>> \
     {                                                                                             \
         using class_t = ClassT;                                                                   \
@@ -76,7 +76,7 @@ namespace blurringshadow::utility::traits
 
     template<auto Ptr>
     struct member_function_pointer_traits :
-        ::blurringshadow::utility::traits::member_function_traits<std::decay_t<decltype(Ptr)>>
+        ::std_sharp::utility::traits::member_function_traits<std::decay_t<decltype(Ptr)>>
     {
     };
 
@@ -84,7 +84,7 @@ namespace blurringshadow::utility::traits
     concept member_of = requires
     {
         ::std::same_as<
-            typename ::blurringshadow::utility::traits:: //
+            typename ::std_sharp::utility::traits:: //
             member_traits<T>::class_t,
             ClassT>;
     };
@@ -93,7 +93,7 @@ namespace blurringshadow::utility::traits
     concept member_func_of = requires
     {
         ::std::is_member_pointer_v<T>&& ::std::same_as< // clang-format off
-            typename ::blurringshadow::utility::traits::member_function_traits<T>::class_t,
+            typename ::std_sharp::utility::traits::member_function_traits<T>::class_t,
             ClassT
         >; // clang-format on
     };
