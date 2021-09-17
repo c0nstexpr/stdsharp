@@ -7,10 +7,10 @@
 namespace stdsharp::utility::property
 {
     template<::std::invocable GetterFn>
-    class getter : public ::stdsharp::utility::nodiscard_invocable_obj<GetterFn>
+    class getter : public ::stdsharp::utility::invocable_obj<GetterFn>
     {
     public:
-        using base = ::stdsharp::utility::nodiscard_invocable_obj<GetterFn>;
+        using base = ::stdsharp::utility::invocable_obj<GetterFn>;
 
         using base::base;
 
@@ -20,7 +20,8 @@ namespace stdsharp::utility::property
     template<typename T>
     getter(T&& t) -> getter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj value_getter{
+    inline constexpr ::stdsharp::utility::invocable_obj value_getter{
+        ::stdsharp::utility::nodiscard_tag,
         [](auto& t) noexcept
         {
             return ::stdsharp::utility::property::getter{

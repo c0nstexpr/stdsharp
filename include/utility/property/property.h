@@ -29,7 +29,7 @@ namespace stdsharp::utility::property
                 return p.setter_(::std::forward<Args>(args)...);
             };
 
-            static constexpr ::stdsharp::utility::nodiscard_invocable_obj get{
+            static constexpr ::stdsharp::utility::invocable_obj get{
                 ::ranges::overload(
                     [](const property_member& p) // clang-format off
                         noexcept(::stdsharp::utility::nothrow_invocable<getter_t>)

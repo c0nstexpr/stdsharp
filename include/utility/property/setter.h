@@ -54,7 +54,8 @@ namespace stdsharp::utility::property
     template<typename T>
     setter(T&& t) -> setter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj value_setter{
+    inline constexpr ::stdsharp::utility::invocable_obj value_setter{
+        ::stdsharp::utility::nodiscard_tag,
         [](auto& t) noexcept
         {
             return ::stdsharp::utility::property::setter{

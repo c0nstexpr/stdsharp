@@ -91,7 +91,7 @@ namespace stdsharp::utility
     }
 
     // clang-format off
-    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj is_between{
+    inline constexpr ::stdsharp::utility::invocable_obj is_between{
         []< // clang-format on
         typename T,
         typename U,
@@ -120,8 +120,8 @@ namespace stdsharp::utility
                 if(::stdsharp::utility::invoke_r<bool>(cmp, projected_max, projected_min))
                 {
                     if constexpr(
-                        ::fmt::formattable<typename traits::proj_min>::value &&
-                        ::fmt::formattable<typename traits::proj_max>::value
+                        ::fmt::is_formattable<typename traits::proj_min>::value &&
+                        ::fmt::is_formattable<typename traits::proj_max>::value
                     ) throw ::std::invalid_argument{
                         ::fmt::format(
                             "projected max value {} "
