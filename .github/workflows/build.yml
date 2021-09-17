@@ -35,7 +35,7 @@ jobs:
         id: runvcpkg
         with:
           setupOnly: true
-          vcpkgGitCommitId: '71422c627264daedcbcd46f01f1ed0dcd8460f1b'
+          vcpkgGitCommitId: '69d5556d0d8c105f75055326cef346546e40e615'
           # Ensure the cache key changes any time the content of the manifest file changes.
           appendedCacheKey: ${{ hashFiles('vcpkg.json') }}
           vcpkgTriplet: ${{ matrix.triplet }}
