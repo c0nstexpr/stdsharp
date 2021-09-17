@@ -385,25 +385,25 @@ namespace stdsharp::utility
         }; //
     };
 
-    inline constexpr auto assign_v = ::ranges::overload(
-        []<typename T, typename U> // clang-format off
+    inline constexpr struct assign
+    {
+        template<typename T, typename U>
             requires ::std::assignable_from<T, U>
-        (T& left, U&& right) noexcept(noexcept(left = ::std::forward<U>(right)))
-            ->decltype(auto) // clang-format on
+        constexpr decltype(auto) operator()(T& left, U&& right) const
+            noexcept(noexcept(left = ::std::forward<U>(right)))
         {
-            return left = ::std::forward<U>(right); //
-        },
-        []<typename T, typename... U> // clang-format off
+            return left = ::std::forward<U>(right);
+        }
+
+        template<typename T, typename... U>
             requires ::std::constructible_from<::std::remove_cvref_t<T>, U...>
-        (T& left, U&&... right)
+        constexpr decltype(auto) operator()(T& left, U&&... right) const
             noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
             ->decltype(auto) // clang-format on
         {
-            return left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}; //
-        } //
-    );
-
-    using assign = decltype(::stdsharp::utility::assign_v);
+            return left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...};
+        }
+    } assign_v{};
 
     inline constexpr ::std::ranges::equal_to equal_to_v{};
     inline constexpr ::std::ranges::not_equal_to not_equal_to_v{};
@@ -430,14 +430,15 @@ namespace stdsharp::utility
     inline constexpr ::std::bit_xor<> bit_xor_v{};
 
 #define BS_UTIL_SHIFT_OPERATE(direction, operate)                                       \
-    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj direction##_shift_v{ \
-        []<typename T, typename U>(T&& left, U&& right) noexcept(                       \
-            noexcept(::std::forward<T>(left) operate ::std::forward<U>(right)))         \
+    inline constexpr struct direction##_shift                                            \
         {                                                                               \
-            return ::std::forward<T>(left) operate ::std::forward<U>(right); /**/       \
-        }};                                                                             \
-                                                                                        \
-    using direction##_shift = decltype(::stdsharp::utility::direction##_shift_v);
+        template<typename T, typename U>                                                 \
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const     \
+            noexcept(noexcept(::std::forward<T>(left) operate ::std::forward<U>(right))) \
+        {                                                                                \
+            return ::std::forward<T>(left) operate ::std::forward<U>(right);             \
+        }                                                                                \
+    } direction##_shift_v{};
 
     BS_UTIL_SHIFT_OPERATE(left, <<)
     BS_UTIL_SHIFT_OPERATE(right, >>)
@@ -445,19 +446,23 @@ namespace stdsharp::utility
 #undef BS_UTIL_SHIFT_OPERATE
 
 #define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                         \
-    inline constexpr auto operator_type##_assign_v = ::ranges::overload(                  \
-        []<typename U>(auto& l, U&& u) noexcept(                                          \
-            noexcept((l op## = ::std::forward<U>(u)))) -> decltype(auto)                  \
+    inline constexpr struct operator_type##_assign                               \
         {                                                                                 \
-            return l op## = ::std::forward<U>(u); /**/                                    \
-        },                                                                                \
-        []<typename U>(auto& l, U&& u) noexcept(                                          \
-            noexcept((l = operator_type##_v(l, ::std::forward<U>(u))))) -> decltype(auto) \
+        template<typename T, typename U>                                         \
+            requires requires(T & l, U u) { l op## = u; }                        \
+        constexpr decltype(auto) operator()(T& l, U&& u) const                   \
+            noexcept(noexcept((l op## = ::std::forward<U>(u))))                  \
         {                                                                                 \
-            return l = operator_type##_v(l, ::std::forward<U>(u)); /**/                   \
-        });                                                                               \
+            return l op## = ::std::forward<U>(u);                                \
+        }                                                                        \
                                                                                           \
-    using operator_type##_assign = decltype(operator_type##_assign_v);
+        template<typename U>                                                     \
+        constexpr decltype(auto) operator()(auto& l, U&& u) const                \
+            noexcept(noexcept((l = operator_type##_v(l, ::std::forward<U>(u))))) \
+        {                                                                        \
+            return l = operator_type##_v(l, ::std::forward<U>(u));               \
+        }                                                                        \
+    } operator_type##_assign_v{};
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
     BS_UTIL_ASSIGN_OPERATE(minus, -)
@@ -474,29 +479,32 @@ namespace stdsharp::utility
     inline constexpr ::std::identity identity_v{};
 
 #define BS_UTIL_INCREMENT_DECREMENT_OPERATE(operator_prefix, op, al_op)                           \
-    inline constexpr auto pre_##operator_prefix##crease_v = ::ranges::overload(                   \
-        []<typename T> requires ::std::invocable<al_op##_assign, T&, ::std::size_t>(              \
-            T & v,                                                                                \
-            const ::std::size_t i =                                                               \
-                1) noexcept(::stdsharp::utility::                                                \
-                                nothrow_invocable<al_op##_assign, T&, const ::std::size_t>) {     \
-            return al_op##_assign_v(v, i); /**/                                                   \
-        },                                                                                        \
-        []<typename T>(T& v, ::std::size_t i = 1) noexcept(noexcept(op##op v))                    \
+    inline constexpr struct pre_##operator_prefix##crease                                        \
+    {                                                                                            \
+        template<typename T>                                                                     \
+            requires ::std::invocable<al_op##_assign, T&, ::std::size_t>                         \
+        constexpr decltype(auto) operator()(T& v, const ::std::size_t i = 1) const /**/          \
+            noexcept(::stdsharp::utility::/**/                                                   \
+                     nothrow_invocable<al_op##_assign, T&, const ::std::size_t>)                 \
+        {                                                                                        \
+            return al_op##_assign_v(v, i);                                                       \
+        }                                                                                        \
+        template<typename T>                                                                     \
+        constexpr decltype(auto) operator()(T& v, ::std::size_t i = 1) const                     \
+            noexcept(noexcept(op##op v))                                                         \
         {                                                                                         \
             for(; i > 0; --i) op##op v;                                                           \
             return v;                                                                             \
-        });                                                                                       \
+        }                                                                                        \
+    } pre_##operator_prefix##crease_v{};                                                         \
                                                                                                   \
-    using pre_##operator_prefix##crease =                                                         \
-        decltype(::stdsharp::utility::pre_##operator_prefix##crease_v);                          \
-                                                                                                  \
-    struct post_##operator_prefix##crease                                                         \
+    inline constexpr struct post_##operator_prefix##crease                                       \
     {                                                                                             \
         template<typename T>                                                                      \
             requires ::std::invocable<::stdsharp::utility::al_op##_assign, T, ::std::size_t>     \
-        [[nodiscard]] constexpr auto operator()(T& v, const ::std::size_t i = 1) const noexcept(  \
-            ::stdsharp::utility::                                                                \
+        [[nodiscard]] constexpr auto operator()(T& v, const ::std::size_t i = 1) const /**/      \
+            noexcept(                                                                            \
+                ::stdsharp::utility::/**/                                                        \
                 nothrow_invocable<::stdsharp::utility::al_op##_assign, T&, const ::std::size_t>) \
         {                                                                                         \
             const auto old = v;                                                                   \
@@ -514,21 +522,18 @@ namespace stdsharp::utility
             for(; i > 0; --i) op##op v;                                                           \
             return old;                                                                           \
         }                                                                                         \
-    };                                                                                            \
-                                                                                                  \
-    inline constexpr ::stdsharp::utility::post_##operator_prefix##crease                         \
-        post_##operator_prefix##crease_v{};
+    } post_##operator_prefix##crease_v{};
 
     BS_UTIL_INCREMENT_DECREMENT_OPERATE(in, +, plus)
     BS_UTIL_INCREMENT_DECREMENT_OPERATE(de, -, minus)
 
 #undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
 
-    inline constexpr ::stdsharp::utility::nodiscard_invocable_obj advance_v{
-        ::ranges::overload(
-            []<typename T, typename Distance> // clang-format off
+    inline constexpr struct advance
+    {
+        template<typename T, typename Distance>
                 requires ::std::invocable<plus_assign, T, Distance>
-            (T & v, Distance&& distance)
+        constexpr decltype(auto) operator()(T& v, Distance&& distance) const
                 noexcept(::stdsharp::utility::nothrow_invocable<plus_assign, T&, Distance>)
                 ->decltype(auto) // clang-format on
             {
@@ -536,20 +541,23 @@ namespace stdsharp::utility
                     v,
                     ::std::forward<Distance>(distance) //
                 );
-            },
-            []<typename T, typename Distance>(T& v, const Distance& distance) noexcept( //
+        }
+
+        template<typename T, typename Distance>
+        constexpr decltype(auto) operator()(T& v, const Distance& distance) const //
+            noexcept( //
                 noexcept(
                     ::stdsharp::utility::pre_increase_v(v, distance),
                     ::stdsharp::utility::pre_decrease_v(v, distance) // clang-format off
+                ) // clang-format on
                 )
             ) -> decltype(auto) // clang-format on
             {
                 return distance > 0 ? //
                     ::stdsharp::utility::pre_increase_v(v, distance) :
                     ::stdsharp::utility::pre_decrease_v(v, -distance);
-            } // clang-format off
-        ) // clang-format on
-    };
+        }
+    } advance_v{};
 
     inline constexpr ::stdsharp::utility::invocable_obj returnable_invoke(
         nodiscard_tag,
