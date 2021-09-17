@@ -9,7 +9,7 @@
 
 namespace stdsharp::utility
 {
-    struct empty final
+    inline constexpr struct empty_t final
     {
     };
 

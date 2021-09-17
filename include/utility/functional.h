@@ -266,25 +266,124 @@ namespace stdsharp::utility
         };
 
     public:
-        template<typename Func, typename... Args>
-        [[nodiscard]] constexpr auto operator()(Func&& func, Args&&... args) const
-            noexcept( // clang-format on
-                ::stdsharp::utility::nothrow_constructible_from<
-                    invoker<
-                        ::stdsharp::utility::coerce_t<Func>,
-                        ::stdsharp::utility::coerce_t<Args>... // clang-format off
-                        >,
-                        Func,
-                        Args...
-                    >
-                ) // clang-format on
+        template<typename... T>
+            requires ::std::constructible_from<Invocable, T...>
+        constexpr explicit invocable_obj(const ::stdsharp::utility::nodiscard_tag_t, T&&... t) //
+            noexcept(::stdsharp::utility::nothrow_constructible_from<Invocable, T...>):
+            base(::std::forward<T>(t)...)
         {
-            return invoker<
-                ::stdsharp::utility::coerce_t<Func>,
-                ::stdsharp::utility::coerce_t<Args>... // clang-format off
-            >{::std::forward<Func>(func), ::std::forward<Args>(args)...}; // clang-format on
         }
-    } bind_ref_front{};
+
+        using typename base::invocable_t;
+
+        template<typename... Args>
+            requires ::std::invocable<const Invocable, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const& //
+            noexcept(::stdsharp::utility::nothrow_invocable<const Invocable, Args...>)
+        {
+            return base::operator()(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::invocable<Invocable, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) & //
+            noexcept(::stdsharp::utility::nothrow_invocable<Invocable, Args...>)
+        {
+            return base::operator()(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::
+                invocable<::std::add_rvalue_reference_t<::std::decay_t<Invocable>>, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const&& //
+            noexcept( //
+                nothrow_invocable<
+                    ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>,
+                    Args... // clang-format off
+                > // clang-format on
+            )
+        {
+            return static_cast<const base&&>(*this)(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::
+                invocable<const ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) && //
+            noexcept( //
+                nothrow_invocable<
+                    const ::std::add_rvalue_reference_t<::std::decay_t<Invocable>>,
+                    Args... // clang-format off
+                > // clang-format on
+            )
+        {
+            return static_cast<base&&>(*this)(::std::forward<Args>(args)...);
+        }
+    };
+
+    template<typename Invocable>
+    invocable_obj(Invocable&&) -> invocable_obj<::std::decay_t<Invocable>>;
+
+    template<typename Invocable>
+    invocable_obj(::stdsharp::utility::nodiscard_tag_t, Invocable&&)
+        -> invocable_obj<::std::decay_t<Invocable>, ::stdsharp::utility::nodiscard_tag_t>;
+
+    inline constexpr auto empty_invoke = [](auto&&...) noexcept
+    {
+        return ::stdsharp::utility::empty; //
+    };
+
+    template<typename ReturnT>
+    inline constexpr ::stdsharp::utility::invocable_obj invoke_r(
+        ::stdsharp::utility::nodiscard_tag,
+        []<typename Func, typename... Args>(Func&& func, Args&&... args) // clang-format off
+            noexcept(::stdsharp::utility::nothrow_invocable_r<ReturnT, Func, Args...>)
+            -> ::std::enable_if_t<::stdsharp::utility::invocable_r<ReturnT, Func, Args...>, ReturnT>
+        {
+            return static_cast<ReturnT>(
+                ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...)
+            );
+        } // clang-format on
+    );
+
+    template<typename T>
+    inline constexpr ::stdsharp::utility::invocable_obj constructor(
+        ::stdsharp::utility::nodiscard_tag,
+        []<typename... Args>(Args&&... args) // clang-format off
+            noexcept(::stdsharp::utility::nothrow_constructible_from<T, Args...>)
+            -> ::std::enable_if_t<::std::constructible_from<T, Args...>, T> // clang-format on
+        {
+            return T{::std::forward<Args>(args)...}; //
+        } //
+    );
+
+    inline constexpr ::stdsharp::utility::invocable_obj copy(
+        ::stdsharp::utility::nodiscard_tag,
+        []<typename T>(T&& t) noexcept( // clang-format off
+            ::stdsharp::utility::nothrow_constructible_from<::std::remove_cvref_t<T>, T>
+        ) -> ::std::remove_cvref_t<T> // clang-format on
+        {
+            return forward<T>(t); //
+        } //
+    );
+
+    inline constexpr auto bind_ref_front = []<typename Func, typename... Args>(
+        Func && func,
+        Args&&... args // clang-format off
+    ) noexcept( // clang-format on
+        noexcept( //
+            ::stdsharp::utility::details::bind_ref_front_invoker{
+                ::std::forward<Func>(func),
+                ::std::forward<Args>(args)... //
+            } // clang-format off
+        ) // clang-format on
+    )
+    {
+        return ::stdsharp::utility::details::bind_ref_front_invoker{
+            ::std::forward<Func>(func),
+            ::std::forward<Args>(args)... //
+        }; //
+    };
 
     inline constexpr auto assign_v = ::ranges::overload(
         []<typename T, typename U> // clang-format off
@@ -452,26 +551,25 @@ namespace stdsharp::utility
         ) // clang-format on
     };
 
-    using advance = decltype(::stdsharp::utility::advance_v); // clang-format off
-
-    inline constexpr auto returnable_invoke = []<typename Func, typename... Args>(
-        Func&& func,
-        Args&&... args 
-    ) noexcept(::stdsharp::utility::nothrow_invocable<Func, Args...>)
-        -> decltype(auto) // clang-format on
-    {
-        const auto invoker = [&]() //
-            noexcept(::stdsharp::utility::nothrow_invocable<Func, Args...>)
+    inline constexpr ::stdsharp::utility::invocable_obj returnable_invoke(
+        nodiscard_tag,
+        []<typename Func, typename... Args>(Func&& func, Args&&... args) //
+        noexcept(::stdsharp::utility::nothrow_invocable<Func, Args...>)
+            ->decltype(auto)
         {
-            return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
-        };
-        if constexpr(::std::same_as<::std::invoke_result_t<decltype(invoker)>, void>)
-        {
-            invoker();
-            return empty{};
-        } // clang-format off
-        else return invoker();
-    };
+            const auto invoker = [&]() //
+                noexcept(::stdsharp::utility::nothrow_invocable<Func, Args...>)
+            {
+                return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
+            };
+            if constexpr(::std::same_as<::std::invoke_result_t<decltype(invoker)>, void>)
+            {
+                invoker();
+                return ::stdsharp::utility::empty;
+            } // clang-format off
+            else return invoker(); // clang-format on
+        } //
+    );
 
     inline constexpr auto merge_invoke = []<::std::invocable... Func>(Func&& ... func)
         noexcept(
