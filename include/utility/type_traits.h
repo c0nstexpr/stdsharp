@@ -11,7 +11,7 @@ namespace stdsharp::utility
 {
     inline constexpr struct empty_t final
     {
-    };
+    } empty;
 
     template<typename T>
     inline constexpr ::std::type_identity<T> type_identity_v{};
@@ -78,6 +78,12 @@ namespace stdsharp::utility
 
     template<typename T>
     concept member_pointer = ::std::is_member_pointer_v<T>;
+
+    template<typename T>
+    concept polymorphic = ::std::is_polymorphic_v<T>;
+
+    template<typename T>
+    concept final = ::std::is_final_v<T>;
 
     template<typename T>
     concept trivial = ::std::is_trivial_v<T>;
