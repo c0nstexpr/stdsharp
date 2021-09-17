@@ -610,7 +610,11 @@ namespace stdsharp::utility
             ::stdsharp::utility::returnable_invoke,
             ::std::forward<Func>(func) //
         );
-    };
+        } //
+    );
+
+    template<typename, typename...>
+    struct cpo_invoke_fn;
 
     namespace details
     {
@@ -639,6 +643,18 @@ namespace stdsharp::utility
             BS_UTILITY_PROJECTOR_OPERATOR_DEF()
 #undef BS_UTILITY_PROJECTOR_OPERATOR_DEF
         };
+
+        template<typename CPOTag>
+        struct cpo_fn
+        {
+            template<typename... T>
+            constexpr decltype(auto) operator()(T&&... t) const noexcept
+            {
+                return ::stdsharp::utility::cpo_invoke_fn<CPOTag, ::std::remove_const_t<T>...>::
+                    invoke(::std::forward<T>(t)... // clang-format off
+                ); // clang-format on
+            }
+        };
     }
 
     // clang-format off
@@ -648,4 +664,7 @@ namespace stdsharp::utility
             return ::stdsharp::utility::details::projector<Func>{::std::forward<Func>(func)};
         } // clang-format on
     };
+
+    template<typename CPOTag>
+    inline constexpr ::stdsharp::utility::details::cpo_fn<CPOTag> cpo{};
 }
