@@ -49,6 +49,7 @@ namespace stdsharp::test::utility::traits
         static boost::ut::suite suite = []
         {
             using namespace std;
+            using namespace std::literals;
             using namespace boost::ut;
             using namespace bdd;
             using namespace stdsharp::utility;
@@ -316,21 +317,12 @@ namespace stdsharp::test::utility::traits
             {
                 given("given values") = []
                 {
-                    constexpr auto pack_size = sizeof...(Values);
-                    string format_str = "values: ";
-
-                    if constexpr(pack_size > 0)
-                    {
-                        constexpr auto single_format_str = to_array("{}, ");
-                        format_str.reserve(
-                            format_str.size() + pack_size * single_format_str.size() //
-                        );
-                        for(size_t i = 0; i < pack_size - 1; ++i)
-                            format_str += single_format_str.data();
-                        format_str += "{}";
-                    }
-
-                    print(fmt::format(format_str, Values...));
+                    print( //
+                        fmt::format(
+                            "values: {}", // clang-format off
+                            fmt::join(std::tuple{Values...}, ", ")
+                        ) // clang-format on
+                    );
 
                     then("use seq as unique_value_sequence_t template arg, "
                          "type should be expected") = []

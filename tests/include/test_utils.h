@@ -1,6 +1,7 @@
 #pragma once
 #include <boost/ut.hpp>
 #include <fmt/ranges.h>
+#include <gsl/gsl>
 
 namespace stdsharp::test::utility
 {

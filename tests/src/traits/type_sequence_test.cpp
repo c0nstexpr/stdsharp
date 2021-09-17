@@ -61,6 +61,7 @@ namespace stdsharp::test::utility::traits
     {
         static boost::ut::suite suite = []()
         {
+            using namespace std::literals;
             using namespace boost::ut;
             using namespace bdd;
             using namespace stdsharp::utility;
@@ -288,21 +289,12 @@ namespace stdsharp::test::utility::traits
             {
                 given("given types") = []
                 {
-                    constexpr auto pack_size = sizeof...(Types);
-                    std::string format_str = "types: ";
-
-                    if constexpr(pack_size > 0)
-                    {
-                        constexpr auto single_format_str = std::to_array("{}, ");
-                        format_str.reserve(
-                            format_str.size() + pack_size * single_format_str.size() //
-                        );
-                        for(std::size_t i = 0; i < pack_size - 1; ++i)
-                            format_str += single_format_str.data();
-                        format_str += "{}";
-                    }
-
-                    print(fmt::format(format_str, reflection::type_name<Types>()...));
+                    print( //
+                        fmt::format(
+                            "types: {}", // clang-format off
+                            fmt::join(std::tuple{reflection::type_name<Types>()...}, ", ")
+                        ) // clang-format on
+                    );
 
                     then("use seq as unique_type_sequence_t template arg, "
                          "type should be expected") = []
