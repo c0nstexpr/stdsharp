@@ -22,73 +22,28 @@ namespace stdsharp::functional
                 ::stdsharp::concepts::nothrow_invocable<Func, T..., Args...>;
 
         public:
-            template<typename... Args>
-                requires ::std::invocable<const Func, const T..., Args...>
-            constexpr decltype(auto) operator()(Args&&... args) const& //
-                noexcept(bind_ref_front_invoker::noexcept_v<Args...>)
-            {
-                return ::std::apply(
-                    [&args...](auto&... t) noexcept(bind_ref_front_invoker::noexcept_v<Args...>) //
-                    -> decltype(auto)
-                    {
-                        return ::std::invoke(t..., ::std::forward<Args>(args)...); //
-                    },
-                    static_cast<const base&>(*this) //
-                );
-            }
+#define BS_BIND_REF_OPERATOR(const_, ref)                                                        \
+    template<typename... Args>                                                                   \
+        requires ::std::invocable<const Func, const T..., Args...>                               \
+    constexpr decltype(auto) operator()(Args&&... args)                                          \
+        const_ ref noexcept(bind_ref_front_invoker::noexcept_v<Args...>)                         \
+    {                                                                                            \
+        return ::std::apply(                                                                     \
+            [&]<typename... U>(U && ... t) noexcept(bind_ref_front_invoker::noexcept_v<Args...>) \
+                ->decltype(auto)                                                                 \
+            { return ::std::invoke(::std::forward<U>(t)..., ::std::forward<Args>(args)...); },   \
+            static_cast<const_ base ref>(*this));                                                \
+    }
 
-            template<typename... Args>
-                requires ::std::invocable<Func, T..., Args...>
-            constexpr decltype(auto) operator()(Args&&... args) & //
-                noexcept(bind_ref_front_invoker::noexcept_v<Args...>)
-            {
-                return ::std::apply(
-                    [&args...](auto&... t) noexcept(bind_ref_front_invoker::noexcept_v<Args...>) //
-                    -> decltype(auto)
-                    {
-                        return ::std::invoke(t..., ::std::forward<Args>(args)...); //
-                    },
-                    static_cast<base&>(*this) //
-                );
-            }
+#define BS_BIND_REF_OPERATOR_PACK(const_) \
+    BS_BIND_REF_OPERATOR(const_, &)       \
+    BS_BIND_REF_OPERATOR(const_, &&)
 
-            template<typename... Args>
-                requires ::std::invocable<const Func, const T..., Args...>
-            constexpr decltype(auto) operator()(Args&&... args) const&& //
-                noexcept(bind_ref_front_invoker::noexcept_v<Args...>)
-            {
-                return ::std::apply( // clang-format off
-                        [&]<typename... U>(U&&... t)
-                            noexcept(bind_ref_front_invoker::noexcept_v<Args...>)
-                            ->decltype(auto)
-                        {
-                            return ::std::invoke(
-                                ::std::forward<U>(t)...,
-                                ::std::forward<Args>(args)...
-                            );
-                        }, // clang-format on
-                    static_cast<const base&&>(*this) //
-                );
-            }
+            BS_BIND_REF_OPERATOR_PACK()
+            BS_BIND_REF_OPERATOR_PACK(const)
 
-            template<typename... Args>
-                requires ::std::invocable<Func, T..., Args...>
-            constexpr decltype(auto) operator()(Args&&... args) && //
-                noexcept(bind_ref_front_invoker::noexcept_v<Args...>)
-            {
-                return ::std::apply( // clang-format off
-                        [&]<typename... U>(U&&... t)
-                            noexcept(bind_ref_front_invoker::noexcept_v<Args...>)
-                            ->decltype(auto)
-                        {
-                            return ::std::invoke(
-                                ::std::forward<U>(t)...,
-                                ::std::forward<Args>(args)...
-                            );
-                        }, // clang-format on
-                    static_cast<base&&>(*this) //
-                );
-            }
+#undef BS_BIND_REF_OPERATOR_PACK
+#undef BS_BIND_REF_OPERATOR
         };
 
         template<typename Func, typename... T>
