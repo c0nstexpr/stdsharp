@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include "utility/functional.h"
+#include "functional/functional.h"
 
 namespace stdsharp::utility::property
 {
     template<::std::invocable GetterFn>
-    class getter : public ::stdsharp::utility::invocable_obj<GetterFn>
+    class getter : public ::stdsharp::functional::invocable_obj<GetterFn>
     {
     public:
-        using base = ::stdsharp::utility::invocable_obj<GetterFn>;
+        using base = ::stdsharp::functional::invocable_obj<GetterFn>;
 
         using base::base;
 
@@ -20,12 +20,12 @@ namespace stdsharp::utility::property
     template<typename T>
     getter(T&& t) -> getter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::stdsharp::utility::invocable_obj value_getter{
-        ::stdsharp::utility::nodiscard_tag,
+    inline constexpr ::stdsharp::functional::invocable_obj value_getter{
+        ::stdsharp::functional::nodiscard_tag,
         [](auto& t) noexcept
         {
             return ::stdsharp::utility::property::getter{
-                ::stdsharp::utility::bind_ref_front(identity_v, t) //
+                ::stdsharp::functional::bind_ref_front(::stdsharp::functional::identity_v, t) //
             };
         } //
     };

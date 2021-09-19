@@ -7,10 +7,10 @@
     #include <fmt/format.h>
 #endif
 
-#include "functional.h"
-#include "utility/cassert.h"
+#include "functional/functional.h"
+#include "cassert/cassert.h"
 
-namespace stdsharp::utility
+namespace stdsharp::algorithm
 {
     // clang-format off
     inline constexpr auto set_if = []<typename T, typename U, ::std::predicate<T, U> Comp>(
@@ -18,8 +18,8 @@ namespace stdsharp::utility
         U&& right,
         Comp comp = {}
     ) noexcept(
-        ::stdsharp::utility::nothrow_invocable_r<bool, Comp, U&, T&> &&
-        ::stdsharp::utility::nothrow_assignable_from<T, U>
+        ::stdsharp::concepts::nothrow_invocable_r<bool, Comp, U&, T&> &&
+        ::stdsharp::concepts::nothrow_assignable_from<T, U>
     ) -> T&
     {
         // clang-format on
@@ -30,31 +30,32 @@ namespace stdsharp::utility
     inline constexpr auto set_if_greater = []<typename T, typename U>(T& left, U&& right) //
         noexcept( //
             noexcept( //
-                ::stdsharp::utility::set_if(
+                ::stdsharp::algorithm::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::stdsharp::utility::greater_v // clang-format off
+                    ::stdsharp::functional::greater_v // clang-format off
                 )
             )
         ) -> T& // clang-format on
     {
-        return ::stdsharp::utility::set_if(
-            left, ::std::forward<U>(right), ::stdsharp::utility::greater_v //
+        return ::stdsharp::algorithm::set_if(
+            left, ::std::forward<U>(right), ::stdsharp::functional::greater_v //
         ); //
     };
 
     inline constexpr auto set_if_less = []<typename T, typename U>(T& left, U&& right) //
         noexcept( //
             noexcept( //
-                ::stdsharp::utility::set_if(
+                ::stdsharp::algorithm::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::stdsharp::utility::less_v // clang-format off
+                    ::stdsharp::functional::less_v // clang-format off
                 )
             )
         ) -> T& // clang-format on
     {
-        return ::stdsharp::utility::set_if(left, ::std::forward<U>(right), less_v); //
+        return ::stdsharp::algorithm::set_if(
+            left, ::std::forward<U>(right), ::stdsharp::functional::less_v); //
     };
 
     namespace details
@@ -77,12 +78,12 @@ namespace stdsharp::utility
                     requires ::std::predicate<Compare, const proj_t, const proj_min> &&
                         ::std::predicate<Compare, const proj_max, const proj_t> &&
                         ::std::predicate<Compare, const proj_max, const proj_min>
-                static constexpr bool nothrow_v = !::stdsharp::utility::is_debug &&
-                    ::stdsharp::utility::
+                static constexpr bool nothrow_v = !::stdsharp::cassert::is_debug &&
+                    ::stdsharp::concepts::
                         nothrow_predicate<Compare, const proj_t, const proj_min> && //
-                    ::stdsharp::utility::
+                    ::stdsharp::concepts::
                         nothrow_predicate<Compare, const proj_max, const proj_t> && //
-                    ::stdsharp::utility::
+                    ::stdsharp::concepts::
                         nothrow_predicate<Compare, const proj_max, const proj_min> //
 
                     ;
@@ -90,38 +91,36 @@ namespace stdsharp::utility
         };
     }
 
-    // clang-format off
-    inline constexpr ::stdsharp::utility::invocable_obj is_between{
+    inline constexpr ::stdsharp::functional::invocable_obj is_between(
+        ::stdsharp::functional::nodiscard_tag,
         []< // clang-format on
-        typename T,
-        typename U,
-        typename V,
-        typename Compare = ::std::ranges::less,
-        typename Proj = ::std::identity,
-        auto noexcept_ = ::stdsharp::utility::details:: // clang-format off
-                is_between_fn::require<T, U, V, Proj>::template nothrow_v<Compare>
-        >
-        (
+            typename T,
+            typename U,
+            typename V,
+            typename Compare = ::std::ranges::less,
+            typename Proj = ::std::identity,
+            auto noexcept_ = ::stdsharp::algorithm::details:: // clang-format off
+            is_between_fn::require<T, U, V, Proj>::template nothrow_v<Compare>
+        >( // clang-format on
             T&& v,
             U&& min,
             V&& max,
             Compare cmp = {},
-            Proj proj = {}
-        ) noexcept(noexcept_)
+            Proj proj = {} // clang-format off
+        ) noexcept(noexcept_) // clang-format on
         {
-            using traits = ::stdsharp::utility::details::
-                is_between_fn::require<T, U, V, Proj>;
+            using traits_ = ::stdsharp::algorithm::details::is_between_fn::require<T, U, V, Proj>;
 
             const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
             const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
             const auto& projected_max = ::std::invoke(proj, ::std::forward<V>(max));
 
-            if constexpr(::stdsharp::utility::is_debug)
-                if(::stdsharp::utility::invoke_r<bool>(cmp, projected_max, projected_min))
+            if constexpr(::stdsharp::cassert::is_debug)
+                if(::stdsharp::functional::invoke_r<bool>(cmp, projected_max, projected_min))
                 {
                     if constexpr(
-                        ::fmt::is_formattable<typename traits::proj_min>::value &&
-                        ::fmt::is_formattable<typename traits::proj_max>::value
+                        ::fmt::is_formattable<typename traits_::proj_min>::value &&
+                        ::fmt::is_formattable<typename traits_::proj_max>::value // clang-format off
                     ) throw ::std::invalid_argument{
                         ::fmt::format(
                             "projected max value {} "
@@ -132,11 +131,11 @@ namespace stdsharp::utility
                     };
                     else throw ::std::invalid_argument{
                         "projected max value should not less than projected min value"
-                    };
+                    }; // clang-format on
                 }
 
-            return !::stdsharp::utility::invoke_r<bool>(cmp, projected_v, projected_min) &&
-                !::stdsharp::utility::invoke_r<bool>(cmp, projected_max, projected_v);
-        }
-    }; // clang-format on
+            return !::stdsharp::functional::invoke_r<bool>(cmp, projected_v, projected_min) &&
+                !::stdsharp::functional::invoke_r<bool>(cmp, projected_max, projected_v);
+        } //
+    );
 }

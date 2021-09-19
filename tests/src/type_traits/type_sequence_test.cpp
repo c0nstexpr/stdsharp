@@ -1,7 +1,7 @@
-#include "traits/type_sequence_test.h"
-#include "utility/traits/type_sequence.h"
+#include "type_traits/type_sequence_test.h"
+#include "type_traits/type_sequence.h"
 
-namespace stdsharp::test::utility::traits
+namespace stdsharp::test::type_traits
 {
     namespace
     {
@@ -10,12 +10,12 @@ namespace stdsharp::test::utility::traits
         {
         };
 
-        template<typename, std::size_t>
+        template<typename, size_t>
         struct find_test_params
         {
         };
 
-        template<typename T, std::size_t Expect>
+        template<typename T, size_t Expect>
         using count_test_params = find_test_params<T, Expect>;
 
         template<template<typename...> typename T>
@@ -29,15 +29,16 @@ namespace stdsharp::test::utility::traits
         };
 
         template<typename Seq, typename Expect>
-        using indexed_t_test_params = std::tuple<Seq, Expect>;
+        using indexed_t_test_params = stdsharp::type_traits::regular_type_sequence<Seq, Expect>;
 
         template<typename Seq, typename Expect, typename FrontExpect>
-        using append_by_seq_t_test_params = std::tuple<Seq, Expect, FrontExpect>;
+        using append_by_seq_t_test_params =
+            stdsharp::type_traits::regular_type_sequence<Seq, Expect, FrontExpect>;
 
         template<typename Seq, typename Expect>
-        using remove_t_test_params = std::tuple<Seq, Expect>;
+        using remove_t_test_params = stdsharp::type_traits::regular_type_sequence<Seq, Expect>;
 
-        template<std::size_t, typename, typename>
+        template<size_t, typename, typename>
         struct insert_by_seq_t_test_params
         {
         };
@@ -49,22 +50,23 @@ namespace stdsharp::test::utility::traits
     }
 
     template<typename... T>
-    using type_sequence = stdsharp::utility::traits::type_sequence<T...>;
+    using type_sequence = stdsharp::type_traits::type_sequence<T...>;
 
     template<auto... V>
-    using regular_value_sequence = stdsharp::utility::traits::regular_value_sequence<V...>;
+    using regular_value_sequence = stdsharp::type_traits::regular_value_sequence<V...>;
 
     template<typename... T>
-    using regular_type_sequence = stdsharp::utility::traits::regular_type_sequence<T...>;
+    using regular_type_sequence = stdsharp::type_traits::regular_type_sequence<T...>;
 
     boost::ut::suite& type_sequence_test()
     {
-        static boost::ut::suite suite = []()
+        static boost::ut::suite suite = []
         {
-            using namespace std::literals;
+            using namespace std;
+            using namespace literals;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::utility;
+            using namespace type_traits;
 
             using test_seq = type_sequence<int, float, char, unsigned, float>;
 
@@ -72,8 +74,8 @@ namespace stdsharp::test::utility::traits
 
             feature("construct") = []
             {
-                static_expect<std::default_initializable<type_sequence<>>>();
-                static_expect<std::default_initializable<test_seq>>();
+                static_expect<default_initializable<type_sequence<>>>();
+                static_expect<default_initializable<test_seq>>();
             };
 
             feature("get_t") = []<auto I, typename Expect>(const get_test_params<I, Expect>)
@@ -87,11 +89,11 @@ namespace stdsharp::test::utility::traits
                         using actual_t = test_seq::get_t<I>;
 
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
-                        static_expect<std::same_as<actual_t, Expect>>() << //
+                        static_expect<same_as<actual_t, Expect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 get_test_params<0, int>,
                 get_test_params<1, float>,
                 get_test_params<2, char>,
@@ -106,10 +108,10 @@ namespace stdsharp::test::utility::traits
 
                     then("sequence invoke should be invocable") = [] //
                     {
-                        static_expect<std::invocable<decltype(test_seq::invoke), T>>(); //
+                        static_expect<invocable<decltype(test_seq::invoke), T>>(); //
                     };
                 };
-            } | std::tuple<std::identity>{};
+            } | tuple<identity>{};
 
             feature("find") = []<typename T, auto Expect>(const find_test_params<T, Expect>)
             {
@@ -119,12 +121,13 @@ namespace stdsharp::test::utility::traits
 
                     then("found index should be expected") = []
                     {
-                        constexpr auto i = test_seq::find(std::type_identity<T>{});
+                        constexpr auto i =
+                            test_seq::find(stdsharp::type_traits::type_constant_v<T>);
                         print(fmt::format("expected: {}", Expect));
                         static_expect<i == Expect>() << fmt::format("actual index: {}", i);
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 find_test_params<float, 1>,
                 find_test_params<char, 2>,
                 find_test_params<void, test_seq::size>
@@ -138,12 +141,13 @@ namespace stdsharp::test::utility::traits
 
                     then("count should be expected") = []
                     {
-                        constexpr auto count = test_seq::count(type_identity_v<T>);
+                        constexpr auto count =
+                            test_seq::count(stdsharp::type_traits::type_constant_v<T>);
                         print(fmt::format("expected: {}", Expect));
                         static_expect<count == Expect>() << fmt::format("actual count: {}", count);
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 count_test_params<int, 1>,
                 count_test_params<float, 2>,
                 count_test_params<void, 0>
@@ -158,10 +162,10 @@ namespace stdsharp::test::utility::traits
 
                     then("type that is applied sequence types should be constructible") = []
                     {
-                        static_expect<_b(std::default_initializable<test_seq::apply_t<T>>)>(); //
+                        static_expect<_b(default_initializable<test_seq::apply_t<T>>)>(); //
                     };
                 }; // clang-format off
-            } | std::tuple<apply_t_test_params<regular_type_sequence>>{}; // clang-format on
+            } | tuple<apply_t_test_params<regular_type_sequence>>{}; // clang-format on
 
             // clang-format off
             feature("indexed_by_seq_t") = []<typename T, typename Expect>(
@@ -177,18 +181,18 @@ namespace stdsharp::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t = test_seq::indexed_by_seq_t<T>;
-                        static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+                        static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 indexed_t_test_params<
                     regular_value_sequence<1, 2>,
                     regular_type_sequence<float, char>
                 >,
                 indexed_t_test_params<
                     regular_value_sequence<2, 4>,
-                    regular_type_sequence<float, float>
+                    regular_type_sequence<char, float>
                 >
             >{}; // clang-format on
 
@@ -207,7 +211,7 @@ namespace stdsharp::test::utility::traits
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
 
                         using actual_t = test_seq::append_by_seq_t<Seq>;
-                        static_expect<std::same_as<actual_t, Expect>>() << //
+                        static_expect<same_as<actual_t, Expect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
 
@@ -219,11 +223,11 @@ namespace stdsharp::test::utility::traits
                         ); // clang-format on
 
                         using actual_t = test_seq::append_front_by_seq_t<Seq>;
-                        static_expect<std::same_as<actual_t, FrontExpect>>() << //
+                        static_expect<same_as<actual_t, FrontExpect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 append_by_seq_t_test_params<
                     regular_type_sequence<void, int*>,
                     regular_type_sequence<int, float, char, unsigned, float, void, int*>,
@@ -232,7 +236,7 @@ namespace stdsharp::test::utility::traits
             >{}; // clang-format on
 
             // clang-format off
-            feature("insert_by_seq_t") = []<std::size_t Index, typename Seq, typename Expect>(
+            feature("insert_by_seq_t") = []<size_t Index, typename Seq, typename Expect>(
                 const insert_by_seq_t_test_params<Index, Seq, Expect>
             ) // clang-format on
             {
@@ -245,15 +249,15 @@ namespace stdsharp::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t = test_seq::insert_by_seq_t<Index, Seq>;
-                        static_expect<std::same_as<actual_t, Expect>>() << //
+                        static_expect<same_as<actual_t, Expect>>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 insert_by_seq_t_test_params<
                     3,
                     regular_type_sequence<void, int*>,
-                    regular_type_sequence<int, float, char, unsigned, void, int*, float>
+                    regular_type_sequence<int, float, char, void, int*, unsigned, float>
                 >
             >{}; // clang-format on
 
@@ -271,11 +275,11 @@ namespace stdsharp::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t = test_seq::remove_at_by_seq_t<T>;
-                        static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+                        static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 indexed_t_test_params<
                     regular_value_sequence<1, 2>,
                     regular_type_sequence<int, unsigned, float>
@@ -292,7 +296,7 @@ namespace stdsharp::test::utility::traits
                     print( //
                         fmt::format(
                             "types: {}", // clang-format off
-                            fmt::join(std::tuple{reflection::type_name<Types>()...}, ", ")
+                            fmt::join(tuple{reflection::type_name<Types>()...}, ", ")
                         ) // clang-format on
                     );
 
@@ -300,17 +304,16 @@ namespace stdsharp::test::utility::traits
                          "type should be expected") = []
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
-                        using actual_t =
-                            stdsharp::utility::traits::unique_type_sequence_t<Types...>;
-                        static_expect<_b(std::same_as<actual_t, Expect>)>() << //
+                        using actual_t = stdsharp::type_traits::unique_type_sequence_t<Types...>;
+                        static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };
                 }; // clang-format off
-            } | std::tuple<
+            } | tuple<
                 unique_seq_t_test_params<regular_type_sequence<>>,
                 unique_seq_t_test_params<
-                    regular_type_sequence<int, float, int, void, char, void>,
-                    int, float, void, char
+                    regular_type_sequence<int, float, void, char>,
+                    int, float, int, void, char, void
                 >
             >{}; // clang-format on
         };

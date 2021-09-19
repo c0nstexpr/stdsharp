@@ -1,7 +1,7 @@
 #include "algorithm_test.h"
-#include "utility/algorithm.h"
+#include "algorithm/algorithm.h"
 
-namespace stdsharp::test::utility
+namespace stdsharp::test::algorithm
 {
     boost::ut::suite& algorithm_test()
     {
@@ -10,7 +10,7 @@ namespace stdsharp::test::utility
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::utility;
+            using namespace stdsharp::algorithm;
 
             feature("set_if") = []<auto First, auto Second>( // clang-format off
                 const static_params<First, Second> 
@@ -22,7 +22,7 @@ namespace stdsharp::test::utility
 
                     then("base on comparison result to set value") = []
                     {
-                        constexpr auto order = std::partial_order(Second, First);
+                        constexpr auto order = partial_order(Second, First);
                         constexpr auto greater =
                             order > 0; // NOLINT(hicpp-use-nullptr,modernize-use-nullptr)
                         constexpr auto less =
@@ -42,7 +42,7 @@ namespace stdsharp::test::utility
                             fmt::format("value should {} be set in set_if_less", less ? "" : "not");
                     };
                 }; // clang-format off
-            } | std::tuple<static_params<1, 2>, static_params<2, 1>>{};
+            } | tuple<static_params<1, 2>, static_params<2, 1>>{};
             // clang-format on
 
             feature("is_between") = []<auto Value, auto Min, auto Max>( //
@@ -60,7 +60,7 @@ namespace stdsharp::test::utility
                         "value should not between min-max"
                     ) = [] { static_expect<is_between(Value, Min, Max) == is_in_range>(); };
                 };
-            } | std::tuple<
+            } | tuple<
                 static_params<1, 1, 2>,
                 static_params<3, 2, 3>,
                 static_params<4, 2, 4>,

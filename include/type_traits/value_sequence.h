@@ -6,9 +6,9 @@
 #include <ranges>
 #include <variant>
 
-#include "utility/functional.h"
+#include "functional/functional.h"
 
-namespace stdsharp::utility::traits
+namespace stdsharp::type_traits
 {
     template<auto...>
     struct regular_value_sequence
@@ -27,17 +27,17 @@ namespace stdsharp::utility::traits
         template<template<auto...> typename U>
         using apply_t = U<Values...>;
 
-        using as_sequence_t = ::stdsharp::utility::traits::regular_value_sequence<Values...>;
+        using as_sequence_t = ::stdsharp::type_traits::regular_value_sequence<Values...>;
 
-        using as_value_sequence_t = ::stdsharp::utility::traits::value_sequence<Values...>;
+        using as_value_sequence_t = ::stdsharp::type_traits::value_sequence<Values...>;
     };
 
     template<typename Sequence>
     using to_regular_value_sequence_t =
-        typename ::stdsharp::utility::traits::take_value_sequence<Sequence>::as_vsequence_t;
+        typename ::stdsharp::type_traits::take_value_sequence<Sequence>::as_vsequence_t;
 
     template<typename Sequence> // clang-format off
-    using to_value_sequence_t = typename ::stdsharp::utility::traits::
+    using to_value_sequence_t = typename ::stdsharp::type_traits::
         take_value_sequence<Sequence>::as_value_sequence_t; // clang-format on
 
     namespace details
@@ -45,19 +45,18 @@ namespace stdsharp::utility::traits
         template<auto From, auto PlusF, ::std::size_t... I>
             requires requires
             {
-                ::stdsharp::utility::traits::regular_value_sequence<::std::invoke(
-                    PlusF, From, I)...>{};
+                ::stdsharp::type_traits::regular_value_sequence<::std::invoke(PlusF, From, I)...>{};
             }
         constexpr auto make_sequence(::std::index_sequence<I...>) noexcept
         {
-            return ::stdsharp::utility::traits::regular_value_sequence<::std::invoke(
+            return ::stdsharp::type_traits::regular_value_sequence<::std::invoke(
                 PlusF, From, I)...>{};
         }
     }
 
-    template<auto From, ::std::size_t Size, auto PlusF = ::stdsharp::utility::plus_v>
+    template<auto From, ::std::size_t Size, auto PlusF = ::stdsharp::functional::plus_v>
     using make_value_sequence_t = decltype( //
-        ::stdsharp::utility::traits::details::make_sequence<From, PlusF>(
+        ::stdsharp::type_traits::details::make_sequence<From, PlusF>(
             ::std::make_index_sequence<Size>{} // clang-format off
         ) // clang-format on
     );
@@ -67,10 +66,12 @@ namespace stdsharp::utility::traits
         template<auto... Values>
         struct reverse_value_sequence
         {
-            using seq = ::stdsharp::utility::traits::value_sequence<Values...>;
+            using seq = ::stdsharp::type_traits::value_sequence<Values...>;
             using type = typename seq::template indexed_by_seq_t<
-                ::stdsharp::utility::traits::
-                    make_value_sequence_t<seq::size - 1, seq::size, minus_v> // clang-format off
+                ::stdsharp::type_traits::make_value_sequence_t<
+                    seq::size - 1,
+                    seq::size,
+                    ::stdsharp::functional::minus_v> // clang-format off
             >; // clang-format on
         };
 
@@ -87,8 +88,8 @@ namespace stdsharp::utility::traits
                     {
                         if(j == I) return true;
                         ++j;
-                        return ::stdsharp::utility::equal_to_v(seq::template get<I>(), v);
-                    } 
+                        return ::stdsharp::functional::equal_to_v(seq::template get<I>(), v);
+                    }
                 ) == I; // clang-format on
             }
 
@@ -97,8 +98,7 @@ namespace stdsharp::utility::traits
             {
                 ::std::array<size_t, seq::size> indices{};
                 ::std::size_t valid_size = 0;
-                const auto f =
-                    [&]<::std::size_t J>(const ::stdsharp::utility::constant<J>) noexcept
+                const auto f = [&]<::std::size_t J>(const type_traits::constant<J>) noexcept
                 {
                     if(is_valid<J>())
                     {
@@ -107,24 +107,24 @@ namespace stdsharp::utility::traits
                     }
                 };
 
-                (f(::stdsharp::utility::constant<I>{}), ...);
+                (f(type_traits::constant<I>{}), ...);
 
                 return ::std::pair{indices, valid_size};
             }
             (typename seq::index_seq{});
 
             template<::std::size_t... I>
-            using filtered_seq = ::stdsharp::utility::traits:: //
+            using filtered_seq = ::stdsharp::type_traits:: //
                 regular_value_sequence<seq::template get<filtered_indices.first[I]>()...>;
 
-            using type = typename ::stdsharp::utility::traits::take_value_sequence< //
-                ::stdsharp::utility::traits:: //
+            using type = typename ::stdsharp::type_traits::take_value_sequence< //
+                ::stdsharp::type_traits:: //
                 make_value_sequence_t<::std::size_t{}, filtered_indices.second> // clang-format off
             >::template apply_t<filtered_seq>; // clang-format on
         };
 
         template<::std::size_t I, auto Value>
-        struct indexed_value : ::stdsharp::utility::constant<Value>
+        struct indexed_value : stdsharp::type_traits::constant<Value>
         {
             template<::std::size_t J>
                 requires(I == J)
@@ -135,28 +135,29 @@ namespace stdsharp::utility::traits
         struct value_sequence;
 
         template<auto... Values, size_t... I>
-        struct value_sequence<traits::value_sequence<Values...>, ::std::index_sequence<I...>> :
-            ::stdsharp::utility::traits::details::indexed_value<I, Values>...
+        struct value_sequence<
+            ::stdsharp::type_traits::value_sequence<Values...>,
+            ::std::index_sequence<I...>> :
+            ::stdsharp::type_traits::details::indexed_value<I, Values>...
         {
             using indexed_value<I, Values>::get...;
 
             using index_seq = ::std::index_sequence<I...>;
-
-            template<typename T, typename Comp>
-            static constexpr auto value_comparer(const T& value, Comp& comp = {}) noexcept
-            {
-                return [&comp, &value]<typename U>(const U& other) noexcept( // clang-format off
-                    !::std::invocable<Comp, U, T> ||
-                    ::stdsharp::utility::nothrow_invocable_r<Comp, bool, U, T>
-                ) // clang-format on
-                {
-                    if constexpr(::std::predicate<Comp, U, T>)
-                        return ::stdsharp::utility::invoke_r<bool>(
-                            comp, value, other); // clang-format off
-                    else return false; // clang-format on
-                };
-            }
         };
+
+        template<typename T, typename Comp>
+        static constexpr auto value_comparer(const T& value, Comp& comp = {}) noexcept
+        {
+            return ::ranges::overload(
+                [&comp, &value]<typename U> requires ::std::invocable<Comp, U, T> //
+                (const U& other) // clang-format off
+                    noexcept(::stdsharp::concepts::nothrow_invocable_r<Comp, bool, U, T>)
+                { // clang-format on
+                    return ::stdsharp::functional::invoke_r<bool>(comp, other, value);
+                },
+                [](const auto&) noexcept { return false; } //
+            );
+        }
 
         template<typename Proj, typename Func, auto... Values>
         concept value_sequence_invocable =
@@ -165,7 +166,7 @@ namespace stdsharp::utility::traits
 
         template<typename Proj, typename Func, auto... Values> // clang-format off
         concept value_sequence_nothrow_invocable = (
-            ::stdsharp::utility::
+            ::stdsharp::concepts::
                 nothrow_invocable<Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
             ...
         );
@@ -176,29 +177,29 @@ namespace stdsharp::utility::traits
 
         template<typename Proj, typename Func, auto... Values>
         concept value_sequence_nothrow_predicate = (
-            ::stdsharp::utility::
+            ::stdsharp::concepts::
                 nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
             ...
         );
     } // clang-format on
 
     template<auto... Values>
-    using reverse_value_sequence_t = typename ::stdsharp::utility::traits::details:: //
+    using reverse_value_sequence_t = typename ::stdsharp::type_traits::details:: //
         reverse_value_sequence<Values...>::type;
 
     template<auto... Values>
     using unique_value_sequence_t =
-        typename ::stdsharp::utility::traits::details::unique_value_sequence<Values...>::type;
+        typename ::stdsharp::type_traits::details::unique_value_sequence<Values...>::type;
 
     template<auto... Values> // clang-format off
-    struct value_sequence : private ::stdsharp::utility::traits::details::value_sequence<
-        ::stdsharp::utility::traits::value_sequence<Values...>,
+    struct value_sequence : private ::stdsharp::type_traits::details::value_sequence<
+        ::stdsharp::type_traits::value_sequence<Values...>,
         ::std::make_index_sequence<sizeof...(Values)>
     > // clang-format on
     {
     private:
-        using base = ::stdsharp::utility::traits::details::value_sequence<
-            ::stdsharp::utility::traits::value_sequence<Values...>,
+        using base = ::stdsharp::type_traits::details::value_sequence<
+            ::stdsharp::type_traits::value_sequence<Values...>,
             ::std::make_index_sequence<sizeof...(Values)> // clang-format off
         >; // clang-format on
 
@@ -222,21 +223,20 @@ namespace stdsharp::utility::traits
         static constexpr auto invoke = []<typename Func>
             requires(std::invocable<Func, decltype(Values)>&&...) // clang-format off
             (Func&& func) noexcept(
-                (::stdsharp::utility::nothrow_invocable<Func, decltype(Values)> && ...)
+                (::stdsharp::concepts::nothrow_invocable<Func, decltype(Values)> && ...)
             ) ->decltype(auto) // clang-format on
         {
-            return ::stdsharp::utility::merge_invoke(::std::bind_front(func, Values)...);
+            return ::stdsharp::functional::merge_invoke<>(::std::bind_front(func, Values)...);
         };
 
         template<template<auto...> typename T>
         using apply_t = T<Values...>;
 
         template<::std::size_t... OtherInts>
-        using indexed_t =
-            ::stdsharp::utility::traits::regular_value_sequence<get<OtherInts>()...>;
+        using indexed_t = ::stdsharp::type_traits::regular_value_sequence<get<OtherInts>()...>;
 
         template<typename Seq>
-        using indexed_by_seq_t = typename ::stdsharp::utility::traits:: //
+        using indexed_by_seq_t = typename ::stdsharp::type_traits:: //
             take_value_sequence<Seq>::template apply_t<indexed_t>;
 
     private:
@@ -246,13 +246,13 @@ namespace stdsharp::utility::traits
             [[nodiscard]] constexpr auto operator()() const noexcept
             {
                 if constexpr(sizeof...(Func) == 1)
-                    return []<auto F>(const ::stdsharp::utility::constant<F>) noexcept
+                    return []<auto F>(const ::stdsharp::type_traits::constant<F>) noexcept
                     {
-                        return ::stdsharp::utility::traits:: //
+                        return ::stdsharp::type_traits:: //
                             value_sequence<::std::invoke(F, Values)...>{};
                     }
-                (::stdsharp::utility::constant<Func...>{});
-                else return ::stdsharp::utility::traits:: //
+                (::stdsharp::type_traits::constant<Func...>{});
+                else return ::stdsharp::type_traits:: //
                     value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
             };
         };
@@ -267,11 +267,11 @@ namespace stdsharp::utility::traits
         {
             template<
                 typename Func,
-                ::stdsharp::utility::traits::details:: //
+                ::stdsharp::type_traits::details:: //
                 value_sequence_invocable<Func, Values...> Proj = ::std::identity // clang-format off
                 > // clang-format on
             constexpr auto operator()(Func func, Proj proj = {}) const noexcept( //
-                ::stdsharp::utility::traits::details::
+                ::stdsharp::type_traits::details::
                     value_sequence_nothrow_invocable<Proj, Func, Values...> //
             )
             {
@@ -284,17 +284,17 @@ namespace stdsharp::utility::traits
         {
             template<
                 typename Func,
-                ::stdsharp::utility::traits::details:: //
+                ::stdsharp::type_traits::details:: //
                 value_sequence_invocable<Func, Values...> Proj = ::std::identity // clang-format off
             > // clang-format on
             constexpr auto operator()(auto for_each_n_count, Func func, Proj proj = {}) const
                 noexcept( //
-                    ::stdsharp::utility::traits::details::
+                    ::stdsharp::type_traits::details::
                         value_sequence_nothrow_invocable<Proj, Func, Values...> //
                 )
             {
                 const auto f = [&]<typename T>(T&& v) noexcept( // clang-format off
-                    ::stdsharp::utility::nothrow_invocable<Func, std::invoke_result_t<Proj, T>>
+                    ::stdsharp::concepts::nothrow_invocable<Func, std::invoke_result_t<Proj, T>>
                 ) // clang-format on
                 {
                     if(for_each_n_count == 0) return false;
@@ -312,7 +312,7 @@ namespace stdsharp::utility::traits
         {
             template<
                 typename Func,
-                ::stdsharp::utility::traits::details:: //
+                ::stdsharp::type_traits::details:: //
                 value_sequence_predicate<Func, Values...> Proj = ::std::identity // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(Func func, Proj proj = {}) const
@@ -320,11 +320,11 @@ namespace stdsharp::utility::traits
             {
                 ::std::size_t i = 0; // clang-format off
                 const auto f = [&func, &proj, &i]<typename T>(T&& v) noexcept(
-                    ::stdsharp::utility::
+                    ::stdsharp::concepts::
                         nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, T>>
                 ) // clang-format on
                 {
-                    if(::stdsharp::utility:: //
+                    if(::stdsharp::functional:: //
                        invoke_r<bool>(func, ::std::invoke(proj, ::std::forward<T>(v))))
                         return false;
                     ++i;
@@ -341,14 +341,14 @@ namespace stdsharp::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::traits::details::
+                noexcept(::stdsharp::type_traits::details::
                              value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 return find_if(
                     [&](const auto& v) noexcept(
-                        ::stdsharp::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
+                        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, decltype(v)>)
                     {
-                        return !::stdsharp::utility::invoke_r<bool>(func, v); //
+                        return !::stdsharp::functional::invoke_r<bool>(func, v); //
                     },
                     ::std::forward<Proj>(proj) //
                 );
@@ -363,14 +363,16 @@ namespace stdsharp::utility::traits
                 Comp comp = {},
                 Proj&& proj = {} // clang-format off
             ) const noexcept(
-                ::stdsharp::utility::nothrow_invocable<
+                ::stdsharp::concepts::nothrow_invocable<
                     decltype(value_sequence::find_if),
-                    decltype(base::value_comparer(v, comp)),
+                    decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
                     Proj
                 >
             ) // clang-format on
             {
-                return find_if(base::value_comparer(v, comp), std::forward<Proj>(proj));
+                return find_if(
+                    stdsharp::type_traits::details::value_comparer(v, comp),
+                    std::forward<Proj>(proj));
             }
         } find{};
 
@@ -378,16 +380,16 @@ namespace stdsharp::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::traits::details::
+                noexcept(::stdsharp::type_traits::details::
                              value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 std::size_t i = 0;
                 for_each(
                     [&i, &func](const auto& v) noexcept(
-                        ::stdsharp::utility::nothrow_invocable_r<bool, Func, decltype(v)> //
+                        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, decltype(v)> //
                     )
                     {
-                        if(::stdsharp::utility::invoke_r<bool>(func, v)) ++i;
+                        if(::stdsharp::functional::invoke_r<bool>(func, v)) ++i;
                         return true;
                     },
                     ::std::forward<Proj>(proj) //
@@ -401,14 +403,14 @@ namespace stdsharp::utility::traits
         {
             template<typename Func, typename Proj = std::identity>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::traits::details::
+                noexcept(::stdsharp::type_traits::details::
                              value_sequence_nothrow_predicate<Proj, Func, Values...>)
             {
                 return count_if(
                     [&](const auto& v) noexcept(
-                        ::stdsharp::utility::nothrow_invocable_r<bool, Func, decltype(v)>)
+                        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, decltype(v)>)
                     {
-                        return !::stdsharp::utility::invoke_r<bool>(func, v); //
+                        return !::stdsharp::functional::invoke_r<bool>(func, v); //
                     },
                     ::std::forward<Proj>(proj) //
                 );
@@ -422,14 +424,16 @@ namespace stdsharp::utility::traits
                 const auto& v,
                 Comp comp = {},
                 Proj&& proj = {} // clang-format off
-            ) const noexcept(::stdsharp::utility::nothrow_invocable<
+            ) const noexcept(::stdsharp::concepts::nothrow_invocable<
                 decltype(count_if),
-                decltype(base::value_comparer(v, comp)),
+                decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
                 Proj
             >
             ) // clang-format on
             {
-                return count_if(base::value_comparer(v, comp), ::std::forward<Proj>(proj));
+                return count_if(
+                    stdsharp::type_traits::details::value_comparer(v, comp),
+                    ::std::forward<Proj>(proj));
             }
         } count{};
 
@@ -437,7 +441,7 @@ namespace stdsharp::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::
+                noexcept(::stdsharp::concepts::
                              nothrow_invocable<decltype(value_sequence::find_if_not), Func, Proj>)
             {
                 return find_if_not(std::forward<Func>(func), std::forward<Proj>(proj)) == size;
@@ -448,7 +452,7 @@ namespace stdsharp::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::
+                noexcept(::stdsharp::concepts::
                              nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
             {
                 return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) != size;
@@ -459,7 +463,7 @@ namespace stdsharp::utility::traits
         {
             template<typename Func, typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::
+                noexcept(::stdsharp::concepts::
                              nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
             {
                 return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) == size;
@@ -470,7 +474,7 @@ namespace stdsharp::utility::traits
         {
             template<typename Proj = ::std::identity>
             [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const
-                noexcept(::stdsharp::utility::
+                noexcept(::stdsharp::concepts::
                              nothrow_invocable<decltype(value_sequence::find), decltype(v), Proj>)
             {
                 return find(v, ::std::forward<Proj>(proj)) != size;
@@ -487,11 +491,12 @@ namespace stdsharp::utility::traits
                 using right_projected_t = std::invoke_result_t<Proj, decltype(get<I + 1>())>;
 
                 static constexpr auto invoke(Comp& comp, Proj& proj) noexcept(
-                    nothrow_invocable_r<bool, Comp, left_projected_t, right_projected_t>) requires
-                    invocable_r<bool, Comp, left_projected_t, right_projected_t>
-
+                    ::stdsharp::concepts:: // clang-format off
+                        nothrow_invocable_r<bool, Comp, left_projected_t, right_projected_t>
+                ) requires ::stdsharp::concepts::
+                    invocable_r<bool, Comp, left_projected_t, right_projected_t> // clang-format on
                 {
-                    return ::stdsharp::utility::invoke_r<bool>(
+                    return ::stdsharp::functional::invoke_r<bool>(
                         comp, ::std::invoke(proj, get<I>()), ::std::invoke(proj, get<I + 1>()) //
                     );
                 }
@@ -510,13 +515,13 @@ namespace stdsharp::utility::traits
                 {
                     ::std::size_t res{};
                     ((
-                         [&]<::std::size_t J>(const ::stdsharp::utility::constant<J>) //
+                         [&]<::std::size_t J>(const ::stdsharp::type_traits::constant<J>) //
                          noexcept(noexcept(by_index<J, Comp, Proj>::invoke(comp, proj)))
                          {
                              if(by_index<J, Comp, Proj>::invoke(comp, proj)) return true;
                              ++res;
                              return false;
-                         }(::stdsharp::utility::constant<I>{})) ||
+                         }(::stdsharp::type_traits::constant<I>{})) ||
                      ...);
                     return res;
                 }
@@ -526,7 +531,7 @@ namespace stdsharp::utility::traits
             template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
                 requires(::std::invocable<Proj, decltype(Values)>&&...)
             [[nodiscard]] constexpr auto operator()(Comp comp = {}, Proj proj = {}) const noexcept(
-                ::stdsharp::utility::
+                ::stdsharp::concepts::
                     nothrow_invocable<impl, Comp, Proj, ::std::make_index_sequence<size - 2>> //
             )
             {
@@ -558,19 +563,18 @@ namespace stdsharp::utility::traits
         using front_t = select_range_indexed_t<0, Size>;
 
         template<auto... Others>
-        using append_t =
-            ::stdsharp::utility::traits::regular_value_sequence<Values..., Others...>;
+        using append_t = ::stdsharp::type_traits::regular_value_sequence<Values..., Others...>;
 
         template<typename Seq>
-        using append_by_seq_t = typename ::stdsharp::utility::traits:: //
+        using append_by_seq_t = typename ::stdsharp::type_traits:: //
             take_value_sequence<Seq>::template apply_t<append_t>;
 
         template<auto... Others>
         using append_front_t =
-            ::stdsharp::utility::traits::regular_value_sequence<Others..., Values...>;
+            ::stdsharp::type_traits::regular_value_sequence<Others..., Values...>;
 
         template<typename Seq>
-        using append_front_by_seq_t = typename ::stdsharp::utility::traits:: //
+        using append_front_by_seq_t = typename ::stdsharp::type_traits:: //
             take_value_sequence<Seq>::template apply_t<append_front_t>;
 
     private:
@@ -578,8 +582,8 @@ namespace stdsharp::utility::traits
         struct insert
         {
             template<auto... Others>
-            using type = typename ::stdsharp::utility::traits::to_value_sequence_t<
-                typename ::stdsharp::utility::traits::to_value_sequence_t<front_t<Index>>:: //
+            using type = typename ::stdsharp::type_traits::to_value_sequence_t<
+                typename ::stdsharp::type_traits::to_value_sequence_t<front_t<Index>>:: //
                 template append_t<Others...> // clang-format off
             >::template append_by_seq_t<back_t<size - Index>>; // clang-format on
         };
@@ -631,8 +635,8 @@ namespace stdsharp::utility::traits
         using remove_at_by_seq_t = typename take_value_sequence<Seq>::template apply_t<remove_at_t>;
 
         template<::std::size_t Index, auto Other>
-        using replace_t = typename ::stdsharp::utility::traits::to_value_sequence_t<
-            typename ::stdsharp::utility::traits:: //
+        using replace_t = typename ::stdsharp::type_traits::to_value_sequence_t<
+            typename ::stdsharp::type_traits:: //
             to_value_sequence_t<front_t<Index>>::template append_t<Other> // clang-format off
         >::template append_by_seq_t<back_t<size - Index - 1>>; // clang-format on
     };
@@ -641,10 +645,10 @@ namespace stdsharp::utility::traits
 namespace std
 {
     template<::std::size_t I, auto... Values>
-    struct tuple_element<I, ::stdsharp::utility::traits::value_sequence<Values...>> :
+    struct tuple_element<I, ::stdsharp::type_traits::value_sequence<Values...>> :
         ::std::type_identity< // clang-format off
             decltype(
-                typename ::stdsharp::utility::traits::
+                typename ::stdsharp::type_traits::
                     value_sequence<Values...>::
                     template get<I>()
             )
@@ -653,9 +657,9 @@ namespace std
     };
 
     template<auto... Values>
-    struct tuple_size<::stdsharp::utility::traits::value_sequence<Values...>> :
-        ::stdsharp::utility::index_constant<
-            ::stdsharp::utility::traits::value_sequence<Values...>::size // clang-format off
+    struct tuple_size<::stdsharp::type_traits::value_sequence<Values...>> :
+        ::stdsharp::type_traits::index_constant<
+            ::stdsharp::type_traits::value_sequence<Values...>::size // clang-format off
         > // clang-format on
     {
     };

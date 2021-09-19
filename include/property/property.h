@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "utility/traits/object.h"
+#include "type_traits/object.h"
 #include "setter.h"
 #include "getter.h"
 
 namespace stdsharp::utility::property
 {
     template<typename GetterFn, typename SetterFn, typename GetterT, typename SetterT>
-    class property_member : ::stdsharp::utility::traits::fixed_object
+    class property_member : ::stdsharp::type_traits::fixed_object
     {
     public:
         using getter_t = GetterT;
@@ -23,22 +23,22 @@ namespace stdsharp::utility::property
         struct func_obj
         { // clang-format off
             static constexpr auto set = []<typename... Args>(property_member& p, Args&&... args)
-                noexcept(::stdsharp::utility::nothrow_invocable<setter_t, Args...>) // clang-format on
+                noexcept(::stdsharp::concepts::nothrow_invocable<setter_t, Args...>) // clang-format on
                 -> decltype(auto)
             {
                 return p.setter_(::std::forward<Args>(args)...);
             };
 
-            static constexpr ::stdsharp::utility::invocable_obj get{
+            static constexpr ::stdsharp::functional::invocable_obj get{
                 ::ranges::overload(
                     [](const property_member& p) // clang-format off
-                        noexcept(::stdsharp::utility::nothrow_invocable<getter_t>)
+                        noexcept(::stdsharp::concepts::nothrow_invocable<getter_t>)
                         -> decltype(auto) // clang-format on
                     {
                         return p.getter_(); //
                     },
                     [](property_member&& p) // clang-format off
-                        noexcept(::stdsharp::utility::nothrow_invocable<getter_t>)
+                        noexcept(::stdsharp::concepts::nothrow_invocable<getter_t>)
                         -> decltype(auto) // clang-format on
                     {
                         return ::std::move(p.getter_()); //
@@ -49,26 +49,26 @@ namespace stdsharp::utility::property
 
         template<typename... Args>
         constexpr decltype(auto) set(Args&&... args) //
-            noexcept(::stdsharp::utility::nothrow_invocable<setter_t, Args...>)
+            noexcept(::stdsharp::concepts::nothrow_invocable<setter_t, Args...>)
         {
             return func_obj::set(*this, ::std::forward<Args>(args)...);
         };
 
         constexpr decltype(auto) get() const& //
-            noexcept(::stdsharp::utility::nothrow_invocable<getter_t>)
+            noexcept(::stdsharp::concepts::nothrow_invocable<getter_t>)
         {
             return func_obj::get(*this);
         };
 
         constexpr decltype(auto) get() && //
-            noexcept(::stdsharp::utility::nothrow_invocable<getter_t>)
+            noexcept(::stdsharp::concepts::nothrow_invocable<getter_t>)
         {
             return func_obj::get(::std::move(*this));
         };
 
         template<typename T>
         constexpr auto& operator=(T&& t) //
-            noexcept(::stdsharp::utility::nothrow_assignable_from<setter_t, T>)
+            noexcept(::stdsharp::concepts::nothrow_assignable_from<setter_t, T>)
         {
             setter_ = std::forward<T>(t);
             return *this;

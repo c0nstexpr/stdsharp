@@ -1,7 +1,7 @@
 #include "property/property_test.h"
-#include "utility/property/property.h"
+#include "property/property.h"
 
-namespace stdsharp::test::utility::property
+namespace stdsharp::test::property
 {
     boost::ut::suite& property_test()
     {
@@ -11,6 +11,7 @@ namespace stdsharp::test::utility::property
             using namespace boost::ut;
             using namespace bdd;
             using namespace stdsharp::utility;
+            using namespace stdsharp::functional;
             using namespace stdsharp::utility::property;
 
             feature("getter and setter") = []

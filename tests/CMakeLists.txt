@@ -9,37 +9,42 @@ verbose_message("Adding tests under ${PROJECT_NAME}...")
 #
 # Set the sources for the unit tests and add the executable(s)
 #
-set(utility_header_dir "include")
-set(utility_traits_header_dir "${utility_header_dir}/traits")
-set(utility_property_header_dir "${utility_header_dir}/property")
+set(header_dir "include")
+set(utility_header_dir "${header_dir}/utility")
+set(traits_header_dir "${header_dir}/type_traits")
+set(property_header_dir "${header_dir}/property")
 
-set(utility_src_dir "src")
-set(utility_traits_src_dir "${utility_src_dir}/traits")
-set(utility_property_src_dir "${utility_src_dir}/property")
+set(src_dir "src")
+set(utility_src_dir "${src_dir}/utility")
+set(traits_src_dir "${src_dir}/type_traits")
+set(property_src_dir "${src_dir}/property")
 
-set(exe_src ${utility_src_dir}/tests.cpp)
+set(exe_src ${src_dir}/tests.cpp)
 set(
     headers
-    ${utility_header_dir}/test_utils.h
+    ${header_dir}/test_utils.h
+    ${header_dir}/test.h
+    ${header_dir}/algorithm_test.h
+    ${header_dir}/random_test.h
+    ${header_dir}/pattern_match_test.h
+    ${header_dir}/concurrent_object_test.h
     ${utility_header_dir}/utility_test.h
-    ${utility_header_dir}/algorithm_test.h
-    ${utility_header_dir}/random_test.h
-    ${utility_header_dir}/pattern_match_test.h
-    ${utility_traits_header_dir}/value_sequence_test.h
-    ${utility_traits_header_dir}/type_sequence_test.h
-    ${utility_traits_header_dir}/member_test.h
-    ${utility_property_header_dir}/property_test.h
+    ${traits_header_dir}/value_sequence_test.h
+    ${traits_header_dir}/type_sequence_test.h
+    ${traits_header_dir}/member_test.h
+    ${property_header_dir}/property_test.h
 )
 set(
     src
+    ${src_dir}/algorithm_test.cpp
+    ${src_dir}/random_test.cpp
+    ${src_dir}/pattern_match_test.cpp
+    ${src_dir}/concurrent_object_test.cpp
     ${utility_src_dir}/utility_test.cpp
-    ${utility_src_dir}/algorithm_test.cpp
-    ${utility_src_dir}/random_test.cpp
-    ${utility_src_dir}/pattern_match_test.cpp
-    ${utility_traits_src_dir}/value_sequence_test.cpp
-    ${utility_traits_src_dir}/type_sequence_test.cpp
-    ${utility_traits_src_dir}/member_test.cpp
-    ${utility_property_src_dir}/property_test.cpp
+    ${traits_src_dir}/value_sequence_test.cpp
+    ${traits_src_dir}/type_sequence_test.cpp
+    ${traits_src_dir}/member_test.cpp
+    ${property_src_dir}/property_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "type_traits.h"
+#include "concepts/concepts.h"
 
 #include <shared_mutex>
 
-namespace stdsharp::utility
+namespace stdsharp
 {
     template<typename T>
     class concurrent_object
@@ -15,7 +15,7 @@ namespace stdsharp::utility
         template<typename... Args>
             requires ::std::constructible_from<T, Args...>
         constexpr explicit concurrent_object(Args&&... args) //
-            noexcept(::stdsharp::utility::nothrow_constructible_from<T, Args...>):
+            noexcept(::stdsharp::concepts::nothrow_constructible_from<T, Args...>):
             object_(::std::forward<Args>(args)...)
         {
         }

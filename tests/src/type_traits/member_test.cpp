@@ -1,7 +1,7 @@
-#include "traits/member_test.h"
-#include "utility/traits/member.h"
+#include "type_traits/member_test.h"
+#include "type_traits/member.h"
 
-namespace stdsharp::test::utility::traits
+namespace stdsharp::test::type_traits
 {
     boost::ut::suite& member_test()
     {
@@ -9,8 +9,8 @@ namespace stdsharp::test::utility::traits
         {
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::utility;
-            using namespace stdsharp::utility::traits;
+            using namespace utility;
+            using namespace type_traits;
 
             feature("member") = []
             {
@@ -20,7 +20,7 @@ namespace stdsharp::test::utility::traits
                     int m;
 
                     using mem_func_r_t = char;
-                    using mem_func_args_t = type_sequence<long, double>;
+                    using mem_func_args_t = stdsharp::type_traits::type_sequence<long, double>;
 
                     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
                     char mem_f(long, double) { return {}; }
@@ -43,8 +43,9 @@ namespace stdsharp::test::utility::traits
                         "use member traits to get member type, type should be expected" // clang-format off
                     ) = [] // clang-format on
                     {
-                        using mem_p_t = member_pointer_traits<&my_class::m>;
-                        using mem_p_func_t = member_function_pointer_traits<&my_class::mem_f>;
+                        using mem_p_t = stdsharp::type_traits::member_pointer_traits<&my_class::m>;
+                        using mem_p_func_t =
+                            stdsharp::type_traits::member_function_pointer_traits<&my_class::mem_f>;
                         using mem_func_r = mem_p_func_t::result_t;
                         using mem_func_args = mem_p_func_t::args_t;
 

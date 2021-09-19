@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include "utility/functional.h"
+#include "functional/functional.h"
 
 namespace stdsharp::utility::property
 {
     template<typename SetterFn>
-    class setter : public ::stdsharp::utility::invocable_obj<SetterFn>
+    class setter : public ::stdsharp::functional::invocable_obj<SetterFn>
     {
     public:
-        using base = ::stdsharp::utility::invocable_obj<SetterFn>;
+        using base = ::stdsharp::functional::invocable_obj<SetterFn>;
 
         using base::base;
 
@@ -35,7 +35,7 @@ namespace stdsharp::utility::property
         template<typename T>
             requires ::std::invocable<const SetterFn, T>
         constexpr auto& operator=(T&& t) const&& //
-            noexcept(::stdsharp::utility::nothrow_invocable<const base, T>)
+            noexcept(::stdsharp::concepts::nothrow_invocable<const base, T>)
         {
             static_cast<const base&&> (*this)(::std::forward<T>(t));
             return *this;
@@ -44,7 +44,7 @@ namespace stdsharp::utility::property
         template<typename T>
             requires ::std::invocable<SetterFn, T>
         constexpr auto& operator=(T&& t) && //
-            noexcept(::stdsharp::utility::nothrow_invocable<base, T>)
+            noexcept(::stdsharp::concepts::nothrow_invocable<base, T>)
         {
             static_cast<base&&> (*this)(::std::forward<T>(t));
             return *this;
@@ -54,12 +54,12 @@ namespace stdsharp::utility::property
     template<typename T>
     setter(T&& t) -> setter<::std::remove_cvref_t<T>>;
 
-    inline constexpr ::stdsharp::utility::invocable_obj value_setter{
-        ::stdsharp::utility::nodiscard_tag,
+    inline constexpr ::stdsharp::functional::invocable_obj value_setter{
+        ::stdsharp::functional::nodiscard_tag,
         [](auto& t) noexcept
         {
             return ::stdsharp::utility::property::setter{
-                ::stdsharp::utility::bind_ref_front(assign_v, t) //
+                ::stdsharp::functional::bind_ref_front(::stdsharp::functional::assign_v, t) //
             };
         } //
     };

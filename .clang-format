@@ -53,7 +53,7 @@ NamespaceIndentation: All # None
 # Clang13 PPIndentWidth: 4 # -1
 PenaltyBreakFirstLessLess: 3 # 120
 PointerAlignment: Left # Right
-SortIncludes: Never # CaseSensitive
+SortIncludes: false # CaseSensitive
 SortUsingDeclarations: false # true
 SpaceAfterTemplateKeyword: false # true
 SpaceBeforeCtorInitializerColon: false # true

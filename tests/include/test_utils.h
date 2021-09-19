@@ -3,7 +3,7 @@
 #include <fmt/ranges.h>
 #include <gsl/gsl>
 
-namespace stdsharp::test::utility
+namespace stdsharp::test
 {
     template<auto...>
     struct static_params
@@ -29,11 +29,13 @@ namespace boost::inline ext::ut // NOLINT(modernize-concat-nested-namespaces)
     }
 
     template<auto Value>
-    inline constexpr auto static_expect = []
+    constexpr auto static_expect(
+        const reflection::source_location& location = reflection::source_location::current() //
+    )
     {
         // clang-format off
-        if constexpr(details::ut_expectable<decltype(Value)>) return expect(Value);
-        else return expect(_t{Value}); // clang-format on
+        if constexpr(details::ut_expectable<decltype(Value)>) return expect(Value, location);
+        else return expect(_t{Value}, location); // clang-format on
     };
 
     inline auto print(const std::string_view& str) { return log << fmt::format(" \"{}\"", str); }

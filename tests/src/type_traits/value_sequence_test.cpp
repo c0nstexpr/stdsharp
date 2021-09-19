@@ -1,7 +1,7 @@
-#include "traits/value_sequence_test.h"
-#include "utility/traits/value_sequence.h"
+#include "type_traits/value_sequence_test.h"
+#include "type_traits/value_sequence.h"
 
-namespace stdsharp::test::utility::traits
+namespace stdsharp::test::type_traits
 {
     namespace
     {
@@ -39,20 +39,21 @@ namespace stdsharp::test::utility::traits
     }
 
     template<auto... V>
-    using value_sequence = stdsharp::utility::traits::value_sequence<V...>;
+    using value_sequence = stdsharp::type_traits::value_sequence<V...>;
 
     template<auto... V>
-    using regular_value_sequence = stdsharp::utility::traits::regular_value_sequence<V...>;
+    using regular_value_sequence = stdsharp::type_traits::regular_value_sequence<V...>;
 
     boost::ut::suite& value_sequence_test()
     {
         static boost::ut::suite suite = []
         {
             using namespace std;
-            using namespace std::literals;
+            using namespace literals;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::utility;
+            using namespace functional;
+            using namespace utility;
 
             using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
 
@@ -329,7 +330,7 @@ namespace stdsharp::test::utility::traits
                     {
                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
                         using actual_t =
-                            stdsharp::utility::traits::unique_value_sequence_t<Values...>;
+                            stdsharp::type_traits::unique_value_sequence_t<Values...>;
                         static_expect<_b(same_as<actual_t, Expect>)>() << //
                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
                     };

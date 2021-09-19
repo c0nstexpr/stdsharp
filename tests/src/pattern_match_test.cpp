@@ -1,8 +1,8 @@
 #include "pattern_match_test.h"
 #include "utility/utility.h"
-#include "utility/pattern_match.h"
+#include "pattern_match.h"
 
-namespace stdsharp::test::utility
+namespace stdsharp::test
 {
     enum class my_enum
     {
@@ -16,9 +16,11 @@ namespace stdsharp::test::utility
         static boost::ut::suite suite = []
         {
             using namespace std;
+            using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::utility;
+            using namespace functional;
+            using namespace utility;
 
             feature("pattern_match") = []
             {
@@ -82,17 +84,18 @@ namespace stdsharp::test::utility
                                 my_enum matched{};
 
                                 constexpr_pattern_match::from_constant<my_enum::two>(
-                                    [&matched](const type_identity<constant<my_enum::one>>) noexcept
+                                    [&matched](const type_identity<
+                                               type_traits::constant<my_enum::one>>) noexcept
                                     {
                                         matched = my_enum::one; //
                                     }, // clang-format off
-                                    [&matched, &flag](const type_identity<constant<my_enum::two>>) noexcept
+                                    [&matched, &flag](const type_identity<type_traits::constant<my_enum::two>>) noexcept
                                     { // clang-format on
                                         flag = true;
                                         matched = my_enum::two; //
                                     },
                                     [&matched]<my_enum E>( // clang-format off
-                                        const type_identity<constant<my_enum::three>>
+                                        const type_identity<type_traits::constant<my_enum::three>>
                                     ) noexcept // clang-format on
                                     {
                                         matched = my_enum::three; //

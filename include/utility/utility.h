@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 
+#include "concepts/concepts.h"
+
 namespace stdsharp::utility
 {
     using namespace std::literals;
@@ -31,8 +33,6 @@ namespace stdsharp::utility
                 return static_cast<U>(t);
             }
         };
-
-
     }
 
     inline constexpr struct
@@ -40,7 +40,7 @@ namespace stdsharp::utility
         template<typename T>
         [[nodiscard]] constexpr auto operator()(T&& t) const //
             noexcept( //
-                ::std::is_nothrow_constructible_v<
+                ::stdsharp::concepts::nothrow_constructible_from<
                     ::stdsharp::utility::details::auto_cast<T>,
                     T // clang-format off
                     > // clang-format on
@@ -49,7 +49,6 @@ namespace stdsharp::utility
             return ::stdsharp::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
         }
     } auto_cast{};
-
 
     inline constexpr struct
     {

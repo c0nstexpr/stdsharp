@@ -11,34 +11,6 @@ project("stdsharp" VERSION 0.1.0 LANGUAGES CXX)
 
 init_proj()
 
-#
-# Create library, setup header and source files
-#
-#set(utility_header_dir "include/utility")
-#set(utility_traits_header_dir "${utility_header_dir}/traits")
-#set(utility_property_header_dir "${utility_header_dir}/property")
-#
-#set(
-#    headers
-#    ${utility_property_header_dir}/setter.h
-#    ${utility_property_header_dir}/getter.h
-#    ${utility_property_header_dir}/property.h
-#
-#    ${utility_traits_header_dir}/value_sequence.h
-#    ${utility_traits_header_dir}/type_sequence.h
-#    ${utility_traits_header_dir}/function.h
-#    ${utility_traits_header_dir}/member.h
-#
-#    ${utility_header_dir}/concurrent_object.h
-#    ${utility_header_dir}/type_traits.h
-#    ${utility_header_dir}/algorithm.h
-#    ${utility_header_dir}/functional.h
-#    ${utility_header_dir}/random.h
-#    ${utility_header_dir}/utility.h
-#    ${utility_header_dir}/assert.h
-#    ${utility_header_dir}/pattern_match.h
-#)
-
 config_interface_lib(std_sharp_utility)
 
 #
