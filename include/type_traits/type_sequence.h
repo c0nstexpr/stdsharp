@@ -6,28 +6,6 @@
 
 namespace stdsharp::type_traits
 {
-    template<typename...>
-    struct regular_type_sequence
-    {
-    };
-
-    template<typename...>
-    struct type_sequence;
-
-    template<typename>
-    struct take_type_sequence;
-
-    template<template<typename...> typename T, typename... Types>
-    struct take_type_sequence<T<Types...>>
-    {
-        template<template<typename...> typename U>
-        using apply_t = U<Types...>;
-
-        using as_sequence_t = ::stdsharp::type_traits::regular_type_sequence<Types...>;
-
-        using as_type_sequence_t = ::stdsharp::type_traits::type_sequence<Types...>;
-    };
-
     namespace details
     {
         template<typename... Types>
