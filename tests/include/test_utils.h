@@ -3,13 +3,14 @@
 #include <fmt/ranges.h>
 #include <gsl/gsl>
 
+#include "type_traits/type_traits.h"
+
 namespace stdsharp::test
 {
-    template<auto...>
-    struct static_params
-    {
-    };
+    template<auto... V>
+    using static_params = type_traits::regular_value_sequence<V...>;
 }
+
 
 namespace boost::inline ext::ut // NOLINT(modernize-concat-nested-namespaces)
 {
@@ -36,7 +37,7 @@ namespace boost::inline ext::ut // NOLINT(modernize-concat-nested-namespaces)
         // clang-format off
         if constexpr(details::ut_expectable<decltype(Value)>) return expect(Value, location);
         else return expect(_t{Value}, location); // clang-format on
-    };
+    }
 
     inline auto print(const std::string_view& str) { return log << fmt::format(" \"{}\"", str); }
 

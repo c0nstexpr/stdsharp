@@ -10,36 +10,6 @@
 
 namespace stdsharp::type_traits
 {
-    template<auto...>
-    struct regular_value_sequence
-    {
-    };
-
-    template<auto...>
-    struct value_sequence;
-
-    template<typename>
-    struct take_value_sequence;
-
-    template<template<auto...> typename T, auto... Values>
-    struct take_value_sequence<T<Values...>>
-    {
-        template<template<auto...> typename U>
-        using apply_t = U<Values...>;
-
-        using as_sequence_t = ::stdsharp::type_traits::regular_value_sequence<Values...>;
-
-        using as_value_sequence_t = ::stdsharp::type_traits::value_sequence<Values...>;
-    };
-
-    template<typename Sequence>
-    using to_regular_value_sequence_t =
-        typename ::stdsharp::type_traits::take_value_sequence<Sequence>::as_vsequence_t;
-
-    template<typename Sequence> // clang-format off
-    using to_value_sequence_t = typename ::stdsharp::type_traits::
-        take_value_sequence<Sequence>::as_value_sequence_t; // clang-format on
-
     namespace details
     {
         template<auto From, auto PlusF, ::std::size_t... I>
@@ -47,16 +17,26 @@ namespace stdsharp::type_traits
             {
                 ::stdsharp::type_traits::regular_value_sequence<::std::invoke(PlusF, From, I)...>{};
             }
-        constexpr auto make_sequence(::std::index_sequence<I...>) noexcept
+        constexpr auto make_value_sequence(::std::index_sequence<I...>) noexcept
         {
             return ::stdsharp::type_traits::regular_value_sequence<::std::invoke(
                 PlusF, From, I)...>{};
+        }
+
+        template<typename Func>
+        constexpr auto make_value_predicator(Func& func) noexcept
+        {
+            return [&func](const auto& v) // clang-format off
+                noexcept(::stdsharp::concepts::nothrow_predicate<Func, decltype(v)>) // clang-format on
+            {
+                return !::stdsharp::functional::invoke_r<bool>(func, v); //
+            };
         }
     }
 
     template<auto From, ::std::size_t Size, auto PlusF = ::stdsharp::functional::plus_v>
     using make_value_sequence_t = decltype( //
-        ::stdsharp::type_traits::details::make_sequence<From, PlusF>(
+        ::stdsharp::type_traits::details::make_value_sequence<From, PlusF>(
             ::std::make_index_sequence<Size>{} // clang-format off
         ) // clang-format on
     );
@@ -262,6 +242,62 @@ namespace stdsharp::type_traits
             ::std::index_sequence<I...>
         ) noexcept; // clang-format on
 
+        template<typename IfFunc>
+        struct if_not_fn : private IfFunc
+        {
+            template<typename Func, typename Proj = ::std::identity>
+            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const noexcept( //
+                ::stdsharp::type_traits::details::
+                    value_sequence_nothrow_predicate<Proj, Func, Values...> // clang-format off
+            ) // clang-format on
+            {
+                return IfFunc::operator()(
+                    ::stdsharp::type_traits::details::make_value_predicator(func),
+                    ::std::forward<Proj>(proj) //
+                );
+            }
+        };
+
+        template<typename IfFunc>
+        struct do_fn : private IfFunc
+        {
+            template<
+                typename Comp = ::std::ranges::equal_to,
+                typename Proj = ::std::identity // clang-format off
+            > // clang-format on
+            [[nodiscard]] constexpr auto operator()( //
+                const auto& v,
+                Comp comp = {},
+                Proj&& proj = {} //
+            ) const noexcept( //
+                ::stdsharp::concepts::nothrow_invocable<
+                    IfFunc,
+                    decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
+                    Proj // clang-format off
+                >
+            ) // clang-format on
+            {
+                return IfFunc::operator()(
+                    ::stdsharp::type_traits::details::value_comparer(v, comp),
+                    ::std::forward<Proj>(proj) //
+                );
+            } //
+        };
+
+        template<typename FindFunc, bool Equal = true>
+        struct algo_fn : private FindFunc
+        {
+            template<typename Func, typename Proj = ::std::identity>
+            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
+                noexcept(::stdsharp::concepts::nothrow_invocable<FindFunc, Func, Proj>)
+            {
+                const auto v =
+                    FindFunc::operator()(std::forward<Func>(func), std::forward<Proj>(proj));
+                if constexpr(Equal) return v == size; // clang-format off
+                else return v != size; // clang-format on
+            }
+        };
+
     public:
         static constexpr struct
         {
@@ -337,44 +373,9 @@ namespace stdsharp::type_traits
             }
         } find_if{};
 
-        static constexpr struct
-        {
-            template<typename Func, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::stdsharp::type_traits::details::
-                             value_sequence_nothrow_predicate<Proj, Func, Values...>)
-            {
-                return find_if(
-                    [&](const auto& v) noexcept(
-                        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, decltype(v)>)
-                    {
-                        return !::stdsharp::functional::invoke_r<bool>(func, v); //
-                    },
-                    ::std::forward<Proj>(proj) //
-                );
-            }
-        } find_if_not{};
+        static constexpr value_sequence::if_not_fn<decltype(find_if)> find_if_not{};
 
-        static constexpr struct
-        {
-            template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()( //
-                const auto& v,
-                Comp comp = {},
-                Proj&& proj = {} // clang-format off
-            ) const noexcept(
-                ::stdsharp::concepts::nothrow_invocable<
-                    decltype(value_sequence::find_if),
-                    decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
-                    Proj
-                >
-            ) // clang-format on
-            {
-                return find_if(
-                    stdsharp::type_traits::details::value_comparer(v, comp),
-                    std::forward<Proj>(proj));
-            }
-        } find{};
+        static constexpr value_sequence::do_fn<decltype(find_if)> find{};
 
         static constexpr struct
         {
@@ -399,87 +400,17 @@ namespace stdsharp::type_traits
             }
         } count_if{};
 
-        static constexpr struct
-        {
-            template<typename Func, typename Proj = std::identity>
-            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(::stdsharp::type_traits::details::
-                             value_sequence_nothrow_predicate<Proj, Func, Values...>)
-            {
-                return count_if(
-                    [&](const auto& v) noexcept(
-                        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, decltype(v)>)
-                    {
-                        return !::stdsharp::functional::invoke_r<bool>(func, v); //
-                    },
-                    ::std::forward<Proj>(proj) //
-                );
-            }
-        } count_if_not{};
+        static constexpr value_sequence::if_not_fn<decltype(count_if)> count_if_not{};
 
-        static constexpr struct
-        {
-            template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()( //
-                const auto& v,
-                Comp comp = {},
-                Proj&& proj = {} // clang-format off
-            ) const noexcept(::stdsharp::concepts::nothrow_invocable<
-                decltype(count_if),
-                decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
-                Proj
-            >
-            ) // clang-format on
-            {
-                return count_if(
-                    stdsharp::type_traits::details::value_comparer(v, comp),
-                    ::std::forward<Proj>(proj));
-            }
-        } count{};
+        static constexpr value_sequence::do_fn<decltype(count_if)> count{};
 
-        static constexpr struct
-        {
-            template<typename Func, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::stdsharp::concepts::
-                             nothrow_invocable<decltype(value_sequence::find_if_not), Func, Proj>)
-            {
-                return find_if_not(std::forward<Func>(func), std::forward<Proj>(proj)) == size;
-            }
-        } all_of{};
+        static constexpr value_sequence::algo_fn<decltype(find_if_not)> all_of{};
 
-        static constexpr struct
-        {
-            template<typename Func, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::stdsharp::concepts::
-                             nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
-            {
-                return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) != size;
-            }
-        } any_of{};
+        static constexpr value_sequence::algo_fn<decltype(find_if), false> any_of{};
 
-        static constexpr struct
-        {
-            template<typename Func, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(Func&& func, Proj&& proj = {}) const
-                noexcept(::stdsharp::concepts::
-                             nothrow_invocable<decltype(value_sequence::find_if), Func, Proj>)
-            {
-                return find_if(::std::forward<Func>(func), ::std::forward<Proj>(proj)) == size;
-            }
-        } none_of{};
+        static constexpr value_sequence::algo_fn<decltype(find_if)> none_of{};
 
-        static constexpr struct
-        {
-            template<typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(const auto& v, Proj&& proj = {}) const
-                noexcept(::stdsharp::concepts::
-                             nothrow_invocable<decltype(value_sequence::find), decltype(v), Proj>)
-            {
-                return find(v, ::std::forward<Proj>(proj)) != size;
-            }
-        } contains{};
+        static constexpr value_sequence::algo_fn<decltype(find), false> contains{};
 
         static constexpr struct
         {
