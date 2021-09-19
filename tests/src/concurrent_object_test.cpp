@@ -1,7 +1,7 @@
 #include "concurrent_object_test.h"
 #include "concurrent_object.h"
 
-namespace stdsharp::test::type_traits
+namespace stdsharp::test
 {
     boost::ut::suite& concurrent_object_test()
     {
