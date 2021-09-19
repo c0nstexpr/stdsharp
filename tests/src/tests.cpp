@@ -8,6 +8,8 @@
 #include "type_traits/member_test.h"
 #include "property/property_test.h"
 
+#include <fstream>
+
 int main()
 {
     using namespace stdsharp::test;
