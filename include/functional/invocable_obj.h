@@ -15,22 +15,7 @@ namespace stdsharp::functional
     namespace details
     {
         template<typename Invocable>
-        struct invocable_obj_base : Invocable
-        {
-            using invocable_t = Invocable;
-            using invocable_t::invocable_t;
-
-            template<typename... T>
-                requires ::std::constructible_from<Invocable, T...>
-            constexpr explicit invocable_obj_base(T&&... t) //
-                noexcept(::stdsharp::concepts::nothrow_constructible_from<Invocable, T...>):
-                invocable_t(::std::forward<T>(t)...)
-            {
-            }
-        };
-
-        template<::stdsharp::concepts::final Invocable>
-        class invocable_obj_base<Invocable>
+        class invocable_obj_base
         {
             Invocable invocable_;
 
@@ -88,6 +73,22 @@ namespace stdsharp::functional
                 )
             {
                 return ::std::invoke(::std::move(invocable_), ::std::forward<Args>(args)...);
+            }
+        };
+
+        template<::stdsharp::concepts::class_ Invocable>
+            requires(!::stdsharp::concepts::final<Invocable>)
+        struct invocable_obj_base<Invocable> : Invocable
+        {
+            using invocable_t = Invocable;
+            using invocable_t::invocable_t;
+
+            template<typename... T>
+                requires ::std::constructible_from<Invocable, T...>
+            constexpr explicit invocable_obj_base(T&&... t) //
+                noexcept(::stdsharp::concepts::nothrow_constructible_from<Invocable, T...>):
+                invocable_t(::std::forward<T>(t)...)
+            {
             }
         };
     }
@@ -170,4 +171,21 @@ namespace stdsharp::functional
     template<typename Invocable>
     invocable_obj(::stdsharp::functional::nodiscard_tag_t, Invocable&&)
         -> invocable_obj<::std::decay_t<Invocable>, ::stdsharp::functional::nodiscard_tag_t>;
+
+    inline constexpr ::stdsharp::functional::invocable_obj make_invocable_ref(
+        ::stdsharp::functional::nodiscard_tag,
+        ::ranges::overload(
+            []<typename Invocable>(Invocable& invocable) noexcept
+            {
+                return ::stdsharp::functional::invocable_obj<Invocable&>{invocable}; //
+            },
+            []<typename Invocable>(nodiscard_tag_t, Invocable& invocable) noexcept
+            {
+                return ::stdsharp::functional::invocable_obj<Invocable&>{
+                    ::stdsharp::functional::nodiscard_tag,
+                    invocable //
+                };
+            } // clang-format off
+        ) // clang-format on
+    );
 }
