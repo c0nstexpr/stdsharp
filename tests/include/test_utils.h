@@ -11,7 +11,6 @@ namespace stdsharp::test
     using static_params = type_traits::regular_value_sequence<V...>;
 }
 
-
 namespace boost::inline ext::ut // NOLINT(modernize-concat-nested-namespaces)
 {
     namespace details

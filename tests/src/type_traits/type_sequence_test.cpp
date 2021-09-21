@@ -137,12 +137,12 @@ namespace stdsharp::test::type_traits
             } | tuple<apply_t_test_params<regular_type_sequence>>{}; // clang-format on
 
             // clang-format off
-            feature("indexed_by_seq_t") = indexed_t_feat<test_seq>() | tuple<
-                indexed_t_test_params<
+            feature("indexed_by_seq_t") = indexed_by_seq_t_feat<test_seq>() | tuple<
+                indexed_by_seq_t_test_params<
                     regular_value_sequence<1, 2>,
                     regular_type_sequence<float, char>
                 >,
-                indexed_t_test_params<
+                indexed_by_seq_t_test_params<
                     regular_value_sequence<2, 4>,
                     regular_type_sequence<char, float>
                 >
@@ -168,7 +168,7 @@ namespace stdsharp::test::type_traits
 
             // clang-format off
             feature("remove_at_by_seq_t") = remove_at_by_seq_t_feat<test_seq>() | tuple<
-                indexed_t_test_params<
+                indexed_by_seq_t_test_params<
                     regular_value_sequence<1, 2>,
                     regular_type_sequence<int, unsigned, float>
                 >
