@@ -153,8 +153,17 @@ namespace stdsharp::functional
         } //
     );
 
-    template<typename, typename...>
-    struct cpo_invoke_fn;
+    template<typename Tag, typename...>
+    struct cpo_invoke_fn
+    {
+        template<typename T, typename... Args>
+            requires ::std::invocable<T, Tag, Args...>
+        static constexpr decltype(auto) invoke(T&& t, Args&&... args) //
+            noexcept(::stdsharp::concepts::nothrow_invocable<T, Tag, Args...>)
+        {
+            return ::std::invoke(::std::forward<T>(t), Tag{}, ::std::forward<Args>(args)...);
+        }
+    };
 
     namespace details
     {
