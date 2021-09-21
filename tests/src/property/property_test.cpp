@@ -62,7 +62,7 @@ namespace stdsharp::test::property
                         tuple{
                             pair<decltype(value_s), int>(value_s, 42),
                             pair<decltype(mutable_s)&, int>(mutable_s, 69),
-                            pair{bind_ref_front(decltype(member)::func_obj::set, member), 32} //
+                            pair{member(decltype(member)::set_tag), 32} //
                         };
                 };
             };
