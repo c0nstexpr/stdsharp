@@ -12,28 +12,36 @@
 
 namespace stdsharp::algorithm
 {
-    // clang-format off
-    inline constexpr auto set_if = []<typename T, typename U, ::std::predicate<T, U> Comp>(
-        T& left,
-        U&& right,
-        Comp comp = {}
-    ) noexcept(
-        ::stdsharp::concepts::nothrow_invocable_r<bool, Comp, U&, T&> &&
-        ::stdsharp::concepts::nothrow_assignable_from<T, U>
-    ) -> T&
+    inline constexpr auto set_if = []<typename U, typename T, ::std::predicate<U, T> Comp>
+        requires ::std::assignable_from<T&, U&&> // clang-format off
+        (
+            T& left,
+            U&& right,
+            Comp comp = {}
+        ) noexcept(
+            ::stdsharp::concepts::nothrow_invocable_r<bool, Comp, U, T> &&
+            ::stdsharp::concepts::nothrow_assignable_from<T, U&&>
+        ) ->T& // clang-format on
     {
-        // clang-format on
-        if(::std::invoke(::std::move(comp), right, left)) left = ::std::forward<U>(right);
+        if(::stdsharp::functional::invoke_r<bool>(::std::move(comp), right, left))
+            left = ::std::forward<U>(right);
         return left;
     };
 
-    inline constexpr auto set_if_greater = []<typename T, typename U>(T& left, U&& right) //
-        noexcept( //
-            noexcept( //
+    inline constexpr auto set_if_greater = []<typename T, typename U>
+        requires ::std::invocable<
+            decltype(::stdsharp::algorithm::set_if),
+            T&,
+            U,
+            ::std::ranges::greater // clang-format off
+        >
+        (T& left, U&& right)
+        noexcept(
+            noexcept(
                 ::stdsharp::algorithm::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::stdsharp::functional::greater_v // clang-format off
+                    ::stdsharp::functional::greater_v
                 )
             )
         ) -> T& // clang-format on
@@ -43,19 +51,27 @@ namespace stdsharp::algorithm
         ); //
     };
 
-    inline constexpr auto set_if_less = []<typename T, typename U>(T& left, U&& right) //
+    inline constexpr auto set_if_less = []<typename T, typename U>
+        requires ::std::invocable<
+            decltype(::stdsharp::algorithm::set_if),
+            T&,
+            U,
+            ::std::ranges::less // clang-format off
+        >
+        (T& left, U&& right)
         noexcept( //
             noexcept( //
                 ::stdsharp::algorithm::set_if(
                     left,
                     ::std::forward<U>(right),
-                    ::stdsharp::functional::less_v // clang-format off
+                    ::stdsharp::functional::less_v
                 )
             )
         ) -> T& // clang-format on
     {
         return ::stdsharp::algorithm::set_if(
-            left, ::std::forward<U>(right), ::stdsharp::functional::less_v); //
+            left, ::std::forward<U>(right), ::stdsharp::functional::less_v //
+        );
     };
 
     namespace details
@@ -84,9 +100,7 @@ namespace stdsharp::algorithm
                     ::stdsharp::concepts::
                         nothrow_predicate<Compare, const proj_max, const proj_t> && //
                     ::stdsharp::concepts::
-                        nothrow_predicate<Compare, const proj_max, const proj_min> //
-
-                    ;
+                        nothrow_predicate<Compare, const proj_max, const proj_min>;
             };
         };
     }
@@ -109,7 +123,8 @@ namespace stdsharp::algorithm
             Proj proj = {} // clang-format off
         ) noexcept(noexcept_) // clang-format on
         {
-            using traits_ = ::stdsharp::algorithm::details::is_between_fn::require<T, U, V, Proj>;
+            using is_between_traits =
+                ::stdsharp::algorithm::details::is_between_fn::require<T, U, V, Proj>;
 
             const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
             const auto& projected_min = ::std::invoke(proj, ::std::forward<U>(min));
@@ -119,8 +134,9 @@ namespace stdsharp::algorithm
                 if(::stdsharp::functional::invoke_r<bool>(cmp, projected_max, projected_min))
                 {
                     if constexpr(
-                        ::fmt::is_formattable<typename traits_::proj_min>::value &&
-                        ::fmt::is_formattable<typename traits_::proj_max>::value // clang-format off
+                        ::fmt::is_formattable<typename is_between_traits::proj_min>::value &&
+                        ::fmt::is_formattable<
+                            typename is_between_traits::proj_max>::value // clang-format off
                     ) throw ::std::invalid_argument{
                         ::fmt::format(
                             "projected max value {} "

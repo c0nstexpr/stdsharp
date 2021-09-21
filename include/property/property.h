@@ -9,7 +9,7 @@
 namespace stdsharp::utility::property
 {
     template<typename GetterFn, typename SetterFn, typename GetterT, typename SetterT>
-    class property_member : ::stdsharp::type_traits::fixed_object
+    class property_member : ::stdsharp::type_traits::unique_object
     {
     public:
         using getter_t = GetterT;

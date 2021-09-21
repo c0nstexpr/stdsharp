@@ -16,17 +16,6 @@ namespace stdsharp::type_traits
         ~unique_object() = default;
     };
 
-    struct fixed_object
-    {
-        fixed_object() noexcept = default;
-        fixed_object(const fixed_object&) noexcept = delete;
-        fixed_object(fixed_object&&) noexcept = delete;
-        fixed_object& operator=(const fixed_object&) noexcept = delete;
-        fixed_object& operator=(fixed_object&&) noexcept = delete;
-
-        ~fixed_object() = default;
-    };
-
     template<typename T>
     struct private_object
     {

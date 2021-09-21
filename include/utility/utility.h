@@ -21,16 +21,20 @@ namespace stdsharp::utility
         {
             T&& t;
 
-            template<typename U> // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            template<typename U>
+                requires requires
+                {
+                    static_cast<U>(t);
+                } // NOLINTNEXTLINE(hicpp-explicit-conversions)
             [[nodiscard]] constexpr operator U() const&& noexcept(noexcept(static_cast<U>(t)))
             {
                 return static_cast<U>(t);
             }
 
             template<typename U>
-            [[nodiscard]] constexpr auto operator()() const&& noexcept(noexcept(static_cast<U>(t)))
+            [[nodiscard]] constexpr U operator()() const&& noexcept(noexcept(static_cast<U>(t)))
             {
-                return static_cast<U>(t);
+                return static_cast<U>(*this);
             }
         };
     }
@@ -38,13 +42,7 @@ namespace stdsharp::utility
     inline constexpr struct
     {
         template<typename T>
-        [[nodiscard]] constexpr auto operator()(T&& t) const //
-            noexcept( //
-                ::stdsharp::concepts::nothrow_constructible_from<
-                    ::stdsharp::utility::details::auto_cast<T>,
-                    T // clang-format off
-                    > // clang-format on
-            )
+        [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
         {
             return ::stdsharp::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
         }
@@ -56,7 +54,7 @@ namespace stdsharp::utility
             requires ::std::is_enum_v<T>
         [[nodiscard]] constexpr auto operator()(const T v) const noexcept
         {
-            return static_cast<::std::underlying_type_t<::std::remove_cvref_t<T>>>(v);
+            return static_cast<::std::underlying_type_t<T>>(v);
         }
     } to_underlying{};
 }

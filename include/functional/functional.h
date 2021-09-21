@@ -48,7 +48,7 @@ namespace stdsharp::functional
 
         template<typename Func, typename... T>
         bind_ref_front_invoker(Func&&, T&&...) -> bind_ref_front_invoker<
-            ::stdsharp::type_traits::coerce_t<Func>,
+            Func,
             ::stdsharp::type_traits::coerce_t<T>... // clang-format off
         >; // clang-format on
     }
@@ -71,27 +71,25 @@ namespace stdsharp::functional
         } // clang-format on
     );
 
-    inline constexpr auto bind_ref_front = []<typename Func, typename... Args>(
-        Func && func,
-        Args&&... args // clang-format off
-    ) noexcept( // clang-format on
-        noexcept( //
+    inline constexpr auto bind_ref_front = []<typename... Args>
+        requires requires(Args&&... args)
+        {
             ::stdsharp::functional::details::bind_ref_front_invoker{
-                ::std::forward<Func>(func),
                 ::std::forward<Args>(args)... //
-            } // clang-format off
-        ) // clang-format on
-    )
+            };
+        }
+    (Args&&... args) noexcept(noexcept(::stdsharp::functional::details:: // clang-format off
+        bind_ref_front_invoker{::std::forward<Args>(args)...})) // clang-format on
     {
         return ::stdsharp::functional::details::bind_ref_front_invoker{
-            ::std::forward<Func>(func),
             ::std::forward<Args>(args)... //
-        }; //
+        };
     };
 
     inline constexpr ::stdsharp::functional::invocable_obj returnable_invoke(
         nodiscard_tag,
-        []<typename Func, typename... Args>(Func&& func, Args&&... args) // clang-format off
+        []<typename Func, typename... Args> requires ::std::invocable<Func, Args...> //
+        (Func&& func, Args&&... args) // clang-format off
             noexcept(::stdsharp::concepts::nothrow_invocable<Func, Args...>) // clang-format on
             ->decltype(auto)
         {
@@ -118,19 +116,28 @@ namespace stdsharp::functional
                     Func>...
                  >{::stdsharp::functional::returnable_invoke(::std::forward<Func>(func))...}
             )
-        ) // clang-format on
+        ) -> Tuple<
+            ::std::invoke_result_t<
+                decltype(::stdsharp::functional::returnable_invoke),
+                Func
+            >...
+        > // clang-format on
         {
-            return Tuple< // clang-format off
-                ::std::invoke_result_t<decltype(::stdsharp::functional::returnable_invoke), Func>...
-            >{
-                ::stdsharp::functional::returnable_invoke(::std::forward<Func>(func))... // clang-format on
-            };
+            return {::stdsharp::functional::returnable_invoke(::std::forward<Func>(func))...}; //
         } //
     );
 
     inline constexpr ::stdsharp::functional::invocable_obj make_returnable(
         ::stdsharp::functional::nodiscard_tag,
-        []<typename Func>(Func&& func) noexcept( //
+        []<typename Func> // clang-format off
+            requires requires(Func&& func)
+            {
+                ::std::bind_front(
+                    ::stdsharp::functional::returnable_invoke,
+                    ::std::forward<Func>(func)
+                );
+            } // clang-format on
+        (Func&& func) noexcept( //
             noexcept( //
                 ::std::bind_front(
                     ::stdsharp::functional::returnable_invoke,

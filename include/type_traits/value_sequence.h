@@ -262,11 +262,20 @@ namespace stdsharp::type_traits
         struct do_fn : private IfFunc
         {
             template<
+                typename T,
                 typename Comp = ::std::ranges::equal_to,
                 typename Proj = ::std::identity // clang-format off
             > // clang-format on
+                requires requires(T v, Comp comp)
+                {
+                    ::std::invocable<
+                        IfFunc,
+                        decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
+                        Proj // clang-format off
+                    >; // clang-format on
+                }
             [[nodiscard]] constexpr auto operator()( //
-                const auto& v,
+                const T& v,
                 Comp comp = {},
                 Proj&& proj = {} //
             ) const noexcept( //
@@ -288,6 +297,7 @@ namespace stdsharp::type_traits
         struct algo_fn : private FindFunc
         {
             template<typename Func, typename Proj = ::std::identity>
+                requires ::std::invocable<FindFunc, Func, Proj>
             [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
                 noexcept(::stdsharp::concepts::nothrow_invocable<FindFunc, Func, Proj>)
             {
@@ -305,7 +315,7 @@ namespace stdsharp::type_traits
                 typename Func,
                 ::stdsharp::type_traits::details:: //
                 value_sequence_invocable<Func, Values...> Proj = ::std::identity // clang-format off
-                > // clang-format on
+            > // clang-format on
             constexpr auto operator()(Func func, Proj proj = {}) const noexcept( //
                 ::stdsharp::type_traits::details::
                     value_sequence_nothrow_invocable<Proj, Func, Values...> //
