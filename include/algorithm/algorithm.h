@@ -19,7 +19,7 @@ namespace stdsharp::algorithm
             U&& right,
             Comp comp = {}
         ) noexcept(
-            ::stdsharp::concepts::nothrow_invocable_r<bool, Comp, U, T> &&
+            ::stdsharp::concepts::nothrow_invocable_r<Comp, bool, U, T> &&
             ::stdsharp::concepts::nothrow_assignable_from<T, U&&>
         ) ->T& // clang-format on
     {

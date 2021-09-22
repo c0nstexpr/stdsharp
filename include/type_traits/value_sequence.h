@@ -158,7 +158,7 @@ namespace stdsharp::type_traits
         template<typename Proj, typename Func, auto... Values>
         concept value_sequence_nothrow_predicate = (
             ::stdsharp::concepts::
-                nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
+                nothrow_invocable_r<Func, bool, ::std::invoke_result_t<Proj, decltype(Values)>> &&
             ...
         );
     } // clang-format on
@@ -367,7 +367,7 @@ namespace stdsharp::type_traits
                 ::std::size_t i = 0; // clang-format off
                 const auto f = [&func, &proj, &i]<typename T>(T&& v) noexcept(
                     ::stdsharp::concepts::
-                        nothrow_invocable_r<bool, Func, ::std::invoke_result_t<Proj, T>>
+                        nothrow_invocable_r<Func, bool, ::std::invoke_result_t<Proj, T>>
                 ) // clang-format on
                 {
                     if(::stdsharp::functional:: //
@@ -397,7 +397,7 @@ namespace stdsharp::type_traits
                 std::size_t i = 0;
                 for_each(
                     [&i, &func](const auto& v) noexcept(
-                        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, decltype(v)> //
+                        ::stdsharp::concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
                         if(::stdsharp::functional::invoke_r<bool>(func, v)) ++i;
@@ -433,9 +433,9 @@ namespace stdsharp::type_traits
 
                 static constexpr auto invoke(Comp& comp, Proj& proj) noexcept(
                     ::stdsharp::concepts:: // clang-format off
-                        nothrow_invocable_r<bool, Comp, left_projected_t, right_projected_t>
+                        nothrow_invocable_r<Comp, bool, left_projected_t, right_projected_t>
                 ) requires ::stdsharp::concepts::
-                    invocable_r<bool, Comp, left_projected_t, right_projected_t> // clang-format on
+                    invocable_r<Comp, bool, left_projected_t, right_projected_t> // clang-format on
                 {
                     return ::stdsharp::functional::invoke_r<bool>(
                         comp, ::std::invoke(proj, get<I>()), ::std::invoke(proj, get<I + 1>()) //

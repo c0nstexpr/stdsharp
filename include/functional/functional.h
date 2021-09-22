@@ -62,8 +62,8 @@ namespace stdsharp::functional
     inline constexpr ::stdsharp::functional::invocable_obj invoke_r(
         ::stdsharp::functional::nodiscard_tag,
         []<typename Func, typename... Args>(Func&& func, Args&&... args) // clang-format off
-            noexcept(::stdsharp::concepts::nothrow_invocable_r<ReturnT, Func, Args...>)
-            -> ::std::enable_if_t<::stdsharp::concepts::invocable_r<ReturnT, Func, Args...>, ReturnT>
+            noexcept(::stdsharp::concepts::nothrow_invocable_r<Func, ReturnT, Args...>)
+            -> ::std::enable_if_t<::stdsharp::concepts::invocable_r<Func, ReturnT, Args...>, ReturnT>
         {
             return static_cast<ReturnT>(
                 ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...)

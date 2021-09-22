@@ -164,13 +164,13 @@ namespace stdsharp::concepts
         ::stdsharp::concepts::not_same_as<::std::invoke_result_t<Func, Args...>, void>;
     // clang-format on
 
-    template<typename ReturnT, typename Func, typename... Args>
+    template<typename Func, typename ReturnT, typename... Args>
     concept invocable_r = ::std::is_invocable_r_v<ReturnT, Func, Args...>;
 
-    template<typename ReturnT, typename Func, typename... Args>
+    template<typename Func, typename ReturnT, typename... Args>
     concept nothrow_invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = ::std::predicate<Func, Args...> && //
-        ::stdsharp::concepts::nothrow_invocable_r<bool, Func, Args...>;
+        ::stdsharp::concepts::nothrow_invocable_r<Func, bool, Args...>;
 }
