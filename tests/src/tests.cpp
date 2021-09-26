@@ -1,5 +1,4 @@
 #include "utility/utility_test.h"
-#include "random_test.h"
 #include "algorithm_test.h"
 #include "pattern_match_test.h"
 #include "concurrent_object_test.h"
@@ -8,14 +7,14 @@
 #include "type_traits/member_test.h"
 #include "property/property_test.h"
 
-#include <fstream>
+#include "random/random.h"
+#include "functional/cpo.h"
 
 int main()
 {
     using namespace stdsharp::test;
 
     utility::utility_test();
-    random::random_test();
     algorithm::algorithm_test();
     pattern_match_test();
     concurrent_object_test();

@@ -3,8 +3,8 @@
 #include <functional>
 
 #include <range/v3/functional/overload.hpp>
-#include "type_traits/type_traits.h"
 
+#include "type_traits/type_traits.h"
 #include "functional/operation.h"
 
 namespace stdsharp::functional
@@ -12,27 +12,55 @@ namespace stdsharp::functional
     namespace details
     {
         template<typename Func, typename... T>
-        class [[nodiscard]] bind_ref_front_invoker : ::std::tuple<Func, T...>
+        class bind_ref_front_invoker : ::std::tuple<Func, T...>
         {
             using base = ::std::tuple<Func, T...>;
             using base::base;
 
-            template<typename... Args>
-            static constexpr bool noexcept_v =
-                ::stdsharp::concepts::nothrow_invocable<Func, T..., Args...>;
+            template<typename CFunc, typename... Args>
+                requires ::std::invocable<CFunc, T..., Args...>
+            static constexpr bool noexcept_v_ =
+                ::stdsharp::concepts::nothrow_invocable<CFunc, T..., Args...>;
+
+            template<
+                typename Tuple,
+                typename... Args,
+                bool Noexcept_ = bind_ref_front_invoker::noexcept_v_<
+                    ::std::conditional_t<::stdsharp::concepts::const_<Tuple>, const Func, Func>,
+                    Args... // clang-format off
+                >
+            > // clang-format on
+            static constexpr decltype(auto) invoke_impl(Tuple&& instance, Args&&... args) //
+                noexcept(Noexcept_)
+            {
+                // ::ranges::invoke, u..., args...
+
+                return ::std::apply(
+                    [&]<typename... U>(U && ... u) noexcept(Noexcept_)->decltype(auto) //
+                    {
+                        return ::std::invoke(
+                            ::std::forward<U>(u)...,
+                            ::std::forward<Args>(args)... //
+                        );
+                    },
+                    ::std::forward<Tuple>(instance) //
+                );
+            }
 
         public:
-#define BS_BIND_REF_OPERATOR(const_, ref)                                                        \
-    template<typename... Args>                                                                   \
-        requires ::std::invocable<const Func, const T..., Args...>                               \
-    constexpr decltype(auto) operator()(Args&&... args)                                          \
-        const_ ref noexcept(bind_ref_front_invoker::noexcept_v<Args...>)                         \
-    {                                                                                            \
-        return ::std::apply(                                                                     \
-            [&]<typename... U>(U && ... t) noexcept(bind_ref_front_invoker::noexcept_v<Args...>) \
-                ->decltype(auto)                                                                 \
-            { return ::std::invoke(::std::forward<U>(t)..., ::std::forward<Args>(args)...); },   \
-            static_cast<const_ base ref>(*this));                                                \
+#define BS_BIND_REF_OPERATOR(const_, ref)                                                  \
+    template<typename... Args>                                                             \
+        requires requires(const_ base ref instance, Args && ... args)                      \
+        {                                                                                  \
+            bind_ref_front_invoker::invoke_impl<const_ base ref>(                          \
+                instance, ::std::forward<Args>(args)...);                                  \
+        }                                                                                  \
+    constexpr decltype(auto) operator()(Args&&... args)                                    \
+        const_ ref noexcept(noexcept(bind_ref_front_invoker::invoke_impl<const_ base ref>( \
+            *this, ::std::forward<Args>(args)...)))                                        \
+    {                                                                                      \
+        return bind_ref_front_invoker::invoke_impl<const_ base ref>(                       \
+            *this, ::std::forward<Args>(args)...);                                         \
     }
 
 #define BS_BIND_REF_OPERATOR_PACK(const_) \
@@ -51,6 +79,32 @@ namespace stdsharp::functional
             Func,
             ::stdsharp::type_traits::coerce_t<T>... // clang-format off
         >; // clang-format on
+
+        template<typename Proj>
+        class projector : invocable_obj<Proj>
+        {
+            using base = invocable_obj<Proj>;
+
+        public:
+            using base::base;
+
+#define BS_UTILITY_PROJECTOR_OPERATOR_DEF(const_)                                              \
+    template<typename Func, typename... Args>                                                  \
+        requires(::std::invocable<const_ base, Args> && ...)                                   \
+    &&::std::                                                                                  \
+        invocable<Func, ::std::invoke_result_t<const_ base, Args>...> constexpr decltype(auto) \
+            operator()(Func&& func, Args&&... args) const_ noexcept(                           \
+                ::stdsharp::concepts::                                                         \
+                    nothrow_invocable<Func, ::std::invoke_result_t<const base, Args>...>)      \
+    {                                                                                          \
+        return ::std::invoke(                                                                  \
+            ::std::forward<Func>(func), base::operator()(::std::forward<Args>(args))...);      \
+    }
+
+            BS_UTILITY_PROJECTOR_OPERATOR_DEF(const)
+            BS_UTILITY_PROJECTOR_OPERATOR_DEF()
+#undef BS_UTILITY_PROJECTOR_OPERATOR_DEF
+        };
     }
 
     inline constexpr auto empty_invoke = [](auto&&...) noexcept
@@ -71,20 +125,27 @@ namespace stdsharp::functional
         } // clang-format on
     );
 
-    inline constexpr auto bind_ref_front = []<typename... Args>
-        requires requires(Args&&... args)
+    inline constexpr ::stdsharp::functional::invocable_obj bind_ref_front(
+        ::stdsharp::functional::nodiscard_tag,
+        []<typename Func, typename... Args> requires requires //
         {
-            ::stdsharp::functional::details::bind_ref_front_invoker{
-                ::std::forward<Args>(args)... //
-            };
-        }
-    (Args&&... args) noexcept(noexcept(::stdsharp::functional::details:: // clang-format off
-        bind_ref_front_invoker{::std::forward<Args>(args)...})) // clang-format on
-    {
-        return ::stdsharp::functional::details::bind_ref_front_invoker{
-            ::std::forward<Args>(args)... //
-        };
-    };
+            ::stdsharp::functional::details:: //
+                bind_ref_front_invoker{::std::declval<Func>(), ::std::declval<Args>()...};
+        } // clang-format off
+        (Func&& func, Args&&... args) noexcept(noexcept(::stdsharp::functional::details::
+        bind_ref_front_invoker{::std::forward<Func>(func),::std::forward<Args>(args)...})) // clang-format on
+        {
+            auto&& obj = ::stdsharp::functional::details:: //
+                bind_ref_front_invoker{::std::forward<Func>(func), ::std::forward<Args>(args)...};
+
+            if constexpr(::stdsharp::functional::nodiscard_func_obj<Func>)
+                return ::stdsharp::functional::invocable_obj{
+                    ::stdsharp::functional::nodiscard_tag,
+                    ::std::move(obj) //
+                }; // clang-format off
+            else return obj;
+        } // clang-format on
+    );
 
     inline constexpr ::stdsharp::functional::invocable_obj returnable_invoke(
         nodiscard_tag,
@@ -153,64 +214,11 @@ namespace stdsharp::functional
         } //
     );
 
-    template<typename Tag, typename...>
-    struct cpo_invoke_fn
-    {
-        template<typename T, typename... Args>
-            requires ::std::invocable<T, Tag, Args...>
-        static constexpr decltype(auto) invoke(T&& t, Args&&... args) //
-            noexcept(::stdsharp::concepts::nothrow_invocable<T, Tag, Args...>)
+    inline constexpr ::stdsharp::functional::invocable_obj make_projector(
+        ::stdsharp::functional::nodiscard_tag,
+        []<typename Func>(Func&& func)
         {
-            return ::std::invoke(::std::forward<T>(t), Tag{}, ::std::forward<Args>(args)...);
-        }
-    };
-
-    namespace details
-    {
-        template<typename Proj>
-        class [[nodiscard]] projector : invocable_obj<Proj>
-        {
-            using base = invocable_obj<Proj>;
-
-        public:
-            using base::base;
-
-#define BS_UTILITY_PROJECTOR_OPERATOR_DEF(const_)                                              \
-    template<typename Func, typename... Args>                                                  \
-        requires(::std::invocable<const_ base, Args> && ...)                                   \
-    &&::std::                                                                                  \
-        invocable<Func, ::std::invoke_result_t<const_ base, Args>...> constexpr decltype(auto) \
-            operator()(Func&& func, Args&&... args) const_ noexcept(                           \
-                ::stdsharp::concepts::                                                         \
-                    nothrow_invocable<Func, ::std::invoke_result_t<const base, Args>...>)      \
-    {                                                                                          \
-        return ::std::invoke(                                                                  \
-            ::std::forward<Func>(func), base::operator()(::std::forward<Args>(args))...);      \
-    }
-
-            BS_UTILITY_PROJECTOR_OPERATOR_DEF(const)
-            BS_UTILITY_PROJECTOR_OPERATOR_DEF()
-#undef BS_UTILITY_PROJECTOR_OPERATOR_DEF
-        };
-
-        template<typename CPOTag>
-        struct cpo_fn
-        {
-            template<typename... T>
-            constexpr decltype(auto) operator()(T&&... t) const noexcept
-            {
-                return ::stdsharp::functional::cpo_invoke_fn<CPOTag, ::std::remove_const_t<T>...>::
-                    invoke(::std::forward<T>(t)... // clang-format off
-                ); // clang-format on
-            }
-        };
-    }
-
-    inline constexpr auto make_projector = []<typename Func>(Func&& func)
-    {
-        return ::stdsharp::functional::details::projector<Func>{::std::forward<Func>(func)}; //
-    };
-
-    template<typename CPOTag>
-    inline constexpr ::stdsharp::functional::details::cpo_fn<CPOTag> cpo{};
+            return ::stdsharp::functional::details::projector<Func>{::std::forward<Func>(func)}; //
+        } //
+    );
 }

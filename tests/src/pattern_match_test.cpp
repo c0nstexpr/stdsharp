@@ -1,6 +1,7 @@
 #include "pattern_match_test.h"
-#include "utility/utility.h"
 #include "pattern_match.h"
+
+#include "utility/utility.h"
 
 namespace stdsharp::test
 {
@@ -32,9 +33,8 @@ namespace stdsharp::test
 
                         when("when case 2 match set the flag to true") = []
                         {
-                            constexpr auto pair_v = []
+                            constexpr auto v = []
                             {
-                                auto flag = false;
                                 my_enum matched{};
                                 const auto& matched_assign = bind_ref_front(assign_v, matched);
 
@@ -46,11 +46,7 @@ namespace stdsharp::test
                                     },
                                     pair{
                                         bind_front(equal_to_v, my_enum::two),
-                                        [&flag, &matched_assign](const my_enum e) noexcept
-                                        {
-                                            matched_assign(e);
-                                            flag = true; //
-                                        } //
+                                        matched_assign,
                                     },
                                     pair{
                                         bind_front(equal_to_v, my_enum::three),
@@ -58,11 +54,11 @@ namespace stdsharp::test
                                     } //
                                 );
 
-                                return pair{flag, matched};
+                                return matched;
                             }();
 
-                            static_expect<pair_v.first>()
-                                << fmt::format("actually match {}", to_underlying(pair_v.second));
+                            static_expect<v == my_enum::two>()
+                                << fmt::format("actually match {}", to_underlying(v));
                         };
                     };
                 };

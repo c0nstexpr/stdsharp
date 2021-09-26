@@ -20,10 +20,10 @@ namespace stdsharp::functional
         } //
     );
 
-    inline constexpr struct assign
+    inline constexpr struct assign : ::stdsharp::functional::nodiscard_tag_t
     {
-        template<typename T, typename U>
-            requires ::std::assignable_from<T, U>
+        template<typename T, typename U = T>
+            requires ::std::assignable_from<T&, U>
         constexpr decltype(auto) operator()(T& left, U&& right) const
             noexcept(noexcept(left = ::std::forward<U>(right)))
         {
@@ -31,7 +31,7 @@ namespace stdsharp::functional
         }
 
         template<typename T, typename... U>
-            requires ::std::constructible_from<::std::remove_cvref_t<T>, U...>
+            requires(sizeof...(U) > 1 && ::std::constructible_from<::std::remove_cvref_t<T>, U...>)
         constexpr decltype(auto) operator()(T& left, U&&... right) const
             noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
         {
@@ -39,32 +39,56 @@ namespace stdsharp::functional
         }
     } assign_v{};
 
-    inline constexpr ::std::ranges::equal_to equal_to_v{};
-    inline constexpr ::std::ranges::not_equal_to not_equal_to_v{};
-    inline constexpr ::std::ranges::less less_v{};
-    inline constexpr ::std::ranges::greater greater_v{};
-    inline constexpr ::std::ranges::less_equal less_equal_v{};
-    inline constexpr ::std::ranges::greater_equal greater_equal_v{};
+#define BS_STD_RANGES_OPERATION(op_type)                                              \
+    template<>                                                                        \
+    struct is_nodiscard_func_obj<::std::ranges::op_type> : ::std::bool_constant<true> \
+    {                                                                                 \
+    };                                                                                \
+                                                                                      \
+    inline constexpr ::std::ranges::op_type op_type##_v{};
+
+    BS_STD_RANGES_OPERATION(equal_to)
+    BS_STD_RANGES_OPERATION(not_equal_to)
+    BS_STD_RANGES_OPERATION(less)
+    BS_STD_RANGES_OPERATION(greater)
+    BS_STD_RANGES_OPERATION(less_equal)
+    BS_STD_RANGES_OPERATION(greater_equal)
+
+#undef BS_STD_RANGES_OPERATION
+
+    template<>
+    struct is_nodiscard_func_obj<::std::compare_three_way> : ::std::bool_constant<true>
+    {
+    };
+
     inline constexpr ::std::compare_three_way compare_three_way_v{};
 
-    inline constexpr ::std::plus<> plus_v{};
-    inline constexpr ::std::minus<> minus_v{};
-    inline constexpr ::std::divides<> divides_v{};
-    inline constexpr ::std::multiplies<> multiplies_v{};
-    inline constexpr ::std::modulus<> modulus_v{};
-    inline constexpr ::std::negate<> negate_v{};
+#define BS_STD_ARITH_OPERATION(op_type)                                         \
+    template<>                                                                  \
+    struct is_nodiscard_func_obj<::std::op_type<>> : ::std::bool_constant<true> \
+    {                                                                           \
+    };                                                                          \
+                                                                                \
+    inline constexpr ::std::op_type<> op_type##_v{};
 
-    inline constexpr ::std::logical_and<> logical_and_v{};
-    inline constexpr ::std::logical_not<> logical_not_v{};
-    inline constexpr ::std::logical_or<> logical_or_v{};
+    BS_STD_ARITH_OPERATION(plus)
+    BS_STD_ARITH_OPERATION(minus)
+    BS_STD_ARITH_OPERATION(divides)
+    BS_STD_ARITH_OPERATION(multiplies)
+    BS_STD_ARITH_OPERATION(modulus)
+    BS_STD_ARITH_OPERATION(negate)
+    BS_STD_ARITH_OPERATION(logical_and)
+    BS_STD_ARITH_OPERATION(logical_not)
+    BS_STD_ARITH_OPERATION(logical_or)
+    BS_STD_ARITH_OPERATION(bit_and)
+    BS_STD_ARITH_OPERATION(bit_not)
+    BS_STD_ARITH_OPERATION(bit_or)
+    BS_STD_ARITH_OPERATION(bit_xor)
 
-    inline constexpr ::std::bit_and<> bit_and_v{};
-    inline constexpr ::std::bit_not<> bit_not_v{};
-    inline constexpr ::std::bit_or<> bit_or_v{};
-    inline constexpr ::std::bit_xor<> bit_xor_v{};
+#undef BS_STD_ARITH_OPERATION
 
 #define BS_UTIL_SHIFT_OPERATE(direction, operate)                                        \
-    inline constexpr struct direction##_shift                                            \
+    inline constexpr struct direction##_shift : ::stdsharp::functional::nodiscard_tag_t  \
     {                                                                                    \
         template<typename T, typename U>                                                 \
             requires requires(T && left, U&& right)                                      \
@@ -91,7 +115,7 @@ namespace stdsharp::functional
         l op## = ::std::forward<U>(u);                                                            \
     };                                                                                            \
                                                                                                   \
-    inline constexpr struct operator_type##_assign                                                \
+    inline constexpr struct operator_type##_assign : ::stdsharp::functional::nodiscard_tag_t      \
     {                                                                                             \
         template<typename T, typename U>                                                          \
         requires ::stdsharp::functional::                                                         \
@@ -154,7 +178,8 @@ namespace stdsharp::functional
         }                                                                                       \
     } pre_##operator_prefix##crease_v{};                                                        \
                                                                                                 \
-    inline constexpr struct post_##operator_prefix##crease                                      \
+    inline constexpr struct post_##operator_prefix##crease :                                    \
+        ::stdsharp::functional::nodiscard_tag_t                                                 \
     {                                                                                           \
         template<typename T>                                                                    \
             requires ::std::invocable<::stdsharp::functional::al_op##_assign, T, ::std::size_t> \
@@ -194,7 +219,7 @@ namespace stdsharp::functional
 
 #undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
 
-    inline constexpr struct advance
+    inline constexpr struct advance : ::stdsharp::functional::nodiscard_tag_t
     {
         template<typename T, typename Distance>
             requires ::std::invocable<plus_assign, T, Distance>

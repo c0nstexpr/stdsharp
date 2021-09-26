@@ -26,9 +26,9 @@ namespace stdsharp::test::property
                     static_expect<invocable<setter<rvalue_func>, int>>() << "not invocable";
                 };
 
-                given("given integer var 42") = []
+                given("given integer var 0") = []
                 {
-                    int i{};
+                    int i = 0;
 
                     getter mutable_g{[&i]() mutable { return i; }};
                     auto&& value_g = value_getter(i);
