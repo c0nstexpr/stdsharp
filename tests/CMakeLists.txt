@@ -25,7 +25,6 @@ set(
     ${header_dir}/test_utils.h
     ${header_dir}/test.h
     ${header_dir}/algorithm_test.h
-    ${header_dir}/random_test.h
     ${header_dir}/pattern_match_test.h
     ${header_dir}/concurrent_object_test.h
     ${utility_header_dir}/utility_test.h
@@ -37,7 +36,6 @@ set(
 set(
     src
     ${src_dir}/algorithm_test.cpp
-    ${src_dir}/random_test.cpp
     ${src_dir}/pattern_match_test.cpp
     ${src_dir}/concurrent_object_test.cpp
     ${utility_src_dir}/utility_test.cpp
