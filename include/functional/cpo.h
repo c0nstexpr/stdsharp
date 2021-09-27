@@ -1,13 +1,16 @@
 //
 // Created by BlurringShadow on 2021-9-22.
 //
-
-#include "functional/functional.h"
+#pragma once
+#include "functional/invocable_obj.h"
 
 namespace stdsharp::functional
 {
     template<typename...>
-    struct cpo_invoke_fn
+    struct cpo_invoke_fn;
+
+    template<>
+    struct cpo_invoke_fn<>
     {
         template<typename Tag, typename T, typename... Args>
             requires ::std::invocable<T, Args...>
@@ -100,10 +103,7 @@ namespace stdsharp::functional
             return invoke_impl(::std::forward<T>(t)...);
         }
 
-        template<typename Tag, typename... T>
-            requires(
-                ::std::derived_from<Tag, ::stdsharp::functional::nodiscard_tag_t> ||
-                ::std::same_as<decltype(::std::ranges::begin), Tag>)
+        template<::stdsharp::functional::nodiscard_func_obj Tag, typename... T>
         [[nodiscard]] constexpr decltype(auto) operator()(Tag&& tag, T&&... t) const
             noexcept(noexcept(invoke_impl(::std::forward<Tag>(tag), ::std::forward<T>(t)...)))
         {

@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <range/v3/functional/overload.hpp>
 
 #include "concepts/concepts.h"
 
@@ -114,7 +115,8 @@ namespace stdsharp::functional
 
     template<typename Invocable>
     class invocable_obj<Invocable, ::stdsharp::functional::nodiscard_tag_t> :
-        ::stdsharp::functional::details::invocable_obj_base<Invocable>, nodiscard_tag_t
+        ::stdsharp::functional::details::invocable_obj_base<Invocable>,
+        nodiscard_tag_t
     {
         using base = ::stdsharp::functional::details::invocable_obj_base<Invocable>;
 
