@@ -86,6 +86,15 @@ namespace stdsharp::concepts
     concept assignable_to = ::std::assignable_from<U, T>;
 
     template<typename T>
+    concept move_assignable = ::std::assignable_from<T&, T>;
+
+    template<typename T>
+    concept copy_assignable = ::stdsharp::concepts::move_assignable<T> && //
+        ::std::assignable_from<T&, const T> && //
+        ::std::assignable_from<T&, T&> && //
+        ::std::assignable_from<T&, const T&>;
+
+    template<typename T>
     concept trivial_copyable = ::std::is_trivially_copyable_v<T>;
 
     template<typename T>
