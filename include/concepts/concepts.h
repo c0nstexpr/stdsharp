@@ -143,6 +143,20 @@ namespace stdsharp::concepts
     template<typename T, typename U>
     concept nothrow_swappable_with = ::std::is_nothrow_swappable_with_v<T, U>;
 
+    template<typename T>
+    concept nothrow_movable = ::std::movable<T> && //
+        ::stdsharp::concepts::nothrow_move_constructible<T> &&
+        ::stdsharp::concepts::nothrow_assignable_from<T&, T> &&
+        ::stdsharp::concepts::nothrow_swappable<T>;
+
+    template<typename T>
+    concept nothrow_copyable = ::stdsharp::concepts::nothrow_movable<T> && //
+        ::std::copyable<T> && //
+        ::stdsharp::concepts::nothrow_copy_constructible<T> &&
+        ::stdsharp::concepts::nothrow_assignable_from<T&, T&> &&
+        ::stdsharp::concepts::nothrow_assignable_from<T&, const T> &&
+        ::stdsharp::concepts::nothrow_assignable_from<T&, const T&>;
+
     template<typename T, typename U>
     concept nothrow_convertible_to = ::std::is_nothrow_convertible_v<T, U>;
 
