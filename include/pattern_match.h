@@ -6,12 +6,12 @@ namespace stdsharp
 {
     inline constexpr struct
     {
-        template< //
+        template<
             typename Condition,
             ::std::predicate<const Condition>... Predicate,
             ::std::invocable<const Condition>... Func // clang-format off
-        >
-        constexpr void operator()( // clang-format on
+        > // clang-format on
+        constexpr void operator()(
             const Condition& condition, //
             ::std::pair<Predicate, Func>... cases // clang-format off
         ) const noexcept(((::stdsharp::concepts::
@@ -70,9 +70,8 @@ namespace stdsharp
         }
 
         template<typename ConditionT>
-        inline constexpr ::stdsharp::constexpr_pattern_match::details:: //
-            from_type_fn<ConditionT>
-                from_type{};
+        inline constexpr ::stdsharp::constexpr_pattern_match::details::from_type_fn<ConditionT>
+            from_type{};
 
         template<auto Condition>
         inline constexpr auto from_constant = ::std::bind_front( //
