@@ -639,33 +639,50 @@ namespace stdsharp::containers
 
     struct emplace_fn
     {
-        template<::stdsharp::containers::sequence_container Container, typename... Args>
-            requires ::stdsharp::containers::emplace_constructible<
+    private:
+        template<typename Container, typename... Args>
+        static constexpr auto seq_req_ = ::stdsharp::containers::sequence_container<Container>&& //
+            ::stdsharp::containers::emplace_constructible<
                 typename Container::value_type,
                 typename allocator_from_container<Container>::type,
                 Args... // clang-format off
-            > // clang-format on
+            >; // clang-format on
+
+        template<typename Container, typename... Args>
+        static constexpr auto aso_req_ =
+            (::stdsharp::containers::associative_container<Container> ||
+             ::stdsharp::containers::associative_container<Container>)&& //
+            ::stdsharp::containers::emplace_constructible<
+                typename Container::value_type,
+                typename allocator_from_container<Container>::type,
+                Args... // clang-format off
+            >; // clang-format on
+
+    public:
+        template<
+            typename Container,
+            ::std::remove_cvref_t<Container>* DecayContainer = nullptr,
+            typename... Args // clang-format off
+        > // clang-format on
+            requires ::stdsharp::containers::emplace_fn::
+                seq_req_<decltype(*DecayContainer), Args...>
         constexpr decltype(auto) operator()(
             Container&& container,
-            const typename Container::const_iterator iter,
+            const typename decltype(*DecayContainer)::const_iterator iter,
             Args&&... args //
         ) const
             noexcept(noexcept(::std::declval<Container>().emplace(iter, ::std::declval<Args>()...)))
         {
             return ::std::forward<Container>(container).emplace(
-                iter, ::std::forward<Args>(args)...);
+                iter,
+                ::std::forward<Args>(args)... //
+            );
         }
 
         template<typename Container, typename... Args>
-            requires(
-                ::stdsharp::containers::associative_container<Container> || // clang-format off
-                ::stdsharp::containers::unordered_associative_container<Container>) &&
-            ::stdsharp::containers::emplace_constructible<
-                typename Container::value_type,
-                typename allocator_from_container<Container>::type,
-                Args...
-            > // clang-format on
-            constexpr decltype(auto) operator()(Container&& container, Args&&... args) const
+            requires ::stdsharp::containers::emplace_fn::
+                aso_req_<::std::remove_cvref_t<Container>, Args...>
+        constexpr decltype(auto) operator()(Container&& container, Args&&... args) const
             noexcept(noexcept(::std::declval<Container>().emplace(::std::declval<Args>()...)))
         {
             return ::std::forward<Container>(container).emplace(::std::forward<Args>(args)...);
