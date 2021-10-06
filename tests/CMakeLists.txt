@@ -11,11 +11,13 @@ verbose_message("Adding tests under ${PROJECT_NAME}...")
 #
 set(header_dir "include")
 set(utility_header_dir "${header_dir}/utility")
+set(containers_header_dir "${header_dir}/containers")
 set(traits_header_dir "${header_dir}/type_traits")
 set(property_header_dir "${header_dir}/property")
 
 set(src_dir "src")
 set(utility_src_dir "${src_dir}/utility")
+set(containers_src_dir "${src_dir}/containers")
 set(traits_src_dir "${src_dir}/type_traits")
 set(property_src_dir "${src_dir}/property")
 
@@ -27,8 +29,9 @@ set(
     ${header_dir}/algorithm_test.h
     ${header_dir}/pattern_match_test.h
     ${header_dir}/concurrent_object_test.h
-    ${header_dir}/containers_test.h
     ${utility_header_dir}/utility_test.h
+    ${containers_header_dir}/containers_test.h
+    ${containers_header_dir}/actions_test.h
     ${traits_header_dir}/value_sequence_test.h
     ${traits_header_dir}/type_sequence_test.h
     ${traits_header_dir}/member_test.h
@@ -39,8 +42,9 @@ set(
     ${src_dir}/algorithm_test.cpp
     ${src_dir}/pattern_match_test.cpp
     ${src_dir}/concurrent_object_test.cpp
-    ${src_dir}/containers_test.cpp
     ${utility_src_dir}/utility_test.cpp
+    ${containers_src_dir}/containers_test.cpp
+    ${containers_src_dir}/actions_test.cpp
     ${traits_src_dir}/value_sequence_test.cpp
     ${traits_src_dir}/type_sequence_test.cpp
     ${traits_src_dir}/member_test.cpp

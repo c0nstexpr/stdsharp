@@ -1,7 +1,5 @@
-#include "containers_test.h"
-#include "containers.h"
-
-static_assert(stdsharp::containers::unordered_associative_container<std::unordered_set<int>>);
+#include "containers/containers_test.h"
+#include "containers/containers.h"
 
 namespace stdsharp::test::containers
 {
@@ -13,8 +11,6 @@ namespace stdsharp::test::containers
             using namespace boost::ut;
             using namespace bdd;
             using namespace stdsharp::containers;
-
-            using unique_obj = unique_ptr<int>;
 
             feature("container concept") = []<typename T>(const type_identity<T>)
             {

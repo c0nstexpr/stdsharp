@@ -50,8 +50,9 @@ namespace stdsharp::containers
     concept container_erasable = requires
     {
         requires ::stdsharp::containers::erasable<
-            typename Container::value_type,
-            ::stdsharp::containers::allocator_from_container_t<Container> // clang-format off
+            typename ::std::decay_t<Container>::value_type,
+            ::stdsharp::containers::allocator_from_container_t<
+                ::std::decay_t<Container>> // clang-format off
         >; // clang-format on
     };
 
@@ -72,8 +73,9 @@ namespace stdsharp::containers
     concept container_move_insertable = requires
     {
         requires ::stdsharp::containers::move_insertable<
-            typename Container::value_type,
-            ::stdsharp::containers::allocator_from_container_t<Container> // clang-format off
+            typename ::std::decay_t<Container>::value_type,
+            ::stdsharp::containers::allocator_from_container_t<
+                ::std::decay_t<Container>> // clang-format off
         >; // clang-format on
     };
 
@@ -89,8 +91,9 @@ namespace stdsharp::containers
     concept container_copy_insertable = requires
     {
         requires ::stdsharp::containers::copy_insertable<
-            typename Container::value_type,
-            ::stdsharp::containers::allocator_from_container_t<Container> // clang-format off
+            typename ::std::decay_t<Container>::value_type,
+            ::stdsharp::containers::allocator_from_container_t<
+                ::std::decay_t<Container>> // clang-format off
         >; // clang-format on
     };
 
@@ -111,8 +114,8 @@ namespace stdsharp::containers
     concept container_emplace_constructible = requires
     {
         requires ::stdsharp::containers::emplace_constructible<
-            typename Container::value_type,
-            ::stdsharp::containers::allocator_from_container_t<Container>,
+            typename ::std::decay_t<Container>::value_type,
+            ::stdsharp::containers::allocator_from_container_t<::std::decay_t<Container>>,
             Args... // clang-format off
         >; // clang-format on
     };
@@ -250,10 +253,10 @@ namespace stdsharp::containers
             }; // clang-format on
     }
 
-    template<typename T>
+    template<typename Container>
     concept container = requires
     {
-        requires ::stdsharp::containers::details::container_req<T>;
+        requires ::stdsharp::containers::details::container_req<::std::decay_t<Container>>;
     };
 
     namespace details
@@ -643,89 +646,39 @@ namespace stdsharp::containers
             }; // clang-format on
     }
 
-    template<typename T>
+    template<typename Container>
     concept reversible_aware_container = requires
     {
-        requires ::stdsharp::containers::details::reversible_container_req<T>;
+        requires ::stdsharp::containers::details::reversible_container_req<
+            ::std::decay_t<Container>>;
     };
 
-    template<typename T>
+    template<typename Container>
     concept allocator_aware_container = requires
     {
-        requires ::stdsharp::containers::details::allocator_aware_container_req<T>;
+        requires ::stdsharp::containers::details::allocator_aware_container_req<
+            ::std::decay_t<Container>>;
     };
 
-    template<typename T>
-    concept sequence_container = ::stdsharp::containers::details::sequence_container_req<T>;
+    template<typename Container>
+    concept sequence_container =
+        ::stdsharp::containers::details::sequence_container_req<::std::decay_t<Container>>;
 
-    template<typename T>
-    concept contiguous_container =
-        ::stdsharp::containers::container<T> && ::std::ranges::contiguous_range<T>;
+    template<typename Container>
+    concept contiguous_container = ::stdsharp::containers::container<Container> &&
+        ::std::ranges::contiguous_range<::std::decay_t<Container>>;
 
-    template<typename T>
+    template<typename Container>
     concept associative_container = requires
     {
-        requires ::stdsharp::containers::details::associative_container_req<T>;
+        requires ::stdsharp::containers::details:: //
+            associative_container_req<::std::decay_t<Container>>;
     };
 
-    template<typename T>
+    template<typename Container>
     concept unordered_associative_container = requires
     {
-        requires ::stdsharp::containers::details::unordered_associative_container_req<T>;
+        requires ::stdsharp::containers::details:: //
+            unordered_associative_container_req<::std::decay_t<Container>>;
     };
-
-    struct emplace_fn
-    {
-    private:
-        template<typename Container, typename... Args>
-        static constexpr auto seq_req_ = ::stdsharp::containers::sequence_container<Container>&& //
-            ::stdsharp::containers::emplace_constructible<
-                typename Container::value_type,
-                typename allocator_from_container<Container>::type,
-                Args... // clang-format off
-            >; // clang-format on
-
-        template<typename Container, typename... Args>
-        static constexpr auto aso_req_ =
-            (::stdsharp::containers::associative_container<Container> ||
-             ::stdsharp::containers::associative_container<Container>)&& //
-            ::stdsharp::containers::emplace_constructible<
-                typename Container::value_type,
-                typename allocator_from_container<Container>::type,
-                Args... // clang-format off
-            >; // clang-format on
-
-    public:
-        template<
-            typename Container,
-            ::std::remove_cvref_t<Container>* DecayContainer = nullptr,
-            typename... Args // clang-format off
-        > // clang-format on
-            requires ::stdsharp::containers::emplace_fn::
-                seq_req_<decltype(*DecayContainer), Args...>
-        constexpr decltype(auto) operator()(
-            Container&& container,
-            const typename decltype(*DecayContainer)::const_iterator iter,
-            Args&&... args //
-        ) const
-            noexcept(noexcept(::std::declval<Container>().emplace(iter, ::std::declval<Args>()...)))
-        {
-            return ::std::forward<Container>(container).emplace(
-                iter,
-                ::std::forward<Args>(args)... //
-            );
-        }
-
-        template<typename Container, typename... Args>
-            requires ::stdsharp::containers::emplace_fn::
-                aso_req_<::std::remove_cvref_t<Container>, Args...>
-        constexpr decltype(auto) operator()(Container&& container, Args&&... args) const
-            noexcept(noexcept(::std::declval<Container>().emplace(::std::declval<Args>()...)))
-        {
-            return ::std::forward<Container>(container).emplace(::std::forward<Args>(args)...);
-        }
-    };
-
-    inline constexpr auto emplace =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::emplace_fn>;
 }
