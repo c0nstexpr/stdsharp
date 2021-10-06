@@ -18,7 +18,7 @@ namespace stdsharp
             nothrow_predicate<Predicate, Condition> && ::stdsharp::concepts::nothrow_invocable<Func>) && ...))
         {
             ( // clang-format on
-                [&condition]<typename P>(P&& pair)
+                [&condition](::std::pair<Predicate, Func>&& pair)
                 {
                     if(::stdsharp::functional::invoke_r<bool>(::std::move(pair.first), condition))
                     {
@@ -43,7 +43,7 @@ namespace stdsharp
                 using condition_type_identity = ::std::type_identity<ConditionT>;
 
                 template<typename Case>
-                static constexpr bool case_nothrow_invocable =
+                static constexpr bool case_nothrow_invocable_ =
                     !::std::invocable<Case, from_type_fn::condition_type_identity> ||
                     ::stdsharp::concepts::
                         nothrow_invocable<Case, from_type_fn::condition_type_identity>;
@@ -51,15 +51,15 @@ namespace stdsharp
             public:
                 template<typename... Cases>
                 constexpr auto operator()(Cases... cases) const
-                    noexcept((from_type_fn::case_nothrow_invocable<Cases> && ...))
+                    noexcept((from_type_fn::case_nothrow_invocable_<Cases> && ...))
                 {
                     (
-                        []<typename Case>(Case&& c) // clang-format off
-                            noexcept(from_type_fn::case_nothrow_invocable<Case>) // clang-format on
+                        [](Cases&& c) // clang-format off
+                            noexcept(from_type_fn::case_nothrow_invocable_<Cases>) // clang-format on
                         {
-                            if constexpr(::std::invocable<Case, condition_type_identity>)
+                            if constexpr(::std::invocable<Cases, condition_type_identity>)
                             {
-                                ::std::invoke(::std::forward<Case>(c), condition_type_identity{});
+                                ::std::invoke(::std::forward<Cases>(c), condition_type_identity{});
                                 return true;
                             } // clang-format off
                             else return false;
@@ -75,14 +75,9 @@ namespace stdsharp
                 from_type{};
 
         template<auto Condition>
-        inline constexpr auto from_constant = []<typename... Cases>(Cases&&... cases) //
-            noexcept(noexcept(::stdsharp::constexpr_pattern_match:: //
-                              from_type<type_traits:: //
-                                        constant<Condition>>(::std::forward<Cases>(cases)...)))
-        {
-            return ::stdsharp::constexpr_pattern_match:: //
-                from_type<type_traits:: //
-                          constant<Condition>>(::std::forward<Cases>(cases)...);
-        };
+        inline constexpr auto from_constant = ::std::bind_front( //
+            ::stdsharp::constexpr_pattern_match:: //
+            from_type<::stdsharp::type_traits::constant<Condition>> //
+        );
     }
 }
