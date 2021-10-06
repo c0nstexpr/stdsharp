@@ -115,6 +115,9 @@ namespace stdsharp::concepts
     template<typename T, typename U>
     concept not_same_as = !::std::same_as<T, U>;
 
+    template<typename T, typename U>
+    concept decay_same_as = ::std::same_as<::std::decay_t<T>, U>;
+
     template<typename T, typename... Args>
     concept nothrow_constructible_from = ::std::is_nothrow_constructible_v<T, Args...>;
 
