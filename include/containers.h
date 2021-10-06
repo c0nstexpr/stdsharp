@@ -27,7 +27,7 @@ namespace stdsharp::containers
     template<typename ContainerType>
         requires requires
         {
-            ::stdsharp::memory::allocator_req<typename ContainerType::allocator_type>;
+            requires ::stdsharp::memory::allocator_req<typename ContainerType::allocator_type>;
         }
     struct allocator_from_container<ContainerType> :
         std::type_identity<typename ContainerType::allocator_type>
@@ -90,10 +90,11 @@ namespace stdsharp::containers
         > // clang-format on
         concept iterator_identical = requires
         {
-            ::std::same_as<typename TTraits::value_type, typename UTraits::value_type>;
-            ::std::same_as<typename TTraits::difference_type, typename UTraits::difference_type>;
-            ::std::same_as<typename TTraits::pointer, typename UTraits::pointer>;
-            ::std::same_as<typename TTraits::reference, typename UTraits::reference>;
+            requires ::std::same_as<typename TTraits::value_type, typename UTraits::value_type>;
+            requires ::std::
+                same_as<typename TTraits::difference_type, typename UTraits::difference_type>;
+            requires ::std::same_as<typename TTraits::pointer, typename UTraits::pointer>;
+            requires ::std::same_as<typename TTraits::reference, typename UTraits::reference>;
         };
 
         template<
@@ -181,8 +182,9 @@ namespace stdsharp::containers
                 container_special_member_req<ContainerType, ValueType, Allocator>::value &&
             (!::std::equality_comparable<ValueType> ||
              ::std::equality_comparable<ContainerType>)&& //
-            ::std::same_as<ValueType, ::std::ranges::range_value_t<ContainerType>>&& //
-            ::std::same_as<RefType, ::std::ranges::range_reference_t<ContainerType>>&& //
+            ::std::same_as<ValueType, ::std::ranges::range_value_t<ContainerType>> && //
+            (::std::same_as<RefType, ::std::ranges::range_reference_t<ContainerType>> ||
+             ::std::same_as<ConstRefType, ::std::ranges::range_reference_t<ContainerType>>)&& //
             ::std::same_as<RefType, ::std::add_lvalue_reference_t<ValueType>>&& //
             ::std::same_as<
                 ConstRefType,
@@ -212,11 +214,9 @@ namespace stdsharp::containers
     }
 
     template<typename T>
-    concept container =
-
-        requires
+    concept container = requires
     {
-        ::stdsharp::containers::details::container_req<T>;
+        requires ::stdsharp::containers::details::container_req<T>;
     };
 
     namespace details
@@ -239,7 +239,7 @@ namespace stdsharp::containers
                 std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
                     ::stdsharp::containers::move_insertable<ValueType, Allocator> &&
                     ::stdsharp::concepts::move_assignable<ValueType>;
-                ::std::same_as<ValueType, typename Allocator::value_type>;
+                requires ::std::same_as<ValueType, typename Allocator::value_type>;
             } &&
             requires(ContainerType instance)
             {
@@ -261,7 +261,7 @@ namespace stdsharp::containers
              ::std::constructible_from<ContainerType, SizeType, ValueType>)&& // clang-format off
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
             {
-                !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
+                requires !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
                     ::std::constructible_from<ContainerType, ConstIter, ConstIter> &&
                     ::std::constructible_from<ContainerType, ::std::initializer_list<ValueType>> &&
                     requires(::std::initializer_list<ValueType> v_list)
@@ -282,12 +282,12 @@ namespace stdsharp::containers
                         { instance.clear() } -> ::std::same_as<void>;
                     };
 
-                !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
+                requires !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
 
-                        !::stdsharp::containers::copy_insertable<
+                        requires !::stdsharp::containers::copy_insertable<
                             ValueType,
                             Allocator
                         > || requires
@@ -295,9 +295,9 @@ namespace stdsharp::containers
                             { instance.insert(const_iter, ::std::as_const(value)) } ->
                                 ::std::same_as<Iter>;
 
-                            !::stdsharp::concepts::copy_assignable<ValueType> || requires(SizeType n)
+                            requires !::stdsharp::concepts::copy_assignable<ValueType> || requires(SizeType n)
                             {
-                                ::std::assignable_from<
+                                requires ::std::assignable_from<
                                     ContainerType&,
                                     ::std::initializer_list<ValueType>
                                 >;
@@ -338,10 +338,10 @@ namespace stdsharp::containers
             // clang-format off
             requires(Handle handle)
             {
-                noexcept(static_cast<bool>(handle));
+                requires noexcept(static_cast<bool>(handle));
                 { ::std::as_const(handle).get_allocator() } ->
                     ::std::same_as<typename Handle::allocator_type>;
-                noexcept(::std::as_const(handle).empty());
+                requires noexcept(::std::as_const(handle).empty());
                 { ::std::as_const(handle).empty() } -> ::std::same_as<bool>;
             }; // clang-format on
 
@@ -379,7 +379,7 @@ namespace stdsharp::containers
                 ValueType value // clang-format off
             )
             {
-                !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
+                requires !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
                     (!::std::default_initializable<KeyCmp> ||
                         ::std::constructible_from<ContainerType, ConstIter, ConstIter> &&
                     ::std::constructible_from<ContainerType, ::std::initializer_list<ValueType>>) &&
@@ -391,22 +391,22 @@ namespace stdsharp::containers
                     > &&
                     requires(::std::initializer_list<ValueType> v_list)
                     {
-                        { instance.insert(v_list) } -> ::std::same_as<Iter>;
+                        { instance.insert(v_list) } -> ::std::same_as<void>;
                     } &&
                     requires
                     {
                         { instance.emplace_hint(const_iter, ::std::as_const(value)) } ->
-                            ::std::same_as<::std::pair<Iter, bool>>;
+                            ::std::same_as<Iter>;
 
-                        { instance.insert(const_iter, const_iter) } -> ::std::same_as<Iter>;
+                        { instance.insert(const_iter, const_iter) } -> ::std::same_as<void>;
                     };
 
-                !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
+                requires !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
 
-                        !::stdsharp::containers::copy_insertable<
+                        requires !::stdsharp::containers::copy_insertable<
                             ValueType,
                             Allocator
                         > || requires
@@ -421,13 +421,14 @@ namespace stdsharp::containers
 
                 { instance.extract(const_iter) } -> ::std::same_as<NodeType>;
 
-                !!requires(KeyType key)
+                requires requires(KeyType key)
                 {
                     { instance.extract(key) } -> ::std::same_as<NodeType>;
                     { instance.erase(key) } -> ::std::same_as<SizeType>;
-                    { ::std::as_const(instance).find(key) } -> ::std::same_as<SizeType>;
+                    { instance.find(key) } -> ::std::same_as<Iter>;
+                    { ::std::as_const(instance).find(key) } -> ::std::same_as<ConstIter>;
                     { ::std::as_const(instance).count(key) } -> ::std::same_as<SizeType>;
-                    { ::std::as_const(instance).contains(key) } -> ::std::same_as<SizeType>;
+                    { ::std::as_const(instance).contains(key) } -> ::std::same_as<bool>;
                     { instance.lower_bound(key) } -> ::std::same_as<Iter>;
                     { ::std::as_const(instance).lower_bound(key) } -> ::std::same_as<ConstIter>;
                     { instance.upper_bound(key) } -> ::std::same_as<Iter>;
@@ -437,15 +438,15 @@ namespace stdsharp::containers
                         ::std::same_as<::std::pair<ConstIter, ConstIter>>;
                 };
 
-                !!requires(NodeType node)
+                requires requires(NodeType&& node)
                 {
-                    { instance.insert(const_iter, node) } -> ::std::same_as<Iter>;
+                    { instance.insert(const_iter, ::std::move(node)) } -> ::std::same_as<Iter>;
                 };
 
                 { instance.erase(const_iter) } -> ::std::same_as<Iter>;
                 { instance.erase(const_iter, const_iter) } -> ::std::same_as<Iter>;
 
-                !!requires(Iter iter)
+                requires requires(Iter iter)
                 {
                     { instance.erase(iter) } -> ::std::same_as<Iter>;
                 };
@@ -496,7 +497,7 @@ namespace stdsharp::containers
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
         // clang-format off
             {
-                !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
+                requires !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
                 (::std::default_initializable<KeyEqual> ?
                  (!::std::default_initializable<Hasher> ||
                   ::std::constructible_from<ContainerType, SizeType> &&
@@ -523,16 +524,16 @@ namespace stdsharp::containers
                 requires
                 {
                     { instance.emplace_hint(const_iter, ::std::as_const(value)) } ->
-                        ::std::same_as<::std::pair<Iter, bool>>;
+                        ::std::same_as<Iter>;
 
-                    { instance.insert(const_iter, const_iter) } -> ::std::same_as<Iter>;
-                    !!requires(::std::initializer_list<ValueType> v_list)
+                    { instance.insert(const_iter, const_iter) } -> ::std::same_as<void>;
+                    requires requires(::std::initializer_list<ValueType> v_list)
                     {
-                        { instance.insert(v_list) } -> ::std::same_as<Iter>;
+                        { instance.insert(v_list) } -> ::std::same_as<void>;
                     };
                 };
 
-                !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
+                requires !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
@@ -551,31 +552,28 @@ namespace stdsharp::containers
                 { instance.hash_function() } -> ::std::same_as<Hasher>;
 
                 { instance.extract(const_iter) } -> ::std::same_as<NodeType>;
-                !!requires(KeyType key)
+                requires requires(KeyType key)
                 {
                     { instance.extract(key) } -> ::std::same_as<NodeType>;
                     { instance.erase(key) } -> ::std::same_as<SizeType>;
-                    { ::std::as_const(instance).find(key) } -> ::std::same_as<SizeType>;
+                    { instance.find(key) } -> ::std::same_as<Iter>;
+                    { ::std::as_const(instance).find(key) } -> ::std::same_as<ConstIter>;
                     { ::std::as_const(instance).count(key) } -> ::std::same_as<SizeType>;
                     { ::std::as_const(instance).bucket(key) } -> ::std::same_as<SizeType>;
-                    { ::std::as_const(instance).contains(key) } -> ::std::same_as<SizeType>;
-                    { instance.lower_bound(key) } -> ::std::same_as<Iter>;
-                    { ::std::as_const(instance).lower_bound(key) } -> ::std::same_as<ConstIter>;
-                    { instance.upper_bound(key) } -> ::std::same_as<Iter>;
-                    { ::std::as_const(instance).upper_bound(key) } -> ::std::same_as<ConstIter>;
+                    { ::std::as_const(instance).contains(key) } -> ::std::same_as<bool>;
                     { instance.equal_range(key) } -> ::std::same_as<::std::pair<Iter, Iter>>;
                     { ::std::as_const(instance).equal_range(key) } ->
                         ::std::same_as<::std::pair<ConstIter, ConstIter>>;
                 };
 
-                !!requires(NodeType node)
+                requires requires(NodeType&& node)
                 {
-                    { instance.insert(const_iter, node) } -> ::std::same_as<Iter>;
+                    { instance.insert(const_iter, ::std::move(node)) } -> ::std::same_as<Iter>;
                 };
 
                 { instance.erase(const_iter) } -> ::std::same_as<Iter>;
                 { instance.erase(const_iter, const_iter) } -> ::std::same_as<Iter>;
-                !!requires(Iter iter)
+                requires requires(Iter iter)
                 {
                     { instance.erase(iter) } -> ::std::same_as<Iter>;
                 };
@@ -588,20 +586,20 @@ namespace stdsharp::containers
                 { ::std::as_const(instance).load_factor() } -> ::std::same_as<float>;
                 { ::std::as_const(instance).max_load_factor() } -> ::std::same_as<float>;
 
-                !!requires(SizeType size_n)
+                requires requires(SizeType size_n)
                 {
                     { ::std::as_const(instance).bucket_size(size_n) } -> ::std::same_as<SizeType>;
                     { instance.begin(size_n) } -> ::std::same_as<LocalIter>;
                     { instance.end(size_n) } -> ::std::same_as<LocalIter>;
-                    { instance.rehash(size_n) } -> ::std::same_as<LocalIter>;
-                    { instance.reserve(size_n) } -> ::std::same_as<LocalIter>;
+                    { instance.rehash(size_n) } -> ::std::same_as<void>;
+                    { instance.reserve(size_n) } -> ::std::same_as<void>;
                     { ::std::as_const(instance).begin(size_n) } -> ::std::same_as<ConstLocalIter>;
                     { ::std::as_const(instance).end(size_n) } -> ::std::same_as<ConstLocalIter>;
                     { ::std::as_const(instance).cbegin(size_n) } -> ::std::same_as<ConstLocalIter>;
                     { ::std::as_const(instance).cend(size_n) } -> ::std::same_as<ConstLocalIter>;
                 };
 
-                !!requires(float factor_n)
+                requires requires(float factor_n)
                 {
                     { instance.max_load_factor(factor_n) } -> ::std::same_as<void>;
                 };
@@ -611,13 +609,13 @@ namespace stdsharp::containers
     template<typename T>
     concept reversible_aware_container = requires
     {
-        ::stdsharp::containers::details::reversible_container_req<T>;
+        requires ::stdsharp::containers::details::reversible_container_req<T>;
     };
 
     template<typename T>
     concept allocator_aware_container = requires
     {
-        ::stdsharp::containers::details::allocator_aware_container_req<T>;
+        requires ::stdsharp::containers::details::allocator_aware_container_req<T>;
     };
 
     template<typename T>
@@ -630,13 +628,13 @@ namespace stdsharp::containers
     template<typename T>
     concept associative_container = requires
     {
-        ::stdsharp::containers::details::associative_container_req<T>;
+        requires ::stdsharp::containers::details::associative_container_req<T>;
     };
 
     template<typename T>
     concept unordered_associative_container = requires
     {
-        ::stdsharp::containers::details::unordered_associative_container_req<T>;
+        requires ::stdsharp::containers::details::unordered_associative_container_req<T>;
     };
 
     struct emplace_fn

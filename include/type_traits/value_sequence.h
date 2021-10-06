@@ -268,7 +268,7 @@ namespace stdsharp::type_traits
             > // clang-format on
                 requires requires(T v, Comp comp)
                 {
-                    ::std::invocable<
+                    requires ::std::invocable<
                         IfFunc,
                         decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
                         Proj // clang-format off

@@ -165,11 +165,9 @@ namespace stdsharp::functional
         }                                                                                       \
                                                                                                 \
         template<typename T>                                                                    \
-            requires requires(T v)                                                              \
-            {                                                                                   \
-                !::std::invocable<al_op##_assign, T, ::std::size_t>;                            \
+            requires(!::std::invocable<al_op##_assign, T, ::std::size_t> && requires(T v) {     \
                 op##op v;                                                                       \
-            }                                                                                   \
+            })                                                                                  \
         constexpr decltype(auto) operator()(T& v, ::std::size_t i = 1) const                    \
             noexcept(noexcept(op##op v))                                                        \
         {                                                                                       \
@@ -197,12 +195,13 @@ namespace stdsharp::functional
         }                                                                                       \
                                                                                                 \
         template<typename T>                                                                    \
-            requires requires(T v)                                                              \
-            {                                                                                   \
-                !::std::invocable<al_op##_assign, T, ::std::size_t>;                            \
-                op##op v;                                                                       \
-                v op##op;                                                                       \
-            }                                                                                   \
+            requires(                                                                           \
+                !::std::invocable<al_op##_assign, T, ::std::size_t> &&                          \
+                requires(T v)                                                                   \
+                {                                                                               \
+                    op##op v;                                                                   \
+                    v op##op;                                                                   \
+                })                                                                              \
         [[nodiscard]] constexpr auto operator()(T& v, ::std::size_t i = 1) const                \
             noexcept(noexcept(v op##op) && noexcept(op##op v))                                  \
         {                                                                                       \
@@ -230,12 +229,11 @@ namespace stdsharp::functional
         }
 
         template<typename T, typename Distance>
-            requires requires
-            {
-                !::std::invocable<plus_assign, T, Distance>&& //
-                    ::std::invocable<::stdsharp::functional::pre_increase, T, Distance>&& //
-                    ::std::invocable<::stdsharp::functional::pre_decrease, T, Distance>;
-            }
+            requires(
+                !::std::invocable<plus_assign, T, Distance> && //
+                ::std::invocable<::stdsharp::functional::pre_increase, T, Distance> && //
+                ::std::invocable<::stdsharp::functional::pre_decrease, T, Distance>)
+
         constexpr decltype(auto) operator()(T& v, const Distance& distance) const //
             noexcept( //
                 noexcept(

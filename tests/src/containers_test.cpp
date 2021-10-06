@@ -1,6 +1,8 @@
 #include "containers_test.h"
 #include "containers.h"
 
+static_assert(stdsharp::containers::unordered_associative_container<std::unordered_set<int>>);
+
 namespace stdsharp::test::containers
 {
     boost::ut::suite& containers_test()
@@ -16,13 +18,19 @@ namespace stdsharp::test::containers
 
             feature("container concept") = []<typename T>(const type_identity<T>)
             {
-                static_expect<sequence_container<vector<T>>>();
-                static_expect<contiguous_container<vector<T>>>();
+                using vec = vector<T>;
+
+                static_expect<sequence_container<vec>>();
+                static_expect<contiguous_container<vec>>();
 
                 static_expect<associative_container<set<T>>>();
                 static_expect<associative_container<map<T, T>>>();
                 static_expect<associative_container<multiset<T>>>();
                 static_expect<associative_container<multimap<T, T>>>();
+
+                constexpr auto associative_vec = associative_container<vec> == false;
+
+                static_expect<associative_vec>();
 
                 static_expect<unordered_associative_container<unordered_set<T>>>();
                 static_expect<unordered_associative_container<unordered_map<T, T>>>();
