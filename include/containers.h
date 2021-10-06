@@ -46,6 +46,15 @@ namespace stdsharp::containers
         std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
     };
 
+    template<typename Container>
+    concept container_erasable = requires
+    {
+        requires ::stdsharp::containers::erasable<
+            typename Container::value_type,
+            ::stdsharp::containers::allocator_from_container_t<Container> // clang-format off
+        >; // clang-format on
+    };
+
     template<typename ValueType, typename Allocator>
     concept move_insertable = ::std::same_as<
         Allocator, // clang-format off
@@ -59,6 +68,15 @@ namespace stdsharp::containers
         );
     };
 
+    template<typename Container>
+    concept container_move_insertable = requires
+    {
+        requires ::stdsharp::containers::move_insertable<
+            typename Container::value_type,
+            ::stdsharp::containers::allocator_from_container_t<Container> // clang-format off
+        >; // clang-format on
+    };
+
     template<typename ValueType, typename Allocator>
     concept copy_insertable =
         ::stdsharp::containers::move_insertable<ValueType, Allocator> && // clang-format off
@@ -66,6 +84,15 @@ namespace stdsharp::containers
         {
             std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
         }; // clang-format on
+
+    template<typename Container>
+    concept container_copy_insertable = requires
+    {
+        requires ::stdsharp::containers::copy_insertable<
+            typename Container::value_type,
+            ::stdsharp::containers::allocator_from_container_t<Container> // clang-format off
+        >; // clang-format on
+    };
 
     template<typename ValueType, typename Allocator, typename... Args>
     concept emplace_constructible = ::std::same_as<
@@ -79,6 +106,16 @@ namespace stdsharp::containers
             ::std::forward<Args>(args)...
         );
     }; // clang-format on
+
+    template<typename Container, typename... Args>
+    concept container_emplace_constructible = requires
+    {
+        requires ::stdsharp::containers::emplace_constructible<
+            typename Container::value_type,
+            ::stdsharp::containers::allocator_from_container_t<Container>,
+            Args... // clang-format off
+        >; // clang-format on
+    };
 
     namespace details
     {
@@ -107,10 +144,10 @@ namespace stdsharp::containers
             (!((::std::default_initializable<OtherMemberType> && ...)) ||
              ::std::default_initializable<ContainerType>)&& //
             ::std::destructible<ContainerType> &&
-            (::stdsharp::containers::copy_insertable<ValueType, Allocator> &&
+            (::stdsharp::containers::container_copy_insertable<ContainerType> &&
                  (::std::copyable<OtherMemberType> && ...) && //
                  ::std::copyable<ContainerType> ||
-             ::stdsharp::containers::move_insertable<ValueType, Allocator> &&
+             ::stdsharp::containers::container_move_insertable<ContainerType> &&
                  (::std::movable<OtherMemberType> && ...) && //
                  ::std::movable<ContainerType> &&
                  ::stdsharp::concepts::copy_assignable<ContainerType>);
@@ -176,7 +213,7 @@ namespace stdsharp::containers
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
         concept container_req =
-            ::stdsharp::containers::erasable<ValueType, Allocator> &&
+            ::stdsharp::containers::container_erasable<ContainerType> &&
             ::std::ranges::forward_range<ContainerType> && //
             ::stdsharp::containers::details::
                 container_special_member_req<ContainerType, ValueType, Allocator>::value &&
@@ -229,15 +266,15 @@ namespace stdsharp::containers
         concept allocator_aware_container_req =
             ::stdsharp::containers::details::container_req<ContainerType, ValueType, Allocator> &&
             ::std::constructible_from<ContainerType, Allocator> && //
-            (::stdsharp::containers::copy_insertable<ValueType, Allocator> &&
+            (::stdsharp::containers::container_copy_insertable<ContainerType> &&
                  ::std::constructible_from<ContainerType, const ContainerType&, Allocator> ||
-             ::stdsharp::containers::move_insertable<ValueType, Allocator> &&
+             ::stdsharp::containers::container_move_insertable<ContainerType> &&
                  ::std::constructible_from<ContainerType, ContainerType, Allocator>)&&
             // clang-format off
             requires
             {
                 std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
-                    ::stdsharp::containers::move_insertable<ValueType, Allocator> &&
+                    ::stdsharp::containers::container_move_insertable<ContainerType> &&
                     ::stdsharp::concepts::move_assignable<ValueType>;
                 requires ::std::same_as<ValueType, typename Allocator::value_type>;
             } &&
@@ -257,11 +294,11 @@ namespace stdsharp::containers
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
         concept sequence_container_req = ::stdsharp::containers::container<ContainerType> &&
-            (!::stdsharp::containers::copy_insertable<ValueType, Allocator> ||
+            (!::stdsharp::containers::container_copy_insertable<ContainerType> ||
              ::std::constructible_from<ContainerType, SizeType, ValueType>)&& // clang-format off
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
             {
-                requires !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
+                requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
                     ::std::constructible_from<ContainerType, ConstIter, ConstIter> &&
                     ::std::constructible_from<ContainerType, ::std::initializer_list<ValueType>> &&
                     requires(::std::initializer_list<ValueType> v_list)
@@ -282,7 +319,7 @@ namespace stdsharp::containers
                         { instance.clear() } -> ::std::same_as<void>;
                     };
 
-                requires !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
+                requires !::stdsharp::containers::container_move_insertable<ContainerType> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
@@ -379,7 +416,7 @@ namespace stdsharp::containers
                 ValueType value // clang-format off
             )
             {
-                requires !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
+                requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
                     (!::std::default_initializable<KeyCmp> ||
                         ::std::constructible_from<ContainerType, ConstIter, ConstIter> &&
                     ::std::constructible_from<ContainerType, ::std::initializer_list<ValueType>>) &&
@@ -401,7 +438,7 @@ namespace stdsharp::containers
                         { instance.insert(const_iter, const_iter) } -> ::std::same_as<void>;
                     };
 
-                requires !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
+                requires !::stdsharp::containers::container_move_insertable<ContainerType> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
@@ -497,7 +534,7 @@ namespace stdsharp::containers
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
         // clang-format off
             {
-                requires !::stdsharp::containers::emplace_constructible<ValueType, Allocator, ValueType> ||
+                requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
                 (::std::default_initializable<KeyEqual> ?
                  (!::std::default_initializable<Hasher> ||
                   ::std::constructible_from<ContainerType, SizeType> &&
@@ -533,7 +570,7 @@ namespace stdsharp::containers
                     };
                 };
 
-                requires !::stdsharp::containers::move_insertable<ValueType, Allocator> ||
+                requires !::stdsharp::containers::container_move_insertable<ContainerType> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
