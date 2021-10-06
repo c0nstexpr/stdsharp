@@ -27,6 +27,7 @@ set(
     ${header_dir}/algorithm_test.h
     ${header_dir}/pattern_match_test.h
     ${header_dir}/concurrent_object_test.h
+    ${header_dir}/containers_test.h
     ${utility_header_dir}/utility_test.h
     ${traits_header_dir}/value_sequence_test.h
     ${traits_header_dir}/type_sequence_test.h
@@ -38,6 +39,7 @@ set(
     ${src_dir}/algorithm_test.cpp
     ${src_dir}/pattern_match_test.cpp
     ${src_dir}/concurrent_object_test.cpp
+    ${src_dir}/containers_test.cpp
     ${utility_src_dir}/utility_test.cpp
     ${traits_src_dir}/value_sequence_test.cpp
     ${traits_src_dir}/type_sequence_test.cpp
