@@ -7,10 +7,7 @@ namespace stdsharp::test::containers::actions
     using namespace boost::ut;
     using namespace bdd;
 
-    struct dummy_predicate
-    {
-        auto operator()(const auto&) const { return true; };
-    };
+    inline constexpr auto dummy_predicate = [](const auto&) { return true; };
 
     template<typename T>
     concept vec_req = requires(vector<T> v, decltype(v.cbegin()) iter, T value)
@@ -22,7 +19,7 @@ namespace stdsharp::test::containers::actions
         stdsharp::containers::actions::erase(v, value);
         stdsharp::containers::actions::erase(v, iter);
         stdsharp::containers::actions::erase(v, iter, iter);
-        stdsharp::containers::actions::erase_if(v, dummy_predicate{});
+        stdsharp::containers::actions::erase_if(v, dummy_predicate);
 
         stdsharp::containers::actions::pop_front(v);
         stdsharp::containers::actions::pop_back(v);
@@ -38,21 +35,21 @@ namespace stdsharp::test::containers::actions
         stdsharp::containers::actions::erase(v, value);
         stdsharp::containers::actions::erase(v, iter);
         stdsharp::containers::actions::erase(v, iter, iter);
-        stdsharp::containers::actions::erase_if(v, dummy_predicate{});
+        stdsharp::containers::actions::erase_if(v, dummy_predicate);
     };
 
     template<typename T>
     concept unordered_map_req =
         requires(unordered_map<T, int> v, decltype(v.cbegin()) iter, T value)
-    {
-        requires(!requires { emplace(v, 0); });
+    { // clang-format off
+        requires requires { emplace(v, 0); } == false; // clang-format on
 
         stdsharp::containers::actions::emplace(v, move(value), 0);
 
         stdsharp::containers::actions::erase(v, value);
         stdsharp::containers::actions::erase(v, iter);
         stdsharp::containers::actions::erase(v, iter, iter);
-        stdsharp::containers::actions::erase_if(v, dummy_predicate{});
+        stdsharp::containers::actions::erase_if(v, dummy_predicate);
     };
 
     boost::ut::suite& actions_test()
