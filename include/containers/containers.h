@@ -180,8 +180,7 @@ namespace stdsharp::containers
                     ValueType,
                     Allocator,
                     typename ContainerType::key_compare,
-                    typename ContainerType::value_compare,
-                    typename ContainerType::key_type // clang-format off
+                    typename ContainerType::value_compare // clang-format off
                 >
             > // clang-format on
         {
@@ -201,8 +200,7 @@ namespace stdsharp::containers
                     ValueType,
                     Allocator,
                     typename ContainerType::key_equal,
-                    typename ContainerType::hasher,
-                    typename ContainerType::key_type // clang-format off
+                    typename ContainerType::hasher // clang-format off
                 >
             > // clang-format on
         {

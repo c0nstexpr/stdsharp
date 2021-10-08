@@ -26,13 +26,17 @@ namespace stdsharp::property
         static constexpr ::std::type_identity<setter_t> set_tag{};
         static constexpr ::std::type_identity<getter_t> get_tag{};
 
-        template<typename Getter, typename Setter>
-            requires requires
-            {
-                requires ::std::constructible_from<GetterT, Getter> &&
-                    ::std::constructible_from<SetterT, Setter>;
-            }
-        property_member(Getter&& g, Setter&& s) //
+        // TODO gcc weird BUG
+        // replace it with constraints
+        template<
+            typename Getter,
+            typename Setter,
+            ::std::enable_if_t< // clang-format off
+                ::std::constructible_from<GetterT, Getter> &&
+                    ::std::constructible_from<SetterT, Setter>
+            >* = nullptr
+        > // clang-format on
+        constexpr property_member(Getter&& g, Setter&& s) //
             noexcept(::stdsharp::concepts::nothrow_constructible_from<GetterT, Getter>&& //
                      ::stdsharp::concepts::nothrow_constructible_from<SetterT, Setter>):
             getter_(::std::forward<Getter>(g)), setter_(::std::forward<Setter>(s))

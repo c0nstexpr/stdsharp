@@ -14,10 +14,10 @@ namespace stdsharp
         constexpr void operator()(
             const Condition& condition, //
             ::std::pair<Predicate, Func>... cases // clang-format off
-        ) const noexcept(((::stdsharp::concepts::
-            nothrow_predicate<Predicate, Condition> && ::stdsharp::concepts::nothrow_invocable<Func>) && ...))
+        ) const noexcept(((::stdsharp::concepts::nothrow_predicate<Predicate, Condition> &&
+            ::stdsharp::concepts::nothrow_invocable<Func, Condition>) && ...)) // clang-format on
         {
-            ( // clang-format on
+            (
                 [&condition](::std::pair<Predicate, Func>&& pair)
                 {
                     if(::stdsharp::functional::invoke_r<bool>(::std::move(pair.first), condition))

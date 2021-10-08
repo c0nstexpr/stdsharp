@@ -1,5 +1,6 @@
 #include "containers/actions_test.h"
 #include "containers/actions.h"
+#include "type_traits/object.h"
 
 namespace stdsharp::test::containers::actions
 {
@@ -41,9 +42,7 @@ namespace stdsharp::test::containers::actions
     template<typename T>
     concept unordered_map_req =
         requires(unordered_map<T, int> v, decltype(v.cbegin()) iter, T value)
-    { // clang-format off
-        requires requires { emplace(v, 0); } == false; // clang-format on
-
+    {
         stdsharp::containers::actions::emplace(v, move(value), 0);
 
         stdsharp::containers::actions::erase(v, value);
@@ -56,12 +55,23 @@ namespace stdsharp::test::containers::actions
     {
         static boost::ut::suite suite = []
         {
-            feature("container actions") = []<typename T>(const type_identity<T>)
+            feature("vector actions") = []<typename T>(const type_identity<T>)
             {
+                println(fmt::format("current type {}", reflection::type_name<T>()));
                 static_expect<vec_req<T>>();
+            } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
+
+            feature("set actions") = []<typename T>(const type_identity<T>)
+            {
+                println(fmt::format("current type {}", reflection::type_name<T>()));
                 static_expect<set_req<T>>();
+            } | tuple{type_identity<int>{}, type_identity<unique_ptr<double>>{}};
+
+            feature("unordered map actions") = []<typename T>(const type_identity<T>)
+            {
+                println(fmt::format("current type {}", reflection::type_name<T>()));
                 static_expect<unordered_map_req<T>>();
-            } | tuple{type_identity<int>{}, type_identity<unique_ptr<int>>{}};
+            } | tuple{type_identity<int>{}, type_identity<unique_ptr<long>>{}};
         };
 
         return suite;

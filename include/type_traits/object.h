@@ -10,9 +10,9 @@ namespace stdsharp::type_traits
     {
         unique_object() noexcept = default;
         unique_object(const unique_object&) noexcept = delete;
-        unique_object(unique_object&&) noexcept = default;
+        constexpr unique_object(unique_object&&) noexcept {};
         unique_object& operator=(const unique_object&) noexcept = delete;
-        unique_object& operator=(unique_object&&) noexcept = default;
+        constexpr unique_object& operator=(unique_object&&) noexcept { return *this; };
         ~unique_object() = default;
     };
 

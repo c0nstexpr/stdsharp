@@ -60,8 +60,8 @@ namespace stdsharp::test::property
 
                     then("invocation result of value getter should match value") = value_check |
                         tuple{
-                            pair<decltype(value_s), int>(value_s, 42),
-                            pair<decltype(mutable_s)&, int>(mutable_s, 69),
+                            pair(ref(value_s), 42),
+                            pair(ref(mutable_s), 69),
                             pair{member(decltype(member)::set_tag), 32} //
                         };
                 };

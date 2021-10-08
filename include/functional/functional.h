@@ -33,8 +33,6 @@ namespace stdsharp::functional
             static constexpr decltype(auto) invoke_impl(Tuple&& instance, Args&&... args) //
                 noexcept(Noexcept_)
             {
-                // ::ranges::invoke, u..., args...
-
                 return ::std::apply(
                     [&]<typename... U>(U && ... u) noexcept(Noexcept_)->decltype(auto) //
                     {
