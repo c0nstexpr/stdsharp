@@ -4,7 +4,7 @@
 
 #include "functional/functional.h"
 
-namespace stdsharp::utility::property
+namespace stdsharp::property
 {
     template<typename SetterFn>
     class setter : public ::stdsharp::functional::invocable_obj<SetterFn>
@@ -58,9 +58,22 @@ namespace stdsharp::utility::property
         ::stdsharp::functional::nodiscard_tag,
         [](auto& t) noexcept
         {
-            return ::stdsharp::utility::property::setter{
+            return ::stdsharp::property::setter{
                 ::stdsharp::functional::bind_ref_front(::stdsharp::functional::assign_v, t) //
             };
         } //
     };
+
+    template<typename SetterT, typename ValueType>
+    concept settable = ( //
+        !::std::move_constructible<ValueType> ||
+        ( //
+            ::std::copy_constructible<ValueType> ? //
+                ::std::invocable<SetterT, ValueType> && //
+                    ::std::invocable<SetterT, ValueType&> &&
+                    ::std::invocable<SetterT, const ValueType> &&
+                    ::std::invocable<SetterT, const ValueType&> :
+                ::std::invocable<SetterT, ValueType&&> // clang-format off
+        ) // clang-format on
+    );
 }

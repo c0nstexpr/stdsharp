@@ -6,22 +6,38 @@
 #include "setter.h"
 #include "getter.h"
 
-namespace stdsharp::utility::property
+namespace stdsharp::property
 {
-    template<::std::invocable GetterFn, typename SetterFn, typename GetterT, typename SetterT>
+    template<
+        ::std::invocable GetterT,
+        ::stdsharp::property::settable<::stdsharp::property::getter_value_t<GetterT>> SetterT
+        // clang-format off
+    > // clang-format on
     class property_member
     {
     public:
         using getter_t = GetterT;
         using setter_t = SetterT;
 
-    private:
-        getter_t& getter_;
-        setter_t& setter_;
+        using value_type = ::stdsharp::property::getter_value_t<GetterT>;
+        using reference = value_type&;
+        using const_reference = const value_type&;
 
-    public:
         static constexpr ::std::type_identity<setter_t> set_tag{};
         static constexpr ::std::type_identity<getter_t> get_tag{};
+
+        template<typename Getter, typename Setter>
+            requires requires
+            {
+                requires ::std::constructible_from<GetterT, Getter> &&
+                    ::std::constructible_from<SetterT, Setter>;
+            }
+        property_member(Getter&& g, Setter&& s) //
+            noexcept(::stdsharp::concepts::nothrow_constructible_from<GetterT, Getter>&& //
+                     ::stdsharp::concepts::nothrow_constructible_from<SetterT, Setter>):
+            getter_(::std::forward<Getter>(g)), setter_(::std::forward<Setter>(s))
+        {
+        }
 
         constexpr auto operator()(const decltype(set_tag)) noexcept
         {
@@ -30,10 +46,8 @@ namespace stdsharp::utility::property
 
         constexpr auto operator()(const decltype(get_tag)) const noexcept
         {
-            return ::stdsharp::functional::make_invocable_ref(
-                ::stdsharp::functional::nodiscard_tag,
-                getter_ //
-            );
+            return ::stdsharp::functional:: //
+                make_invocable_ref(::stdsharp::functional::nodiscard_tag, getter_);
         }
 
         template<typename... Args>
@@ -44,29 +58,28 @@ namespace stdsharp::utility::property
             return setter_(::std::forward<Args>(args)...);
         };
 
-        constexpr decltype(auto) get() const //
+        constexpr const_reference get() const //
             noexcept(::stdsharp::concepts::nothrow_invocable<getter_t>)
         {
             return getter_(); //
         };
 
         template<typename T>
+            requires ::std::invocable<setter_t, T>
         constexpr auto& operator=(T&& t) //
-            noexcept(::stdsharp::concepts::nothrow_assignable_from<setter_t, T>)
+            noexcept(::stdsharp::concepts::nothrow_invocable<setter_t, T>)
         {
-            setter_ = std::forward<T>(t);
+            setter_(std::forward<T>(t));
             return *this;
         }
 
-        property_member(getter_t& g, setter_t& s) noexcept: getter_(g), setter_(s) {}
+        constexpr const_reference operator()() const noexcept(noexcept(get())) { return get(); }
+
+    private:
+        getter_t getter_;
+        setter_t setter_;
     };
 
-    template<typename GetterT, typename SetterT> // clang-format off
-    property_member(GetterT&, SetterT&) ->
-        property_member<
-            typename ::std::remove_cvref_t<GetterT>::invocable_t,
-            typename ::std::remove_cvref_t<SetterT>::invocable_t,
-            GetterT,
-            SetterT
-        >; // clang-format on
+    template<typename T, typename U>
+    property_member(T&&, U&&) -> property_member<T, U>;
 }

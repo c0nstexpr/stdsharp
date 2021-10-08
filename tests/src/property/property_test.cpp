@@ -10,9 +10,8 @@ namespace stdsharp::test::property
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::utility;
             using namespace stdsharp::functional;
-            using namespace stdsharp::utility::property;
+            using namespace stdsharp::property;
 
             feature("getter and setter") = []
             {
@@ -31,10 +30,11 @@ namespace stdsharp::test::property
                     int i = 0;
 
                     getter mutable_g{[&i]() mutable { return i; }};
-                    auto&& value_g = value_getter(i);
+                    const auto& value_g = value_getter(i);
                     const auto& value_s = value_setter(i);
                     setter mutable_s([&i](const int j) mutable { return (i = j); });
-                    property_member member{value_g, value_s};
+
+                    property_member member{ref(value_g), ref(value_s)};
 
                     auto value_check = [&value_g, &mutable_g, &member](auto&& pair)
                     {
