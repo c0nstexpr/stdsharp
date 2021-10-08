@@ -57,7 +57,7 @@ namespace stdsharp::test::containers::actions
             unordered_map<T, int> v,
             decltype(v.cbegin()) iter,
             T value,
-            dummy_predicate_t<T> dummy_predicate //
+            dummy_predicate_t<pair<const T, int>> dummy_predicate //
         )
         {
             stdsharp::containers::actions::emplace(v, move(value), 0);
