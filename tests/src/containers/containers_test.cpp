@@ -16,6 +16,8 @@ namespace stdsharp::test::containers
             {
                 using vec = vector<T>;
 
+                println(fmt::format("current type {}", reflection::type_name<T>()));
+
                 static_expect<sequence_container<vec>>();
                 static_expect<contiguous_container<vec>>();
 

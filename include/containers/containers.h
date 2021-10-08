@@ -60,8 +60,10 @@ namespace stdsharp::containers
     concept move_insertable = ::std::same_as<
         Allocator, // clang-format off
         typename ::std::allocator_traits<Allocator>::template rebind_alloc<ValueType>
-    > && requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv)
-    { // clang-format on
+    > &&
+        ::std::move_constructible<ValueType> &&
+        requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv)
+        { // clang-format on
         std::allocator_traits<Allocator>::construct(
             allocator_instance,
             ptr,
@@ -74,14 +76,15 @@ namespace stdsharp::containers
     {
         requires ::stdsharp::containers::move_insertable<
             typename ::std::decay_t<Container>::value_type,
-            ::stdsharp::containers::allocator_from_container_t<
-                ::std::decay_t<Container>> // clang-format off
+            ::stdsharp::containers:: // clang-format off
+                allocator_from_container_t<::std::decay_t<Container>>
         >; // clang-format on
     };
 
     template<typename ValueType, typename Allocator>
     concept copy_insertable =
         ::stdsharp::containers::move_insertable<ValueType, Allocator> && // clang-format off
+        ::std::copy_constructible<ValueType> &&
         requires(Allocator allocator_instance, ValueType* ptr, ValueType v)
         {
             std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
@@ -101,14 +104,16 @@ namespace stdsharp::containers
     concept emplace_constructible = ::std::same_as<
         Allocator, // clang-format off
         typename ::std::allocator_traits<Allocator>::template rebind_alloc<ValueType>
-    > && requires(Allocator allocator_instance, ValueType* ptr, Args&&... args)
-    {
-        std::allocator_traits<Allocator>::construct(
-            allocator_instance,
-            ptr,
-            ::std::forward<Args>(args)...
-        );
-    }; // clang-format on
+    > &&
+        ::std::constructible_from<ValueType, Args...> &&
+        requires(Allocator allocator_instance, ValueType* ptr, Args&&... args)
+        {
+            std::allocator_traits<Allocator>::construct(
+                allocator_instance,
+                ptr,
+                ::std::forward<Args>(args)...
+            );
+        }; // clang-format on
 
     template<typename Container, typename... Args>
     concept container_emplace_constructible = requires
@@ -144,13 +149,12 @@ namespace stdsharp::containers
             typename... OtherMemberType // clang-format off
         > // clang-format on
         concept container_special_member = //
-            (!((::std::default_initializable<OtherMemberType> && ...)) ||
+            (!(::std::default_initializable<OtherMemberType> && ...) ||
              ::std::default_initializable<ContainerType>)&& //
             ::std::destructible<ContainerType> &&
             (::stdsharp::containers::container_copy_insertable<ContainerType> &&
                  (::std::copyable<OtherMemberType> && ...) && //
                  ::std::copyable<ContainerType> ||
-             ::stdsharp::containers::container_move_insertable<ContainerType> &&
                  (::std::movable<OtherMemberType> && ...) && //
                  ::std::movable<ContainerType> &&
                  ::stdsharp::concepts::copy_assignable<ContainerType>);
