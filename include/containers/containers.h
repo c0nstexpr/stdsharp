@@ -13,6 +13,8 @@
 #include <stack>
 #include <queue>
 
+#include <range/v3/iterator.hpp>
+
 #include "memory/memory.h"
 #include "ranges/ranges.h"
 
@@ -155,7 +157,7 @@ namespace stdsharp::containers
             (::stdsharp::containers::container_copy_insertable<ContainerType> &&
                  (::std::copyable<OtherMemberType> && ...) && //
                  ::std::copyable<ContainerType> ||
-                 (::std::movable<OtherMemberType> && ...) && //
+             (::std::movable<OtherMemberType> && ...) && //
                  ::std::movable<ContainerType> &&
                  ::stdsharp::concepts::copy_assignable<ContainerType>);
 
@@ -370,7 +372,7 @@ namespace stdsharp::containers
                 { instance.rend() } -> ::std::same_as<RIter>;
                 { ::std::as_const(instance).rbegin() } -> ::std::same_as<ConstRIter>;
                 { ::std::as_const(instance).rend() } -> ::std::same_as<ConstRIter>;
-                { instance.crend() } -> ::std::same_as<ConstRIter>;
+                { instance.crbegin() } -> ::std::same_as<ConstRIter>;
                 { instance.crend() } -> ::std::same_as<ConstRIter>;
             }; // clang-format on
 
@@ -683,4 +685,20 @@ namespace stdsharp::containers
         requires ::stdsharp::containers::details:: //
             unordered_associative_container_req<::std::decay_t<Container>>;
     };
+
+    template<::stdsharp::containers::container T>
+    inline constexpr ::stdsharp::functional::invocable_obj forward_container(
+        ::stdsharp::functional::nodiscard_tag,
+        ::ranges::overload(
+            [](::std::decay_t<T>&& t) noexcept(noexcept(t | ::ranges::views::move))
+            {
+                return t | ::ranges::views::move; //
+            },
+            ::std::identity{} // clang-format off
+        ) // clang-format on
+    );
+
+    template<typename T>
+    using forward_container_t =
+        ::std::invoke_result_t<::stdsharp::containers::forward_container, T>;
 }

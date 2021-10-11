@@ -4,6 +4,7 @@
 #pragma once
 #include <ranges>
 #include <range/v3/range.hpp>
+#include <range/v3/view.hpp>
 
 #include "functional/cpo.h"
 
