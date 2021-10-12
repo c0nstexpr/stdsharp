@@ -7,6 +7,7 @@
 #include <range/v3/view.hpp>
 
 #include "functional/cpo.h"
+#include "functional/functional.h"
 
 namespace stdsharp
 {
@@ -18,6 +19,75 @@ namespace stdsharp
         template<typename T>
         using range_const_reference_t =
             ::stdsharp::type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
+
+        inline constexpr struct rng_as_iters_fn
+        {
+        private:
+            template<::std::ranges::range Rng>
+            struct impl
+            {
+                static constexpr auto size = 2;
+
+                Rng rng{};
+
+                template<typename T>
+                constexpr impl(T&& t) noexcept(noexcept(Rng{::std::declval<T>()})):
+                    rng(::std::forward<T>(t))
+                {
+                }
+
+                impl() = default;
+
+                template<auto>
+                constexpr auto get();
+
+                template<auto>
+                constexpr auto get() const;
+
+                template<>
+                constexpr auto get<0>() const noexcept(noexcept(::std::ranges::begin(rng)))
+                {
+                    return ::std::ranges::begin(rng);
+                }
+
+                template<>
+                constexpr auto get<0>() noexcept(noexcept(::std::ranges::begin(rng)))
+                {
+                    return ::std::ranges::begin(rng);
+                }
+
+                template<>
+                constexpr auto get<1>() const noexcept(noexcept(::std::ranges::end(rng)))
+                {
+                    return ::std::ranges::begin(rng);
+                }
+
+                template<>
+                constexpr auto get<1>() noexcept(noexcept(::std::ranges::end(rng)))
+                {
+                    return ::std::ranges::end(rng);
+                }
+            };
+
+            template<typename Rng>
+            impl(Rng&&) -> impl<std::decay_t<Rng>>;
+
+        public:
+            template<typename T>
+                requires requires
+                {
+                    ::stdsharp::ranges::rng_as_iters_fn::impl{::std::declval<T>()};
+                }
+            constexpr auto operator()(T&& t) const noexcept( //
+                noexcept( //
+                    ::stdsharp::ranges:: // clang-format off
+                        rng_as_iters_fn::impl{::std::declval<T>()}  
+                ) // clang-format on
+            )
+            {
+                return ::stdsharp::ranges::rng_as_iters_fn::impl{::std::forward<T>(t)}; //
+            }
+        } rng_as_iters{};
     }
 
     namespace functional

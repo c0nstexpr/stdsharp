@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include <range/v3/functional/overload.hpp>
+#include <range/v3/functional.hpp>
 
 #include "type_traits/type_traits.h"
 #include "functional/operation.h"
@@ -217,6 +217,78 @@ namespace stdsharp::functional
         []<typename Func>(Func&& func)
         {
             return ::stdsharp::functional::details::projector<Func>{::std::forward<Func>(func)}; //
+        } //
+    );
+
+    namespace details
+    {
+        template<typename T, auto Count = T::size>
+        struct split_into_fn : T, ::ranges::pipeable_base
+        {
+            using T::T;
+
+            constexpr split_into_fn(const T& t): T(t) {}
+            constexpr split_into_fn(T&&)
+
+#define BS_SPLIT_INTO_OPERATOR(const_)                                                \
+    template<typename Fn>                                                             \
+    [[nodiscard]] constexpr auto operator()(Fn&& fn) const_ noexcept(                 \
+        noexcept(*this(::std::forward<Fn>(fn), ::std::make_index_sequence<Count>{}))) \
+    {                                                                                 \
+        return *this(::std::forward<Fn>(fn), ::std::make_index_sequence<Count>{});    \
+    }                                                                                 \
+                                                                                      \
+private:                                                                              \
+    template<typename Fn, auto... I>                                                  \
+    constexpr auto operator()(Fn&& fn, const ::std::index_sequence<I...>)             \
+        const_ noexcept(noexcept(::stdsharp::functional::bind_ref_front(              \
+            ::std::declval<Fn>(), T::template get<I>()...)))                          \
+    {                                                                                 \
+        return ::stdsharp::functional::bind_ref_front(                                \
+            ::std::forward<Fn>(fn), T::template get<I>()...);                         \
+    }                                                                                 \
+                                                                                      \
+public:
+
+                BS_SPLIT_INTO_OPERATOR() BS_SPLIT_INTO_OPERATOR(const)
+
+#undef BS_SPLIT_INTO_OPERATOR
+        };
+
+        template<typename T>
+        split_into_fn(T&& t) -> split_into_fn<::std::decay_t<T>>;
+
+        inline constexpr struct
+        {
+            template<typename T, typename U, typename ResT = ::std::invoke_result_t<T, U>>
+                requires requires(ResT&& res)
+                {
+                    ::stdsharp::functional::details::split_into_fn{::std::move(res)};
+                }
+            constexpr auto operator()(T&& t, U&& u) const noexcept( //
+                noexcept( //
+                    ::stdsharp::functional::details:: // clang-format off
+                        split_into_fn{::std::invoke(::std::forward<T>(t), ::std::forward<U>(u))}
+                ) // clang-format on
+            )
+            {
+                return ::stdsharp::functional::details:: //
+                    split_into_fn{::std::invoke(::std::forward<T>(t), ::std::forward<U>(u))};
+            }
+
+        } make_split_into{};
+    }
+
+    inline constexpr ::stdsharp::functional::invocable_obj split_into(
+        ::stdsharp::functional::nodiscard_tag,
+        []<typename T>(T&& t)
+        {
+            return ::ranges::make_pipeable( //
+                ::std::bind_front(
+                    ::stdsharp::functional::details::make_split_into,
+                    ::std::forward<T>(t) // clang-format off
+            ) // clang-format on
+            );
         } //
     );
 }

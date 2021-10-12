@@ -700,5 +700,5 @@ namespace stdsharp::containers
 
     template<typename T>
     using forward_container_t =
-        ::std::invoke_result_t<::stdsharp::containers::forward_container, T>;
+        decltype(::stdsharp::containers::forward_container<T>(::std::declval<T>()));
 }

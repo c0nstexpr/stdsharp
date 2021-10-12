@@ -5,8 +5,13 @@
 namespace stdsharp::test::containers::actions
 {
     using namespace std;
+    using namespace std::ranges;
     using namespace boost::ut;
     using namespace bdd;
+    using namespace stdsharp::functional;
+    using namespace stdsharp::ranges;
+    using namespace stdsharp::containers;
+    using namespace stdsharp::containers::actions;
 
     namespace
     {
@@ -21,9 +26,9 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<T> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, iter, move(value));
-            stdsharp::containers::actions::emplace_back(v, move(value));
-            stdsharp::containers::actions::emplace_front(v, move(value));
+            stdsharp::containers::actions::emplace(v, iter, std::move(value));
+            stdsharp::containers::actions::emplace_back(v, std::move(value));
+            stdsharp::containers::actions::emplace_front(v, std::move(value));
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -44,7 +49,7 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<T> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, move(value));
+            stdsharp::containers::actions::emplace(v, std::move(value));
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -60,7 +65,7 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<pair<const T, int>> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, move(value), 0);
+            stdsharp::containers::actions::emplace(v, std::move(value), 0);
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -70,6 +75,13 @@ namespace stdsharp::test::containers::actions
 
         void vector_actions_test()
         {
+            vector<int> v;
+            auto _ = stdsharp::functional::details::split_into_fn{rng_as_iters(v)};
+            // stdsharp::functional::details::make_split_into(rng_as_iters, v);
+            // const auto& fn = v | split_into(rng_as_iters);
+
+            // std::ranges::unique | fn;
+
             feature("vector actions") = []<typename T>(const type_identity<T>)
             {
                 println(fmt::format("current type {}", reflection::type_name<T>()));
