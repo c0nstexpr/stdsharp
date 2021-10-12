@@ -30,47 +30,33 @@ namespace stdsharp
 
                 Rng rng{};
 
-                template<typename T>
-                constexpr impl(T&& t) noexcept(noexcept(Rng{::std::declval<T>()})):
-                    rng(::std::forward<T>(t))
-                {
-                }
-
-                impl() = default;
-
-                template<auto>
-                constexpr auto get();
-
-                template<auto>
-                constexpr auto get() const;
-
-                template<>
-                constexpr auto get<0>() const noexcept(noexcept(::std::ranges::begin(rng)))
+                constexpr auto operator()(const ::stdsharp::type_traits::index_constant<0>) const
+                    noexcept(noexcept(::std::ranges::begin(rng)))
                 {
                     return ::std::ranges::begin(rng);
                 }
 
-                template<>
-                constexpr auto get<0>() noexcept(noexcept(::std::ranges::begin(rng)))
+                constexpr auto operator()(const ::stdsharp::type_traits::index_constant<0>) //
+                    noexcept(noexcept(::std::ranges::begin(rng)))
                 {
                     return ::std::ranges::begin(rng);
                 }
 
-                template<>
-                constexpr auto get<1>() const noexcept(noexcept(::std::ranges::end(rng)))
+                constexpr auto operator()(const ::stdsharp::type_traits::index_constant<1>) const
+                    noexcept(noexcept(::std::ranges::end(rng)))
                 {
-                    return ::std::ranges::begin(rng);
+                    return ::std::ranges::end(rng);
                 }
 
-                template<>
-                constexpr auto get<1>() noexcept(noexcept(::std::ranges::end(rng)))
+                constexpr auto operator()(const ::stdsharp::type_traits::index_constant<1>) //
+                    noexcept(noexcept(::std::ranges::end(rng)))
                 {
                     return ::std::ranges::end(rng);
                 }
             };
 
             template<typename Rng>
-            impl(Rng&&) -> impl<std::decay_t<Rng>>;
+            impl(Rng&&) -> impl<::stdsharp::type_traits::coerce_t<Rng>>;
 
         public:
             template<typename T>

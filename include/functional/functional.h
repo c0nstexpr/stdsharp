@@ -223,36 +223,55 @@ namespace stdsharp::functional
     namespace details
     {
         template<typename T, auto Count = T::size>
-        struct split_into_fn : T, ::ranges::pipeable_base
+        struct split_into_fn : T
         {
             using T::T;
+            using T::operator();
 
-            constexpr split_into_fn(const T& t): T(t) {}
-            constexpr split_into_fn(T&&)
+            explicit constexpr split_into_fn(const T& t) //
+                noexcept(::stdsharp::concepts::nothrow_copy_constructible<T>):
+                T(t)
+            {
+            }
 
-#define BS_SPLIT_INTO_OPERATOR(const_)                                                \
-    template<typename Fn>                                                             \
-    [[nodiscard]] constexpr auto operator()(Fn&& fn) const_ noexcept(                 \
-        noexcept(*this(::std::forward<Fn>(fn), ::std::make_index_sequence<Count>{}))) \
-    {                                                                                 \
-        return *this(::std::forward<Fn>(fn), ::std::make_index_sequence<Count>{});    \
-    }                                                                                 \
-                                                                                      \
-private:                                                                              \
-    template<typename Fn, auto... I>                                                  \
-    constexpr auto operator()(Fn&& fn, const ::std::index_sequence<I...>)             \
-        const_ noexcept(noexcept(::stdsharp::functional::bind_ref_front(              \
-            ::std::declval<Fn>(), T::template get<I>()...)))                          \
-    {                                                                                 \
-        return ::stdsharp::functional::bind_ref_front(                                \
-            ::std::forward<Fn>(fn), T::template get<I>()...);                         \
-    }                                                                                 \
-                                                                                      \
+            explicit constexpr split_into_fn(T&& t) //
+                noexcept(::stdsharp::concepts::nothrow_move_constructible<T>):
+                T(::std::move(t))
+            {
+            }
+
+#define BS_SPLIT_INTO_OPERATOR(const_)                                                         \
+    template<typename Fn>                                                                      \
+    [[nodiscard]] constexpr auto operator()(Fn&& fn) const_ noexcept(                          \
+        noexcept((*this)(::std::forward<Fn>(fn), ::std::make_index_sequence<Count>{})))        \
+    {                                                                                          \
+        return (*this)(::std::forward<Fn>(fn), ::std::make_index_sequence<Count>{});           \
+    }                                                                                          \
+                                                                                               \
+private:                                                                                       \
+    template<typename Fn, ::std::size_t... I>                                                  \
+    constexpr auto operator()(Fn&& fn, const ::std::index_sequence<I...>)                      \
+        const_ noexcept(noexcept(::stdsharp::functional::bind_ref_front(                       \
+            ::std::declval<Fn>(), (*this)(::stdsharp::type_traits::index_constant<I>{})...)))  \
+    {                                                                                          \
+        return ::stdsharp::functional::bind_ref_front(                                         \
+            ::std::forward<Fn>(fn), (*this)(::stdsharp::type_traits::index_constant<I>{})...); \
+    }                                                                                          \
+                                                                                               \
 public:
 
-                BS_SPLIT_INTO_OPERATOR() BS_SPLIT_INTO_OPERATOR(const)
+            BS_SPLIT_INTO_OPERATOR()
+            BS_SPLIT_INTO_OPERATOR(const)
 
 #undef BS_SPLIT_INTO_OPERATOR
+
+        private:
+            template<::stdsharp::concepts::decay_same_as<split_into_fn> This, typename Fn>
+            friend auto operator|(This&& instance, Fn&& fn) //
+                noexcept(::stdsharp::concepts::nothrow_invocable<This, Fn>)
+            {
+                return ::std::forward<This>(instance)(::std::forward<Fn>(fn));
+            }
         };
 
         template<typename T>
@@ -287,7 +306,7 @@ public:
                 ::std::bind_front(
                     ::stdsharp::functional::details::make_split_into,
                     ::std::forward<T>(t) // clang-format off
-            ) // clang-format on
+                ) // clang-format on
             );
         } //
     );

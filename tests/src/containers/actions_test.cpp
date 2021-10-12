@@ -75,18 +75,64 @@ namespace stdsharp::test::containers::actions
 
         void vector_actions_test()
         {
-            vector<int> v;
-            auto _ = stdsharp::functional::details::split_into_fn{rng_as_iters(v)};
-            // stdsharp::functional::details::make_split_into(rng_as_iters, v);
-            // const auto& fn = v | split_into(rng_as_iters);
-
-            // std::ranges::unique | fn;
-
             feature("vector actions") = []<typename T>(const type_identity<T>)
             {
                 println(fmt::format("current type {}", reflection::type_name<T>()));
                 static_expect<vec_req<T>>();
             } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
+
+            struct rang_as_iterators_params
+            {
+                vector<int> initial_v_list;
+                initializer_list<int> expected_v_list;
+            };
+
+            // clang-format off
+            // NOLINTNEXTLINE(performance-unnecessary-value-param)
+            feature("rang as iterators") = [](rang_as_iterators_params params) // clang-format on
+            {
+                auto& [v_list, expected_v_list] = params;
+
+                const auto unique_op = [&v_list = v_list]
+                {
+                    stdsharp::containers::actions::erase(
+                        v_list,
+                        ((v_list | split_into(rng_as_iters)) | ::ranges::unique)(),
+                        v_list.cend() //
+                    );
+                };
+
+                println(fmt::format("current value: {}", v_list));
+
+                unique_op();
+
+                println( //
+                    fmt::format(
+                        "after first unique operation, values are: {}",
+                        v_list // clang-format off
+                    ) // clang-format on
+                );
+
+                ((v_list | split_into(rng_as_iters)) | ::ranges::sort)();
+
+                println( //
+                    fmt::format(
+                        "after sort, values are: {}",
+                        v_list // clang-format off
+                    ) // clang-format on
+                );
+
+                unique_op();
+
+                expect( //
+                    std::ranges::equal(expected_v_list, v_list) // clang-format off
+                ) << fmt::format("actual values are: {}",v_list);
+            } | tuple{
+                rang_as_iterators_params{
+                    {1, 2, 1, 1, 3, 3, 3, 4, 5, 4},
+                    {1, 2, 3, 4, 5}
+                }
+            }; // clang-format on
         }
 
         void set_actions_test()
