@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include <range/v3/action.hpp>
+
 #include "containers/containers.h"
 
 namespace stdsharp::containers::actions
@@ -92,7 +94,7 @@ namespace stdsharp::containers::actions
                 !::stdsharp::containers::actions::details::
                     seq_mem_emplace_back_req<Container, Args...> &&
                 ::std::invocable<
-                    ::stdsharp::containers::actions::emplace_fn,
+                    decltype(::stdsharp::containers::actions::emplace),
                     Container&,
                     ::stdsharp::ranges::const_iterator_t<Container>,
                     Args... // clang-format off
@@ -100,7 +102,7 @@ namespace stdsharp::containers::actions
             ) // clang-format on
         constexpr decltype(auto) operator()(Container& container, Args&&... args) const noexcept( //
             ::stdsharp::concepts::nothrow_invocable<
-                ::stdsharp::containers::actions::emplace_fn,
+                decltype(::stdsharp::containers::actions::emplace),
                 Container&,
                 decltype(container.cbegin()),
                 Args... // clang-format off
@@ -138,7 +140,7 @@ namespace stdsharp::containers::actions
                 !::stdsharp::containers::actions::details::
                     seq_mem_emplace_front_req<Container, Args...> &&
                 ::std::invocable<
-                    ::stdsharp::containers::actions::emplace_fn,
+                    decltype(::stdsharp::containers::actions::emplace),
                     Container&,
                     ::stdsharp::ranges::const_iterator_t<Container>,
                     Args... // clang-format off
@@ -146,7 +148,7 @@ namespace stdsharp::containers::actions
             ) // clang-format on
         constexpr decltype(auto) operator()(Container& container, Args&&... args) const noexcept( //
             ::stdsharp::concepts::nothrow_invocable<
-                ::stdsharp::containers::actions::emplace_fn,
+                decltype(::stdsharp::containers::actions::emplace),
                 Container&,
                 decltype(container.cbegin()),
                 Args... // clang-format off
@@ -259,14 +261,14 @@ namespace stdsharp::containers::actions
             requires(
                 !::stdsharp::containers::actions::details::seq_mem_pop_front_req<Container> &&
                 ::std::invocable<
-                    ::stdsharp::containers::actions::erase_fn,
+                    decltype(::stdsharp::containers::actions::erase),
                     Container&,
                     ::stdsharp::ranges::const_iterator_t<Container> // clang-format off
                 > // clang-format on
             )
         constexpr void operator()(Container& container) const noexcept( //
             ::stdsharp::concepts::nothrow_invocable<
-                ::stdsharp::containers::actions::erase_fn,
+                decltype(::stdsharp::containers::actions::erase),
                 Container&,
                 decltype(container.cbegin()) // clang-format off
             > // clang-format on
@@ -292,14 +294,14 @@ namespace stdsharp::containers::actions
             requires(
                 !::stdsharp::containers::actions::details::seq_mem_pop_back_req<Container> &&
                 ::std::invocable<
-                    ::stdsharp::containers::actions::erase_fn,
+                    decltype(::stdsharp::containers::actions::erase),
                     Container&,
                     ::stdsharp::ranges::const_iterator_t<Container> // clang-format off
                 > // clang-format on
             )
         constexpr void operator()(Container& container) const noexcept( //
             ::stdsharp::concepts::nothrow_invocable<
-                ::stdsharp::containers::actions::erase_fn,
+                decltype(::stdsharp::containers::actions::erase),
                 Container&,
                 decltype(container.cbegin()) // clang-format off
             > // clang-format on
