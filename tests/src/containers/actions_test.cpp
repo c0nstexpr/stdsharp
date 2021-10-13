@@ -88,16 +88,15 @@ namespace stdsharp::test::containers::actions
             };
 
             // clang-format off
-            // NOLINTNEXTLINE(performance-unnecessary-value-param)
             feature("range as iterators") = [](range_as_iterators_params params) // clang-format on
             {
-                auto& [v_list, expected_v_list] = params;
+                auto& v_list = params.initial_v_list;
 
                 const auto unique_op = [&v_list = v_list]
                 {
                     stdsharp::containers::actions::erase(
                         v_list,
-                        ((v_list | split_into(rng_as_iters)) | ::ranges::unique)(),
+                        (v_list | split_into(rng_as_iters) | ::ranges::unique)(),
                         v_list.cend() //
                     );
                 };
@@ -113,7 +112,7 @@ namespace stdsharp::test::containers::actions
                     ) // clang-format on
                 );
 
-                ((v_list | split_into(rng_as_iters)) | ::ranges::sort)();
+                (v_list | split_into(rng_as_iters) | ::ranges::sort)();
 
                 println( //
                     fmt::format(
@@ -125,7 +124,7 @@ namespace stdsharp::test::containers::actions
                 unique_op();
 
                 expect( //
-                    std::ranges::equal(expected_v_list, v_list) // clang-format off
+                    std::ranges::equal(params.expected_v_list, v_list) // clang-format off
                 ) << fmt::format("actual values are: {}",v_list);
             } | tuple{
                 range_as_iterators_params{
