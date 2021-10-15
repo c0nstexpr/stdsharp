@@ -20,31 +20,48 @@ namespace stdsharp::functional
         } //
     );
 
-    inline constexpr struct assign : ::stdsharp::functional::nodiscard_tag_t
+    namespace details
     {
-        template<typename T, typename U = T>
-            requires ::std::assignable_from<T&, U>
-        constexpr decltype(auto) operator()(T& left, U&& right) const
-            noexcept(noexcept(left = ::std::forward<U>(right)))
+        struct assign
         {
-            return left = ::std::forward<U>(right);
-        }
+            template<typename T, typename U = T>
+                requires ::std::assignable_from<T&, U>
+            constexpr decltype(auto) operator()(T& left, U&& right) const
+                noexcept(noexcept(left = ::std::forward<U>(right)))
+            {
+                return left = ::std::forward<U>(right);
+            }
+        };
 
-        template<typename T, typename... U>
-            requires(sizeof...(U) > 1 && ::std::constructible_from<::std::remove_cvref_t<T>, U...>)
-        constexpr decltype(auto) operator()(T& left, U&&... right) const
-            noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
+        struct assign_by_construct
         {
-            return left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...};
-        }
+            template<typename T, typename... U>
+                requires(
+                    sizeof...(U) > 1 && ::std::constructible_from<::std::remove_cvref_t<T>, U...>)
+            constexpr decltype(auto) operator()(T& left, U&&... right) const
+                noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
+            {
+                return left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...};
+            }
+        };
+    }
+
+    inline constexpr struct assign :
+        ::ranges::overloaded<
+            ::stdsharp::functional::details::assign,
+            ::stdsharp::functional::details::assign_by_construct // clang-format off
+        >, // clang-format on
+        ::stdsharp::functional::nodiscard_tag_t
+    {
     } assign_v{};
 
-#define BS_STD_RANGES_OPERATION(op_type)                                              \
-    template<>                                                                        \
-    struct is_nodiscard_func_obj<::std::ranges::op_type> : ::std::bool_constant<true> \
-    {                                                                                 \
-    };                                                                                \
-                                                                                      \
+#define BS_STD_RANGES_OPERATION(op_type)                                           \
+    template<>                                                                     \
+    struct ::stdsharp::functional::is_nodiscard_func_obj<::std::ranges::op_type> : \
+        ::std::bool_constant<true>                                                 \
+    {                                                                              \
+    };                                                                             \
+                                                                                   \
     inline constexpr ::std::ranges::op_type op_type##_v{};
 
     BS_STD_RANGES_OPERATION(equal_to)
@@ -115,27 +132,39 @@ namespace stdsharp::functional
         l op## = ::std::forward<U>(u);                                                            \
     };                                                                                            \
                                                                                                   \
-    inline constexpr struct operator_type##_assign : ::stdsharp::functional::nodiscard_tag_t      \
+    namespace details                                                                             \
     {                                                                                             \
-        template<typename T, typename U>                                                          \
-        requires ::stdsharp::functional::                                                         \
-            operator_type##_assignable_from<T, U> constexpr decltype(auto)                        \
-                operator()(T& l, U&& u) const noexcept(noexcept((l op## = ::std::forward<U>(u)))) \
+        struct operator_type##_assign                                                             \
         {                                                                                         \
-            return l op## = ::std::forward<U>(u);                                                 \
-        }                                                                                         \
-                                                                                                  \
-        template<typename T, typename U>                                                          \
-            requires requires(T l, U&& u)                                                         \
+            template<typename T, typename U>                                                      \
+            requires ::stdsharp::functional::                                                     \
+                operator_type##_assignable_from<T, U> constexpr decltype(auto)                    \
+                    operator()(T& l, U&& u) const                                                 \
+                noexcept(noexcept((l op## = ::std::forward<U>(u))))                               \
             {                                                                                     \
-                !::stdsharp::functional::operator_type##_assignable_from<T, U>;                   \
-                l = operator_type##_v(l, ::std::forward<U>(u));                                   \
+                return l op## = ::std::forward<U>(u);                                             \
             }                                                                                     \
-        constexpr decltype(auto) operator()(T& l, U&& u) const                                    \
-            noexcept(noexcept((l = operator_type##_v(l, ::std::forward<U>(u)))))                  \
+        };                                                                                        \
+                                                                                                  \
+                                                                                                  \
+        struct indirect_##operator_type##_assign                                                  \
         {                                                                                         \
-            return l = operator_type##_v(l, ::std::forward<U>(u));                                \
-        }                                                                                         \
+            template<typename T, typename U>                                                      \
+                requires requires(T l, U&& u) { l = operator_type##_v(l, ::std::forward<U>(u)); } \
+            constexpr decltype(auto) operator()(T& l, U&& u) const                                \
+                noexcept(noexcept((l = operator_type##_v(l, ::std::forward<U>(u)))))              \
+            {                                                                                     \
+                return l = operator_type##_v(l, ::std::forward<U>(u));                            \
+            }                                                                                     \
+        };                                                                                        \
+    }                                                                                             \
+                                                                                                  \
+    inline constexpr struct operator_type##_assign :                                              \
+        ::ranges::overloaded<                                                                     \
+            ::stdsharp::functional::details::operator_type##_assign,                              \
+            ::stdsharp::functional::details::indirect_##operator_type##_assign>,                  \
+        ::stdsharp::functional::nodiscard_tag_t                                                   \
+    {                                                                                             \
     } operator_type##_assign_v{};
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
