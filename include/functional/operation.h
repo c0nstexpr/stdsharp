@@ -36,8 +36,7 @@ namespace stdsharp::functional
         struct assign_by_construct
         {
             template<typename T, typename... U>
-                requires(
-                    sizeof...(U) > 1 && ::std::constructible_from<::std::remove_cvref_t<T>, U...>)
+                requires ::std::constructible_from<::std::remove_reference_t<T>, U...>
             constexpr decltype(auto) operator()(T& left, U&&... right) const
                 noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
             {

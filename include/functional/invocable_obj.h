@@ -28,7 +28,7 @@ namespace stdsharp::functional
         using base = ::ranges::overloaded<Invocable>;
 
     public:
-        using invocable_obj::base::base;
+        using base::base;
         using invocable_t = Invocable;
     };
 
@@ -46,7 +46,7 @@ namespace stdsharp::functional
             requires ::std::constructible_from<Invocable, T...>
         constexpr explicit invocable_obj(const ::stdsharp::functional::nodiscard_tag_t, T&&... t) //
             noexcept(::stdsharp::concepts::nothrow_constructible_from<Invocable, T...>):
-            base(::std::forward<T>(t)...)
+            invocable_obj::base(::std::forward<T>(t)...)
         {
         }
 
