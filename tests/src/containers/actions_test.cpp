@@ -97,7 +97,7 @@ namespace stdsharp::test::containers::actions
                 {
                     stdsharp::containers::actions::erase(
                         v_list,
-                        ((v_list | split_into(rng_as_iters)) | ::ranges::unique)(),
+                        ((v_list | decompose_to(rng_as_iters)) | ::ranges::unique)(),
                         v_list.cend() //
                     );
                 };
@@ -113,7 +113,7 @@ namespace stdsharp::test::containers::actions
                     ) // clang-format on
                 );
 
-                ((v_list | split_into(rng_as_iters)) | ::ranges::sort)();
+                ((v_list | decompose_to(rng_as_iters)) | ::ranges::sort)();
 
                 println( //
                     fmt::format(

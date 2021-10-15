@@ -7,7 +7,7 @@
 #include <range/v3/view.hpp>
 
 #include "functional/cpo.h"
-#include "functional/functional.h"
+#include "functional/decompose_to.h"
 
 namespace stdsharp
 {
