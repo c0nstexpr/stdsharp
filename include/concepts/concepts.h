@@ -86,13 +86,19 @@ namespace stdsharp::concepts
     concept assignable_to = ::std::assignable_from<U, T>;
 
     template<typename T>
-    concept move_assignable = ::std::assignable_from<T&, T>;
+    concept move_assignable = ::std::assignable_from<::std::add_lvalue_reference_t<T>, T>;
 
     template<typename T>
     concept copy_assignable = ::stdsharp::concepts::move_assignable<T> && //
-        ::std::assignable_from<T&, const T> && //
-        ::std::assignable_from<T&, T&> && //
-        ::std::assignable_from<T&, const T&>;
+        ::std::assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> && //
+        ::std::assignable_from<
+            ::std::add_lvalue_reference_t<T>,
+            ::std::add_lvalue_reference_t<T> // clang-format off
+        > && // clang-format on
+        ::std::assignable_from<
+            ::std::add_lvalue_reference_t<T>,
+            ::std::add_lvalue_reference_t<::std::add_const_t<T>> // clang-format off
+        >; // clang-format on
 
     template<typename T>
     concept trivial_copyable = ::std::is_trivially_copyable_v<T>;
@@ -149,16 +155,23 @@ namespace stdsharp::concepts
     template<typename T>
     concept nothrow_movable = ::std::movable<T> && //
         ::stdsharp::concepts::nothrow_move_constructible<T> &&
-        ::stdsharp::concepts::nothrow_assignable_from<T&, T> &&
+        ::stdsharp::concepts::nothrow_assignable_from<::std::add_lvalue_reference_t<T>, T> &&
         ::stdsharp::concepts::nothrow_swappable<T>;
 
     template<typename T>
     concept nothrow_copyable = ::stdsharp::concepts::nothrow_movable<T> && //
         ::std::copyable<T> && //
         ::stdsharp::concepts::nothrow_copy_constructible<T> &&
-        ::stdsharp::concepts::nothrow_assignable_from<T&, T&> &&
-        ::stdsharp::concepts::nothrow_assignable_from<T&, const T> &&
-        ::stdsharp::concepts::nothrow_assignable_from<T&, const T&>;
+        ::stdsharp::concepts::nothrow_assignable_from<
+            ::std::add_lvalue_reference_t<T>,
+            ::std::add_lvalue_reference_t<T> // clang-format off
+        > && // clang-format on
+        ::stdsharp::concepts::
+            nothrow_assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> &&
+        ::stdsharp::concepts::nothrow_assignable_from<
+            ::std::add_lvalue_reference_t<T>,
+            ::std::add_lvalue_reference_t<::std::add_const_t<T>> // clang-format off
+        >; // clang-format on
 
     template<typename T, typename U>
     concept nothrow_convertible_to = ::std::is_nothrow_convertible_v<T, U>;
@@ -199,4 +212,18 @@ namespace stdsharp::concepts
     template<typename Func, typename... Args>
     concept nothrow_predicate = ::std::predicate<Func, Args...> && //
         ::stdsharp::concepts::nothrow_invocable_r<Func, bool, Args...>;
+
+    template<typename T, typename U>
+    concept const_aligned = (::std::is_const_v<T> == ::std::is_const_v<U>);
+
+    template<typename T, typename U>
+    concept ref_aligned = ( //
+        ::std::is_lvalue_reference_v<T> ?
+            ::std::is_lvalue_reference_v<U> :
+            (::std::is_rvalue_reference_v<T> == ::std::is_rvalue_reference_v<U>) //
+    );
+
+    template<typename T, typename U>
+    concept const_ref_aligned =
+        ::stdsharp::concepts::const_aligned<T, U> && ::stdsharp::concepts::ref_aligned<T, U>;
 }

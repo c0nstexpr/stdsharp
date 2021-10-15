@@ -43,10 +43,12 @@ namespace stdsharp::containers
     concept erasable = ::std::same_as<
         Allocator, // clang-format off
         typename ::std::allocator_traits<Allocator>::template rebind_alloc<ValueType>
-    > && requires(Allocator allocator_instance, ValueType* ptr) // clang-format on
-    {
-        std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
-    };
+    > &&
+        ::std::destructible<ValueType> &&
+        requires(Allocator allocator_instance, ValueType* ptr)
+        {
+            std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
+        }; // clang-format on
 
     template<typename Container>
     concept container_erasable = requires
@@ -65,13 +67,13 @@ namespace stdsharp::containers
     > &&
         ::std::move_constructible<ValueType> &&
         requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv)
-        { // clang-format on
-        std::allocator_traits<Allocator>::construct(
-            allocator_instance,
-            ptr,
-            ::std::move(rv) //
-        );
-    };
+        {
+            std::allocator_traits<Allocator>::construct(
+                allocator_instance,
+                ptr,
+                ::std::move(rv) //
+            );
+        }; // clang-format on
 
     template<typename Container>
     concept container_move_insertable = requires
