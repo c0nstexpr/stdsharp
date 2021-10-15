@@ -9,55 +9,65 @@ namespace stdsharp::functional
     template<typename Tag, typename T, typename... Args>
     concept tag_invocable = requires
     {
-        tag_invoke(::std::declval<Tag>, ::std::declval<T>, std::declval<Args>()...);
+        tag_invoke(::std::declval<Tag>(), ::std::declval<T>(), std::declval<Args>()...);
     };
 
     template<typename Tag, typename T, typename... Args>
     concept nothrow_tag_invocable = ::stdsharp::functional::tag_invocable<Tag, T, Args...> &&
         noexcept(tag_invoke(::std::declval<Tag>, ::std::declval<T>, std::declval<Args>()...));
 
-    template<typename...>
-    struct cpo_invoke_fn
+    namespace details
     {
-        template<typename Tag, typename T, typename... Args>
-            requires(
-                ::std::invocable<Tag, T, Args...> &&
-                !(::std::invocable<T, Tag, Args...> ||
-                  ::stdsharp::functional::tag_invocable<Tag, T, Args...>) //
-            )
-        constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
-            noexcept(::stdsharp::concepts::nothrow_invocable<T, Args...>)
+        struct customized_invoke
         {
-            return ::std::invoke(
-                ::std::forward<Tag>(tag),
-                ::std::forward<T>(t),
-                ::std::forward<Args>(args)... //
-            );
-        }
+            template<typename Tag, typename T, typename... Args>
+                requires ::std::invocable<T, Tag, Args...>
+            constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
+                noexcept(::stdsharp::concepts::nothrow_invocable<T, Tag, Args...>)
+            {
+                return ::std::invoke(
+                    ::std::forward<T>(t),
+                    ::std::forward<Tag>(tag),
+                    ::std::forward<Args>(args)... //
+                );
+            }
 
-        template<typename Tag, typename T, typename... Args>
-            requires ::std::invocable<T, Tag, Args...>
-        constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
-            noexcept(::stdsharp::concepts::nothrow_invocable<T, Tag, Args...>)
-        {
-            return ::std::invoke(
-                ::std::forward<T>(t),
-                ::std::forward<Tag>(tag),
-                ::std::forward<Args>(args)... //
-            );
-        }
+            template<typename Tag, typename T, typename... Args>
+                requires ::stdsharp::functional::tag_invocable<Tag, T, Args...>
+            constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
+                noexcept(::stdsharp::functional::nothrow_tag_invocable<Tag, T, Args...>)
+            {
+                return tag_invoke(
+                    ::std::forward<Tag>(tag),
+                    ::std::forward<T>(t),
+                    ::std::forward<Args>(args)... //
+                );
+            }
+        };
 
-        template<typename Tag, typename T, typename... Args>
-            requires ::stdsharp::functional::tag_invocable<Tag, T, Args...>
-        constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
-            noexcept(::stdsharp::functional::nothrow_tag_invocable<Tag, T, Args...>)
+        struct default_cpo_invoke
         {
-            return tag_invoke(
-                ::std::forward<Tag>(tag),
-                ::std::forward<T>(t),
-                ::std::forward<Args>(args)... //
-            );
-        }
+            template<typename Tag, typename T, typename... Args>
+                requires ::std::invocable<Tag, T, Args...>
+            constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
+                noexcept(::stdsharp::concepts::nothrow_invocable<T, Args...>)
+            {
+                return ::std::invoke(
+                    ::std::forward<Tag>(tag),
+                    ::std::forward<T>(t),
+                    ::std::forward<Args>(args)... //
+                );
+            }
+        };
+    }
+
+    template<typename...>
+    struct cpo_invoke :
+        ::ranges::overloaded<
+            ::stdsharp::functional::details::customized_invoke,
+            ::stdsharp::functional::details::default_cpo_invoke // clang-format off
+        > // clang-format on
+    {
     };
 
     inline constexpr struct
@@ -65,7 +75,7 @@ namespace stdsharp::functional
     private:
         template<typename Tag, typename... T>
         struct invocation_base :
-            ::std::type_identity<::stdsharp::functional::cpo_invoke_fn<Tag&&, T&&...>>
+            ::std::type_identity<::stdsharp::functional::cpo_invoke<Tag&&, T&&...>>
         {
         };
 
