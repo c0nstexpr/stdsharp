@@ -81,17 +81,16 @@ namespace stdsharp::test::containers::actions
                 static_expect<vec_req<T>>();
             } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
 
-            struct rang_as_iterators_params
+            struct range_as_iterators_params
             {
                 vector<int> initial_v_list;
                 initializer_list<int> expected_v_list;
             };
 
             // clang-format off
-            // NOLINTNEXTLINE(performance-unnecessary-value-param)
-            feature("rang as iterators") = [](rang_as_iterators_params params) // clang-format on
+            feature("range as iterators") = [](range_as_iterators_params params) // clang-format on
             {
-                auto& [v_list, expected_v_list] = params;
+                auto& v_list = params.initial_v_list;
 
                 const auto unique_op = [&v_list = v_list]
                 {
@@ -125,10 +124,10 @@ namespace stdsharp::test::containers::actions
                 unique_op();
 
                 expect( //
-                    std::ranges::equal(expected_v_list, v_list) // clang-format off
+                    std::ranges::equal(params.expected_v_list, v_list) // clang-format off
                 ) << fmt::format("actual values are: {}",v_list);
             } | tuple{
-                rang_as_iterators_params{
+                range_as_iterators_params{
                     {1, 2, 1, 1, 3, 3, 3, 4, 5, 4},
                     {1, 2, 3, 4, 5}
                 }
