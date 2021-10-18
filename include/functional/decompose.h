@@ -2,7 +2,6 @@
 // Created by BlurringShadow on 2021-10-15.
 //
 #pragma once
-#include "functional/functional.h"
 #include "functional/cpo.h"
 #include "type_traits/type_traits.h"
 
