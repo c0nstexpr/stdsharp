@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include <algorithm>
 #include <ranges>
 #include <variant>
+
+#include <range/v3/algorithm.h>
 
 #include "functional/functional.h"
 
@@ -19,8 +20,8 @@ namespace stdsharp::type_traits
             }
         constexpr auto make_value_sequence(::std::index_sequence<I...>) noexcept
         {
-            return ::stdsharp::type_traits::regular_value_sequence<::std::invoke(
-                PlusF, From, I)...>{};
+            return ::stdsharp::type_traits:: //
+                regular_value_sequence<::std::invoke(PlusF, From, I)...>{};
         }
 
         template<typename Func>
@@ -58,40 +59,14 @@ namespace stdsharp::type_traits
         template<auto... Values>
         struct unique_value_sequence
         {
-            using seq = value_sequence<Values...>;
+            using seq = ::stdsharp::type_traits::value_sequence<Values...>;
 
-            template<::std::size_t I>
-            static constexpr auto is_valid()
+            static constexpr auto filtered_indices = []
             {
-                return seq::find_if( // clang-format off
-                    [j = ::std::size_t{0}](const auto& v) mutable
-                    {
-                        if(j == I) return true;
-                        ++j;
-                        return ::stdsharp::functional::equal_to_v(seq::template get<I>(), v);
-                    }
-                ) == I; // clang-format on
-            }
-
-            static constexpr auto filtered_indices =
-                []<size_t... I>(const ::std::index_sequence<I...>)
-            {
-                ::std::array<size_t, seq::size> indices{};
-                ::std::size_t valid_size = 0;
-                const auto f = [&]<::std::size_t J>(const type_traits::constant<J>) noexcept
-                {
-                    if(is_valid<J>())
-                    {
-                        indices[valid_size] = J;
-                        ++valid_size;
-                    }
-                };
-
-                (f(type_traits::constant<I>{}), ...);
-
-                return ::std::pair{indices, valid_size};
-            }
-            (typename seq::index_seq{});
+                ::std::array res{unique_value_sequence::seq::find(Values)...};
+                ::ranges::sort(res);
+                return ::std::pair{res, ::ranges::unique(res) - res.cbegin()};
+            }();
 
             template<::std::size_t... I>
             using filtered_seq = ::stdsharp::type_traits:: //
@@ -229,10 +204,9 @@ namespace stdsharp::type_traits
                     return []<auto F>(const ::stdsharp::type_traits::constant<F>) noexcept
                     {
                         return ::stdsharp::type_traits:: //
-                            value_sequence<::std::invoke(F, Values)...>{};
-                    }
-                (::stdsharp::type_traits::constant<Func...>{});
-                else return ::stdsharp::type_traits:: //
+                            value_sequence<::std::invoke(F, Values)...>{}; // clang-format off
+                    }(::stdsharp::type_traits::constant<Func...>{});
+                else return ::stdsharp::type_traits::
                     value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
             };
         };
@@ -425,24 +399,29 @@ namespace stdsharp::type_traits
         static constexpr struct
         {
         private:
-            template<::std::size_t I, typename Comp, typename Proj>
+            template<::std::size_t I>
             struct by_index
             {
-                using left_projected_t = std::invoke_result_t<Proj, decltype(get<I>())>;
-                using right_projected_t = std::invoke_result_t<Proj, decltype(get<I + 1>())>;
-
-                static constexpr auto invoke(Comp& comp, Proj& proj) noexcept(
+                template<
+                    typename Comp, 
+                    typename Proj, // clang-format off
+                    typename LeftProjected = std::invoke_result_t<Proj, decltype(get<I>())>,
+                    typename RightProjected = std::invoke_result_t<Proj, decltype(get<I + 1>())>
+                > // clang-format on
+                    requires ::stdsharp::concepts::invocable_r<Comp, bool, LeftProjected, RightProjected>
+                constexpr auto operator()(Comp& comp, Proj& proj) const noexcept(
                     ::stdsharp::concepts:: // clang-format off
-                        nothrow_invocable_r<Comp, bool, left_projected_t, right_projected_t>
-                ) requires ::stdsharp::concepts::
-                    invocable_r<Comp, bool, left_projected_t, right_projected_t> // clang-format on
+                        nothrow_invocable_r<Comp, bool, LeftProjected, RightProjected>
+                )  // clang-format on
                 {
                     return ::stdsharp::functional::invoke_r<bool>(
-                        comp, ::std::invoke(proj, get<I>()), ::std::invoke(proj, get<I + 1>()) //
+                        comp,
+                        ::std::invoke(proj, get<I>()),
+                        ::std::invoke(proj, get<I + 1>()) //
                     );
                 }
 
-                static constexpr auto invoke(Comp&, Proj&) noexcept { return false; }
+                constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
             };
 
             struct impl
@@ -451,19 +430,14 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(
                     Comp& comp,
                     Proj& proj,
-                    const ::std::index_sequence<I...> // clang-format off
-                ) noexcept(noexcept((by_index<I, Comp, Proj>::invoke(comp, proj), ...))) // clang-format on
+                    const ::std::index_sequence<I...> = ::std::make_index_sequence<size - 2>{} // clang-format off
+                ) noexcept((::stdsharp::concetps::nothrow_invocable<by_index<I>, Comp, Proj> && ...)) // clang-format on
                 {
                     ::std::size_t res{};
-                    ((
-                         [&]<::std::size_t J>(const ::stdsharp::type_traits::constant<J>) //
-                         noexcept(noexcept(by_index<J, Comp, Proj>::invoke(comp, proj)))
-                         {
-                             if(by_index<J, Comp, Proj>::invoke(comp, proj)) return true;
-                             ++res;
-                             return false;
-                         }(::stdsharp::type_traits::constant<I>{})) ||
-                     ...);
+                    ( //
+                        (by_index<I>{}(comp, proj) ? true : (++res, false)) ||
+                        ... //
+                    );
                     return res;
                 }
             };
@@ -471,12 +445,10 @@ namespace stdsharp::type_traits
         public:
             template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
                 requires(::std::invocable<Proj, decltype(Values)>&&...)
-            [[nodiscard]] constexpr auto operator()(Comp comp = {}, Proj proj = {}) const noexcept(
-                ::stdsharp::concepts::
-                    nothrow_invocable<impl, Comp, Proj, ::std::make_index_sequence<size - 2>> //
-            )
+            [[nodiscard]] constexpr auto operator()(Comp comp = {}, Proj proj = {}) const
+                noexcept(::stdsharp::concepts::nothrow_invocable<impl, Comp, Proj>)
             {
-                return impl{}(comp, proj, ::std::make_index_sequence<size - 2>{});
+                return impl{}(comp, proj);
             }
 
             template<typename Comp = ::std::nullptr_t, typename Proj = ::std::nullptr_t>
@@ -535,23 +507,24 @@ namespace stdsharp::type_traits
         {
             static constexpr auto select_indices = []() noexcept
             {
-                ::std::array<std::size_t, size> res{};
+                ::std::array<::std::size_t, size> res{};
                 ::std::array excepted = {Index...};
-                ::std::size_t res_i = 0;
+                ::std::size_t index = 0;
 
-                ::std::ranges::sort(excepted);
-
-                {
-                    ::std::size_t index = 0;
-                    for(const auto excepted_i : excepted)
+                ::ranges::sort(excepted);
+                ::ranges::copy_if(
+                    ::ranges::iota_view{::std::size_t{0}, value_sequence::size()},
+                    res.begin(),
+                    [&excepted, &index](const auto v)
                     {
-                        for(; index < excepted_i; ++index, ++res_i) res[res_i] = index;
+                        if(::ranges::binary_search(excepted, v))
+                            return false;
                         ++index;
+                        return true;
                     }
-                    for(; index < size; ++index, ++res_i) res[res_i] = index;
-                }
+                );
 
-                return ::std::pair{res, res_i};
+                return ::std::pair{res, index};
             }();
 
             template<::std::size_t... I>
