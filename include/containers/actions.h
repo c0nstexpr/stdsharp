@@ -5,6 +5,7 @@
 #pragma once
 #include <range/v3/action.hpp>
 
+#include "functional/functional.h"
 #include "containers/containers.h"
 
 namespace stdsharp::containers::actions
@@ -340,39 +341,47 @@ namespace stdsharp::containers::actions
     inline constexpr auto resize =
         ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::resize_fn>;
 
+    template<typename Container>
     struct make_container_fn
     {
     private:
-        template<typename Container, ::std::size_t Count>
-            requires requires(Container container)
-            {
-                container.reserve(Count);
-            }
-        static constexpr reserved() noexcept(
-            ::stdsharp::concepts::nothrow_default_initializable<Container> && //
-                noexcept(container.reserve(Count)) //
+        template<::std::size_t Count>
+        static constexpr auto reserved(Container& container) noexcept(
+            noexcept( //
+                ::stdsharp::functional::optional_invoke(
+                    [&container]() noexcept(noexcept(container.reserve(Count)))
+                    requires requires
+                    {
+                        container.reserve(Count);
+                    }
+                    {
+                        container.reserve(Count); //
+                    } // clang-format off
+                )
+            ) // clang-format on
         )
         {
-            Container container{};
-            container.reserve(Count);
-            return container;
-        }
-
-        template<typename Container, ::std::size_t Count>
-        static constexpr reserved() noexcept(::stdsharp::concepts::nothrow_default_initializable<Container>)
-        {
-            Container container{};
-            return container;
+            ::stdsharp::functional::optional_invoke(
+                [&container]() noexcept(noexcept(container.reserve(Count)))
+                requires requires
+                {
+                    container.reserve(Count);
+                }
+                {
+                    container.reserve(Count); //
+                } //
+            );
         }
 
     public:
-        template<typename Container, typename... Args>
+        template<typename... Args>
             requires (::std::invocable<
                 decltype(::stdsharp::containers::actions::emplace),
                 Container&,
                 Args... //clang-format off
             > && ...) //clang-format on
         constexpr auto operator()(Args&&... args) const noexcept(
+            ::stdsharp::concepts::nothrow_default_initializable<Container> &&
             (::stdsharp::concepts::nothrow_invocable<
                 decltype(::stdsharp::containers::actions::emplace),
                 Container&,
@@ -384,8 +393,9 @@ namespace stdsharp::containers::actions
             ) //clang-format on
         )
         {
-            auto container = ::stdsharp::containers::actions::details:: //
-                make_container_fn::reserved<Container, sizeof...(Args)>();
+            Container container{};
+            ::stdsharp::containers::actions::details:: //
+                make_container_fn::reserved<sizeof...(Args)>(container) //
             (::stdsharp::containers::actions::emplace(container, ::std::forward<Args>(args)), ...);
             return container;
         }
@@ -408,8 +418,9 @@ namespace stdsharp::containers::actions
             ) //clang-format on
         )
         {
-            auto container = ::stdsharp::containers::actions::details:: //
-                make_container_fn::reserved<Container, sizeof...(Args)>();
+            Container container{};
+            ::stdsharp::containers::actions::details:: //
+                make_container_fn::reserved<sizeof...(Args)>(container) //
             (::stdsharp::containers::actions::emplace_back(container, ::std::forward<Args>(args)), ...);
             return container;
         }
