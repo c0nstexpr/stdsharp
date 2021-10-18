@@ -302,7 +302,11 @@ namespace stdsharp::containers
             typename ConstIter = typename ContainerType::const_iterator,
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
-        concept sequence_container_req = ::stdsharp::containers::container<ContainerType> &&
+        concept sequence_container_req = requires
+            {
+                requires ::std::same_as<::std::array<ValueType, ::std::tuple_size_v<ContainerType>>, ContainerType>;
+            } ||
+            ::stdsharp::containers::container<ContainerType> &&
             (!::stdsharp::containers::container_copy_insertable<ContainerType> ||
              ::std::constructible_from<ContainerType, SizeType, ValueType>)&& // clang-format off
             requires(ContainerType instance, ConstIter const_iter, ValueType value)

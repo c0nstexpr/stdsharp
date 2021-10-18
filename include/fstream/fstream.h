@@ -106,7 +106,7 @@ namespace stdsharp::fstream
                 ::std::ifstream fs{path}
                 return (*this)(fs);
             }
-        }
+        };
     }
 
     template<typename T, typename Container = ::std::vector<T>>
