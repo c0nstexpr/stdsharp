@@ -31,7 +31,10 @@ namespace stdsharp::functional
                     ::std::forward<Args>(args)... //
                 );
             }
+        };
 
+        struct tag_invoke_fn
+        {
             template<typename Tag, typename T, typename... Args>
                 requires ::stdsharp::functional::tag_invocable<Tag, T, Args...>
             constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
@@ -64,6 +67,7 @@ namespace stdsharp::functional
     template<typename...>
     struct cpo_invoke :
         ::ranges::overloaded<
+            ::stdsharp::functional::details::tag_invoke_fn,
             ::stdsharp::functional::details::customized_invoke,
             ::stdsharp::functional::details::default_cpo_invoke // clang-format off
         > // clang-format on
