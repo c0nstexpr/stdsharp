@@ -400,7 +400,7 @@ namespace stdsharp::containers::actions
             return container;
         }
 
-        template<typename Container, typename... Args>
+        template<typename... Args>
             requires (::std::invocable<
                 decltype(::stdsharp::containers::actions::emplace_back),
                 Container&,
@@ -426,6 +426,7 @@ namespace stdsharp::containers::actions
         }
     };
     
+    template<typename Container>
     inline constexpr auto make_container =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::make_container_fn>;
+        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::make_container_fn<Container>>;
 }
