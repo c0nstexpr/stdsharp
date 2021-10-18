@@ -339,4 +339,82 @@ namespace stdsharp::containers::actions
 
     inline constexpr auto resize =
         ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::resize_fn>;
+
+    struct make_container_fn
+    {
+    private:
+        template<typename Container, ::std::size_t Count>
+            requires requires(Container container)
+            {
+                container.reserve(Count);
+            }
+        static constexpr reserved() noexcept(
+            ::stdsharp::concepts::nothrow_default_initializable<Container> && //
+                noexcept(container.reserve(Count)) //
+        )
+        {
+            Container container{};
+            container.reserve(Count);
+            return container;
+        }
+
+        template<typename Container, ::std::size_t Count>
+        static constexpr reserved() noexcept(::stdsharp::concepts::nothrow_default_initializable<Container>)
+        {
+            Container container{};
+            return container;
+        }
+
+    public:
+        template<typename Container, typename... Args>
+            requires (::std::invocable<
+                decltype(::stdsharp::containers::actions::emplace),
+                Container&,
+                Args... //clang-format off
+            > && ...) //clang-format on
+        constexpr auto operator()(Args&&... args) const noexcept(
+            (::stdsharp::concepts::nothrow_invocable<
+                decltype(::stdsharp::containers::actions::emplace),
+                Container&,
+                Args... //clang-format off
+            > && ...) &&
+            noexcept(
+                ::stdsharp::containers::actions::details::
+                    make_container_fn::reserved<Container, sizeof...(Args)>()
+            ) //clang-format on
+        )
+        {
+            auto container = ::stdsharp::containers::actions::details:: //
+                make_container_fn::reserved<Container, sizeof...(Args)>();
+            (::stdsharp::containers::actions::emplace(container, ::std::forward<Args>(args)), ...);
+            return container;
+        }
+
+        template<typename Container, typename... Args>
+            requires (::std::invocable<
+                decltype(::stdsharp::containers::actions::emplace_back),
+                Container&,
+                Args... //clang-format off
+            > && ...) //clang-format on
+        constexpr auto operator()(Args&&... args) const noexcept(
+            (::stdsharp::concepts::nothrow_invocable<
+                decltype(::stdsharp::containers::actions::emplace_back),
+                Container&,
+                Args... //clang-format off
+            > && ...) &&
+            noexcept(
+                ::stdsharp::containers::actions::details::
+                    make_container_fn::reserved<Container, sizeof...(Args)>()
+            ) //clang-format on
+        )
+        {
+            auto container = ::stdsharp::containers::actions::details:: //
+                make_container_fn::reserved<Container, sizeof...(Args)>();
+            (::stdsharp::containers::actions::emplace_back(container, ::std::forward<Args>(args)), ...);
+            return container;
+        }
+    };
+    
+    inline constexpr auto make_container =
+        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::make_container_fn>;
 }
