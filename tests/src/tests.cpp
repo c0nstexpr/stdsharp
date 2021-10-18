@@ -26,6 +26,4 @@ int main()
     type_traits::type_sequence_test();
     type_traits::member_test();
     property::property_test();
-
-    stdsharp::fstream::read_all<int>("");
 }
