@@ -10,6 +10,7 @@
 #include "property/property_test.h"
 
 #include "random/random.h"
+#include "fstream/fstream.h"
 
 int main()
 {

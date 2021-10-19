@@ -1,4 +1,4 @@
-﻿// Created by BlurringShadow at 2021-03-01-下午 9:00
+// Created by BlurringShadow at 2021-03-01-下午 9:00
 
 #pragma once
 
@@ -104,6 +104,24 @@ namespace stdsharp::type_traits
     template<typename Sequence> // clang-format off
     using to_value_sequence_t = typename ::stdsharp::type_traits::
         take_value_sequence<Sequence>::as_value_sequence_t; // clang-format on
+
+    template<typename T, typename U>
+    using ref_align_t = ::std::conditional_t<
+        ::std::is_lvalue_reference_v<T>,
+        ::std::add_lvalue_reference_t<U>, // clang-format off
+        ::std::conditional_t<::std::is_rvalue_reference_v<T>, ::std::add_rvalue_reference_t<U>, U>
+    >; // clang-format on
+
+    template<typename T, typename U>
+    using const_align_t = ::std::conditional_t<
+        ::std::is_const_v<::std::remove_reference_t<T>>,
+        ::std::add_const_t<U>, // clang-format off
+        U
+    >; // clang-format on
+
+    template<typename T, typename U>
+    using const_ref_align_t =
+        ::stdsharp::type_traits::ref_align_t<T, ::stdsharp::type_traits::const_align_t<T, U>>;
 
     template<typename...>
     struct regular_type_sequence

@@ -4,8 +4,10 @@
 #pragma once
 #include <ranges>
 #include <range/v3/range.hpp>
+#include <range/v3/view.hpp>
 
 #include "functional/cpo.h"
+#include "functional/decompose.h"
 
 namespace stdsharp
 {
@@ -17,6 +19,29 @@ namespace stdsharp
         template<typename T>
         using range_const_reference_t =
             ::stdsharp::type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
+
+        inline constexpr struct rng_as_iters_fn
+        {
+            static constexpr auto size = 2;
+
+            template<::std::size_t>
+            static constexpr auto get = 0;
+
+            template<>
+            static constexpr auto get<0> = []<::std::ranges::range Rng>(Rng&& rng) //
+                noexcept(noexcept(::std::ranges::begin(rng)))
+            {
+                return ::std::ranges::begin(::std::forward<Rng>(rng)); //
+            };
+
+            template<>
+            static constexpr auto get<1> = []<::std::ranges::range Rng>(Rng&& rng) //
+                noexcept(noexcept(::std::ranges::end(rng)))
+            {
+                return ::std::ranges::end(::std::forward<Rng>(rng)); //
+            };
+
+        } rng_as_iters{};
     }
 
     namespace functional

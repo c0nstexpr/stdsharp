@@ -5,8 +5,13 @@
 namespace stdsharp::test::containers::actions
 {
     using namespace std;
+    using namespace std::ranges;
     using namespace boost::ut;
     using namespace bdd;
+    using namespace stdsharp::functional;
+    using namespace stdsharp::ranges;
+    using namespace stdsharp::containers;
+    using namespace stdsharp::containers::actions;
 
     namespace
     {
@@ -21,9 +26,9 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<T> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, iter, move(value));
-            stdsharp::containers::actions::emplace_back(v, move(value));
-            stdsharp::containers::actions::emplace_front(v, move(value));
+            stdsharp::containers::actions::emplace(v, iter, std::move(value));
+            stdsharp::containers::actions::emplace_back(v, std::move(value));
+            stdsharp::containers::actions::emplace_front(v, std::move(value));
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -44,7 +49,7 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<T> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, move(value));
+            stdsharp::containers::actions::emplace(v, std::move(value));
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -60,7 +65,7 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<pair<const T, int>> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, move(value), 0);
+            stdsharp::containers::actions::emplace(v, std::move(value), 0);
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -75,6 +80,44 @@ namespace stdsharp::test::containers::actions
                 println(fmt::format("current type {}", reflection::type_name<T>()));
                 static_expect<vec_req<T>>();
             } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
+
+            struct range_as_iterators_params
+            {
+                vector<int> initial_v_list;
+                initializer_list<int> expected_v_list;
+            };
+
+            // clang-format off
+            feature("range as iterators") = [](range_as_iterators_params params) // clang-format on
+            {
+                auto& v_list = params.initial_v_list;
+
+                const auto unique_op = [&v_list = v_list]
+                {
+                    stdsharp::containers::actions::erase(
+                        v_list,
+                        v_list | decompose_to<>(rng_as_iters) | ::ranges::unique,
+                        v_list.cend() //
+                    );
+                };
+
+                println(fmt::format("current value: {}", v_list));
+
+                unique_op();
+
+                println(fmt::format("after first unique operation, values are: {}", v_list));
+
+                v_list | decompose_to<>(rng_as_iters) | ::ranges::sort;
+
+                println(fmt::format("after sort, values are: {}", v_list));
+
+                unique_op();
+
+                expect(std::ranges::equal(params.expected_v_list, v_list)) << //
+                    fmt::format("actual values are: {}", v_list); // clang-format off
+            } | tuple{
+                range_as_iterators_params{{1, 2, 1, 1, 3, 3, 3, 4, 5, 4}, {1, 2, 3, 4, 5}}
+            }; // clang-format on
         }
 
         void set_actions_test()
