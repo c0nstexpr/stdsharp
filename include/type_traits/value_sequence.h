@@ -5,7 +5,8 @@
 #include <ranges>
 #include <variant>
 
-#include <range/v3/algorithm.h>
+#include <range/v3/algorithm.hpp>
+#include <range/v3/view/iota.hpp>
 
 #include "functional/functional.h"
 
@@ -63,9 +64,10 @@ namespace stdsharp::type_traits
 
             static constexpr auto filtered_indices = []
             {
-                ::std::array res{unique_value_sequence::seq::find(Values)...};
-                ::ranges::sort(res);
-                return ::std::pair{res, ::ranges::unique(res) - res.cbegin()};
+                ::std::array<::std::size_t, unique_value_sequence::seq::size> res{
+                    unique_value_sequence::seq::find(Values)...};
+                ::std::sort(res.begin(), res.end());
+                return ::std::pair{res, ::std::unique(res.begin(), res.end()) - res.cbegin()};
             }();
 
             template<::std::size_t... I>
@@ -403,21 +405,20 @@ namespace stdsharp::type_traits
             struct by_index
             {
                 template<
-                    typename Comp, 
+                    typename Comp,
                     typename Proj, // clang-format off
                     typename LeftProjected = std::invoke_result_t<Proj, decltype(get<I>())>,
                     typename RightProjected = std::invoke_result_t<Proj, decltype(get<I + 1>())>
                 > // clang-format on
-                    requires ::stdsharp::concepts::invocable_r<Comp, bool, LeftProjected, RightProjected>
-                constexpr auto operator()(Comp& comp, Proj& proj) const noexcept(
-                    ::stdsharp::concepts:: // clang-format off
+                    requires ::stdsharp::concepts::
+                        invocable_r<Comp, bool, LeftProjected, RightProjected>
+                constexpr auto operator()(Comp& comp, Proj& proj) const
+                    noexcept(::stdsharp::concepts:: // clang-format off
                         nothrow_invocable_r<Comp, bool, LeftProjected, RightProjected>
-                )  // clang-format on
+                ) // clang-format on
                 {
                     return ::stdsharp::functional::invoke_r<bool>(
-                        comp,
-                        ::std::invoke(proj, get<I>()),
-                        ::std::invoke(proj, get<I + 1>()) //
+                        comp, ::std::invoke(proj, get<I>()), ::std::invoke(proj, get<I + 1>()) //
                     );
                 }
 
@@ -430,13 +431,13 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(
                     Comp& comp,
                     Proj& proj,
-                    const ::std::index_sequence<I...> = ::std::make_index_sequence<size - 2>{} // clang-format off
-                ) noexcept((::stdsharp::concetps::nothrow_invocable<by_index<I>, Comp, Proj> && ...)) // clang-format on
+                    const ::std::index_sequence<I...> = ::std::make_index_sequence<size - 2>{}
+                    // clang-format off
+                ) noexcept((::stdsharp::concepts::nothrow_invocable<by_index<I>, Comp, Proj> && ...)) // clang-format on
                 {
                     ::std::size_t res{};
                     ( //
-                        (by_index<I>{}(comp, proj) ? true : (++res, false)) ||
-                        ... //
+                        (by_index<I>{}(comp, proj) ? true : (++res, false)) || ... //
                     );
                     return res;
                 }
@@ -511,19 +512,25 @@ namespace stdsharp::type_traits
                 ::std::array excepted = {Index...};
                 ::std::size_t index = 0;
 
-                ::ranges::sort(excepted);
-                ::ranges::copy_if(
-                    ::ranges::iota_view{::std::size_t{0}, value_sequence::size()},
-                    res.begin(),
-                    [&excepted, &index](const auto v)
-                    {
-                        if(::ranges::binary_search(excepted, v))
-                            return false;
-                        ++index;
-                        return true;
-                    }
-                );
+                // TODO replace with ranges algorithms
+                ::std::sort(excepted.begin(), excepted.end());
+                {
+                    ::std::array<::std::size_t, value_sequence::size> candidates{};
+                    ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
 
+                    ::std::copy_if(
+                        candidates.begin(),
+                        candidates.end(),
+                        res.begin(),
+                        [&excepted, &index](const auto v)
+                        {
+                            if(::std::binary_search(excepted.begin(), excepted.end(), v))
+                                return false;
+                            ++index;
+                            return true;
+                        } //
+                    );
+                }
                 return ::std::pair{res, index};
             }();
 

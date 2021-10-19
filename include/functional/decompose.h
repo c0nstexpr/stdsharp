@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "functional/cpo.h"
+#include "functional/functional.h"
 #include "type_traits/type_traits.h"
 
 namespace stdsharp::functional
@@ -11,11 +12,16 @@ namespace stdsharp::functional
     struct decompose_by_fn
     {
         template<typename Decomposer, typename Parameter>
-            requires requires { ::std::declval<Decomposer>().get<I>(::std::declval<Parameter>()); }
+            requires requires
+            {
+                ::std::declval<Decomposer>().template get<I>(::std::declval<Parameter>());
+            }
         constexpr decltype(auto) operator()(Decomposer&& decomposer, Parameter&& param) const
-            noexcept(noexcept(::std::declval<Decomposer>().get<I>(::std::declval<Parameter>())))
+            noexcept(
+                noexcept(::std::declval<Decomposer>().template get<I>(::std::declval<Parameter>())))
         {
-            return ::std::forward<Decomposer>(decomposer).get<I>(::std::forward<Parameter>(param));
+            return ::std::forward<Decomposer>(decomposer)
+                .template get<I>(::std::forward<Parameter>(param));
         }
     };
 
@@ -72,13 +78,6 @@ namespace stdsharp::functional
                 );
             }
 
-            template<::stdsharp::concepts::decay_same_as<decompose_fn> This, typename Fn>
-            friend auto operator|(This&& instance, Fn&& fn) //
-                noexcept(::stdsharp::concepts::nothrow_invocable<This, Fn>)
-            {
-                return ::std::forward<This>(instance)(::std::forward<Fn>(fn));
-            }
-
         public:
 #define BS_DECOMPOSE_TO_OPERATOR(const_, ref)                                                   \
     template<typename Fn>                                                                       \
@@ -103,31 +102,49 @@ namespace stdsharp::functional
     }
 
     template<typename Decomposer, typename Parameter, ::std::size_t... I>
-    using decompose_fn = ::std::conditional_t<
-        sizeof...(I) == 0,
-        ::stdsharp::functional::details::decompose_fn<Decomposer, Parameter>,
-        ::stdsharp::functional::details::
-            decompose_fn<Decomposer, Parameter, ::std::index_sequence<I...>> // clang-format off
-    >; // clang-format on
+    struct decompose_fn :
+        ::std::conditional_t<
+            sizeof...(I) == 0,
+            ::stdsharp::functional::details::decompose_fn<Decomposer, Parameter>,
+            ::stdsharp::functional::details::
+                decompose_fn<Decomposer, Parameter, ::std::index_sequence<I...>> // clang-format off
+        > // clang-format on
+    {
+    private:
+        template<::stdsharp::concepts::decay_same_as<decompose_fn> This, typename Fn>
+            requires ::std::invocable<This, Fn>
+        friend auto operator|(This&& instance, Fn&& fn) //
+            noexcept(::stdsharp::concepts::nothrow_invocable<This, Fn>)
+        {
+            return ::std::forward<This>(instance)(::std::forward<Fn>(fn));
+        }
+    };
+
+    template<typename Decomposer, typename Parameter>
+    decompose_fn(Decomposer&&, Parameter&&)
+        -> decompose_fn<::std::decay_t<Decomposer>, ::stdsharp::type_traits::coerce_t<Parameter>>;
 
     template<::std::size_t... I>
     inline constexpr ::stdsharp::functional::invocable_obj make_decompose(
         ::stdsharp::functional::nodiscard_tag,
-        []< //
-            typename Decomposer,
-            typename Parameter,
-            ::std::constructible_from<Decomposer, Parameter> DecomposeFn =
-                ::stdsharp::functional::decompose_fn<
-                    ::std::decay_t<Decomposer>,
-                    ::stdsharp::type_traits::coerce_t<Parameter>,
-                    I... // clang-format off
-                >
-        > // clang-format on
+        []<typename Decomposer, typename Parameter> // clang-format off
+            requires requires
+            {
+                ::stdsharp::functional::decompose_fn{
+                    ::std::declval<Decomposer>(),
+                    ::std::declval<Parameter>()
+                };
+            } // clang-format on
         (Decomposer&& decomposer, Parameter&& parameter) noexcept( //
-            ::stdsharp::concepts::nothrow_constructible_from<DecomposeFn, Decomposer, Parameter> //
+            noexcept( //
+                ::stdsharp::functional::decompose_fn{
+                    ::std::declval<Decomposer>(),
+                    ::std::declval<Parameter>() //
+                } // clang-format off
+            ) // clang-format off
         )
         {
-            return DecomposeFn{
+            return ::stdsharp::functional::decompose_fn{
                 ::std::forward<Decomposer>(decomposer),
                 ::std::forward<Parameter>(parameter) //
             };
@@ -140,7 +157,7 @@ namespace stdsharp::functional
         []<::std::copy_constructible Decomposer>(Decomposer&& decomposer) noexcept( //
             noexcept( //
                 ::ranges::make_pipeable( //
-                    ::std::bind_front(
+                    ::stdsharp::functional::bind_ref_front(
                         ::stdsharp::functional::make_decompose<I...>,
                         ::std::forward<Decomposer>(decomposer) // clang-format off
                     )
@@ -149,7 +166,7 @@ namespace stdsharp::functional
         )
         {
             return ::ranges::make_pipeable( //
-                ::std::bind_front(
+                ::stdsharp::functional::bind_ref_front(
                     ::stdsharp::functional::make_decompose<I...>,
                     ::std::forward<Decomposer>(decomposer) // clang-format off
                 ) // clang-format on

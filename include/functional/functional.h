@@ -7,7 +7,7 @@ namespace stdsharp::functional
 {
     namespace details
     {
-       template<typename Func, typename... T>
+        template<typename Func, typename... T>
         class bind_ref_front_invoker : ::std::tuple<Func, T...>
         {
             using base = ::std::tuple<Func, T...>;
@@ -16,15 +16,15 @@ namespace stdsharp::functional
             template<
                 typename Tuple,
                 typename... Args,
-                typename AlignedFunc = ::stdsharp::type_traits::const_ref_aligned_t<Tuple, Func>,
-                bool Noexcept_ = ::stdsharp::concepts::nothrow_invocable<AlignedFunc, T..., Args...>
-            > // clang-format on
+                typename AlignedFunc = ::stdsharp::type_traits::const_ref_align_t<Tuple, Func>,
+                bool Noexcept_ = ::stdsharp::concepts::
+                    nothrow_invocable<AlignedFunc, T..., Args...>> // clang-format on
                 requires ::std::invocable<AlignedFunc, T..., Args...>
             static constexpr decltype(auto) invoke_impl(Tuple&& instance, Args&&... args) //
                 noexcept(Noexcept_)
             {
                 return ::std::apply(
-                    [&]<typename... U>(U&&... u) noexcept(Noexcept_)->decltype(auto) //
+                    [&]<typename... U>(U && ... u) noexcept(Noexcept_)->decltype(auto) //
                     {
                         return ::std::invoke(
                             ::std::forward<U>(u)...,
@@ -36,20 +36,20 @@ namespace stdsharp::functional
             }
 
         public:
-#define BS_BIND_REF_OPERATOR(const_, ref)                                                  \
-    template<typename... Args>                                                             \
+#define BS_BIND_REF_OPERATOR(const_, ref)                                                     \
+    template<typename... Args>                                                                \
         requires requires(const_ bind_ref_front_invoker::base ref instance, Args && ... args) \
-        {                                                                                  \
-            bind_ref_front_invoker::invoke_impl<const_ base ref>(                          \
-                instance, ::std::forward<Args>(args)...);                                  \
-        }                                                                                  \
-    constexpr decltype(auto) operator()(Args&&... args)                                    \
-        const_ ref noexcept(noexcept(bind_ref_front_invoker::invoke_impl<const_ base ref>( \
-            *this, ::std::forward<Args>(args)...)))                                        \
-    {                                                                                      \
-        return bind_ref_front_invoker::invoke_impl<const_ base ref>(                       \
-            *this, ::std::forward<Args>(args)...);                                         \
-    }                                                                                      \
+        {                                                                                     \
+            bind_ref_front_invoker::invoke_impl<const_ base ref>(                             \
+                instance, ::std::forward<Args>(args)...);                                     \
+        }                                                                                     \
+    constexpr decltype(auto) operator()(Args&&... args)                                       \
+        const_ ref noexcept(noexcept(bind_ref_front_invoker::invoke_impl<const_ base ref>(    \
+            *this, ::std::forward<Args>(args)...)))                                           \
+    {                                                                                         \
+        return bind_ref_front_invoker::invoke_impl<const_ base ref>(                          \
+            *this, ::std::forward<Args>(args)...);                                            \
+    }
 
 #define BS_BIND_REF_OPERATOR_PACK(const_) \
     BS_BIND_REF_OPERATOR(const_, &)       \
@@ -95,7 +95,7 @@ namespace stdsharp::functional
         };
     }
 
-    inline constexpr auto empty_invoke = [](...) noexcept
+    inline constexpr auto empty_invoke = [](const auto&...) noexcept
     {
         return ::stdsharp::type_traits::empty; //
     };
@@ -106,17 +106,17 @@ namespace stdsharp::functional
         struct conditional_invoke_fn
         {
             template<::std::invocable Func>
-                requires ::stdsharp::functional::nodiscard_func_obj<Func> && Condition
-            [[nodiscard]] constexpr decltype(auto) operator()(Func&& func, const auto&) const
-                noexcept(::stdsharp::concepts::nothrow_invocable<Func>) 
+            requires ::stdsharp::functional::nodiscard_func_obj<Func> && Condition
+                [[nodiscard]] constexpr decltype(auto)
+                    operator()(Func&& func, const auto&) const
+                noexcept(::stdsharp::concepts::nothrow_invocable<Func>)
             {
                 return func();
             }
 
             template<::std::invocable Func>
-                requires Condition
-            constexpr decltype(auto) operator()(Func&& func, const auto&) const
-                noexcept(::stdsharp::concepts::nothrow_invocable<Func>) 
+            requires Condition constexpr decltype(auto) operator()(Func&& func, const auto&) const
+                noexcept(::stdsharp::concepts::nothrow_invocable<Func>)
             {
                 return func();
             }
@@ -124,14 +124,14 @@ namespace stdsharp::functional
             template<::std::invocable Func>
                 requires ::stdsharp::functional::nodiscard_func_obj<Func>
             [[nodiscard]] constexpr decltype(auto) operator()(const auto&, Func&& func) const
-                noexcept(::stdsharp::concepts::nothrow_invocable<Func>) 
+                noexcept(::stdsharp::concepts::nothrow_invocable<Func>)
             {
                 return func();
             }
 
             template<::std::invocable Func>
             constexpr decltype(auto) operator()(const auto&, Func&& func) const
-                noexcept(::stdsharp::concepts::nothrow_invocable<Func>) 
+                noexcept(::stdsharp::concepts::nothrow_invocable<Func>)
             {
                 return func();
             }
@@ -139,7 +139,8 @@ namespace stdsharp::functional
     }
 
     template<bool Condition>
-    inline constexpr ::stdsharp::functional::details::conditional_invoke_fn<Condition> conditional_invoke{};
+    inline constexpr ::stdsharp::functional::details::conditional_invoke_fn<Condition>
+        conditional_invoke{};
 
     namespace details
     {
@@ -150,17 +151,18 @@ namespace stdsharp::functional
                 noexcept(::stdsharp::concepts::nothrow_invocable<Func>)
             {
                 return func();
-            } 
+            }
 
             template<::std::invocable Func>
+                requires ::stdsharp::functional::nodiscard_func_obj<Func>
             [[nodiscard]] constexpr decltype(auto) operator()(Func&& func) const
                 noexcept(::stdsharp::concepts::nothrow_invocable<Func>)
             {
                 return func();
             }
-            
+
             constexpr void operator()(const auto&) noexcept {}
-        }
+        };
     }
 
     inline constexpr ::stdsharp::functional::details::optional_invoke_fn optional_invoke{};

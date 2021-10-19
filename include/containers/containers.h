@@ -20,8 +20,28 @@
 
 namespace stdsharp::containers
 {
+    namespace details
+    {
+        template<typename ContainerType, typename DecayT = ::std::decay_t<ContainerType>>
+        concept std_array = requires
+        {
+            ::std::tuple_size<DecayT>{};
+            requires ::std::same_as<
+                ::std::array< //
+                    typename DecayT::value_type,
+                    ::std::tuple_size_v<DecayT> // clang-format off
+                >,
+                DecayT
+            >; // clang-format on
+        };
+    }
+
+    template<typename>
+    struct allocator_from_container;
+
     template<typename ContainerType>
-    struct allocator_from_container :
+        requires(!::stdsharp::containers::details::std_array<ContainerType>)
+    struct allocator_from_container<ContainerType> :
         std::type_identity<std::allocator<typename ContainerType::value_type>>
     {
     };
@@ -302,13 +322,12 @@ namespace stdsharp::containers
             typename ConstIter = typename ContainerType::const_iterator,
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
-        concept sequence_container_req = requires
-            {
-                requires ::std::same_as<::std::array<ValueType, ::std::tuple_size_v<ContainerType>>, ContainerType>;
-            } ||
-            ::stdsharp::containers::container<ContainerType> &&
+        concept sequence_container_req = ::stdsharp::containers::container<ContainerType> &&
             (!::stdsharp::containers::container_copy_insertable<ContainerType> ||
-             ::std::constructible_from<ContainerType, SizeType, ValueType>)&& // clang-format off
+             ::std::constructible_from<
+                 ContainerType,
+                 SizeType,
+                 ValueType>)&& // clang-format off
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
             {
                 requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
@@ -671,8 +690,10 @@ namespace stdsharp::containers
     };
 
     template<typename Container>
-    concept sequence_container =
+    concept sequence_container = !::stdsharp::containers::details::std_array<Container> || requires
+    {
         ::stdsharp::containers::details::sequence_container_req<::std::decay_t<Container>>;
+    };
 
     template<typename Container>
     concept contiguous_container = ::stdsharp::containers::container<Container> &&

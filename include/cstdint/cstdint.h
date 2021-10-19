@@ -14,58 +14,59 @@ namespace stdsharp::cstdint
     using u32 = ::std::uint32_t; ///< 32-bit unsigned integer type.
     using i64 = ::std::int64_t; ///< 64-bit signed integer type.
     using u64 = ::std::uint64_t; ///< 64-bit unsigned integer type.
-    using ssize_t = ::std::make_signed_t<::std::size_t>; ///< Signed integer type corresponding to `size_t`.
+    using ssize_t =
+        ::std::make_signed_t<::std::size_t>; ///< Signed integer type corresponding to `size_t`.
 
     inline namespace literals
     {
-        [[nodiscard]] constexpr auto operator""_i8(const unsigned long long value) noexcept 
+        [[nodiscard]] constexpr auto operator""_i8(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::i8>(value);
+            return static_cast<::stdsharp::cstdint::i8>(value);
         }
-        
+
         [[nodiscard]] constexpr auto operator""_u8(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::u8>(value); 
+            return static_cast<::stdsharp::cstdint::u8>(value);
         }
-        
+
         [[nodiscard]] constexpr auto operator""_i16(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::i16>(value); 
+            return static_cast<::stdsharp::cstdint::i16>(value);
         }
-        
-        [[nodiscard]] constexpr auto operator""_u16(const unsigned long long value) noexcept 
+
+        [[nodiscard]] constexpr auto operator""_u16(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::u16>(value);
+            return static_cast<::stdsharp::cstdint::u16>(value);
         }
-        
+
         [[nodiscard]] constexpr auto operator""_i32(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::i32>(value); 
+            return static_cast<::stdsharp::cstdint::i32>(value);
         }
-        
+
         [[nodiscard]] constexpr auto operator""_u32(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::u32>(value); 
+            return static_cast<::stdsharp::cstdint::u32>(value);
         }
-        
-        [[nodiscard]] constexpr auto operator""_i64(const unsigned long long value) noexcept 
+
+        [[nodiscard]] constexpr auto operator""_i64(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::i64>(value); 
+            return static_cast<::stdsharp::cstdint::i64>(value);
         }
-        
-        [[nodiscard]] constexpr auto operator""_u64(const unsigned long long value) noexcept 
+
+        [[nodiscard]] constexpr auto operator""_u64(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::u64>(value); 
+            return static_cast<::stdsharp::cstdint::u64>(value);
         }
-        
+
         [[nodiscard]] constexpr auto operator""_uz(const unsigned long long value) noexcept
         {
-             return static_cast<::std::size_t>(value);
+            return static_cast<::std::size_t>(value);
         }
-        
+
         [[nodiscard]] constexpr auto operator""_z(const unsigned long long value) noexcept
         {
-             return static_cast<::stdsharp::cstdint::ssize_t>(value);
+            return static_cast<::stdsharp::cstdint::ssize_t>(value);
         }
     }
 }

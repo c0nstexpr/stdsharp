@@ -24,8 +24,8 @@ namespace stdsharp
         {
             static constexpr auto size = 2;
 
-            template<::std::size_t I>
-            static constexpr auto get;
+            template<::std::size_t>
+            static constexpr auto get = 0;
 
             template<>
             static constexpr auto get<0> = []<::std::ranges::range Rng>(Rng&& rng) //

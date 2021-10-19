@@ -36,8 +36,8 @@ namespace stdsharp::fstream
         struct read_all_to_container_fn : ::stdsharp::functional::nodiscard_tag_t
         {
             template<typename Container = ::std::vector<T>>
-                requires ::std::invocable<read_all_to_container_fn, Container&> 
-            [[nodiscard]] constexpr auto& operator()(
+                requires ::std::invocable<read_all_to_container_fn, Container&>
+            [[nodiscard]] auto& operator()(
                 Container& container,
                 const ::std::filesystem::path& path //
             ) const
@@ -64,14 +64,15 @@ namespace stdsharp::fstream
     }
 
     template<typename T>
-    inline constexpr ::stdsharp::fstream::details::read_all_to_container_fn<T> read_all_to_container{};
+    inline constexpr ::stdsharp::fstream::details::read_all_to_container_fn<T>
+        read_all_to_container{};
 
     namespace details
     {
         template<typename T, ::std::constructible_from Container>
             requires ::std::invocable<
                 ::stdsharp::fstream::details::read_all_to_container_fn<T>,
-                ::std::add_lvalue_referene_t<Container>,
+                ::std::add_lvalue_reference_t<Container>,
                 ::std::filesystem::path // clang-format off
             > // clang-format on
         struct read_all_fn : ::stdsharp::functional::nodiscard_tag_t
@@ -82,9 +83,9 @@ namespace stdsharp::fstream
                 return ::stdsharp::fstream::read_all_to_container<T>(container, is);
             }
 
-            [[nodiscard]] constexpr auto operator()(const ::std::filesystem::path& path) const
+            [[nodiscard]] auto operator()(const ::std::filesystem::path& path) const
             {
-                ::std::ifstream fs{path}
+                ::std::ifstream fs{path};
                 return (*this)(fs);
             }
         };
@@ -96,14 +97,14 @@ namespace stdsharp::fstream
                 using traits_t = ::std::istream::traits_type;
 
                 ::std::string str;
-                ::std::getline(is, str.max_size(), traits_t::to_char_type(traits_t::eof()));
+                ::std::getline(is, str, traits_t::to_char_type(traits_t::eof()));
 
                 return str;
             }
 
             [[nodiscard]] auto operator()(const ::std::filesystem::path& path) const
             {
-                ::std::ifstream fs{path}
+                ::std::ifstream fs{path};
                 return (*this)(fs);
             }
         };
