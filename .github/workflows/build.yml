@@ -34,16 +34,7 @@ jobs:
 
       - uses: lukka/get-cmake@latest
 
-      - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@main
-        id: runvcpkg
-        with:
-          setupOnly: true
-          vcpkgGitCommitId: ${{ matrix.vcpkgCommitId }}
-          # Ensure the cache key changes any time the content of the manifest file changes.
-          appendedCacheKey: ${{ matrix.vcpkgCommitId }}
-
-      - name: Restore vcpkg and its artifacts.
+      - name: Restore artifacts.
         uses: actions/cache@v2
         with:
           # The first path is where vcpkg generates artifacts while consuming the vcpkg.json manifest file.
@@ -60,6 +51,15 @@ jobs:
           # Note: given a key, the cache content is immutable. If a cache entry has been created improperly, in order the recreate the right content the key must be changed as well, and it must be brand new (i.e. not existing already).
           key: |
             ${{ hashFiles( 'vcpkg.json' ) }}-${{ matrix.triplet }}
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@main
+        id: runvcpkg
+        with:
+          setupOnly: true
+          vcpkgGitCommitId: ${{ matrix.vcpkgCommitId }}
+          # Ensure the cache key changes any time the content of the manifest file changes.
+          appendedCacheKey: ${{ matrix.vcpkgCommitId }}
 
       - uses: ilammy/msvc-dev-cmd@v1
       # Run CMake to generate Ninja project files, using the vcpkg's toolchain file to resolve and install the dependencies as specified in vcpkg.json.
