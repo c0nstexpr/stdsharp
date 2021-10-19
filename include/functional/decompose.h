@@ -11,18 +11,6 @@ namespace stdsharp::functional
     template<::std::size_t I>
     struct decompose_by_fn
     {
-        template<typename Decomposer, typename Parameter>
-            requires requires
-            {
-                ::std::declval<Decomposer>().template get<I>(::std::declval<Parameter>());
-            }
-        constexpr decltype(auto) operator()(Decomposer&& decomposer, Parameter&& param) const
-            noexcept(
-                noexcept(::std::declval<Decomposer>().template get<I>(::std::declval<Parameter>())))
-        {
-            return ::std::forward<Decomposer>(decomposer)
-                .template get<I>(::std::forward<Parameter>(param));
-        }
     };
 
     template<::std::size_t I>

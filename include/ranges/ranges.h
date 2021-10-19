@@ -24,23 +24,23 @@ namespace stdsharp
         {
             static constexpr auto size = 2;
 
-            template<::std::size_t>
-            static constexpr auto get = 0;
-
-            template<>
-            static constexpr auto get<0> = []<::std::ranges::range Rng>(Rng&& rng) //
-                noexcept(noexcept(::std::ranges::begin(rng)))
+            template<::std::ranges::range Rng>
+            constexpr auto operator()(
+                const ::stdsharp::functional::decompose_by_fn<0>,
+                Rng&& rng //
+            ) const noexcept(noexcept(::std::ranges::begin(rng)))
             {
                 return ::std::ranges::begin(::std::forward<Rng>(rng)); //
-            };
+            }
 
-            template<>
-            static constexpr auto get<1> = []<::std::ranges::range Rng>(Rng&& rng) //
-                noexcept(noexcept(::std::ranges::end(rng)))
+            template<::std::ranges::range Rng>
+            constexpr auto operator()(
+                const ::stdsharp::functional::decompose_by_fn<1>,
+                Rng&& rng //
+            ) const noexcept(noexcept(::std::ranges::end(rng)))
             {
                 return ::std::ranges::end(::std::forward<Rng>(rng)); //
-            };
-
+            }
         } rng_as_iters{};
     }
 

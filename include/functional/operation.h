@@ -56,7 +56,7 @@ namespace stdsharp::functional
 
 #define BS_STD_RANGES_OPERATION(op_type)                                           \
     template<>                                                                     \
-    struct ::stdsharp::functional::is_nodiscard_func_obj<::std::ranges::op_type> : \
+    struct is_nodiscard_func_obj<::std::ranges::op_type> : \
         ::std::bool_constant<true>                                                 \
     {                                                                              \
     };                                                                             \
