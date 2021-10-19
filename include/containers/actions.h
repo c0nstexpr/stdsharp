@@ -215,20 +215,6 @@ namespace stdsharp::containers::actions
         {
             return container.erase(const_iter_begin, const_iter_end...);
         }
-
-        template<typename Container>
-            requires(
-                !stdsharp::containers::details::std_array<Container> &&
-                    ::stdsharp::containers::sequence_container<Container> ||
-                ::stdsharp::containers::actions::details::associative_like_req<Container>)
-        constexpr auto operator()(
-            Container& container,
-            const decltype(container.cbegin()) const_iter_begin,
-            decltype(const_iter_begin) const_iter_end //
-        ) const noexcept(noexcept(container.erase(const_iter_begin, const_iter_end)))
-        {
-            return container.erase(const_iter_begin, const_iter_end);
-        }
     };
 
     inline constexpr auto erase =

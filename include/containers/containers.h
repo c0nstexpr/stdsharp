@@ -34,23 +34,28 @@ namespace stdsharp::containers
                 DecayT
             >; // clang-format on
         };
+
+        template<typename ContainerType>
+        concept has_allocator_type_alias = requires
+        {
+            requires ::stdsharp::memory::allocator_req<typename ContainerType::allocator_type>;
+        };
     }
 
     template<typename>
     struct allocator_from_container;
 
     template<typename ContainerType>
-        requires(!::stdsharp::containers::details::std_array<ContainerType>)
+        requires(
+            !(::stdsharp::containers::details::std_array<ContainerType> ||
+              ::stdsharp::containers::details::has_allocator_type_alias<ContainerType>) //
+        )
     struct allocator_from_container<ContainerType> :
         std::type_identity<std::allocator<typename ContainerType::value_type>>
     {
     };
 
-    template<typename ContainerType>
-        requires requires
-        {
-            requires ::stdsharp::memory::allocator_req<typename ContainerType::allocator_type>;
-        }
+    template<::stdsharp::containers::details::has_allocator_type_alias ContainerType>
     struct allocator_from_container<ContainerType> :
         std::type_identity<typename ContainerType::allocator_type>
     {
@@ -280,7 +285,7 @@ namespace stdsharp::containers
     }
 
     template<typename Container>
-    concept container = requires
+    concept container = ::stdsharp::containers::details::std_array<Container> || requires
     {
         requires ::stdsharp::containers::details::container_req<::std::decay_t<Container>>;
     };
@@ -690,9 +695,9 @@ namespace stdsharp::containers
     };
 
     template<typename Container>
-    concept sequence_container = !::stdsharp::containers::details::std_array<Container> || requires
+    concept sequence_container = ::stdsharp::containers::details::std_array<Container> || requires
     {
-        ::stdsharp::containers::details::sequence_container_req<::std::decay_t<Container>>;
+        requires ::stdsharp::containers::details::sequence_container_req<::std::decay_t<Container>>;
     };
 
     template<typename Container>
