@@ -56,7 +56,6 @@ jobs:
         uses: lukka/run-vcpkg@main
         id: runvcpkg
         with:
-          setupOnly: true
           vcpkgGitCommitId: ${{ matrix.vcpkgCommitId }}
           # Ensure the cache key changes any time the content of the manifest file changes.
           appendedCacheKey: ${{ matrix.vcpkgCommitId }}
