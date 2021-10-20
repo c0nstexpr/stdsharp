@@ -1,4 +1,4 @@
-// Created by BlurringShadow at 2021-03-01-下午 9:00
+﻿// Created by BlurringShadow at 2021-03-01-下午 9:00
 
 #pragma once
 
@@ -144,4 +144,52 @@ namespace stdsharp::type_traits
 
         using as_type_sequence_t = ::stdsharp::type_traits::type_sequence<Types...>;
     };
+
+    inline namespace literals
+    {
+        template<typename T, ::std::size_t Size>
+        struct array_ltr : ::std::array<T, Size>
+        {
+            using base = ::std::array<T, Size>;
+            using base::base;
+
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays,hicpp-explicit-conversions)
+            constexpr array_ltr(const T (&arr)[Size]) //
+                noexcept(::std::is_nothrow_copy_constructible_v<T>):
+                array_ltr::base(::std::to_array(arr))
+            {
+            }
+
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays,hicpp-explicit-conversions)
+            constexpr array_ltr(T(&&arr)[Size]) noexcept(::std::is_nothrow_move_constructible_v<T>):
+                array_ltr::base(::std::to_array(::std::move(arr)))
+            {
+            }
+
+            // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            constexpr array_ltr(const ::std::array<T, Size>& arr) //
+                noexcept(::std::is_nothrow_copy_constructible_v<T>):
+                array_ltr::base(arr)
+            {
+            }
+
+            // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            constexpr array_ltr(::std::array<T, Size>&& arr) //
+                noexcept(::std::is_nothrow_move_constructible_v<T>):
+                array_ltr::base(::std::move(arr))
+            {
+            }
+        };
+
+        template<::stdsharp::type_traits::array_ltr ltr>
+        constexpr auto operator"" _ltr() noexcept
+        {
+            return ltr;
+        }
+    }
+}
+
+namespace stdsharp::inline literals
+{
+    using namespace ::stdsharp::type_traits::literals;
 }

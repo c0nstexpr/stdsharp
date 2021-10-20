@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "concepts/concepts.h"
-
+#include "reflection/reflection.h"
 #include <shared_mutex>
 
 namespace stdsharp
@@ -22,7 +21,18 @@ namespace stdsharp
 
         constexpr auto& raw() noexcept { return object_; }
 
+        constexpr auto operator()(const ::stdsharp::reflection::member_t<"raw"_ltr>) noexcept
+        {
+            return [this]() { return this->raw(); };
+        }
+
         constexpr auto& raw() const noexcept { return object_; }
+
+        constexpr auto
+            operator()(const ::stdsharp::reflection::member_t<"raw"_ltr>) const noexcept
+        {
+            return [this]() { return this->raw(); };
+        }
 
         template<::std::invocable<const T&> Func>
         void read(Func&& func) const
@@ -31,11 +41,22 @@ namespace stdsharp
             func(object_);
         }
 
+        constexpr auto
+            operator()(const ::stdsharp::reflection::member_t<"read"_ltr>) const noexcept
+        {
+            return [this]() { return this->read(); };
+        }
+
         template<std::invocable<T&> Func>
         void write(Func&& func)
         {
             std::unique_lock _(mutex_);
             func(object_);
+        }
+
+        constexpr auto operator()(const ::stdsharp::reflection::member_t<"write"_ltr>) noexcept
+        {
+            return [this]() { return this->write(); };
         }
 
     private:

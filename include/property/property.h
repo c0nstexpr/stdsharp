@@ -3,6 +3,7 @@
 #pragma once
 
 #include "type_traits/object.h"
+#include "reflection/reflection.h"
 #include "setter.h"
 #include "getter.h"
 
@@ -23,9 +24,6 @@ namespace stdsharp::property
         using reference = value_type&;
         using const_reference = const value_type&;
 
-        static constexpr ::std::type_identity<setter_t> set_tag{};
-        static constexpr ::std::type_identity<getter_t> get_tag{};
-
         // TODO gcc weird BUG
         // replace it with constraints
         template<
@@ -43,17 +41,6 @@ namespace stdsharp::property
         {
         }
 
-        constexpr auto operator()(const decltype(set_tag)) noexcept
-        {
-            return ::stdsharp::functional::make_invocable_ref(setter_);
-        }
-
-        constexpr auto operator()(const decltype(get_tag)) const noexcept
-        {
-            return ::stdsharp::functional:: //
-                make_invocable_ref(::stdsharp::functional::nodiscard_tag, getter_);
-        }
-
         template<typename... Args>
             requires ::std::invocable<setter_t, Args...>
         constexpr decltype(auto) set(Args&&... args) //
@@ -62,11 +49,23 @@ namespace stdsharp::property
             return setter_(::std::forward<Args>(args)...);
         };
 
+        constexpr auto operator()(const ::stdsharp::reflection::member_t<"set"_ltr>) noexcept
+        {
+            return ::stdsharp::functional::make_invocable_ref(setter_);
+        }
+
         constexpr const_reference get() const //
             noexcept(::stdsharp::concepts::nothrow_invocable<getter_t>)
         {
             return getter_(); //
         };
+
+        constexpr auto
+            operator()(const ::stdsharp::reflection::member_t<"get"_ltr>) const noexcept
+        {
+            return ::stdsharp::functional:: //
+                make_invocable_ref(::stdsharp::functional::nodiscard_tag, getter_);
+        }
 
         template<typename T>
             requires ::std::invocable<setter_t, T>
