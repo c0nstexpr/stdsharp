@@ -10,7 +10,7 @@ namespace stdsharp::reflection
     namespace details
     {
         template<::std::ranges::input_range auto Literal>
-        struct member_t
+        struct member_t : ::stdsharp::functional::nodiscard_tag_t
         {
             static constexpr ::std::string_view name = //
                 {::std::ranges::begin(Literal), ::std::ranges::end(Literal)};
@@ -48,7 +48,7 @@ namespace stdsharp::reflection
     inline constexpr auto member_function =
         ::stdsharp::functional::tagged_cpo<::stdsharp::reflection::member_function_t<Literal>>;
 
-    struct data_members_t final
+    struct data_members_t : ::stdsharp::functional::nodiscard_tag_t
     {
     };
 
