@@ -77,37 +77,19 @@ namespace stdsharp::functional
     inline constexpr struct
     {
     private:
-        template<typename Tag, typename... T>
-        struct invocation_base :
-            ::std::type_identity<::stdsharp::functional::cpo_invoke<Tag&&, T&&...>>
-        {
-        };
-
-        template<typename Tag, typename... T>
-            requires ::std::invocable<typename invocation_base<Tag, T...>::type, Tag, T...>
-        struct nothrow_invocation :
-            ::std::bool_constant< //
-                ::stdsharp::concepts::nothrow_invocable<
-                    typename invocation_base<Tag, T...>::type,
-                    Tag,
-                    T... // clang-format off
-                >
-            > // clang-format on
-        {
-            using type = typename invocation_base<Tag, T...>::type;
-        };
-
         template<
             typename Tag,
-            typename... T, // clang-format off
-            typename Nothrow_ = nothrow_invocation<Tag, T...>
+            typename... T,
+            ::std::invocable<Tag, T...> CPOInvoker =
+                ::stdsharp::functional::cpo_invoke<Tag&&, T&&...> // clang-format off
         > // clang-format on
-        static constexpr decltype(auto) invoke_impl(Tag&& tag, T&&... t) noexcept(Nothrow_::value)
+            requires ::std::default_initializable<CPOInvoker>
+        static constexpr decltype(auto) invoke_impl(Tag&& tag, T&&... t) noexcept(
+            ::stdsharp::concepts::nothrow_invocable<CPOInvoker, Tag, T...>&& //
+            ::stdsharp::concepts::nothrow_default_initializable<CPOInvoker> //
+        )
         {
-            return typename Nothrow_::type{}(
-                ::std::forward<Tag>(tag),
-                ::std::forward<T>(t)... //
-            );
+            return CPOInvoker{}(::std::forward<Tag>(tag), ::std::forward<T>(t)...);
         }
 
     public:
