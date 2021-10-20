@@ -502,7 +502,6 @@ namespace stdsharp::type_traits
             >::template append_by_seq_t<back_t<size - Index>>; // clang-format on
         };
 
-        // TODO replace it with lambda cause compile errors
         template<::std::size_t... Index>
         struct remove_at
         {

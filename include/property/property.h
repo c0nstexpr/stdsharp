@@ -24,16 +24,9 @@ namespace stdsharp::property
         using reference = value_type&;
         using const_reference = const value_type&;
 
-        // TODO gcc weird BUG
-        // replace it with constraints
-        template<
-            typename Getter,
-            typename Setter,
-            ::std::enable_if_t< // clang-format off
-                ::std::constructible_from<GetterT, Getter> &&
-                    ::std::constructible_from<SetterT, Setter>
-            >* = nullptr
-        > // clang-format on
+        template<typename Getter, typename Setter>
+            requires ::std::constructible_from<GetterT, Getter> &&
+                ::std::constructible_from<SetterT, Setter>
         constexpr property_member(Getter&& g, Setter&& s) //
             noexcept(::stdsharp::concepts::nothrow_constructible_from<GetterT, Getter>&& //
                      ::stdsharp::concepts::nothrow_constructible_from<SetterT, Setter>):
@@ -60,8 +53,7 @@ namespace stdsharp::property
             return getter_(); //
         };
 
-        constexpr auto
-            operator()(const ::stdsharp::reflection::member_t<"get"_ltr>) const noexcept
+        constexpr auto operator()(const ::stdsharp::reflection::member_t<"get"_ltr>) const noexcept
         {
             return ::stdsharp::functional:: //
                 make_invocable_ref(::stdsharp::functional::nodiscard_tag, getter_);

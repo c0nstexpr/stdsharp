@@ -114,29 +114,21 @@ namespace stdsharp::test::type_traits
                 }; // clang-format off
             } | tuple<apply_t_test_params<regular_value_sequence>>{}; // clang-format on
 
-            // TODO here the braces to avoid strange MSVC compile error
             // TODO clang lambda NTTP
-            {
-                constexpr auto lam_1 = [](const int v) mutable { return v + 1; };
-                constexpr auto lam_2 = [](const int v) { return v + 42; };
-                constexpr auto lam_3 = [](const size_t v) { return v + 42; };
-                constexpr auto lam_4 = [](const int v) { return v + 6; };
-                constexpr auto lam_5 = []<auto Size>(const array<char, Size>& str)
-                {
-                    return str[0];
-                };
+            constexpr auto lam_1 = [](const int v) mutable { return v + 1; };
+            constexpr auto lam_2 = [](const int v) { return v + 42; };
+            constexpr auto lam_3 = [](const size_t v) { return v + 42; };
+            constexpr auto lam_4 = [](const int v) { return v + 6; };
+            constexpr auto lam_5 = []<auto Size>(const array<char, Size>& str) { return str[0]; };
 
-                feature("transform_t") =
-                    []<auto... Functor>(const regular_value_sequence<Functor...>)
-                {
-                    static_expect<
-                        default_initializable<test_seq::template transform_t<Functor...>>>();
-                    // clang-format off
-                } | tuple<
-                    regular_value_sequence<identity_v>,
-                    regular_value_sequence<lam_1, lam_2, lam_3, lam_4, lam_5>
-                >{}; // clang-format on
-            }
+            feature("transform_t") = []<auto... Functor>(const regular_value_sequence<Functor...>)
+            {
+                static_expect<default_initializable<test_seq::template transform_t<Functor...>>>();
+                // clang-format off
+            } | tuple<
+                regular_value_sequence<identity_v>,
+                regular_value_sequence<lam_1, lam_2, lam_3, lam_4, lam_5>
+            >{}; // clang-format on
 
             // clang-format off
             feature("indexed_by_seq_t") = indexed_by_seq_t_feat<test_seq>() | tuple<
