@@ -116,6 +116,9 @@ namespace stdsharp::concepts
             { u != t } -> boolean_testable;
         }; // clang-format on
 
+    template<typename T>
+    concept weakly_equality_comparable = weakly_equality_comparable_with<T, T>;
+
     template<typename T, typename U>
     concept partial_ordered_with = // clang-format off
         requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u)

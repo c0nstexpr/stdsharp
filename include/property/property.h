@@ -70,6 +70,62 @@ namespace stdsharp::property
 
         constexpr const_reference operator()() const noexcept(noexcept(get())) { return get(); }
 
+        template<typename OtherGetter, typename OtherSetter>
+            requires ::stdsharp::concepts::weakly_equality_comparable_with<
+                property_member::value_type,
+                ::stdsharp::property::getter_value_t<OtherGetter> // clang-format off
+            > // clang-format on
+        constexpr bool operator==(
+            const ::stdsharp::property::property_member<OtherGetter, OtherSetter>& other //
+        ) const noexcept(noexcept((*this)() == other()))
+        {
+            return (*this)() == other();
+        }
+
+        template<typename OtherGetter, typename OtherSetter>
+            requires ::stdsharp::concepts::partial_ordered_with<
+                property_member::value_type,
+                ::stdsharp::property::getter_value_t<OtherGetter> // clang-format off
+            > // clang-format on
+        constexpr auto operator<=>(
+            const ::stdsharp::property::property_member<OtherGetter, OtherSetter>& other //
+        ) const noexcept(noexcept((*this)() <=> other()))
+        {
+            return (*this)() <=> other();
+        }
+
+        template<typename T>
+            requires ::stdsharp::concepts::
+                weakly_equality_comparable_with<property_member::value_type, T>
+        constexpr bool operator==(const T& other) const noexcept(noexcept((*this)() == other))
+        {
+            return (*this)() == other;
+        }
+
+        template<typename T>
+            requires ::stdsharp::concepts::partial_ordered_with<property_member::value_type, T>
+        constexpr auto operator<=>(const T& other) const noexcept(noexcept((*this)() <=> other))
+        {
+            return (*this)() <=> other;
+        }
+
+        template<typename T>
+            requires ::stdsharp::concepts::
+                weakly_equality_comparable_with<T, property_member::value_type>
+        friend constexpr bool operator==(const T& other, const property_member& instance) //
+            noexcept(noexcept(other == instance()))
+        {
+            return other == instance();
+        }
+
+        template<typename T>
+            requires ::stdsharp::concepts::partial_ordered_with<T, property_member::value_type>
+        friend constexpr auto operator<=>(const T& other, const property_member& instance) //
+            noexcept(noexcept(other <=> instance()))
+        {
+            return other <=> instance();
+        }
+
     private:
         getter_t getter_;
         setter_t setter_;
