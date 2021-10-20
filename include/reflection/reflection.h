@@ -9,39 +9,39 @@ namespace stdsharp::reflection
 {
     namespace details
     {
-        template<::std::ranges::input_range auto Literal>
+        template<auto Literal>
         struct member_t : ::stdsharp::functional::nodiscard_tag_t
         {
             static constexpr ::std::string_view name = //
                 {::std::ranges::begin(Literal), ::std::ranges::end(Literal)};
         };
 
-        template<::std::ranges::input_range auto Literal>
+        template<auto Literal>
         struct data_member_t : ::stdsharp::reflection::details::member_t<Literal>
         {
         };
 
-        template<::std::ranges::input_range auto Literal>
+        template<auto Literal>
         struct member_function_t : ::stdsharp::reflection::details::member_t<Literal>
         {
         };
     }
 
-    template<auto Literal>
+    template<::std::ranges::input_range auto Literal>
     using member_t = ::stdsharp::reflection::details::member_t<Literal>;
 
     template<::std::ranges::input_range auto Literal>
     inline constexpr auto member =
         ::stdsharp::functional::tagged_cpo<::stdsharp::reflection::member_t<Literal>>;
 
-    template<auto Literal>
+    template<::std::ranges::input_range auto Literal>
     using data_member_t = ::stdsharp::reflection::details::data_member_t<Literal>;
 
     template<::std::ranges::input_range auto Literal>
     inline constexpr auto data_member =
         ::stdsharp::functional::tagged_cpo<::stdsharp::reflection::data_member_t<Literal>>;
 
-    template<auto Literal>
+    template<::std::ranges::input_range auto Literal>
     using member_function_t = ::stdsharp::reflection::details::member_function_t<Literal>;
 
     template<::std::ranges::input_range auto Literal>
