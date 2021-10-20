@@ -11,9 +11,7 @@ jobs:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     env:
-      # Indicates the CMake build directory where project files and binaries are being produced.
       CMAKE_BUILD_DIR: ${{ github.workspace }}/build/
-      # Indicates the location of the vcpkg as a Git submodule of the project repository.
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
     strategy:
       fail-fast: false
@@ -30,8 +28,6 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: lukka/get-cmake@latest
-
       - name: Restore artifacts.
         uses: actions/cache@v2
         with:
@@ -42,7 +38,6 @@ jobs:
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@main
-        id: runvcpkg
         with:
           vcpkgGitCommitId: ${{ matrix.vcpkgCommitId }}
           appendedCacheKey: ${{ matrix.vcpkgCommitId }}
@@ -53,7 +48,6 @@ jobs:
         run: |
           cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -GNinja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ${{ matrix.cmakeOptions }}
 
-      # Build the whole project with Ninja (which is spawn by CMake).
       - name: Build
         run: |
           cmake --build "${{ env.CMAKE_BUILD_DIR }}"
