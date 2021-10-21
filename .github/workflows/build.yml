@@ -39,7 +39,7 @@ jobs:
             ${{ env.VCPKG_ID }}-${{ hashFiles( 'vcpkg.json' ) }}
 
       - name: Setup vcpkg
-        uses: lukka/run-vcpkg@main
+        uses: lukka/run-vcpkg@v10
         with:
           vcpkgGitCommitId: ${{ env.VCPKG_ID }}
           appendedCacheKey: ${{ env.VCPKG_ID }}
