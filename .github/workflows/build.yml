@@ -13,7 +13,7 @@ jobs:
     env:
       CMAKE_BUILD_DIR: ${{ github.workspace }}/build/
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-      VCPKG_ID: 'a79d4a8ec7ae4464eb22f6af23e277882a67595d'
+      VCPKG_ID: '30b217b1ede50f6c27b7234388114f4b0d60a3f7'
     strategy:
       fail-fast: false
       matrix:
