@@ -1,4 +1,4 @@
-set(CPM_DOWNLOAD_VERSION 0.32.2)
+set(CPM_DOWNLOAD_VERSION 0.34.0)
 
 if (CPM_SOURCE_CACHE)
     set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
@@ -9,10 +9,10 @@ endif ()
 if (NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
     message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
     file(
-            DOWNLOAD
-            https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-            SHOW_PROGRESS
-            ${CPM_DOWNLOAD_LOCATION}
+        DOWNLOAD
+        https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+        SHOW_PROGRESS
+        ${CPM_DOWNLOAD_LOCATION}
     )
 endif ()
 
