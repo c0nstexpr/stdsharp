@@ -13,12 +13,12 @@ jobs:
     env:
       CMAKE_BUILD_DIR: ${{ github.workspace }}/build/
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_ID: 'a79d4a8ec7ae4464eb22f6af23e277882a67595d'
     strategy:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest ]
         include:
-          - vcpkgCommitId: 'a79d4a8ec7ae4464eb22f6af23e277882a67595d'
           - os: windows-latest
             cmakeOptions: ''
           - os: ubuntu-latest
@@ -28,19 +28,21 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: lukka/get-cmake@latest
+
       - name: Restore artifacts.
         uses: actions/cache@v2
         with:
           path: |
             ${{ env.CMAKE_BUILD_DIR }}/vcpkg_installed/
           key: |
-            ${{ matrix.vcpkgCommitId }}-${{ hashFiles( 'vcpkg.json' ) }}
+            ${{ env.VCPKG_ID }}-${{ hashFiles( 'vcpkg.json' ) }}
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@main
         with:
-          vcpkgGitCommitId: ${{ matrix.vcpkgCommitId }}
-          appendedCacheKey: ${{ matrix.vcpkgCommitId }}
+          vcpkgGitCommitId: ${{ env.VCPKG_ID }}
+          appendedCacheKey: ${{ env.VCPKG_ID }}
 
       - uses: ilammy/msvc-dev-cmd@v1
 
