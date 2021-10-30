@@ -37,6 +37,32 @@ namespace stdsharp::utility
                 return static_cast<U>(*this);
             }
         };
+
+        template<typename T>
+        struct forward_like_fn
+        {
+            template<typename U>
+            using override_ref_t = ::std::conditional_t<
+                ::std::is_rvalue_reference_v<T&&>,
+                ::std::remove_reference_t<U>&&,
+                U& // clang-format off
+            >; // clang-format on
+
+            template<typename U>
+            using copy_const_t =
+                ::std::conditional_t<::std::is_const_v<::std::remove_reference_t<T&&>>, U const, U>;
+
+            template<typename U>
+            using forward_like_t = forward_like_fn::override_ref_t<
+                forward_like_fn::copy_const_t<::std::remove_reference_t<U>> // clang-format off
+            >; // clang-format on
+
+            [[nodiscard]] constexpr auto operator()(auto&& x) noexcept
+                -> forward_like_fn::forward_like_t<decltype(x)>
+            {
+                return static_cast<forward_like_fn::forward_like_t<decltype(x)>>(x);
+            }
+        };
     }
 
     inline constexpr struct
@@ -57,4 +83,7 @@ namespace stdsharp::utility
             return static_cast<::std::underlying_type_t<T>>(v);
         }
     } to_underlying{};
+
+    template<typename T>
+    inline constexpr ::stdsharp::utility::details::forward_like_fn<T> forward_like{};
 }
