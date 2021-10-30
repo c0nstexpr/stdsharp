@@ -89,7 +89,7 @@ namespace stdsharp::concepts
     concept move_assignable = ::std::assignable_from<::std::add_lvalue_reference_t<T>, T>;
 
     template<typename T>
-    concept copy_assignable = ::stdsharp::concepts::move_assignable<T> && //
+    concept copy_assignable = move_assignable<T> && //
         ::std::assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> && //
         ::std::assignable_from<
             ::std::add_lvalue_reference_t<T>,
@@ -108,7 +108,7 @@ namespace stdsharp::concepts
 
     template<typename T, typename U>
     concept weakly_equality_comparable_with = // clang-format off
-        requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u)
+        requires(const ::std::remove_reference_t<T>& t, const ::std::remove_reference_t<U>& u)
         {
             { t == u } -> boolean_testable;
             { t != u } -> boolean_testable;
@@ -121,7 +121,7 @@ namespace stdsharp::concepts
 
     template<typename T, typename U>
     concept partial_ordered_with = // clang-format off
-        requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u)
+        requires(const ::std::remove_reference_t<T>& t, const ::std::remove_reference_t<U>& u)
         {
             { t <  u } -> boolean_testable;
             { t >  u } -> boolean_testable;
@@ -141,14 +141,14 @@ namespace stdsharp::concepts
 
     template<typename T>
     concept implicitly_move_constructible =
-        ::std::move_constructible<T> && ::stdsharp::concepts::implicitly_constructible_from<T, T>;
+        ::std::move_constructible<T> && implicitly_constructible_from<T, T>;
 
     template<typename T>
     concept implicitly_copy_constructible = ::std::copy_constructible<T> && //
-        ::stdsharp::concepts::implicitly_move_constructible<T> &&
-        ::stdsharp::concepts::implicitly_constructible_from<T, T&> &&
-        ::stdsharp::concepts::implicitly_constructible_from<T, const T> &&
-        ::stdsharp::concepts::implicitly_constructible_from<T, const T&>;
+        implicitly_move_constructible<T> && //
+        implicitly_constructible_from<T, T&> && //
+        implicitly_constructible_from<T, const T> && //
+        implicitly_constructible_from<T, const T&>;
 
     template<typename T>
     concept trivial_copyable = ::std::is_trivially_copyable_v<T>;
@@ -204,21 +204,20 @@ namespace stdsharp::concepts
 
     template<typename T>
     concept nothrow_movable = ::std::movable<T> && //
-        ::stdsharp::concepts::nothrow_move_constructible<T> &&
-        ::stdsharp::concepts::nothrow_assignable_from<::std::add_lvalue_reference_t<T>, T> &&
-        ::stdsharp::concepts::nothrow_swappable<T>;
+        nothrow_move_constructible<T> &&
+        nothrow_assignable_from<::std::add_lvalue_reference_t<T>, T> && //
+        nothrow_swappable<T>;
 
     template<typename T>
-    concept nothrow_copyable = ::stdsharp::concepts::nothrow_movable<T> && //
+    concept nothrow_copyable = nothrow_movable<T> && //
         ::std::copyable<T> && //
-        ::stdsharp::concepts::nothrow_copy_constructible<T> &&
-        ::stdsharp::concepts::nothrow_assignable_from<
+        nothrow_copy_constructible<T> && //
+        nothrow_assignable_from<
             ::std::add_lvalue_reference_t<T>,
             ::std::add_lvalue_reference_t<T> // clang-format off
-        > && // clang-format on
-        ::stdsharp::concepts::
-            nothrow_assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> &&
-        ::stdsharp::concepts::nothrow_assignable_from<
+        > /* clang-format on */ &&
+        nothrow_assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> &&
+        nothrow_assignable_from<
             ::std::add_lvalue_reference_t<T>,
             ::std::add_lvalue_reference_t<::std::add_const_t<T>> // clang-format off
         >; // clang-format on
@@ -230,27 +229,25 @@ namespace stdsharp::concepts
     concept convertible_from = ::std::convertible_to<U, T>;
 
     template<typename T, typename U>
-    concept inter_convertible =
-        ::std::convertible_to<T, U> && ::stdsharp::concepts::convertible_from<T, U>;
+    concept inter_convertible = ::std::convertible_to<T, U> && convertible_from<T, U>;
 
     template<typename T, typename U>
     concept nothrow_convertible_from = ::std::is_nothrow_convertible_v<U, T>;
 
     template<typename T, typename U>
-    concept nothrow_inter_convertible = ::stdsharp::concepts::nothrow_convertible_to<T, U> &&
-        ::stdsharp::concepts::nothrow_convertible_from<T, U>;
+    concept nothrow_inter_convertible =
+        nothrow_convertible_to<T, U> && nothrow_convertible_from<T, U>;
 
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;
 
     template<typename Func, typename... Args>
-    concept invocable_rnonvoid = ::std::invocable<Func, Args...> &&
-        ::stdsharp::concepts::not_same_as < ::std::invoke_result_t<Func, Args...>,
-    void > ;
+    concept invocable_rnonvoid = ::std::invocable<Func, Args...> && // clang-format off
+        not_same_as<::std::invoke_result_t<Func, Args...>, void>;
 
     template<typename Func, typename... Args> // clang-format off
-    concept nothrow_invocable_rnonvoid = ::stdsharp::concepts::nothrow_invocable<Func, Args...> &&
-        ::stdsharp::concepts::not_same_as<::std::invoke_result_t<Func, Args...>, void>;
+    concept nothrow_invocable_rnonvoid = nothrow_invocable<Func, Args...> &&
+        not_same_as<::std::invoke_result_t<Func, Args...>, void>;
     // clang-format on
 
     template<typename Func, typename ReturnT, typename... Args>
@@ -260,8 +257,8 @@ namespace stdsharp::concepts
     concept nothrow_invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename... Args>
-    concept nothrow_predicate = ::std::predicate<Func, Args...> && //
-        ::stdsharp::concepts::nothrow_invocable_r<Func, bool, Args...>;
+    concept nothrow_predicate =
+        ::std::predicate<Func, Args...> && nothrow_invocable_r<Func, bool, Args...>;
 
     template<typename T, typename U>
     concept const_aligned = (::std::is_const_v<T> == ::std::is_const_v<U>);
@@ -274,6 +271,5 @@ namespace stdsharp::concepts
     );
 
     template<typename T, typename U>
-    concept const_ref_aligned =
-        ::stdsharp::concepts::const_aligned<T, U> && ::stdsharp::concepts::ref_aligned<T, U>;
+    concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
 }

@@ -7,17 +7,12 @@
 namespace stdsharp::functional
 {
     template<typename... Fns>
-    struct trivial_overload : ::stdsharp::functional::invocable_obj<Fns>...
+    struct trivial_overload : invocable_obj<Fns>...
     {
         template<typename... Args>
         constexpr explicit trivial_overload(Args&&... args) //
-            noexcept(
-                (::stdsharp::concepts::
-                     nothrow_constructible_from<::stdsharp::functional::invocable_obj<Fns>, Args> &&
-                 ...) // clang-format off
-            ):
-            // clang-format on
-            ::stdsharp::functional::invocable_obj<Fns>(::std::forward<Args>(args))...
+            noexcept((nothrow_constructible_from<invocable_obj<Fns>, Args> && ...)):
+            invocable_obj<Fns>(::std::forward<Args>(args))...
         {
         }
     };

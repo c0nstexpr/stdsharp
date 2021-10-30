@@ -14,22 +14,21 @@ namespace stdsharp
         template<typename... Args>
             requires ::std::constructible_from<T, Args...>
         constexpr explicit concurrent_object(Args&&... args) //
-            noexcept(::stdsharp::concepts::nothrow_constructible_from<T, Args...>):
+            noexcept(concepts::nothrow_constructible_from<T, Args...>):
             object_(::std::forward<Args>(args)...)
         {
         }
 
         constexpr auto& raw() noexcept { return object_; }
 
-        constexpr auto operator()(const ::stdsharp::reflection::member_t<"raw"_ltr>) noexcept
+        constexpr auto operator()(const reflection::member_t<"raw"_ltr>) noexcept
         {
             return [this]() { return this->raw(); };
         }
 
         constexpr auto& raw() const noexcept { return object_; }
 
-        constexpr auto
-            operator()(const ::stdsharp::reflection::member_t<"raw"_ltr>) const noexcept
+        constexpr auto operator()(const reflection::member_t<"raw"_ltr>) const noexcept
         {
             return [this]() { return this->raw(); };
         }
@@ -41,20 +40,19 @@ namespace stdsharp
             func(object_);
         }
 
-        constexpr auto
-            operator()(const ::stdsharp::reflection::member_t<"read"_ltr>) const noexcept
+        constexpr auto operator()(const reflection::member_t<"read"_ltr>) const noexcept
         {
             return [this]() { return this->read(); };
         }
 
-        template<std::invocable<T&> Func>
+        template<::std::invocable<T&> Func>
         void write(Func&& func)
         {
-            std::unique_lock _(mutex_);
+            ::std::unique_lock _(mutex_);
             func(object_);
         }
 
-        constexpr auto operator()(const ::stdsharp::reflection::member_t<"write"_ltr>) noexcept
+        constexpr auto operator()(const reflection::member_t<"write"_ltr>) noexcept
         {
             return [this]() { return this->write(); };
         }
@@ -62,6 +60,6 @@ namespace stdsharp
     private:
         T object_;
 
-        mutable std::shared_mutex mutex_;
+        mutable ::std::shared_mutex mutex_;
     };
 }

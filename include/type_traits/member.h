@@ -15,13 +15,12 @@ namespace stdsharp::type_traits
         using class_t = ClassT;
     };
     template<auto Ptr>
-    struct member_pointer_traits :
-        ::stdsharp::type_traits::member_traits<::std::decay_t<decltype(Ptr)>>
+    struct member_pointer_traits : member_traits<::std::decay_t<decltype(Ptr)>>
     {
     };
 
     template<auto Ptr>
-    using member_t = typename ::stdsharp::type_traits::member_pointer_traits<Ptr>::type;
+    using member_t = typename member_pointer_traits<Ptr>::type;
 
     template<typename>
     struct member_function_traits;
@@ -34,34 +33,30 @@ namespace stdsharp::type_traits
     };
 
     template<typename T, typename ClassT>
-    concept member_of =
-        ::std::same_as<typename ::stdsharp::type_traits::member_traits<T>::class_t, ClassT>;
-    ;
+    concept member_of = ::std::same_as<typename member_traits<T>::class_t, ClassT>;
 
     template<typename T, typename ClassT>
-    concept member_func_of = std::is_member_pointer_v<T> && ::std::same_as<
-        typename ::stdsharp::type_traits:: //
+    concept member_func_of = ::std::is_member_pointer_v<T> && ::std::same_as<
+        typename //
         member_function_traits<T>::class_t,
         ClassT // clang-format off
     >; // clang-format on
 
 
     template<auto Ptr>
-    struct member_function_pointer_traits :
-        ::stdsharp::type_traits::member_function_traits<std::decay_t<decltype(Ptr)>>
+    struct member_function_pointer_traits : member_function_traits<::std::decay_t<decltype(Ptr)>>
     {
     };
 
 #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)     \
     template<typename R, typename ClassT, typename... Args>                                       \
     struct member_function_traits<R (ClassT::*)(Args...) qualifiers> :                            \
-        ::stdsharp::type_traits::/**/                                                             \
         function_traits<::std::conditional_t<noexcept_, R (*)(Args...) noexcept, R (*)(Args...)>> \
     {                                                                                             \
         using class_t = ClassT;                                                                   \
         static constexpr auto is_const = const_;                                                  \
         static constexpr auto is_volatile = volatile_;                                            \
-        static constexpr auto ref_type = ::stdsharp::type_traits::member_ref_qualifier::ref_;     \
+        static constexpr auto ref_type = member_ref_qualifier::ref_;                              \
     };
 
 #define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(               \

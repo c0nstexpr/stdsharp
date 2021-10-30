@@ -27,18 +27,15 @@ namespace stdsharp::containers
         {
             ::std::tuple_size<DecayT>{};
             requires ::std::same_as<
-                ::std::array< //
-                    typename DecayT::value_type,
-                    ::std::tuple_size_v<DecayT> // clang-format off
-                >,
-                DecayT
+                ::std::array<typename DecayT::value_type, ::std::tuple_size_v<DecayT>>,
+                DecayT // clang-format off
             >; // clang-format on
         };
 
         template<typename ContainerType>
         concept has_allocator_type_alias = requires
         {
-            requires ::stdsharp::memory::allocator_req<typename ContainerType::allocator_type>;
+            requires memory::allocator_req<typename ContainerType::allocator_type>;
         };
     }
 
@@ -47,17 +44,17 @@ namespace stdsharp::containers
 
     template<typename ContainerType>
         requires(
-            !(::stdsharp::containers::details::std_array<ContainerType> ||
-              ::stdsharp::containers::details::has_allocator_type_alias<ContainerType>) //
+            !(details::std_array<ContainerType> ||
+              details::has_allocator_type_alias<ContainerType>) //
         )
     struct allocator_from_container<ContainerType> :
-        std::type_identity<std::allocator<typename ContainerType::value_type>>
+        ::std::type_identity<::std::allocator<typename ContainerType::value_type>>
     {
     };
 
-    template<::stdsharp::containers::details::has_allocator_type_alias ContainerType>
+    template<details::has_allocator_type_alias ContainerType>
     struct allocator_from_container<ContainerType> :
-        std::type_identity<typename ContainerType::allocator_type>
+        ::std::type_identity<typename ContainerType::allocator_type>
     {
     };
 
@@ -72,16 +69,15 @@ namespace stdsharp::containers
         ::std::destructible<ValueType> &&
         requires(Allocator allocator_instance, ValueType* ptr)
         {
-            std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
+            ::std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
         }; // clang-format on
 
     template<typename Container>
     concept container_erasable = requires
     {
-        requires ::stdsharp::containers::erasable<
+        requires erasable<
             typename ::std::decay_t<Container>::value_type,
-            ::stdsharp::containers::allocator_from_container_t<
-                ::std::decay_t<Container>> // clang-format off
+            allocator_from_container_t<::std::decay_t<Container>> // clang-format off
         >; // clang-format on
     };
 
@@ -93,39 +89,33 @@ namespace stdsharp::containers
         ::std::move_constructible<ValueType> &&
         requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv)
         {
-            std::allocator_traits<Allocator>::construct(
-                allocator_instance,
-                ptr,
-                ::std::move(rv) //
-            );
+            ::std::allocator_traits<Allocator>::
+                construct(allocator_instance, ptr, ::std::move(rv));
         }; // clang-format on
 
     template<typename Container>
     concept container_move_insertable = requires
     {
-        requires ::stdsharp::containers::move_insertable<
-            typename ::std::decay_t<Container>::value_type,
-            ::stdsharp::containers:: // clang-format off
+        requires move_insertable<
+            typename ::std::decay_t<Container>::value_type, // clang-format off
                 allocator_from_container_t<::std::decay_t<Container>>
         >; // clang-format on
     };
 
     template<typename ValueType, typename Allocator>
-    concept copy_insertable =
-        ::stdsharp::containers::move_insertable<ValueType, Allocator> && // clang-format off
+    concept copy_insertable = move_insertable<ValueType, Allocator> && // clang-format off
         ::std::copy_constructible<ValueType> &&
         requires(Allocator allocator_instance, ValueType* ptr, ValueType v)
         {
-            std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
+            ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
         }; // clang-format on
 
     template<typename Container>
     concept container_copy_insertable = requires
     {
-        requires ::stdsharp::containers::copy_insertable<
+        requires copy_insertable<
             typename ::std::decay_t<Container>::value_type,
-            ::stdsharp::containers::allocator_from_container_t<
-                ::std::decay_t<Container>> // clang-format off
+            allocator_from_container_t<::std::decay_t<Container>> // clang-format off
         >; // clang-format on
     };
 
@@ -137,19 +127,16 @@ namespace stdsharp::containers
         ::std::constructible_from<ValueType, Args...> &&
         requires(Allocator allocator_instance, ValueType* ptr, Args&&... args)
         {
-            std::allocator_traits<Allocator>::construct(
-                allocator_instance,
-                ptr,
-                ::std::forward<Args>(args)...
-            );
+            ::std::allocator_traits<Allocator>::
+                construct(allocator_instance, ptr, ::std::forward<Args>(args)...);
         }; // clang-format on
 
     template<typename Container, typename... Args>
     concept container_emplace_constructible = requires
     {
-        requires ::stdsharp::containers::emplace_constructible<
+        requires emplace_constructible<
             typename ::std::decay_t<Container>::value_type,
-            ::stdsharp::containers::allocator_from_container_t<::std::decay_t<Container>>,
+            allocator_from_container_t<::std::decay_t<Container>>,
             Args... // clang-format off
         >; // clang-format on
     };
@@ -181,17 +168,16 @@ namespace stdsharp::containers
             (!(::std::default_initializable<OtherMemberType> && ...) ||
              ::std::default_initializable<ContainerType>)&& //
             ::std::destructible<ContainerType> &&
-            (::stdsharp::containers::container_copy_insertable<ContainerType> &&
+            (container_copy_insertable<ContainerType> &&
                  (::std::copyable<OtherMemberType> && ...) && //
                  ::std::copyable<ContainerType> ||
              (::std::movable<OtherMemberType> && ...) && //
-                 ::std::movable<ContainerType> &&
-                 ::stdsharp::concepts::copy_assignable<ContainerType>);
+                 ::std::movable<ContainerType> && concepts::copy_assignable<ContainerType>);
 
         template<typename ContainerType, typename ValueType, typename Allocator>
         struct container_special_member_req :
-            ::std::bool_constant<::stdsharp::containers::details::
-                                     container_special_member<ContainerType, ValueType, Allocator>>
+            ::std::bool_constant<
+                details::container_special_member<ContainerType, ValueType, Allocator>>
         {
         };
 
@@ -204,7 +190,7 @@ namespace stdsharp::containers
             }
         struct container_special_member_req<ContainerType, ValueType, Allocator> :
             ::std::bool_constant< //
-                ::stdsharp::containers::details::container_special_member<
+                details::container_special_member<
                     ContainerType,
                     ValueType,
                     Allocator,
@@ -224,7 +210,7 @@ namespace stdsharp::containers
             }
         struct container_special_member_req<ContainerType, ValueType, Allocator> :
             ::std::bool_constant< //
-                ::stdsharp::containers::details::container_special_member<
+                details::container_special_member<
                     ContainerType,
                     ValueType,
                     Allocator,
@@ -238,7 +224,7 @@ namespace stdsharp::containers
         template<
             typename ContainerType,
             typename ValueType = typename ContainerType::value_type,
-            typename Allocator = ::stdsharp::containers::allocator_from_container_t<ContainerType>,
+            typename Allocator = allocator_from_container_t<ContainerType>,
             typename RefType = typename ContainerType::reference,
             typename ConstRefType = typename ContainerType::const_reference,
             typename Iter = typename ContainerType::iterator,
@@ -247,22 +233,17 @@ namespace stdsharp::containers
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
         concept container_req =
-            ::stdsharp::containers::container_erasable<ContainerType> &&
-            ::std::ranges::forward_range<ContainerType> && //
-            ::stdsharp::containers::details::
-                container_special_member_req<ContainerType, ValueType, Allocator>::value &&
+            container_erasable<ContainerType> && ::std::ranges::forward_range<ContainerType> && //
+            details::container_special_member_req<ContainerType, ValueType, Allocator>::value &&
             (!::std::equality_comparable<ValueType> ||
              ::std::equality_comparable<ContainerType>)&& //
             ::std::same_as<ValueType, ::std::ranges::range_value_t<ContainerType>> && //
             (::std::same_as<RefType, ::std::ranges::range_reference_t<ContainerType>> ||
              ::std::same_as<ConstRefType, ::std::ranges::range_reference_t<ContainerType>>)&& //
             ::std::same_as<RefType, ::std::add_lvalue_reference_t<ValueType>>&& //
-            ::std::same_as<
-                ConstRefType,
-                ::stdsharp::type_traits::add_const_lvalue_ref_t<ValueType> // clang-format off
-            > && // clang-format on
+            ::std::same_as<ConstRefType, type_traits::add_const_lvalue_ref_t<ValueType>>&& //
             ::std::same_as<Iter, ::std::ranges::iterator_t<ContainerType>>&& //
-            ::std::same_as<ConstIter, ::stdsharp::ranges::const_iterator_t<ContainerType>>&& //
+            ::std::same_as<ConstIter, ranges::const_iterator_t<ContainerType>>&& //
             ::std::numeric_limits<DifferenceType>::is_signed&& //
             ::std::same_as<DifferenceType, ::std::ranges::range_difference_t<ContainerType>> &&
             !::std::numeric_limits<SizeType>::is_signed &&
@@ -285,9 +266,9 @@ namespace stdsharp::containers
     }
 
     template<typename Container>
-    concept container = ::stdsharp::containers::details::std_array<Container> || requires
+    concept container = details::std_array<Container> || requires
     {
-        requires ::stdsharp::containers::details::container_req<::std::decay_t<Container>>;
+        requires details::container_req<::std::decay_t<Container>>;
     };
 
     namespace details
@@ -298,18 +279,18 @@ namespace stdsharp::containers
             typename Allocator = typename ContainerType::allocator_type // clang-format off
         > // clang-format on
         concept allocator_aware_container_req =
-            ::stdsharp::containers::details::container_req<ContainerType, ValueType, Allocator> &&
+            details::container_req<ContainerType, ValueType, Allocator> &&
             ::std::constructible_from<ContainerType, Allocator> && //
-            (::stdsharp::containers::container_copy_insertable<ContainerType> &&
+            (container_copy_insertable<ContainerType> &&
                  ::std::constructible_from<ContainerType, const ContainerType&, Allocator> ||
-             ::stdsharp::containers::container_move_insertable<ContainerType> &&
+             container_move_insertable<ContainerType> &&
                  ::std::constructible_from<ContainerType, ContainerType, Allocator>)&&
             // clang-format off
             requires
             {
-                std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
-                    ::stdsharp::containers::container_move_insertable<ContainerType> &&
-                    ::stdsharp::concepts::move_assignable<ValueType>;
+                ::std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+                    container_move_insertable<ContainerType> &&
+                    concepts::move_assignable<ValueType>;
                 requires ::std::same_as<ValueType, typename Allocator::value_type>;
             } &&
             requires(ContainerType instance)
@@ -322,20 +303,20 @@ namespace stdsharp::containers
             typename ValueType = typename ContainerType::value_type,
             typename RefType = typename ContainerType::reference,
             typename ConstRefType = typename ContainerType::const_reference,
-            typename Allocator = ::stdsharp::containers::allocator_from_container_t<ContainerType>,
+            typename Allocator = allocator_from_container_t<ContainerType>,
             typename Iter = typename ContainerType::iterator,
             typename ConstIter = typename ContainerType::const_iterator,
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
-        concept sequence_container_req = ::stdsharp::containers::container<ContainerType> &&
-            (!::stdsharp::containers::container_copy_insertable<ContainerType> ||
+        concept sequence_container_req = container<ContainerType> &&
+            (!container_copy_insertable<ContainerType> ||
              ::std::constructible_from<
                  ContainerType,
                  SizeType,
                  ValueType>)&& // clang-format off
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
             {
-                requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
+                requires !container_emplace_constructible<ContainerType, ValueType> ||
                     ::std::constructible_from<ContainerType, ConstIter, ConstIter> &&
                     ::std::constructible_from<ContainerType, ::std::initializer_list<ValueType>> &&
                     requires(::std::initializer_list<ValueType> v_list)
@@ -356,20 +337,17 @@ namespace stdsharp::containers
                         { instance.clear() } -> ::std::same_as<void>;
                     };
 
-                requires !::stdsharp::containers::container_move_insertable<ContainerType> ||
+                requires !container_move_insertable<ContainerType> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
 
-                        requires !::stdsharp::containers::copy_insertable<
-                            ValueType,
-                            Allocator
-                        > || requires
+                        requires !copy_insertable<ValueType, Allocator> || requires
                         {
                             { instance.insert(const_iter, ::std::as_const(value)) } ->
                                 ::std::same_as<Iter>;
 
-                            requires !::stdsharp::concepts::copy_assignable<ValueType> || requires(SizeType n)
+                            requires !concepts::copy_assignable<ValueType> || requires(SizeType n)
                             {
                                 requires ::std::assignable_from<
                                     ContainerType&,
@@ -392,10 +370,9 @@ namespace stdsharp::containers
         template<
             typename ContainerType,
             typename RIter = typename ContainerType::reverse_iterator,
-            typename ConstRIter = typename ContainerType::const_reverse_iterator
-            // clang-format off
+            typename ConstRIter = typename ContainerType::const_reverse_iterator // clang-format off
         >
-        concept reversible_container_req = ::stdsharp::containers::container<ContainerType> &&
+        concept reversible_container_req = container<ContainerType> &&
             requires(ContainerType instance)
             {
                 { instance.rbegin() } -> ::std::same_as<RIter>;
@@ -408,7 +385,8 @@ namespace stdsharp::containers
 
         template<typename Handle>
         concept node_handle_req = ::std::constructible_from<Handle> && //
-            ::std::destructible<Handle> && ::stdsharp::concepts::nothrow_movable<Handle> &&
+            ::std::destructible<Handle> && //
+            concepts::nothrow_movable<Handle> &&
             // clang-format off
             requires(Handle handle)
             {
@@ -420,15 +398,16 @@ namespace stdsharp::containers
             }; // clang-format on
 
         template<typename T, typename Iterator, typename NodeType>
-        concept associative_insert_return_type_req = ::stdsharp::concepts::aggregate<T> && //
+        concept associative_insert_return_type_req = concepts::aggregate<T> && //
             ::std::constructible_from<T, Iterator, bool, NodeType> && //
             ::std::is_standard_layout_v<T> && //
             requires(T instance) // clang-format off
             {
-                { instance.position } -> std::same_as<Iterator&>;
-                { instance.inserted } -> std::same_as<bool&>;
-                { instance.node } -> std::same_as<NodeType&>;
+                { instance.position } -> ::std::same_as<Iterator&>;
+                { instance.inserted } -> ::std::same_as<bool&>;
+                { instance.node } -> ::std::same_as<NodeType&>;
             }; // clang-format on
+
         template<
             typename ContainerType,
             typename ValueType = typename ContainerType::value_type,
@@ -436,24 +415,21 @@ namespace stdsharp::containers
             typename KeyCmp = typename ContainerType::key_compare,
             typename ValueCmp = typename ContainerType::value_compare,
             typename NodeType = typename ContainerType::node_type,
-            typename Allocator = ::stdsharp::containers::allocator_from_container_t<ContainerType>,
+            typename Allocator = allocator_from_container_t<ContainerType>,
             typename Iter = typename ContainerType::iterator,
             typename ConstIter = typename ContainerType::const_iterator,
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
-        concept associative_container_req = ::stdsharp::containers::container<ContainerType> && //
+        concept associative_container_req = container<ContainerType> && //
             ::std::copyable<KeyCmp> && //
             ::std::copyable<ValueCmp> && //
             ::std::predicate<KeyCmp, KeyType, KeyType> && //
             ::std::predicate<ValueCmp, ValueType, ValueType> && //
-            ::stdsharp::containers::details::node_handle_req<NodeType> && //
-            requires(
-                ContainerType instance,
-                ConstIter const_iter,
-                ValueType value // clang-format off
-            )
+            details::node_handle_req<NodeType> && //
+            requires(ContainerType instance, ConstIter const_iter, ValueType value)
+        // clang-format off
             {
-                requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
+                requires !container_emplace_constructible<ContainerType, ValueType> ||
                     (!::std::default_initializable<KeyCmp> ||
                         ::std::constructible_from<ContainerType, ConstIter, ConstIter> &&
                     ::std::constructible_from<ContainerType, ::std::initializer_list<ValueType>>) &&
@@ -475,15 +451,12 @@ namespace stdsharp::containers
                         { instance.insert(const_iter, const_iter) } -> ::std::same_as<void>;
                     };
 
-                requires !::stdsharp::containers::container_move_insertable<ContainerType> ||
+                requires !container_move_insertable<ContainerType> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
 
-                        requires !::stdsharp::containers::copy_insertable<
-                            ValueType,
-                            Allocator
-                        > || requires
+                        requires !copy_insertable<ValueType, Allocator> || requires
                         {
                             { instance.insert(const_iter, ::std::as_const(value)) } ->
                                 ::std::same_as<Iter>;
@@ -536,7 +509,7 @@ namespace stdsharp::containers
             typename KeyEqual = typename ContainerType::key_equal,
             typename Hasher = typename ContainerType::hasher,
             typename NodeType = typename ContainerType::node_type,
-            typename Allocator = ::stdsharp::containers::allocator_from_container_t<ContainerType>,
+            typename Allocator = allocator_from_container_t<ContainerType>,
             typename RefType = typename ContainerType::reference,
             typename ConstRefType = typename ContainerType::const_reference,
             typename Iter = typename ContainerType::iterator,
@@ -547,14 +520,13 @@ namespace stdsharp::containers
             typename SizeType = typename ContainerType::size_type // clang-format off
         > // clang-format on
         concept unordered_associative_container_req =
-            ::stdsharp::containers::container<ContainerType> &&
-            ::stdsharp::containers::details::iterator_identical<Iter, LocalIter> &&
-            ::stdsharp::containers::details::iterator_identical<ConstIter, ConstLocalIter> &&
+            container<ContainerType> && details::iterator_identical<Iter, LocalIter> &&
+            details::iterator_identical<ConstIter, ConstLocalIter> &&
             ::std::copyable<KeyEqual> && //
             ::std::copyable<Hasher> && //
             ::std::predicate<KeyEqual, KeyType, KeyType> &&
-            ::stdsharp::concepts::invocable_r<Hasher, ::std::size_t, KeyType> &&
-            ::stdsharp::containers::details::node_handle_req<NodeType> &&
+            concepts::invocable_r<Hasher, ::std::size_t, KeyType> &&
+            details::node_handle_req<NodeType> &&
             (::std::default_initializable<KeyEqual> ?
                  (!::std::default_initializable<Hasher> ||
                   ::std::constructible_from<ContainerType, SizeType>) :
@@ -571,7 +543,7 @@ namespace stdsharp::containers
             requires(ContainerType instance, ConstIter const_iter, ValueType value)
         // clang-format off
             {
-                requires !::stdsharp::containers::container_emplace_constructible<ContainerType, ValueType> ||
+                requires !container_emplace_constructible<ContainerType, ValueType> ||
                 (::std::default_initializable<KeyEqual> ?
                  (!::std::default_initializable<Hasher> ||
                   ::std::constructible_from<ContainerType, SizeType> &&
@@ -607,15 +579,12 @@ namespace stdsharp::containers
                     };
                 };
 
-                requires !::stdsharp::containers::container_move_insertable<ContainerType> ||
+                requires !container_move_insertable<ContainerType> ||
                     requires
                     {
                         { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<Iter>;
 
-                        !::stdsharp::containers::copy_insertable<
-                            ValueType,
-                            Allocator
-                        > || requires
+                        requires !copy_insertable<ValueType, Allocator> || requires
                         {
                             { instance.insert(const_iter, ::std::as_const(value)) } ->
                                 ::std::same_as<Iter>;
@@ -683,54 +652,49 @@ namespace stdsharp::containers
     template<typename Container>
     concept reversible_aware_container = requires
     {
-        requires ::stdsharp::containers::details::reversible_container_req<
-            ::std::decay_t<Container>>;
+        requires details::reversible_container_req<::std::decay_t<Container>>;
     };
 
     template<typename Container>
     concept allocator_aware_container = requires
     {
-        requires ::stdsharp::containers::details::allocator_aware_container_req<
-            ::std::decay_t<Container>>;
+        requires details::allocator_aware_container_req<::std::decay_t<Container>>;
     };
 
     template<typename Container>
-    concept sequence_container = ::stdsharp::containers::details::std_array<Container> || requires
+    concept sequence_container = details::std_array<Container> || requires
     {
-        requires ::stdsharp::containers::details::sequence_container_req<::std::decay_t<Container>>;
+        requires details::sequence_container_req<::std::decay_t<Container>>;
     };
 
     template<typename Container>
-    concept contiguous_container = ::stdsharp::containers::container<Container> &&
-        ::std::ranges::contiguous_range<::std::decay_t<Container>>;
+    concept contiguous_container =
+        container<Container> && ::std::ranges::contiguous_range<::std::decay_t<Container>>;
 
     template<typename Container>
     concept associative_container = requires
     {
-        requires ::stdsharp::containers::details:: //
-            associative_container_req<::std::decay_t<Container>>;
+        requires details::associative_container_req<::std::decay_t<Container>>;
     };
 
     template<typename Container>
     concept unordered_associative_container = requires
     {
-        requires ::stdsharp::containers::details:: //
-            unordered_associative_container_req<::std::decay_t<Container>>;
+        requires details::unordered_associative_container_req<::std::decay_t<Container>>;
     };
 
-    template<::stdsharp::containers::container T>
-    inline constexpr ::stdsharp::functional::invocable_obj forward_container(
-        ::stdsharp::functional::nodiscard_tag,
+    template<container T>
+    inline constexpr functional::invocable_obj forward_container(
+        functional::nodiscard_tag,
         ::ranges::overload(
             [](::std::decay_t<T>&& t) noexcept(noexcept(t | ::ranges::views::move))
             {
                 return t | ::ranges::views::move; //
             },
-            ::std::identity{} // clang-format off
+            functional::identity_v // clang-format off
         ) // clang-format on
     );
 
     template<typename T>
-    using forward_container_t =
-        decltype(::stdsharp::containers::forward_container<T>(::std::declval<T>()));
+    using forward_container_t = decltype(forward_container<T>(::std::declval<T>()));
 }

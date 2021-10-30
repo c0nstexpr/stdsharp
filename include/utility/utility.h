@@ -12,7 +12,7 @@
 
 namespace stdsharp::utility
 {
-    using namespace std::literals;
+    using namespace ::std::literals;
 
     namespace details
     {
@@ -70,7 +70,7 @@ namespace stdsharp::utility
         template<typename T>
         [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
         {
-            return ::stdsharp::utility::details::auto_cast<T>{::std::forward<T>(t)}; //
+            return details::auto_cast<T>{::std::forward<T>(t)}; //
         }
     } auto_cast{};
 
@@ -85,5 +85,5 @@ namespace stdsharp::utility
     } to_underlying{};
 
     template<typename T>
-    inline constexpr ::stdsharp::utility::details::forward_like_fn<T> forward_like{};
+    inline constexpr details::forward_like_fn<T> forward_like{};
 }

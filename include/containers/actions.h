@@ -13,20 +13,19 @@ namespace stdsharp::containers::actions
     namespace details
     {
         template<typename Container, typename... Args>
-        concept seq_emplace_req = ::stdsharp::containers::sequence_container<Container> &&
-            ::stdsharp::containers::container_emplace_constructible<Container, Args...>;
+        concept seq_emplace_req =
+            sequence_container<Container> && container_emplace_constructible<Container, Args...>;
 
         template<typename Container>
-        concept associative_like_req = ::stdsharp::containers::associative_container<Container> ||
-            ::stdsharp::containers::unordered_associative_container<Container>;
+        concept associative_like_req =
+            associative_container<Container> || unordered_associative_container<Container>;
     }
 
     struct emplace_fn
     {
         template<
             typename... Args,
-            ::stdsharp::containers::actions::details::seq_emplace_req<Args...>
-                Container // clang-format off
+            actions::details::seq_emplace_req<Args...> Container // clang-format off
         > // clang-format on
         constexpr decltype(auto) operator()(
             Container& container,
@@ -39,10 +38,9 @@ namespace stdsharp::containers::actions
 
         template<
             typename... Args,
-            ::stdsharp::containers::container_emplace_constructible<Args...>
-                Container // clang-format off
+            container_emplace_constructible<Args...> Container // clang-format off
         > // clang-format on
-            requires ::stdsharp::containers::actions::details::associative_like_req<Container>
+            requires actions::details::associative_like_req<Container>
         constexpr decltype(auto) operator()(Container& container, Args&&... args) const
             noexcept(noexcept(container.emplace(::std::forward<Args>(args)...)))
         {
@@ -50,8 +48,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto emplace =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::emplace_fn>;
+    inline constexpr auto emplace = functional::tagged_cpo<actions::emplace_fn>;
 
     namespace details
     {
@@ -59,15 +56,15 @@ namespace stdsharp::containers::actions
         {
             template<typename Container, typename... Args>
                 requires ::std::invocable<
-                    decltype(::stdsharp::containers::actions::emplace),
+                    decltype(actions::emplace),
                     Container&,
-                    ::stdsharp::ranges::const_iterator_t<Container>,
+                    ranges::const_iterator_t<Container>,
                     Args... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
                 noexcept( //
-                    ::stdsharp::concepts::nothrow_invocable<
-                        decltype(::stdsharp::containers::actions::emplace),
+                    concepts::nothrow_invocable<
+                        decltype(actions::emplace),
                         Container&,
                         decltype(container.cbegin()),
                         Args... // clang-format off
@@ -75,7 +72,7 @@ namespace stdsharp::containers::actions
                     noexcept(*container.cbegin()) //
                 )
             {
-                return *::stdsharp::containers::actions:: //
+                return *actions:: //
                     emplace(container, container.cend(), ::std::forward<Args>(args)...);
             }
         };
@@ -84,7 +81,7 @@ namespace stdsharp::containers::actions
         {
             template<
                 typename... Args,
-                ::stdsharp::containers::actions::details::seq_emplace_req<Args...> Container
+                actions::details::seq_emplace_req<Args...> Container
                 // clang-format off
             > // clang-format on
                 requires requires(Container instance, Args&&... args)
@@ -102,14 +99,13 @@ namespace stdsharp::containers::actions
 
     struct emplace_back_fn :
         ::ranges::overloaded<
-            ::stdsharp::containers::actions::details::emplace_back_mem_fn,
-            ::stdsharp::containers::actions::details::emplace_back_default_fn // clang-format off
+            actions::details::emplace_back_mem_fn,
+            actions::details::emplace_back_default_fn // clang-format off
         > // clang-format on
     {
     };
 
-    inline constexpr auto emplace_back =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::emplace_back_fn>;
+    inline constexpr auto emplace_back = functional::tagged_cpo<actions::emplace_back_fn>;
 
     namespace details
     {
@@ -117,24 +113,24 @@ namespace stdsharp::containers::actions
         {
             template<typename Container, typename... Args>
                 requires ::std::invocable<
-                    decltype(::stdsharp::containers::actions::emplace),
+                    decltype(actions::emplace),
                     Container&,
-                    ::stdsharp::ranges::const_iterator_t<Container>,
+                    ranges::const_iterator_t<Container>,
                     Args... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
                 noexcept( //
-                    ::stdsharp::concepts::nothrow_invocable<
-                        decltype(::stdsharp::containers::actions::emplace),
+                    concepts::nothrow_invocable<
+                        decltype(actions::emplace),
                         Container&,
                         decltype(container.cbegin()),
                         Args... // clang-format off
-                > && // clang-format on
+                    > && // clang-format on
                     noexcept(*container.cbegin()) //
                 )
             {
-                return *::stdsharp::containers::actions:: //
-                    emplace(container, container.cend(), ::std::forward<Args>(args)...);
+                return *actions::emplace(
+                    container, container.cend(), ::std::forward<Args>(args)...);
             }
         };
 
@@ -142,7 +138,7 @@ namespace stdsharp::containers::actions
         {
             template<
                 typename... Args,
-                ::stdsharp::containers::actions::details::seq_emplace_req<Args...> Container
+                actions::details::seq_emplace_req<Args...> Container
                 // clang-format off
             > // clang-format on
                 requires requires(Container instance, Args&&... args)
@@ -160,19 +156,18 @@ namespace stdsharp::containers::actions
 
     struct emplace_front_fn :
         ::ranges::overloaded<
-            ::stdsharp::containers::actions::details::emplace_front_mem_fn,
-            ::stdsharp::containers::actions::details::emplace_front_default_fn // clang-format off
+            actions::details::emplace_front_mem_fn,
+            actions::details::emplace_front_default_fn // clang-format off
         > // clang-format on
     {
     };
 
-    inline constexpr auto emplace_front =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::emplace_front_fn>;
+    inline constexpr auto emplace_front = functional::tagged_cpo<actions::emplace_front_fn>;
 
     struct erase_fn
     {
         template<
-            ::stdsharp::containers::actions::details::associative_like_req Container,
+            actions::details::associative_like_req Container,
             ::std::equality_comparable_with<typename ::std::decay_t<Container>::key_type>
                 KeyType // clang-format off
         > // clang-format on
@@ -183,7 +178,7 @@ namespace stdsharp::containers::actions
         }
 
         template<
-            ::stdsharp::containers::sequence_container Container,
+            sequence_container Container,
             ::std::equality_comparable_with<typename ::std::decay_t<Container>::value_type>
                 ValueType // clang-format off
         > // clang-format on
@@ -196,15 +191,15 @@ namespace stdsharp::containers::actions
 
         template<
             typename Container,
-            ::std::same_as<::stdsharp::ranges::const_iterator_t<Container>>... ConstIter
+            ::std::same_as<ranges::const_iterator_t<Container>>... ConstIter
             // clang-format off
         > // clang-format on
             requires requires
             {
                 requires(
                     !stdsharp::containers::details::std_array<Container> &&
-                        ::stdsharp::containers::sequence_container<Container> ||
-                    ::stdsharp::containers::actions::details::associative_like_req<Container>);
+                        sequence_container<Container> ||
+                    actions::details::associative_like_req<Container>);
                 requires sizeof...(ConstIter) <= 1;
             }
         constexpr auto operator()(
@@ -217,8 +212,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto erase =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::erase_fn>;
+    inline constexpr auto erase = functional::tagged_cpo<actions::erase_fn>;
 
     struct erase_if_fn
     {
@@ -237,8 +231,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto erase_if =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::erase_if_fn>;
+    inline constexpr auto erase_if = functional::tagged_cpo<actions::erase_if_fn>;
 
     namespace details
     {
@@ -246,25 +239,25 @@ namespace stdsharp::containers::actions
         {
             template<typename Container>
                 requires ::std::invocable<
-                    decltype(::stdsharp::containers::actions::erase),
+                    decltype(actions::erase),
                     Container&,
-                    ::stdsharp::ranges::const_iterator_t<Container> // clang-format off
+                    ranges::const_iterator_t<Container> // clang-format off
                 > // clang-format on
             constexpr void operator()(Container& container) const noexcept( //
-                ::stdsharp::concepts::nothrow_invocable<
-                    decltype(::stdsharp::containers::actions::erase),
+                concepts::nothrow_invocable<
+                    decltype(actions::erase),
                     Container&,
                     decltype(container.cbegin()) // clang-format off
                 > // clang-format on
             )
             {
-                ::stdsharp::containers::actions::erase(container, container.cbegin());
+                actions::erase(container, container.cbegin());
             }
         };
 
         struct pop_front_mem_fn
         {
-            template<::stdsharp::containers::sequence_container Container>
+            template<sequence_container Container>
                 requires requires(Container instance) // clang-format off
                 {
                     { instance.pop_front() } -> ::std::same_as<void>;
@@ -279,14 +272,13 @@ namespace stdsharp::containers::actions
 
     struct pop_front_fn :
         ::ranges::overloaded<
-            ::stdsharp::containers::actions::details::pop_front_mem_fn,
-            ::stdsharp::containers::actions::details::pop_front_default_fn // clang-format off
+            actions::details::pop_front_mem_fn,
+            actions::details::pop_front_default_fn // clang-format off
         > // clang-format on 
     {
     };
 
-    inline constexpr auto pop_front =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::pop_front_fn>;
+    inline constexpr auto pop_front = functional::tagged_cpo<actions::pop_front_fn>;
 
     namespace details
     {
@@ -294,25 +286,25 @@ namespace stdsharp::containers::actions
         {
             template<typename Container>
                 requires ::std::invocable<
-                    decltype(::stdsharp::containers::actions::erase),
+                    decltype(actions::erase),
                     Container&,
-                    ::stdsharp::ranges::const_iterator_t<Container> // clang-format off
+                    ranges::const_iterator_t<Container> // clang-format off
                 > // clang-format on
             constexpr void operator()(Container& container) const noexcept( //
-                ::stdsharp::concepts::nothrow_invocable<
-                    decltype(::stdsharp::containers::actions::erase),
+                concepts::nothrow_invocable<
+                    decltype(actions::erase),
                     Container&,
                     decltype(container.cbegin()) // clang-format off
                 > // clang-format on
             )
             {
-                ::stdsharp::containers::actions::erase(container, container.cbegin());
+                actions::erase(container, container.cbegin());
             }
         };
 
         struct pop_back_mem_fn
         {
-            template<::stdsharp::containers::sequence_container Container>
+            template<sequence_container Container>
                 requires requires(Container instance) // clang-format off
                 {
                     { instance.pop_back() } -> ::std::same_as<void>;
@@ -327,18 +319,17 @@ namespace stdsharp::containers::actions
 
     struct pop_back_fn :
         ::ranges::overloaded<
-            ::stdsharp::containers::actions::details::pop_back_mem_fn,
-            ::stdsharp::containers::actions::details::pop_back_default_fn // clang-format off
+            actions::details::pop_back_mem_fn,
+            actions::details::pop_back_default_fn // clang-format off
         > // clang-format on 
     {
     };
 
-    inline constexpr auto pop_back =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::pop_back_fn>;
+    inline constexpr auto pop_back = functional::tagged_cpo<actions::pop_back_fn>;
 
     struct resize_fn
     {
-        template<::stdsharp::containers::sequence_container Container>
+        template<sequence_container Container>
             requires requires(Container container, ::std::ranges::range_size_t<Container> size)
             { // clang-format off
                 { container.resize(size) } -> ::std::same_as<void>; // clang-format on
@@ -352,8 +343,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto resize =
-        ::stdsharp::functional::tagged_cpo<::stdsharp::containers::actions::resize_fn>;
+    inline constexpr auto resize = functional::tagged_cpo<actions::resize_fn>;
 
     template<typename Container>
     struct make_container_fn
@@ -361,7 +351,7 @@ namespace stdsharp::containers::actions
     private:
         template<::std::size_t Count>
         static constexpr auto reserved(Container& container) noexcept(noexcept( //
-            ::stdsharp::functional::optional_invoke(
+            functional::optional_invoke(
                 []() noexcept(noexcept(container.reserve(Count))) requires requires
                 { container.reserve(Count); } {
                     ::std::declval<Container&>().reserve(Count); //
@@ -370,7 +360,7 @@ namespace stdsharp::containers::actions
             ) // clang-format on
         )
         {
-            ::stdsharp::functional::optional_invoke(
+            functional::optional_invoke(
                 [&container]() noexcept(noexcept(container.reserve(Count))) requires requires
                 { container.reserve(Count); } {
                     container.reserve(Count); //
@@ -380,53 +370,34 @@ namespace stdsharp::containers::actions
 
     public:
         template<typename... Args>
-            requires(::std::invocable<
-                     decltype(::stdsharp::containers::actions::emplace),
-                     Container&,
-                     Args //clang-format off
-                     >&&...) //clang-format on
+            requires(::std::invocable<decltype(actions::emplace), Container&, Args>&&...)
         constexpr auto operator()(Args&&... args) const noexcept(
-            ::stdsharp::concepts::nothrow_default_initializable<Container> &&
-            (::stdsharp::concepts::nothrow_invocable<
-                 decltype(::stdsharp::containers::actions::emplace),
-                 Container&,
-                 Args //clang-format off
-                 > &&
-             ...) && noexcept(make_container_fn::
-                                  reserved<Container, sizeof...(Args)>()) //clang-format on
+            concepts::nothrow_default_initializable<Container> &&
+            (concepts::nothrow_invocable<decltype(actions::emplace), Container&, Args> && ...) && //
+            noexcept(make_container_fn::reserved<Container, sizeof...(Args)>()) //
         )
         {
             Container container{};
             make_container_fn::reserved<sizeof...(Args)>(container);
-            (::stdsharp::containers::actions::emplace(container, ::std::forward<Args>(args)), ...);
+            (actions::emplace(container, ::std::forward<Args>(args)), ...);
             return container;
         }
 
         template<typename... Args>
-            requires(::std::invocable<
-                     decltype(::stdsharp::containers::actions::emplace_back),
-                     Container&,
-                     Args //clang-format off
-                     >&&...) //clang-format on
+            requires(::std::invocable<decltype(actions::emplace_back), Container&, Args>&&...)
         constexpr auto operator()(Args&&... args) const noexcept(
-            (::stdsharp::concepts::nothrow_invocable<
-                 decltype(::stdsharp::containers::actions::emplace_back),
-                 Container&,
-                 Args //clang-format off
-                 > &&
-             ...) && noexcept(make_container_fn::
-                                  reserved<Container, sizeof...(Args)>()) //clang-format on
-        )
+            (concepts:: // clang-format off
+                nothrow_invocable<decltype(actions::emplace_back), Container&, Args> &&...) &&
+            noexcept(make_container_fn::reserved<Container, sizeof...(Args)>())) // clang-format on
         {
             Container container{};
             make_container_fn::reserved<sizeof...(Args)>(container);
-            (::stdsharp::containers::actions::emplace_back(container, ::std::forward<Args>(args)),
-             ...);
+            (actions::emplace_back(container, ::std::forward<Args>(args)), ...);
             return container;
         }
     };
 
     template<typename Container>
-    inline constexpr auto make_container = ::stdsharp::functional::tagged_cpo<
-        ::stdsharp::containers::actions::make_container_fn<Container>>;
+    inline constexpr auto make_container =
+        functional::tagged_cpo<actions::make_container_fn<Container>>;
 }

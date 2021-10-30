@@ -21,42 +21,42 @@ namespace stdsharp::cstdint
     {
         [[nodiscard]] constexpr auto operator""_i8(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::i8>(value);
+            return static_cast<i8>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_u8(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::u8>(value);
+            return static_cast<u8>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_i16(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::i16>(value);
+            return static_cast<i16>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_u16(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::u16>(value);
+            return static_cast<u16>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_i32(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::i32>(value);
+            return static_cast<i32>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_u32(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::u32>(value);
+            return static_cast<u32>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_i64(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::i64>(value);
+            return static_cast<i64>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_u64(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::u64>(value);
+            return static_cast<u64>(value);
         }
 
         [[nodiscard]] constexpr auto operator""_uz(const unsigned long long value) noexcept
@@ -66,7 +66,7 @@ namespace stdsharp::cstdint
 
         [[nodiscard]] constexpr auto operator""_z(const unsigned long long value) noexcept
         {
-            return static_cast<::stdsharp::cstdint::ssize_t>(value);
+            return static_cast<ssize_t>(value);
         }
     }
 }

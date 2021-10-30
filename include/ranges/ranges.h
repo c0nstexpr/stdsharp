@@ -14,11 +14,11 @@ namespace stdsharp
     namespace ranges
     {
         template<typename T>
-        using const_iterator_t = decltype(::std::ranges::cbegin(std::declval<T&>()));
+        using const_iterator_t = decltype(::std::ranges::cbegin(::std::declval<T&>()));
 
         template<typename T>
         using range_const_reference_t =
-            ::stdsharp::type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
+            type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
 
         inline constexpr struct rng_as_iters_fn
         {
@@ -26,7 +26,7 @@ namespace stdsharp
 
             template<::std::ranges::range Rng>
             constexpr auto operator()(
-                const ::stdsharp::functional::decompose_by_fn<0>,
+                const functional::decompose_by_fn<0>,
                 Rng&& rng //
             ) const noexcept(noexcept(::std::ranges::begin(rng)))
             {
@@ -35,7 +35,7 @@ namespace stdsharp
 
             template<::std::ranges::range Rng>
             constexpr auto operator()(
-                const ::stdsharp::functional::decompose_by_fn<1>,
+                const functional::decompose_by_fn<1>,
                 Rng&& rng //
             ) const noexcept(noexcept(::std::ranges::end(rng)))
             {

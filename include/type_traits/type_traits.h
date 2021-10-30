@@ -47,10 +47,10 @@ namespace stdsharp::type_traits
     template<typename T>
     concept constant_value = requires
     {
-        std::bool_constant<(std::declval<T>().value, true)>{};
+        ::std::bool_constant<(::std::declval<T>().value, true)>{};
     };
 
-    template<std::size_t I>
+    template<::std::size_t I>
     using index_constant = ::std::integral_constant<::std::size_t, I>;
 
     template<typename T>
@@ -92,17 +92,16 @@ namespace stdsharp::type_traits
         template<template<auto...> typename U>
         using apply_t = U<Values...>;
 
-        using as_sequence_t = ::stdsharp::type_traits::regular_value_sequence<Values...>;
+        using as_sequence_t = regular_value_sequence<Values...>;
 
-        using as_value_sequence_t = ::stdsharp::type_traits::value_sequence<Values...>;
+        using as_value_sequence_t = value_sequence<Values...>;
     };
 
     template<typename Sequence>
-    using to_regular_value_sequence_t =
-        typename ::stdsharp::type_traits::take_value_sequence<Sequence>::as_vsequence_t;
+    using to_regular_value_sequence_t = typename take_value_sequence<Sequence>::as_vsequence_t;
 
     template<typename Sequence> // clang-format off
-    using to_value_sequence_t = typename ::stdsharp::type_traits::
+    using to_value_sequence_t = typename
         take_value_sequence<Sequence>::as_value_sequence_t; // clang-format on
 
     template<typename T, typename U>
@@ -120,8 +119,7 @@ namespace stdsharp::type_traits
     >; // clang-format on
 
     template<typename T, typename U>
-    using const_ref_align_t =
-        ::stdsharp::type_traits::ref_align_t<T, ::stdsharp::type_traits::const_align_t<T, U>>;
+    using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
     template<typename...>
     struct regular_type_sequence
@@ -140,9 +138,9 @@ namespace stdsharp::type_traits
         template<template<typename...> typename U>
         using apply_t = U<Types...>;
 
-        using as_sequence_t = ::stdsharp::type_traits::regular_type_sequence<Types...>;
+        using as_sequence_t = regular_type_sequence<Types...>;
 
-        using as_type_sequence_t = ::stdsharp::type_traits::type_sequence<Types...>;
+        using as_type_sequence_t = type_sequence<Types...>;
     };
 
     inline namespace literals
@@ -181,7 +179,7 @@ namespace stdsharp::type_traits
             }
         };
 
-        template<::stdsharp::type_traits::array_ltr ltr>
+        template<array_ltr ltr>
         constexpr auto operator"" _ltr() noexcept
         {
             return ltr;
@@ -191,5 +189,5 @@ namespace stdsharp::type_traits
 
 namespace stdsharp::inline literals
 {
-    using namespace ::stdsharp::type_traits::literals;
+    using namespace stdsharp::type_traits::literals;
 }

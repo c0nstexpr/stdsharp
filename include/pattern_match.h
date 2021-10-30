@@ -14,13 +14,13 @@ namespace stdsharp
         constexpr void operator()(
             const Condition& condition, //
             ::std::pair<Predicate, Func>... cases // clang-format off
-        ) const noexcept(((::stdsharp::concepts::nothrow_predicate<Predicate, Condition> &&
-            ::stdsharp::concepts::nothrow_invocable<Func, Condition>) && ...)) // clang-format on
+        ) const noexcept(((concepts::nothrow_predicate<Predicate, Condition> &&
+            concepts::nothrow_invocable<Func, Condition>) && ...)) // clang-format on
         {
             (
                 [&condition](::std::pair<Predicate, Func>&& pair)
                 {
-                    if(::stdsharp::functional::invoke_r<bool>(::std::move(pair.first), condition))
+                    if(functional::invoke_r<bool>(::std::move(pair.first), condition))
                     {
                         ::std::invoke(::std::move(pair.second), condition);
                         return true;
@@ -45,8 +45,7 @@ namespace stdsharp
                 template<typename Case>
                 static constexpr bool case_nothrow_invocable_ =
                     !::std::invocable<Case, from_type_fn::condition_type_identity> ||
-                    ::stdsharp::concepts::
-                        nothrow_invocable<Case, from_type_fn::condition_type_identity>;
+                    concepts::nothrow_invocable<Case, from_type_fn::condition_type_identity>;
 
             public:
                 template<typename... Cases>
@@ -70,13 +69,10 @@ namespace stdsharp
         }
 
         template<typename ConditionT>
-        inline constexpr ::stdsharp::constexpr_pattern_match::details::from_type_fn<ConditionT>
-            from_type{};
+        inline constexpr details::from_type_fn<ConditionT> from_type{};
 
         template<auto Condition>
-        inline constexpr auto from_constant = ::std::bind_front( //
-            ::stdsharp::constexpr_pattern_match:: //
-            from_type<::stdsharp::type_traits::constant<Condition>> //
-        );
+        inline constexpr auto from_constant = //
+            ::std::bind_front(from_type<type_traits::constant<Condition>>);
     }
 }

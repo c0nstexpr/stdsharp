@@ -14,13 +14,12 @@ namespace stdsharp::functional
     } nodiscard_tag;
 
     template<typename T>
-    struct is_nodiscard_func_obj :
-        ::std::bool_constant<::std::derived_from<T, ::stdsharp::functional::nodiscard_tag_t>>
+    struct is_nodiscard_func_obj : ::std::bool_constant<::std::derived_from<T, nodiscard_tag_t>>
     {
     };
 
     template<typename T>
-    concept nodiscard_func_obj = ::stdsharp::functional::is_nodiscard_func_obj<T>::value;
+    concept nodiscard_func_obj = is_nodiscard_func_obj<T>::value;
 
     template<typename Invocable, typename = void>
     class invocable_obj : public ::ranges::overloaded<Invocable>
@@ -33,19 +32,17 @@ namespace stdsharp::functional
     };
 
     template<typename Invocable>
-    class invocable_obj<Invocable, ::stdsharp::functional::nodiscard_tag_t> :
-        ::stdsharp::functional::invocable_obj<Invocable>,
-        nodiscard_tag_t
+    class invocable_obj<Invocable, nodiscard_tag_t> : invocable_obj<Invocable>, nodiscard_tag_t
     {
-        using base = ::stdsharp::functional::invocable_obj<Invocable>;
+        using base = invocable_obj<Invocable>;
 
     public:
         using typename invocable_obj::base::invocable_t;
 
         template<typename... T>
             requires ::std::constructible_from<Invocable, T...>
-        constexpr explicit invocable_obj(const ::stdsharp::functional::nodiscard_tag_t, T&&... t) //
-            noexcept(::stdsharp::concepts::nothrow_constructible_from<Invocable, T...>):
+        constexpr explicit invocable_obj(const nodiscard_tag_t, T&&... t) //
+            noexcept(concepts::nothrow_constructible_from<Invocable, T...>):
             invocable_obj::base(::std::forward<T>(t)...)
         {
         }
@@ -53,7 +50,7 @@ namespace stdsharp::functional
         template<typename... Args>
             requires ::std::invocable<const Invocable&, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const& //
-            noexcept(::stdsharp::concepts::nothrow_invocable<const Invocable, Args...>)
+            noexcept(concepts::nothrow_invocable<const Invocable, Args...>)
         {
             return base::operator()(::std::forward<Args>(args)...);
         }
@@ -61,7 +58,7 @@ namespace stdsharp::functional
         template<typename... Args>
             requires ::std::invocable<Invocable&, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) & //
-            noexcept(::stdsharp::concepts::nothrow_invocable<Invocable&, Args...>)
+            noexcept(concepts::nothrow_invocable<Invocable&, Args...>)
         {
             return base::operator()(::std::forward<Args>(args)...);
         }
@@ -69,7 +66,7 @@ namespace stdsharp::functional
         template<typename... Args>
             requires ::std::invocable<const Invocable, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const&& //
-            noexcept(::stdsharp::concepts::nothrow_invocable<const Invocable, Args...>)
+            noexcept(concepts::nothrow_invocable<const Invocable, Args...>)
         {
             return static_cast<const base&&>(*this)(::std::forward<Args>(args)...);
         }
@@ -77,7 +74,7 @@ namespace stdsharp::functional
         template<typename... Args>
             requires ::std::invocable<Invocable, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) && //
-            noexcept(::stdsharp::concepts::nothrow_invocable<Invocable, Args...>)
+            noexcept(concepts::nothrow_invocable<Invocable, Args...>)
         {
             return static_cast<base&&>(*this)(::std::forward<Args>(args)...);
         }
@@ -87,22 +84,19 @@ namespace stdsharp::functional
     invocable_obj(Invocable&&) -> invocable_obj<::std::decay_t<Invocable>>;
 
     template<typename Invocable>
-    invocable_obj(::stdsharp::functional::nodiscard_tag_t, Invocable&&)
-        -> invocable_obj<::std::decay_t<Invocable>, ::stdsharp::functional::nodiscard_tag_t>;
+    invocable_obj(nodiscard_tag_t, Invocable&&)
+        -> invocable_obj<::std::decay_t<Invocable>, nodiscard_tag_t>;
 
-    inline constexpr ::stdsharp::functional::invocable_obj make_invocable_ref(
-        ::stdsharp::functional::nodiscard_tag,
+    inline constexpr invocable_obj make_invocable_ref(
+        nodiscard_tag,
         ::ranges::overload(
             []<typename Invocable>(Invocable& invocable) noexcept
             {
-                return ::stdsharp::functional::invocable_obj<Invocable&>{invocable}; //
+                return invocable_obj<Invocable&>{invocable}; //
             },
-            []<typename Invocable>(nodiscard_tag_t, Invocable& invocable) noexcept
+            []<typename Invocable>(nodiscard_tag_t, Invocable& invocable) noexcept //
             {
-                return ::stdsharp::functional::invocable_obj<Invocable&>{
-                    ::stdsharp::functional::nodiscard_tag,
-                    invocable //
-                };
+                return invocable_obj<Invocable&>{nodiscard_tag, invocable};
             } // clang-format off
         ) // clang-format on
     );
