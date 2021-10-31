@@ -497,19 +497,19 @@ namespace stdsharp::type_traits
                 ::std::array excepted = {Index...};
                 ::std::size_t index = 0;
 
-                // TODO replace with ranges algorithms
-                ::std::sort(excepted.begin(), excepted.end());
+                ::std::ranges::sort(excepted.begin(), excepted.end());
                 {
                     ::std::array<::std::size_t, value_sequence::size> candidates{};
+
+                    // TODO replace with ranges views
                     ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
 
-                    ::std::copy_if(
-                        candidates.begin(),
-                        candidates.end(),
+                    ::std::ranges::copy_if(
+                        candidates,
                         res.begin(),
                         [&excepted, &index](const auto v)
                         {
-                            if(::std::binary_search(excepted.begin(), excepted.end(), v))
+                            if(::std::ranges::binary_search(excepted, v))
                                 return false;
                             ++index;
                             return true;
