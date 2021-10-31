@@ -86,4 +86,7 @@ namespace stdsharp::utility
 
     template<typename T>
     inline constexpr details::forward_like_fn<T> forward_like{};
+
+    template<typename T, typename U>
+    using forward_like_t = decltype(forward_like<T>(::std::declval<U>()));
 }

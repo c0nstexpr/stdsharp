@@ -2,6 +2,7 @@
 #include <range/v3/functional.hpp>
 
 #include "functional/operation.h"
+#include "utility/utility.h"
 
 namespace stdsharp::functional
 {
@@ -16,11 +17,11 @@ namespace stdsharp::functional
             template<
                 typename Tuple,
                 typename... Args,
-                typename AlignedFunc = type_traits::const_ref_align_t<Tuple, Func>,
+                typename ForwardFunc = utility::forward_like_t<Tuple, Func>,
                 bool Noexcept_ =
-                    concepts::nothrow_invocable<AlignedFunc, T..., Args...> // clang-format on
+                    concepts::nothrow_invocable<ForwardFunc, T..., Args...> // clang-format on
                 >
-                requires ::std::invocable<AlignedFunc, T..., Args...>
+                requires ::std::invocable<ForwardFunc, T..., Args...>
             static constexpr decltype(auto) invoke_impl(Tuple&& instance, Args&&... args) //
                 noexcept(Noexcept_)
             {

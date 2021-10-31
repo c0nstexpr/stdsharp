@@ -5,6 +5,7 @@
 #include "functional/cpo.h"
 #include "functional/functional.h"
 #include "type_traits/type_traits.h"
+#include "utility/utility.h"
 
 namespace stdsharp::functional
 {
@@ -34,13 +35,13 @@ namespace stdsharp::functional
         private:
             template<
                 typename This,
-                typename AlignedDecomposer = type_traits::const_ref_align_t<This&&, Decomposer>,
-                typename AlignedParam = type_traits::const_ref_align_t<This&&, Parameter>,
+                typename ForwardDecomposer = utility::forward_like_t<This, Decomposer>,
+                typename ForwardParam = utility::forward_like_t<This, Parameter>,
                 ::std::invocable< //
                     ::std::invoke_result_t<
                         decltype(decompose_by<I>),
-                        AlignedDecomposer,
-                        AlignedParam // clang-format off
+                        ForwardDecomposer,
+                        ForwardParam // clang-format off
                     >...
                 > Fn> // clang-format on
             static constexpr auto impl(This&& instance, Fn&& fn) noexcept( //
@@ -48,8 +49,8 @@ namespace stdsharp::functional
                     Fn, //
                     ::std::invoke_result_t<
                         decltype(decompose_by<I>),
-                        AlignedDecomposer,
-                        AlignedParam // clang-format off
+                        ForwardDecomposer,
+                        ForwardParam // clang-format off
                     >...
                 > // clang-format on
             )
