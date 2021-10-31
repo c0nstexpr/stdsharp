@@ -21,14 +21,18 @@ namespace stdsharp
 
         constexpr auto& raw() noexcept { return object_; }
 
-        constexpr auto operator()(const reflection::member_t<"raw"_ltr>) noexcept
+        template<auto Name>
+            requires(::std::ranges::equal(Name, "raw"))
+        constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->raw(); };
         }
 
         constexpr auto& raw() const noexcept { return object_; }
 
-        constexpr auto operator()(const reflection::member_t<"raw"_ltr>) const noexcept
+        template<auto Name>
+            requires(::std::ranges::equal(Name, "raw"))
+        constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->raw(); };
         }
@@ -40,7 +44,9 @@ namespace stdsharp
             func(object_);
         }
 
-        constexpr auto operator()(const reflection::member_t<"read"_ltr>) const noexcept
+        template<auto Name>
+            requires(::std::ranges::equal(Name, "read"))
+        constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->read(); };
         }
@@ -52,7 +58,9 @@ namespace stdsharp
             func(object_);
         }
 
-        constexpr auto operator()(const reflection::member_t<"write"_ltr>) noexcept
+        template<auto Name>
+            requires(::std::ranges::equal(Name, "write"))
+        constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->write(); };
         }

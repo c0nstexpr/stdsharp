@@ -38,7 +38,9 @@ namespace stdsharp::property
             return setter_(::std::forward<Args>(args)...);
         };
 
-        constexpr auto operator()(const reflection::member_t<"set"_ltr>) noexcept
+        template<auto Name>
+            requires(::std::ranges::equal(Name, "set"))
+        constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return functional::make_invocable_ref(setter_);
         }
@@ -49,7 +51,9 @@ namespace stdsharp::property
             return getter_(); //
         };
 
-        constexpr auto operator()(const reflection::member_t<"get"_ltr>) const noexcept
+        template<auto Name>
+            requires(::std::ranges::equal(Name, "get"))
+        constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return functional::make_invocable_ref(functional::nodiscard_tag, getter_);
         }
