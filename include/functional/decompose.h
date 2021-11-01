@@ -35,15 +35,16 @@ namespace stdsharp::functional
         private:
             template<
                 typename This,
-                typename ForwardDecomposer = utility::forward_like_t<This, Decomposer>,
-                typename ForwardParam = utility::forward_like_t<This, Parameter>,
+                typename ForwardDecomposer = decltype(::std::declval<This>().decomposer),
+                typename ForwardParam = decltype(::std::declval<This>().parameter),
                 ::std::invocable< //
                     ::std::invoke_result_t<
                         decltype(decompose_by<I>),
                         ForwardDecomposer,
                         ForwardParam // clang-format off
                     >...
-                > Fn> // clang-format on
+                > Fn
+            > // clang-format on
             static constexpr auto impl(This&& instance, Fn&& fn) noexcept( //
                 concepts::nothrow_invocable<
                     Fn, //

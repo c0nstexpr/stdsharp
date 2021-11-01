@@ -682,19 +682,4 @@ namespace stdsharp::containers
     {
         requires details::unordered_associative_container_req<::std::decay_t<Container>>;
     };
-
-    template<container T>
-    inline constexpr functional::invocable_obj forward_container(
-        functional::nodiscard_tag,
-        ::ranges::overload(
-            [](::std::decay_t<T>&& t) noexcept(noexcept(t | ::ranges::views::move))
-            {
-                return t | ::ranges::views::move; //
-            },
-            functional::identity_v // clang-format off
-        ) // clang-format on
-    );
-
-    template<typename T>
-    using forward_container_t = decltype(forward_container<T>(::std::declval<T>()));
 }

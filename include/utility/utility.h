@@ -8,7 +8,8 @@
 #include <string>
 #include <string_view>
 
-#include "concepts/concepts.h"
+#include "functional/invocable_obj.h"
+#include "type_traits/type_traits.h"
 
 namespace stdsharp::utility
 {
@@ -37,32 +38,6 @@ namespace stdsharp::utility
                 return static_cast<U>(*this);
             }
         };
-
-        template<typename T>
-        struct forward_like_fn
-        {
-            template<typename U>
-            using override_ref_t = ::std::conditional_t<
-                ::std::is_rvalue_reference_v<T&&>,
-                ::std::remove_reference_t<U>&&,
-                U& // clang-format off
-            >; // clang-format on
-
-            template<typename U>
-            using copy_const_t =
-                ::std::conditional_t<::std::is_const_v<::std::remove_reference_t<T&&>>, U const, U>;
-
-            template<typename U>
-            using forward_like_t = forward_like_fn::override_ref_t<
-                forward_like_fn::copy_const_t<::std::remove_reference_t<U>> // clang-format off
-            >; // clang-format on
-
-            [[nodiscard]] constexpr auto operator()(auto&& x) noexcept
-                -> forward_like_fn::forward_like_t<decltype(x)>
-            {
-                return static_cast<forward_like_fn::forward_like_t<decltype(x)>>(x);
-            }
-        };
     }
 
     inline constexpr struct
@@ -74,6 +49,37 @@ namespace stdsharp::utility
         }
     } auto_cast{};
 
+    namespace details
+    {
+        template<typename T, typename U>
+        struct forward_like_fn : functional::nodiscard_tag_t
+        {
+        private:
+            struct deduce_helper
+            {
+                U u;
+            };
+
+        public:
+            [[nodiscard]] constexpr auto operator()(U&& x) const noexcept
+                -> decltype(::std::declval<type_traits::const_ref_align_t<T, deduce_helper>>().m)
+            {
+                return utility::auto_cast(x);
+            }
+        };
+
+        template<typename T>
+        struct forward_like_fn<T, void> : functional::nodiscard_tag_t
+        {
+            template<typename U>
+            [[nodiscard]] constexpr auto operator()(U&& x) const noexcept
+                -> type_traits::const_ref_align_t<T, ::std::remove_reference_t<U>>
+            {
+                return utility::auto_cast(x);
+            }
+        };
+    }
+
     inline constexpr struct
     {
         template<typename T>
@@ -84,9 +90,14 @@ namespace stdsharp::utility
         }
     } to_underlying{};
 
-    template<typename T>
-    inline constexpr details::forward_like_fn<T> forward_like{};
+    template<typename T, typename U = void>
+    inline constexpr details::forward_like_fn<T, U> forward_like{};
 
-    template<typename T, typename U>
-    using forward_like_t = decltype(forward_like<T>(::std::declval<U>()));
+    template<typename T, typename U = void>
+    using forward_like_t = decltype( //
+        forward_like<
+            T,
+            ::std::conditional_t<::std::same_as<U, void>, void, U> // clang-format off
+            >(::std::declval<U>()) // clang-format on
+    );
 }

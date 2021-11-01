@@ -107,7 +107,7 @@ namespace stdsharp::test::containers::actions
 
                 println(fmt::format("after first unique operation, values are: {}", v_list));
 
-                v_list | decompose_to<>(rng_as_iters) | ::ranges::sort;
+                v_list | decompose_to<>(rng_as_iters) | std::ranges::sort;
 
                 println(fmt::format("after sort, values are: {}", v_list));
 

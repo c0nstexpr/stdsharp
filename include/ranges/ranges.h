@@ -25,19 +25,15 @@ namespace stdsharp
             static constexpr auto size = 2;
 
             template<::std::ranges::range Rng>
-            constexpr auto operator()(
-                const functional::decompose_by_fn<0>,
-                Rng&& rng //
-            ) const noexcept(noexcept(::std::ranges::begin(rng)))
+            constexpr auto operator()(const functional::decompose_by_fn<0>, Rng&& rng) const
+                noexcept(noexcept(::std::ranges::begin(rng)))
             {
                 return ::std::ranges::begin(::std::forward<Rng>(rng)); //
             }
 
             template<::std::ranges::range Rng>
-            constexpr auto operator()(
-                const functional::decompose_by_fn<1>,
-                Rng&& rng //
-            ) const noexcept(noexcept(::std::ranges::end(rng)))
+            constexpr auto operator()(const functional::decompose_by_fn<1>, Rng&& rng) const
+                noexcept(noexcept(::std::ranges::end(rng)))
             {
                 return ::std::ranges::end(::std::forward<Rng>(rng)); //
             }

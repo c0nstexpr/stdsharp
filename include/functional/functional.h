@@ -17,7 +17,7 @@ namespace stdsharp::functional
             template<
                 typename Tuple,
                 typename... Args,
-                typename ForwardFunc = utility::forward_like_t<Tuple, Func>,
+                typename ForwardFunc = decltype(::std::get<0>(::std::declval<Tuple>())),
                 bool Noexcept_ =
                     concepts::nothrow_invocable<ForwardFunc, T..., Args...> // clang-format on
                 >
