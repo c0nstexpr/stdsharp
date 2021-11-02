@@ -10,11 +10,10 @@ namespace stdsharp::reflection
 
     namespace details
     {
-        template<auto Literal>
+        template<::std::convertible_to<::std::u8string_view> auto Literal>
         struct member_t : functional::nodiscard_tag_t
         {
-            static constexpr ::std::string_view name = //
-                {::std::ranges::begin(Literal), ::std::ranges::end(Literal)};
+            static constexpr ::std::u8string_view name = Literal;
         };
 
         template<typename>
@@ -31,7 +30,7 @@ namespace stdsharp::reflection
             template<typename T>
                 requires requires
                 {
-                    requires ::std::ranges::equal(Literal, "first");
+                    requires static_cast<::std::u8string_view>(Literal) == u8"first";
                     is_std_pair<::std::remove_cvref_t<T>>{};
                 }
             constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).first; }
@@ -39,7 +38,7 @@ namespace stdsharp::reflection
             template<typename T>
                 requires requires
                 {
-                    requires ::std::ranges::equal(Literal, "second");
+                    requires static_cast<::std::u8string_view>(Literal) == u8"second";
                     is_std_pair<::std::remove_cvref_t<T>>{};
                 }
             constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).second; }
@@ -49,41 +48,36 @@ namespace stdsharp::reflection
         struct member_function_t : details::member_t<Literal>
         {
         };
-
-        template<typename LiteralT>
-        concept comparable_literal = requires(LiteralT literal)
-        {
-            ::std::ranges::equal(literal, "");
-            ::std::ranges::equal("", literal);
-            ::std::ranges::equal(literal, literal);
-        };
     }
 
-    template<details::comparable_literal auto Literal>
+    template<auto Literal>
     using member_t = details::member_t<Literal>;
 
-    template<details::comparable_literal auto Literal>
+    template<auto Literal>
     inline constexpr auto member = functional::tagged_cpo<member_t<Literal>>;
 
-    template<details::comparable_literal auto Literal>
+    template<auto Literal>
     using data_member_t = details::data_member_t<Literal>;
 
-    template<details::comparable_literal auto Literal>
+    template<auto Literal>
     inline constexpr auto data_member = functional::tagged_cpo<data_member_t<Literal>>;
 
-    template<details::comparable_literal auto Literal>
+    template<auto Literal>
     using member_function_t = details::member_function_t<Literal>;
 
-    template<details::comparable_literal auto Literal>
+    template<auto Literal>
     inline constexpr auto member_function = functional::tagged_cpo<member_function_t<Literal>>;
 
     template<typename>
     struct data_members_t;
 
     template<typename T>
-        requires requires { details::is_std_pair<::std::remove_cvref_t<T>>{}; }
-    struct reflection::data_members_t<T>
+        requires requires { details::is_std_pair<T>{}; }
+    struct data_members_t<T>
     {
-        static constexpr auto value = {"first"sv, "second"sv};
+        static constexpr ::std::array value = {u8"first"sv, u8"second"sv};
     };
+
+    template<typename T>
+    inline constexpr const auto& data_members = data_members_t<T>::value;
 }
