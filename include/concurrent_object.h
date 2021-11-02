@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "reflection/reflection.h"
 #include <shared_mutex>
+
+#include "reflection/reflection.h"
+#include "functional/operation.h"
 
 namespace stdsharp
 {
@@ -22,7 +24,8 @@ namespace stdsharp
         constexpr auto& raw() noexcept { return object_; }
 
         template<auto Name>
-            requires(::std::ranges::equal(Name, "raw"))
+            // TODO MSVC ICE WORKAROUND
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"raw"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->raw(); };
@@ -31,7 +34,8 @@ namespace stdsharp
         constexpr auto& raw() const noexcept { return object_; }
 
         template<auto Name>
-            requires(::std::ranges::equal(Name, "raw"))
+            // TODO MSVC ICE WORKAROUND
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"raw"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->raw(); };
@@ -45,7 +49,8 @@ namespace stdsharp
         }
 
         template<auto Name>
-            requires(::std::ranges::equal(Name, "read"))
+            // TODO MSVC ICE WORKAROUND
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"read"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->read(); };
@@ -59,7 +64,8 @@ namespace stdsharp
         }
 
         template<auto Name>
-            requires(::std::ranges::equal(Name, "write"))
+            // TODO MSVC ICE WORKAROUND
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"write"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->write(); };

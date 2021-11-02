@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "type_traits/object.h"
 #include "reflection/reflection.h"
 #include "setter.h"
 #include "getter.h"
@@ -39,7 +38,8 @@ namespace stdsharp::property
         };
 
         template<auto Name>
-            requires(::std::ranges::equal(Name, "set"))
+            // TODO MSVC ICE WORKAROUND
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"set"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return functional::make_invocable_ref(setter_);
@@ -52,7 +52,8 @@ namespace stdsharp::property
         };
 
         template<auto Name>
-            requires(::std::ranges::equal(Name, "get"))
+            // TODO MSVC ICE WORKAROUND
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"get"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return functional::make_invocable_ref(functional::nodiscard_tag, getter_);
@@ -70,10 +71,8 @@ namespace stdsharp::property
         constexpr const_reference operator()() const noexcept(noexcept(get())) { return get(); }
 
         template<typename OtherGetter, typename OtherSetter>
-            requires concepts::weakly_equality_comparable_with<
-                property_member::value_type,
-                getter_value_t<OtherGetter> // clang-format off
-            > // clang-format on
+            requires concepts::
+                weakly_equality_comparable_with<value_type, getter_value_t<OtherGetter>>
         constexpr bool operator==(const property_member<OtherGetter, OtherSetter>& other //
         ) const noexcept(noexcept((*this)() == other()))
         {
@@ -81,10 +80,7 @@ namespace stdsharp::property
         }
 
         template<typename OtherGetter, typename OtherSetter>
-            requires concepts::partial_ordered_with<
-                property_member::value_type,
-                getter_value_t<OtherGetter> // clang-format off
-            > // clang-format on
+            requires concepts::partial_ordered_with<value_type, getter_value_t<OtherGetter>>
         constexpr auto operator<=>(const property_member<OtherGetter, OtherSetter>& other //
         ) const noexcept(noexcept((*this)() <=> other()))
         {
@@ -92,21 +88,21 @@ namespace stdsharp::property
         }
 
         template<typename T>
-            requires concepts::weakly_equality_comparable_with<property_member::value_type, T>
+            requires concepts::weakly_equality_comparable_with<value_type, T>
         constexpr bool operator==(const T& other) const noexcept(noexcept((*this)() == other))
         {
             return (*this)() == other;
         }
 
         template<typename T>
-            requires concepts::partial_ordered_with<property_member::value_type, T>
+            requires concepts::partial_ordered_with<value_type, T>
         constexpr auto operator<=>(const T& other) const noexcept(noexcept((*this)() <=> other))
         {
             return (*this)() <=> other;
         }
 
         template<typename T>
-            requires concepts::weakly_equality_comparable_with<T, property_member::value_type>
+            requires concepts::weakly_equality_comparable_with<T, value_type>
         friend constexpr bool operator==(const T& other, const property_member& instance) //
             noexcept(noexcept(other == instance()))
         {
@@ -114,7 +110,7 @@ namespace stdsharp::property
         }
 
         template<typename T>
-            requires concepts::partial_ordered_with<T, property_member::value_type>
+            requires concepts::partial_ordered_with<T, value_type>
         friend constexpr auto operator<=>(const T& other, const property_member& instance) //
             noexcept(noexcept(other <=> instance()))
         {
