@@ -32,7 +32,8 @@ namespace stdsharp::type_traits
     };
 
     template<auto Func, auto... Args>
-    static constexpr auto invoke_result = ::std::invoke(Func, Args...);
+        requires ::std::invocable<decltype(Func), decltype(Args)...>
+    static constexpr decltype(auto) invoke_result = ::std::invoke(Func, Args...);
 
     template<auto Value>
     inline constexpr auto constant_v = Value;
