@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "type_sequence.h"
-
 namespace stdsharp::type_traits
 {
     struct unique_object
