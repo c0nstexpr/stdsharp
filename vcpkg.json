@@ -4,7 +4,6 @@
   "dependencies": [
     "fmt",
     "range-v3",
-    "ms-gsl",
-    "icu"
+    "ms-gsl"
   ]
 }

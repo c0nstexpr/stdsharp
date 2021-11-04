@@ -7,6 +7,8 @@ include(cmake/CCache.cmake)
 include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
 function(verbose_message content)
     if (VERBOSE_OUTPUT)
         message(STATUS ${content})

@@ -21,13 +21,12 @@ add_library(stdsharp::utility ALIAS std_sharp_utility)
 #
 # Model project dependencies 
 #
-find_package(icu)
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 
 target_link_libraries(
     std_sharp_utility
-    INTERFACE icu fmt::fmt range-v3::range-v3
+    INTERFACE fmt::fmt range-v3::range-v3
 )
 
 verbose_message("Successfully added all dependencies and linked against them.")
