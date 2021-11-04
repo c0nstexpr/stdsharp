@@ -62,7 +62,7 @@ namespace stdsharp::test::property
                         tuple{
                             pair(ref(value_s), 42),
                             pair(ref(mutable_s), 69),
-                            pair{member(reflection::member_t<u8"set"_ltr>{}), 32} //
+                            pair{member(reflection::member_t<"set"_ltr>{}), 32} //
                         };
                 };
             };

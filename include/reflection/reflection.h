@@ -10,10 +10,10 @@ namespace stdsharp::reflection
 
     namespace details
     {
-        template<::std::convertible_to<::std::u8string_view> auto Literal>
+        template<::std::convertible_to<::std::string_view> auto Literal>
         struct member_t : functional::nodiscard_tag_t
         {
-            static constexpr ::std::u8string_view name = Literal;
+            static constexpr ::std::string_view name = Literal;
         };
 
         template<typename>
@@ -30,7 +30,7 @@ namespace stdsharp::reflection
             template<typename T>
                 requires requires
                 {
-                    requires static_cast<::std::u8string_view>(Literal) == u8"first";
+                    requires static_cast<::std::string_view>(Literal) == "first";
                     is_std_pair<::std::remove_cvref_t<T>>{};
                 }
             constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).first; }
@@ -38,7 +38,7 @@ namespace stdsharp::reflection
             template<typename T>
                 requires requires
                 {
-                    requires static_cast<::std::u8string_view>(Literal) == u8"second";
+                    requires static_cast<::std::string_view>(Literal) == "second";
                     is_std_pair<::std::remove_cvref_t<T>>{};
                 }
             constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).second; }
@@ -75,7 +75,7 @@ namespace stdsharp::reflection
         requires requires { details::is_std_pair<T>{}; }
     struct data_members_t<T>
     {
-        static constexpr ::std::array value = {u8"first"sv, u8"second"sv};
+        static constexpr ::std::array value = {"first"sv, "second"sv};
     };
 
     template<typename T>

@@ -39,7 +39,7 @@ namespace stdsharp::property
 
         template<auto Name>
             // TODO MSVC ICE WORKAROUND
-            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"set"_ltr>)
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, "set"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return functional::make_invocable_ref(setter_);
@@ -53,7 +53,7 @@ namespace stdsharp::property
 
         template<auto Name>
             // TODO MSVC ICE WORKAROUND
-            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"get"_ltr>)
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, "get"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return functional::make_invocable_ref(functional::nodiscard_tag, getter_);

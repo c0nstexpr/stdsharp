@@ -25,7 +25,7 @@ namespace stdsharp
 
         template<auto Name>
             // TODO MSVC ICE WORKAROUND
-            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"raw"_ltr>)
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, "raw"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->raw(); };
@@ -35,7 +35,7 @@ namespace stdsharp
 
         template<auto Name>
             // TODO MSVC ICE WORKAROUND
-            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"raw"_ltr>)
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, "raw"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->raw(); };
@@ -50,7 +50,7 @@ namespace stdsharp
 
         template<auto Name>
             // TODO MSVC ICE WORKAROUND
-            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"read"_ltr>)
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, "read"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->read(); };
@@ -65,7 +65,7 @@ namespace stdsharp
 
         template<auto Name>
             // TODO MSVC ICE WORKAROUND
-            requires(type_traits::invoke_result<functional::equal_to_v, Name, u8"write"_ltr>)
+            requires(type_traits::invoke_result<functional::equal_to_v, Name, "write"_ltr>)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->write(); };

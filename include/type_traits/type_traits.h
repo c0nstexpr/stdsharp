@@ -102,7 +102,7 @@ namespace stdsharp::type_traits
     };
 
     template<typename Sequence>
-    using to_regular_value_sequence_t = typename take_value_sequence<Sequence>::as_vsequence_t;
+    using to_regular_value_sequence_t = typename take_value_sequence<Sequence>::as_sequence_t;
 
     template<typename Sequence> // clang-format off
     using to_value_sequence_t = typename
@@ -150,37 +150,34 @@ namespace stdsharp::type_traits
     inline namespace literals
     {
         template<::std::size_t Size>
-        struct ltr : ::std::array<char8_t, Size>
+        struct ltr : ::std::array<char, Size>
         {
-            using base = ::std::array<char8_t, Size>;
+            using base = ::std::array<char, Size>;
             using base::base;
 
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays,hicpp-explicit-conversions)
-            constexpr ltr(const char8_t (&arr)[Size]) noexcept: ltr::base(::std::to_array(arr)) {}
+            constexpr ltr(const char (&arr)[Size]) noexcept: ltr::base(::std::to_array(arr)) {}
 
             // NOLINTNEXTLINE(hicpp-explicit-conversions)
-            constexpr ltr(const ::std::array<char8_t, Size>& arr) noexcept: ltr::base(arr) {}
+            constexpr ltr(const ::std::array<char, Size>& arr) noexcept: ltr::base(arr) {}
 
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
-            constexpr ltr& operator=(const char8_t (&arr)[Size]) noexcept
+            constexpr ltr& operator=(const char (&arr)[Size]) noexcept
             {
                 *this = ::std::to_array(arr);
             }
 
-            constexpr ltr& operator=(const ::std::array<char8_t, Size>& arr) noexcept
-            {
-                *this = arr;
-            }
+            constexpr ltr& operator=(const ::std::array<char, Size>& arr) noexcept { *this = arr; }
 
             // NOLINTNEXTLINE(hicpp-explicit-conversions)
-            constexpr operator ::std::u8string_view() const noexcept
+            constexpr operator ::std::string_view() const noexcept
             {
                 return {this->data(), Size - 1};
             }
 
             constexpr auto to_string_view() const noexcept
             {
-                return static_cast<::std::u8string_view>(*this); //
+                return static_cast<::std::string_view>(*this); //
             }
         };
 
