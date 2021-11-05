@@ -43,7 +43,7 @@ namespace stdsharp::fstream
             ) const
             {
                 ::std::ifstream fs{path};
-                return (*this)(fs);
+                return (*this)(container, fs);
             }
 
             template<typename Container = ::std::vector<T>>

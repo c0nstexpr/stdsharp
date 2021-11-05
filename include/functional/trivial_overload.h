@@ -1,7 +1,7 @@
 //
 // Created by BlurringShadow on 2021-10-15.
 //
-
+#pragma once
 #include "functional/invocable_obj.h"
 
 namespace stdsharp::functional

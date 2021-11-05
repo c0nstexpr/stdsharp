@@ -4,9 +4,8 @@
 
 #include <ranges>
 #include <variant>
-
-#include <range/v3/algorithm.hpp>
-#include <range/v3/view/iota.hpp>
+#include <numeric>
+#include <algorithm>
 
 #include "functional/functional.h"
 
@@ -61,7 +60,8 @@ namespace stdsharp::type_traits
             static constexpr auto filtered_indices = []
             {
                 ::std::array<::std::size_t, unique_value_sequence::seq::size> res{
-                    unique_value_sequence::seq::find(Values)...};
+                    unique_value_sequence::seq::find(Values)... //
+                };
                 ::std::sort(res.begin(), res.end());
                 return ::std::pair{res, ::std::unique(res.begin(), res.end()) - res.cbegin()};
             }();
@@ -509,8 +509,7 @@ namespace stdsharp::type_traits
                         res.begin(),
                         [&excepted, &index](const auto v)
                         {
-                            if(::std::ranges::binary_search(excepted, v))
-                                return false;
+                            if(::std::ranges::binary_search(excepted, v)) return false;
                             ++index;
                             return true;
                         } //

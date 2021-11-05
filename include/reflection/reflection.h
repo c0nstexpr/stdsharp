@@ -1,6 +1,8 @@
 //
 // Created by BlurringShadow on 2021-10-20.
 //
+#pragma once
+#include <array>
 
 #include "functional/cpo.h"
 

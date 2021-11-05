@@ -4,6 +4,7 @@
 
 #include <shared_mutex>
 
+#include "type_traits/type_traits.h"
 #include "reflection/reflection.h"
 #include "functional/operation.h"
 
