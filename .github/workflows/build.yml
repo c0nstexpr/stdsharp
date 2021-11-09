@@ -56,6 +56,6 @@ jobs:
 
       - name: Run test
         run: |
-          cd build
+          cd ${{ env.CMAKE_BUILD_DIR }}
           set CTEST_OUTPUT_ON_FAILURE=1
           ctest -C Debug
