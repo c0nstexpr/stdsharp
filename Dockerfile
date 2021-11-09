@@ -1,4 +1,4 @@
-FROM maranov/clang-git
+FROM maranov/clang-git:12
 RUN apk update && apk upgrade && apk --no-cache add build-base cmake ninja zip unzip curl
 
 ENV repo_dir=/home/stdsharp
