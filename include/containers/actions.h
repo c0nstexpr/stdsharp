@@ -31,7 +31,7 @@ namespace stdsharp::containers::actions
             Container& container,
             const decltype(container.cbegin()) iter,
             Args&&... args //
-        ) const noexcept(noexcept(container.emplace(iter, ::std::forward<Args>(args)...)))
+        ) const
         {
             return container.emplace(iter, ::std::forward<Args>(args)...);
         }
@@ -42,7 +42,6 @@ namespace stdsharp::containers::actions
         > // clang-format on
             requires actions::details::associative_like_req<Container>
         constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-            noexcept(noexcept(container.emplace(::std::forward<Args>(args)...)))
         {
             return container.emplace(::std::forward<Args>(args)...);
         }
@@ -62,15 +61,6 @@ namespace stdsharp::containers::actions
                     Args... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-                noexcept( //
-                    concepts::nothrow_invocable<
-                        decltype(actions::emplace),
-                        Container&,
-                        decltype(container.cbegin()),
-                        Args... // clang-format off
-                > && // clang-format on
-                    noexcept(*container.cbegin()) //
-                )
             {
                 return *actions:: //
                     emplace(container, container.cend(), ::std::forward<Args>(args)...);
@@ -90,7 +80,6 @@ namespace stdsharp::containers::actions
                         ::std::same_as<typename ::std::decay_t<Container>::reference>;
                 } // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-                noexcept(noexcept(container.emplace_back(::std::forward<Args>(args)...)))
             {
                 return container.emplace_back(::std::forward<Args>(args)...);
             }
@@ -119,15 +108,6 @@ namespace stdsharp::containers::actions
                     Args... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-                noexcept( //
-                    concepts::nothrow_invocable<
-                        decltype(actions::emplace),
-                        Container&,
-                        decltype(container.cbegin()),
-                        Args... // clang-format off
-                    > && // clang-format on
-                    noexcept(*container.cbegin()) //
-                )
             {
                 return *actions::emplace(
                     container, container.cend(), ::std::forward<Args>(args)...);
@@ -147,7 +127,6 @@ namespace stdsharp::containers::actions
                         ::std::same_as<typename ::std::decay_t<Container>::reference>;
                 } // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-                noexcept(noexcept(container.emplace_front(::std::forward<Args>(args)...)))
             {
                 return container.emplace_front(::std::forward<Args>(args)...);
             }
@@ -172,7 +151,6 @@ namespace stdsharp::containers::actions
                 KeyType // clang-format off
         > // clang-format on
         constexpr auto operator()(Container& container, const KeyType& key) const
-            noexcept(noexcept(container.erase(key)))
         {
             return container.erase(key);
         }
@@ -184,7 +162,6 @@ namespace stdsharp::containers::actions
         > // clang-format on
             requires(!stdsharp::containers::details::std_array<Container>)
         constexpr auto operator()(Container& container, const ValueType& value) const
-            noexcept(noexcept(::std::erase(container, value)))
         {
             return ::std::erase(container, value);
         }
@@ -225,7 +202,6 @@ namespace stdsharp::containers::actions
                 ::std::erase_if(container, ::std::forward<Predicate>(predicate_fn));
             }
         constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
-            noexcept(noexcept(::std::erase_if(container, ::std::forward<Predicate>(predicate_fn))))
         {
             return ::std::erase_if(container, ::std::forward<Predicate>(predicate_fn));
         }
@@ -329,15 +305,15 @@ namespace stdsharp::containers::actions
 
     struct resize_fn
     {
+        template<typename Container>
+        using size_type = ::std::ranges::range_size_t<Container>;
+
         template<sequence_container Container>
-            requires requires(Container container, ::std::ranges::range_size_t<Container> size)
+            requires requires(Container container, size_type<Container> size)
             { // clang-format off
                 { container.resize(size) } -> ::std::same_as<void>; // clang-format on
             }
-        constexpr void operator()(
-            Container& container,
-            ::std::ranges::range_size_t<Container> size //
-        ) const noexcept(noexcept(container.resize(size)))
+        constexpr void operator()(Container& container, size_type<Container> size)
         {
             container.resize(size);
         }
@@ -352,8 +328,9 @@ namespace stdsharp::containers::actions
         template<::std::size_t Count>
         static constexpr auto reserved(Container& container) noexcept(noexcept( //
             functional::optional_invoke(
-                []() noexcept(noexcept(container.reserve(Count))) requires requires
-                { container.reserve(Count); } {
+                []() noexcept(noexcept(container.reserve(Count))) requires requires {
+                    container.reserve(Count);
+                } {
                     ::std::declval<Container&>().reserve(Count); //
                 } // clang-format off
                 )
@@ -361,8 +338,9 @@ namespace stdsharp::containers::actions
         )
         {
             functional::optional_invoke(
-                [&container]() noexcept(noexcept(container.reserve(Count))) requires requires
-                { container.reserve(Count); } {
+                [&container]() noexcept(noexcept(container.reserve(Count))) requires requires {
+                    container.reserve(Count);
+                } {
                     container.reserve(Count); //
                 } //
             );
