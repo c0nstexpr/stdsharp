@@ -20,21 +20,22 @@ jobs:
         os: [ ubuntu-latest, windows-2022 ]
         include:
           - os: windows-2022
-            cmakeOptions: ''
+            cmakeOptions: -DCMAKE_CXX_COMPILER=msvc -DCMAKE_C_COMPILER=clang++-13
           - os: ubuntu-latest
             llvm_ver: 13
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-{{ matrix.llvm_ver }} -DCMAKE_C_COMPILER=clang++-{{ matrix.llvm_ver }}
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-13 -DCMAKE_C_COMPILER=clang++-13
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
 
+      - uses: lukka/get-cmake@latest
+
       - name: Set up Clang
+        if: ${{ runner.os == 'Linux' }}
         uses: egor-tensin/setup-clang@v1
         with:
-          version: {{ matrix.llvm_ver }}
-
-      - uses: lukka/get-cmake@latest
+          version: ${{ matrix.llvm_ver }}
 
       - name: Restore artifacts.
         uses: actions/cache@v2
