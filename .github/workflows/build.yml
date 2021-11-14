@@ -20,11 +20,8 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-2022 ]
         include:
-          - os: windows-2022
-            cmakeOptions: ''
           - os: ubuntu-latest
             llvm_ver: 13
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-13 -DCMAKE_C_COMPILER=clang++-13
     steps:
       - uses: actions/checkout@v2
         with:
@@ -66,7 +63,7 @@ jobs:
 
       - name: Install dependencies and generate project files
         run: |
-          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ${{ matrix.cmakeOptions }}
+          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
 
       - name: Build
         run: |
