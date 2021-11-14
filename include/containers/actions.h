@@ -313,7 +313,7 @@ namespace stdsharp::containers::actions
             { // clang-format off
                 { container.resize(size) } -> ::std::same_as<void>; // clang-format on
             }
-        constexpr void operator()(Container& container, size_type<Container> size)
+        constexpr void operator()(Container& container, const size_type<Container> size) const
         {
             container.resize(size);
         }

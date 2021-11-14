@@ -3,6 +3,7 @@
 #pragma once
 
 #include <shared_mutex>
+#include <mutex>
 
 #include "type_traits/type_traits.h"
 #include "reflection/reflection.h"
@@ -60,7 +61,7 @@ namespace stdsharp
         template<::std::invocable<T&> Func>
         void write(Func&& func)
         {
-            ::std::unique_lock _(mutex_);
+            ::std::unique_lock _{mutex_};
             func(object_);
         }
 
