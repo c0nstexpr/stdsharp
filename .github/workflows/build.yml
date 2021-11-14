@@ -19,32 +19,20 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-2022 ]
         include:
-          - os: windows-latest
+          - os: windows-2022
             cmakeOptions: ''
           - os: ubuntu-latest
             llvm_ver: 13
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-13
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-{{ matrix.llvm_ver }} -DCMAKE_C_COMPILER=clang++-{{ matrix.llvm_ver }}
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
 
-      - name: Cache LLVM and Clang
-        if: runner.os == 'Linux'
-        id: cache-llvm
-        uses: actions/cache@v2
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
         with:
-          path: |
-            ${{ github.workspace }}/llvm
-          key: llvm-${{ matrix.llvm_ver }}
-
-      - name: Install LLVM and Clang
-        if: runner.os == 'Linux'
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "${{ matrix.llvm_ver }}"
-          directory: ${{ github.workspace }}/llvm
-          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+          version: {{ matrix.llvm_ver }}
 
       - uses: lukka/get-cmake@latest
 
