@@ -20,7 +20,7 @@ jobs:
         os: [ ubuntu-latest, windows-2022 ]
         include:
           - os: windows-2022
-            cmakeOptions: -DCMAKE_CXX_COMPILER=msvc -DCMAKE_C_COMPILER=clang++-13
+            cmakeOptions: ''
           - os: ubuntu-latest
             llvm_ver: 13
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-13 -DCMAKE_C_COMPILER=clang++-13
