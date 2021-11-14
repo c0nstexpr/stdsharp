@@ -11,8 +11,9 @@ jobs:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     env:
-      CMAKE_BUILD_DIR: ${{ github.workspace }}/build/
-      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      NINJA_VER: 1.10.2
+      CMAKE_BUILD_DIR: build/
+      VCPKG_ROOT: vcpkg
       VCPKG_ID: '30b217b1ede50f6c27b7234388114f4b0d60a3f7'
     strategy:
       fail-fast: false
@@ -29,7 +30,17 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Restore ninja.
+        uses: actions/cache@v2
+        id: setup-ninja
+        with:
+          path: ${{ github.workspace }}/.ninja
+          key: '1.10.2'
+
       - uses: seanmiddleditch/gha-setup-ninja@master
+        with:
+          version: ${{ steps.setup-ninja.with.NINJA_VER }}
+          destination: ${{ github.workspace }}/.ninja
 
       - name: Set up Clang
         if: ${{ runner.os == 'Linux' }}
