@@ -12,6 +12,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CMAKE_BUILD_DIR: ${{ github.workspace }}/build/
+      LLVM_DIR: ${{ github.workspace }}/.llvm
+      NINJA_DIR: ${{ github.workspace }}/.ninja
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_ID: '30b217b1ede50f6c27b7234388114f4b0d60a3f7'
     strategy:
@@ -19,25 +21,47 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-2022 ]
         include:
-          - os: windows-2022
-            cmakeOptions: ''
           - os: ubuntu-latest
             llvm_ver: 13
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++-13 -DCMAKE_C_COMPILER=clang++-13
+            ninja_ver: 1.10.2
+            cmakeOptions: >
+              -DCMAKE_C_COMPILER=${{ env.LLVM_DIR }}/bin/clang
+              -DCMAKE_CXX_COMPILER=${{ env.LLVM_DIR }}/bin/clang++
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
 
-      - uses: seanmiddleditch/gha-setup-ninja@master
+      - name: Restore ninja
+        if: ${{ runner.os == 'Linux' }}
+        id: cache-ninja
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.NINJA_DIR }}
+          key: ${{ matrix.ninja_ver }}
+
+     - uses: seanmiddleditch/gha-setup-ninja@master
+        with:
+          version: ${{ matrix.ninja_ver }}
+          destination: ${{ env.NINJA_DIR }}
+
+      - name: Restore LLVM
+        if: ${{ runner.os == 'Linux' }}
+        id: cache-llvm
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LLVM_DIR }}
+          key: ${{ matrix.llvm_ver }}
 
       - name: Set up Clang
         if: ${{ runner.os == 'Linux' }}
-        uses: egor-tensin/setup-clang@v1
+        uses: KyleMayes/install-llvm-action@master
         with:
           version: ${{ matrix.llvm_ver }}
+          directory: ${{ env.LLVM_DIR }}
+          cached: ${{steps.cache-llvm.outputs.cache-hit}}
 
-      - name: Restore artifacts.
+      - name: Restore vcpkg installed.
         uses: actions/cache@v2
         with:
           path: |
