@@ -38,6 +38,21 @@ namespace stdsharp::concepts
     concept arithmetic = ::std::is_arithmetic_v<T>;
 
     template<typename T>
+    concept signed_ = ::std::is_signed_v<T>;
+
+    template<typename T>
+    concept unsigned_ = ::std::is_unsigned_v<T>;
+
+    template<typename T>
+    concept signed_integral = signed_<T> && ::std::integral<T>;
+
+    template<typename T>
+    concept unsigned_integral = unsigned_<T> && ::std::integral<T>;
+
+    template<typename T>
+    concept floating_point = ::std::is_floating_point_v<T>;
+
+    template<typename T>
     concept fundamental_array = ::std::is_array_v<T>;
 
     template<typename T, typename U>

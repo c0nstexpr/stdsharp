@@ -189,6 +189,24 @@ namespace stdsharp::type_traits
             return ltr;
         }
     }
+
+    inline constexpr struct
+    {
+        template<typename T>
+        constexpr ::std::make_unsigned_t<T> operator()(const T t)
+        {
+            return static_cast<::std::make_unsigned_t<T>>(t);
+        }
+    } make_unsigned{};
+
+    inline constexpr struct
+    {
+        template<typename T>
+        constexpr ::std::make_signed_t<T> operator()(const T t)
+        {
+            return static_cast<::std::make_signed_t<T>>(t);
+        }
+    } make_signed{};
 }
 
 namespace stdsharp::inline literals

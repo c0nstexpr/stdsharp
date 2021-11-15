@@ -98,7 +98,7 @@ namespace stdsharp::type_traits
         };
 
         template<typename T, typename Comp>
-        static constexpr auto value_comparer(const T& value, Comp& comp = {}) noexcept
+        constexpr auto value_comparer(const T& value, Comp& comp = {}) noexcept
         {
             return ::ranges::overload(
                 [&comp, &value]<typename U> requires ::std::invocable<Comp, U, T> //
