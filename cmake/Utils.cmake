@@ -69,6 +69,7 @@ function(config_interface_lib lib_name)
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
+    target_compile_definitions(${lib_name} INTERFACE "$<$<CONFIG:Debug>:NDEBUG=TRUE>")
 endfunction()
 
 #
@@ -113,6 +114,7 @@ function(config_lib lib_name includes src lib_type)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
+    target_compile_definitions(${lib_name} PUBLIC "$<$<CONFIG:Debug>:NDEBUG=TRUE>")
 endfunction()
 
 #
@@ -146,7 +148,8 @@ function(config_exe exe_name exe_src)
         endif ()
 
         target_link_libraries(${exe_name} PUBLIC ${exe_name}_LIB)
-    endif ()
+        target_compile_definitions(${exe_name} PUBLIC "$<$<CONFIG:Debug>:NDEBUG=TRUE>")
+        endif ()
 endfunction()
 
 #
