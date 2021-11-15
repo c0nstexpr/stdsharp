@@ -5,6 +5,9 @@
 #pragma once
 
 #include <functional>
+
+#include "type_traits/type_traits.h"
+#include "iterator/iterator.h"
 #include "functional/invocable_obj.h"
 
 namespace stdsharp::functional
@@ -174,58 +177,23 @@ namespace stdsharp::functional
 
     inline constexpr ::std::identity identity_v{};
 
-#define BS_UTIL_INCREMENT_DECREMENT_OPERATE(operator_prefix, op, al_op)                     \
-    inline constexpr struct pre_##operator_prefix##crease                                   \
-    {                                                                                       \
-        template<typename T>                                                                \
-            requires ::std::invocable<al_op##_assign, T, ::std::size_t>                     \
-        constexpr decltype(auto) operator()(T& v, const ::std::size_t i = 1) const          \
-            noexcept(concepts::nothrow_invocable<al_op##_assign, T, const ::std::size_t>)   \
-        {                                                                                   \
-            return al_op##_assign_v(v, i);                                                  \
-        }                                                                                   \
-                                                                                            \
-        template<typename T>                                                                \
-            requires(!::std::invocable<al_op##_assign, T, ::std::size_t> && requires(T v) { \
-                op##op v;                                                                   \
-            })                                                                              \
-        constexpr decltype(auto) operator()(T& v, ::std::size_t i = 1) const                \
-            noexcept(noexcept(op##op v))                                                    \
-        {                                                                                   \
-            for(; i > 0; --i) op##op v;                                                     \
-            return v;                                                                       \
-        }                                                                                   \
-    } pre_##operator_prefix##crease_v{};                                                    \
-                                                                                            \
-    inline constexpr struct post_##operator_prefix##crease : nodiscard_tag_t                \
-    {                                                                                       \
-        template<typename T>                                                                \
-            requires ::std::invocable<al_op##_assign, T, ::std::size_t>                     \
-        [[nodiscard]] constexpr auto operator()(T& v, const ::std::size_t i = 1) const      \
-            noexcept(concepts::nothrow_invocable<al_op##_assign, T&, const ::std::size_t>)  \
-        {                                                                                   \
-            const auto old = v;                                                             \
-            al_op##_assign_v(v, i);                                                         \
-            return old;                                                                     \
-        }                                                                                   \
-                                                                                            \
-        template<typename T>                                                                \
-            requires(                                                                       \
-                !::std::invocable<al_op##_assign, T, ::std::size_t> &&                      \
-                requires(T v)                                                               \
-                {                                                                           \
-                    op##op v;                                                               \
-                    v op##op;                                                               \
-                })                                                                          \
-        [[nodiscard]] constexpr auto operator()(T& v, ::std::size_t i = 1) const            \
-            noexcept(noexcept(v op##op) && noexcept(op##op v))                              \
-        {                                                                                   \
-            if(i == 0) return v op##op;                                                     \
-                                                                                            \
-            const auto old = v;                                                             \
-            for(; i > 0; --i) op##op v;                                                     \
-            return old;                                                                     \
-        }                                                                                   \
+#define BS_UTIL_INCREMENT_DECREMENT_OPERATE(operator_prefix, op, al_op)                            \
+    inline constexpr struct pre_##operator_prefix##crease                                          \
+    {                                                                                              \
+        template<::std::weakly_incrementable T>                                                    \
+        constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(op##op v))               \
+        {                                                                                          \
+            return op##op v;                                                                       \
+        }                                                                                          \
+    } pre_##operator_prefix##crease_v{};                                                           \
+                                                                                                   \
+    inline constexpr struct post_##operator_prefix##crease : nodiscard_tag_t                       \
+    {                                                                                              \
+        template<iterator::weakly_decrementable T>                                                 \
+        [[nodiscard]] constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(v op##op)) \
+        {                                                                                          \
+            return v op##op;                                                                       \
+        }                                                                                          \
     } post_##operator_prefix##crease_v{};
 
     BS_UTIL_INCREMENT_DECREMENT_OPERATE(in, +, plus)
@@ -233,29 +201,42 @@ namespace stdsharp::functional
 
 #undef BS_UTIL_INCREMENT_DECREMENT_OPERATE
 
-    inline constexpr struct advance : nodiscard_tag_t
+    namespace details
     {
-        template<typename T, typename Distance>
-            requires ::std::invocable<plus_assign, T, Distance>
-        constexpr decltype(auto) operator()(T& v, Distance&& distance) const
-            noexcept(concepts::nothrow_invocable<plus_assign, T&, Distance>)
+        struct advance_by_op
         {
-            return plus_assign_v(v, ::std::forward<Distance>(distance));
-        }
+            template<typename T, concepts::unsigned_ Distance = ::std::iter_difference_t<T>>
+                requires ::std::invocable<pre_increase, T>
+            constexpr decltype(auto) operator()(T& v, Distance distance) const //
+                noexcept(concepts::nothrow_invocable<pre_increase, T>)
+            {
+                if(distance == 0) return v;
+                for(; distance > 0; --distance) pre_increase_v(v);
+                return v;
+            }
 
-        template<typename T, typename Distance>
-            requires(
-                !::std::invocable<plus_assign, T, Distance> && //
-                ::std::invocable<pre_increase, T, Distance> && //
-                ::std::invocable<pre_decrease, T, Distance>)
-        constexpr decltype(auto) operator()(T& v, const Distance& distance) const //
-            noexcept( //
-                noexcept(
-                    pre_increase_v(v, distance), pre_decrease_v(v, distance) // clang-format off
+            template<typename T, concepts::signed_ Distance = ::std::iter_difference_t<T>>
+                requires( //
+                    ::std::invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>>&& //
+                    ::std::invocable<pre_decrease, T> //
+                )
+            constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept( //
+                noexcept( //
+                    concepts::
+                        nothrow_invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>>&&
+                            concepts::nothrow_invocable<pre_decrease, T> // clang-format off
                 ) // clang-format on
             )
-        {
-            return distance > 0 ? pre_increase_v(v, distance) : pre_decrease_v(v, -distance);
-        }
+            {
+                if(distance >= 0) return (*this)(v, type_traits::make_unsigned(distance));
+
+                for(; distance < 0; ++distance) pre_decrease_v(v);
+                return v;
+            }
+        };
+    }
+
+    inline constexpr struct advance : ::ranges::overloaded<plus_assign, details::advance_by_op>
+    {
     } advance_v{};
 }
