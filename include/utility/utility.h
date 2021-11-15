@@ -62,7 +62,7 @@ namespace stdsharp::utility
 
         public:
             [[nodiscard]] constexpr auto operator()(U&& x) const noexcept
-                -> decltype(::std::declval<type_traits::const_ref_align_t<T, deduce_helper>>().m)
+                -> decltype(::std::declval<type_traits::const_ref_align_t<T&&, deduce_helper>>().m)
             {
                 return utility::auto_cast(x);
             }
@@ -73,7 +73,7 @@ namespace stdsharp::utility
         {
             template<typename U>
             [[nodiscard]] constexpr auto operator()(U&& x) const noexcept
-                -> type_traits::const_ref_align_t<T, ::std::remove_reference_t<U>>
+                -> type_traits::const_ref_align_t<T&&, ::std::remove_reference_t<U>>
             {
                 return utility::auto_cast(x);
             }
@@ -98,6 +98,6 @@ namespace stdsharp::utility
         forward_like<
             T,
             ::std::conditional_t<::std::same_as<U, void>, void, U> // clang-format off
-            >(::std::declval<U>()) // clang-format on
+        >(::std::declval<U>()) // clang-format on
     );
 }

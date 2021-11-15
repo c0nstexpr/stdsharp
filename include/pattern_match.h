@@ -44,17 +44,17 @@ namespace stdsharp
 
                 template<typename Case>
                 static constexpr bool case_nothrow_invocable_ =
-                    !::std::invocable<Case, from_type_fn::condition_type_identity> ||
-                    concepts::nothrow_invocable<Case, from_type_fn::condition_type_identity>;
+                    !::std::invocable<Case, condition_type_identity> ||
+                    concepts::nothrow_invocable<Case, condition_type_identity>;
 
             public:
                 template<typename... Cases>
                 constexpr auto operator()(Cases... cases) const
-                    noexcept((from_type_fn::case_nothrow_invocable_<Cases> && ...))
+                    noexcept((case_nothrow_invocable_<Cases> && ...))
                 {
                     (
                         [](Cases&& c) // clang-format off
-                            noexcept(from_type_fn::case_nothrow_invocable_<Cases>) // clang-format on
+                            noexcept(case_nothrow_invocable_<Cases>) // clang-format on
                         {
                             if constexpr(::std::invocable<Cases, condition_type_identity>)
                             {

@@ -174,53 +174,6 @@ namespace stdsharp::containers
              (::std::movable<OtherMemberType> && ...) && //
                  ::std::movable<ContainerType> && concepts::copy_assignable<ContainerType>);
 
-        template<typename ContainerType, typename ValueType, typename Allocator>
-        struct container_special_member_req :
-            ::std::bool_constant<
-                details::container_special_member<ContainerType, ValueType, Allocator>>
-        {
-        };
-
-        template<typename ContainerType, typename ValueType, typename Allocator>
-            requires requires
-            {
-                typename ContainerType::key_compare;
-                typename ContainerType::value_compare;
-                typename ContainerType::key_type;
-            }
-        struct container_special_member_req<ContainerType, ValueType, Allocator> :
-            ::std::bool_constant< //
-                details::container_special_member<
-                    ContainerType,
-                    ValueType,
-                    Allocator,
-                    typename ContainerType::key_compare,
-                    typename ContainerType::value_compare // clang-format off
-                >
-            > // clang-format on
-        {
-        };
-
-        template<typename ContainerType, typename ValueType, typename Allocator>
-            requires requires
-            {
-                typename ContainerType::key_equal;
-                typename ContainerType::hasher;
-                typename ContainerType::key_type;
-            }
-        struct container_special_member_req<ContainerType, ValueType, Allocator> :
-            ::std::bool_constant< //
-                details::container_special_member<
-                    ContainerType,
-                    ValueType,
-                    Allocator,
-                    typename ContainerType::key_equal,
-                    typename ContainerType::hasher // clang-format off
-                >
-            > // clang-format on
-        {
-        };
-
         template<
             typename ContainerType,
             typename ValueType = typename ContainerType::value_type,
@@ -234,7 +187,6 @@ namespace stdsharp::containers
         > // clang-format on
         concept container_req =
             container_erasable<ContainerType> && ::std::ranges::forward_range<ContainerType> && //
-            details::container_special_member_req<ContainerType, ValueType, Allocator>::value &&
             (!::std::equality_comparable<ValueType> ||
              ::std::equality_comparable<ContainerType>)&& //
             ::std::same_as<ValueType, ::std::ranges::range_value_t<ContainerType>> && //
@@ -252,6 +204,34 @@ namespace stdsharp::containers
              ::std::numeric_limits<DifferenceType>::max()) && // clang-format off
             requires(const ContainerType instance)
             {
+                requires requires
+                {
+                    typename ContainerType::key_compare;
+                    typename ContainerType::value_compare;
+                    typename ContainerType::key_type;
+
+                    requires details::container_special_member<
+                        ContainerType,
+                        ValueType,
+                        Allocator,
+                        typename ContainerType::key_compare,
+                        typename ContainerType::value_compare
+                    >;
+                } || requires
+                {
+                    typename ContainerType::key_equal;
+                    typename ContainerType::hasher;
+                    typename ContainerType::key_type;
+                    requires details::container_special_member<
+                        ContainerType,
+                        ValueType,
+                        Allocator,
+                        typename ContainerType::key_equal,
+                        typename ContainerType::hasher
+                    >;
+                } ||
+                details::container_special_member<ContainerType, ValueType, Allocator>;
+
                 { instance.cbegin() } -> ::std::same_as<ConstIter>;
                 { instance.cend() } -> ::std::same_as<ConstIter>;
             } &&
