@@ -14,7 +14,7 @@ jobs:
       NINJA_VER: 1.10.2
       CMAKE_BUILD_DIR: build/
       VCPKG_ROOT: vcpkg
-      VCPKG_ID: '30b217b1ede50f6c27b7234388114f4b0d60a3f7'
+      VCPKG_ID: 'a2fcb03749ff5897b5985092934dc6057680c789'
     strategy:
       fail-fast: false
       matrix:
@@ -57,9 +57,9 @@ jobs:
         uses: lukka/run-vcpkg@v10
         with:
           vcpkgGitCommitId: ${{ env.VCPKG_ID }}
-          appendedCacheKey: ${{ env.VCPKG_ID }}
 
       - uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ runner.os == 'Windows' }}
 
       - name: Install dependencies and generate project files
         run: |
