@@ -1,7 +1,7 @@
+# stdsharp
+
 [![Build](https://github.com/BlurringShadow/stdsharp/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/BlurringShadow/stdsharp/actions/workflows/build.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f08b08ddd5e146c69b39ac5001f06c6a)](https://www.codacy.com/gh/BlurringShadow/stdsharp/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=BlurringShadow/stdsharp&amp;utm_campaign=Badge_Grade)
-
-# stdsharp
 
 Contains commonly used c++ code that not impl or well impl in other libs. This project aim to supplement the c++ standard library with fundamental features. Headers are arranged in accordance with the standard library structure.
 
@@ -26,5 +26,5 @@ Use cmake to build the project
 
 ## License
 
-This project is licensed under the [Unlicense](https://unlicense.org/) - see the
+This project is licensed under the [Unlicense](https://unlicense.org/) license - see the
 [LICENSE](LICENSE) file for details
