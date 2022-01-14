@@ -6,15 +6,15 @@
 
 namespace stdsharp::functional
 {
-    template<typename Tag, typename T, typename... Args>
+    template<typename Tag, typename... Args>
     concept tag_invocable = requires
     {
-        tag_invoke(::std::declval<Tag>(), ::std::declval<T>(), ::std::declval<Args>()...);
+        tag_invoke(::std::declval<Tag>(), ::std::declval<Args>()...);
     };
 
-    template<typename Tag, typename T, typename... Args>
-    concept nothrow_tag_invocable = tag_invocable<Tag, T, Args...> &&
-        noexcept(tag_invoke(::std::declval<Tag>, ::std::declval<T>, ::std::declval<Args>()...));
+    template<typename Tag, typename... Args>
+    concept nothrow_tag_invocable = tag_invocable<Tag, Args...> &&
+        noexcept(tag_invoke(::std::declval<Tag>(), ::std::declval<Args>()...));
 
     namespace details
     {
@@ -35,31 +35,23 @@ namespace stdsharp::functional
 
         struct tag_invoke_fn
         {
-            template<typename Tag, typename T, typename... Args>
-                requires tag_invocable<Tag, T, Args...>
-            constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
-                noexcept(nothrow_tag_invocable<Tag, T, Args...>)
+            template<typename Tag, typename... Args>
+                requires tag_invocable<Tag, Args...>
+            constexpr decltype(auto) operator()(Tag&& tag, Args&&... args) const
+                noexcept(nothrow_tag_invocable<Tag, Args...>)
             {
-                return tag_invoke(
-                    ::std::forward<Tag>(tag),
-                    ::std::forward<T>(t),
-                    ::std::forward<Args>(args)... //
-                );
+                return tag_invoke(::std::forward<Tag>(tag), ::std::forward<Args>(args)...);
             }
         };
 
         struct default_cpo_invoke
         {
-            template<typename Tag, typename T, typename... Args>
-                requires ::std::invocable<Tag, T, Args...>
-            constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const
-                noexcept(concepts::nothrow_invocable<T, Args...>)
+            template<typename Tag, typename... Args>
+                requires ::std::invocable<Tag, Args...>
+            constexpr decltype(auto) operator()(Tag&& tag, Args&&... args) const
+                noexcept(concepts::nothrow_invocable<Tag, Args...>)
             {
-                return ::std::invoke(
-                    ::std::forward<Tag>(tag),
-                    ::std::forward<T>(t),
-                    ::std::forward<Args>(args)... //
-                );
+                return ::std::invoke(::std::forward<Tag>(tag), ::std::forward<Args>(args)...);
             }
         };
     }
