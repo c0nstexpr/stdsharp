@@ -1,15 +1,14 @@
-#include "functional/functional.h"
-#include "functional/operation.h"
+#include "containers/actions.h"
 #include "pattern_match.h"
 
-namespace stdsharp
+namespace stdsharp::functional::symmetric
 {
-    inline constexpr struct symmetric_operation_t
+    struct operation_t
     {
         template<typename T>
-        constexpr auto operator()([[maybe_unused]] const T&) const
+        constexpr auto operator()(const T&) const noexcept
         {
-            constexpr_pattern_match::from_type<T>( //
+            return constexpr_pattern_match::from_type<T>( //
                 [](const ::std::type_identity<::std::plus<>>) noexcept
                 {
                     return functional::minus_v; //
@@ -32,5 +31,7 @@ namespace stdsharp
                 } //
             );
         }
-    } symmetric_operation{};
+    };
+
+    inline constexpr auto operation = functional::tagged_cpo<operation_t>;
 }
