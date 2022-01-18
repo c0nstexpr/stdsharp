@@ -101,10 +101,6 @@ namespace stdsharp::functional
 #undef BS_BIND_REF_OPERATOR
         };
 
-        template<typename Func, typename... T>
-        bind_ref_front_invoker(Func&&, T&&...)
-            -> bind_ref_front_invoker<Func, type_traits::coerce_t<T>...>;
-
         template<typename Proj>
         struct projector
         {
@@ -185,28 +181,31 @@ namespace stdsharp::functional
 
     inline constexpr details::optional_invoke_fn optional_invoke{};
 
-    inline constexpr invocable_obj bind_ref_front(
-        nodiscard_tag,
-        []<typename Func, typename... Args> requires requires //
+    inline constexpr struct : nodiscard_tag_t
+    {
+        template< //
+            typename Func,
+            typename... Args,
+            typename Invoker = details::
+                bind_ref_front_invoker<Func, type_traits::coerce_t<Args>...> // clang-format off
+        > requires (::std::constructible_from<Invoker, Func, type_traits::coerce_t<Args>...> &&
+            (!nodiscard_func_obj<Func> || ::std::move_constructible<Invoker>)) // clang-format on
+        constexpr auto operator()(Func&& func, Args&&... args) const noexcept( //
+            concepts::nothrow_constructible_from<Invoker, Func, type_traits::coerce_t<Args>...> &&
+            (!nodiscard_func_obj<Func> || concepts::nothrow_move_constructible<Invoker>)
+            // clang-format off
+        ) // clang-format on
         {
-            details::bind_ref_front_invoker{::std::declval<Func>(), ::std::declval<Args>()...};
-        } // clang-format off
-        (Func&& func, Args&&... args) noexcept(
-            noexcept(
-                details::
-                    bind_ref_front_invoker{::std::forward<Func>(func),::std::forward<Args>(args)...}
-            )
-        )
-        // clang-format on
-        {
-            auto&& obj = details:: //
-                bind_ref_front_invoker{::std::forward<Func>(func), ::std::forward<Args>(args)...};
+            Invoker obj{
+                ::std::forward<Func>(func),
+                ::ranges::coerce<Args>{}(::std::forward<Args>(args))... //
+            };
 
             if constexpr(nodiscard_func_obj<Func>)
                 return invocable_obj{nodiscard_tag, ::std::move(obj)}; // clang-format off
             else return obj;
-        } // clang-format on
-    );
+        }
+    } bind_ref_front{};
 
     inline constexpr invocable_obj returnable_invoke(
         nodiscard_tag,
