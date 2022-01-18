@@ -168,7 +168,7 @@ namespace stdsharp::containers::actions
 
         template<
             typename Container,
-            ::std::same_as<ranges::const_iterator_t<Container>>... ConstIter
+            ::std::convertible_to<ranges::const_iterator_t<Container>>... ConstIter
             // clang-format off
         > // clang-format on
             requires requires
@@ -185,7 +185,10 @@ namespace stdsharp::containers::actions
             const ConstIter... const_iter_end //
         ) const noexcept(noexcept(container.erase(const_iter_begin, const_iter_end...)))
         {
-            return container.erase(const_iter_begin, const_iter_end...);
+            return container.erase(
+                const_iter_begin,
+                static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
+            );
         }
     };
 
