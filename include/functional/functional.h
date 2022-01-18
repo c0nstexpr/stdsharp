@@ -272,4 +272,6 @@ namespace stdsharp::functional
             return details::projector{::std::forward<Func>(func)}; //
         } //
     );
+
+    inline constexpr
 }
