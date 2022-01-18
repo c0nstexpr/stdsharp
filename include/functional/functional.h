@@ -273,5 +273,12 @@ namespace stdsharp::functional
         } //
     );
 
-    inline constexpr
+    template<::std::size_t N>
+    inline constexpr invocable_obj get_from_param_pack(
+        nodiscard_tag,
+        []<typename... Args>(Args&&... args) noexcept->decltype(auto) //
+        {
+            return ::std::tuple<Args&&...>(args...).get(N); //
+        } //
+    );
 }
