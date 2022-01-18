@@ -7,7 +7,7 @@
 
 #include "type_traits/type_traits.h"
 #include "reflection/reflection.h"
-#include "functional/operation.h"
+#include "functional/operations.h"
 
 namespace stdsharp
 {

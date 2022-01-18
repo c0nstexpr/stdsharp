@@ -23,6 +23,15 @@ namespace stdsharp::functional
         } //
     );
 
+    inline constexpr struct : nodiscard_tag_t
+    {
+        template<::std::copy_constructible T>
+        constexpr T operator()(T&& t)
+        {
+            return t;
+        }
+    } copy{};
+
     namespace details
     {
         struct assign
@@ -172,6 +181,25 @@ namespace stdsharp::functional
     BS_UTIL_ASSIGN_OPERATE(bit_or, |)
     BS_UTIL_ASSIGN_OPERATE(left_shift, <<)
     BS_UTIL_ASSIGN_OPERATE(right_shift, >>)
+
+#undef BS_UTIL_ASSIGN_OPERATE
+
+#define BS_UTIL_ASSIGN_OPERATE(operator_type)                                                 \
+    inline constexpr struct operator_type##_assign                                            \
+    {                                                                                         \
+        template<typename T, typename U>                                                      \
+            requires requires(T l, U&& u) { l = operator_type##_v(l, ::std::forward<U>(u)); } \
+        constexpr decltype(auto) operator()(T& l, U&& u) const                                \
+            noexcept(noexcept((l = operator_type##_v(l, ::std::forward<U>(u)))))              \
+        {                                                                                     \
+            return l = operator_type##_v(l, ::std::forward<U>(u));                            \
+        }                                                                                     \
+    } operator_type##_assign_v{};
+
+    BS_UTIL_ASSIGN_OPERATE(negate)
+    BS_UTIL_ASSIGN_OPERATE(logical_and)
+    BS_UTIL_ASSIGN_OPERATE(logical_not)
+    BS_UTIL_ASSIGN_OPERATE(logical_or)
 
 #undef BS_UTIL_ASSIGN_OPERATE
 

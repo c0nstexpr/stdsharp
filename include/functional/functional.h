@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "functional/operation.h"
+#include "functional/operations.h"
 #include "utility/utility.h"
 
 namespace stdsharp::functional
