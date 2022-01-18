@@ -67,6 +67,17 @@ namespace stdsharp::functional::symmetric
             return bind_ref_front(containers::actions::erase, container, copy(iter));
         }
 
+        template<typename Container, typename... Args>
+            requires ::std::invocable<containers::actions::emplace_back_fn, Container, Args...>
+        [[nodiscard]] constexpr auto operator()(
+            const containers::actions::emplace_back_fn,
+            Container& container,
+            Args&&... //
+        ) const noexcept
+        {
+            return bind_ref_front(containers::actions::pop_back, container);
+        }
+
         template<::std::copy_constructible T, typename... Args>
         [[nodiscard]] constexpr auto operator()(
             const ::std::invocable<T, Args...> auto&,
