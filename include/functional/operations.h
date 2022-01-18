@@ -15,22 +15,18 @@ namespace stdsharp::functional
     template<typename T>
     inline constexpr invocable_obj constructor(
         nodiscard_tag,
-        []<typename... Args>(Args&&... args) // clang-format off
-            noexcept(concepts::nothrow_constructible_from<T, Args...>)
-            -> ::std::enable_if_t<::std::constructible_from<T, Args...>, T> // clang-format on
+        []<typename... Args> // clang-format off
+            requires ::std::constructible_from<T, Args...> // clang-format on
+        (Args&&... args) noexcept(concepts::nothrow_constructible_from<T, Args...>) //
         {
             return T{::std::forward<Args>(args)...}; //
         } //
     );
 
-    inline constexpr struct : nodiscard_tag_t
-    {
-        template<::std::copy_constructible T>
-        constexpr T operator()(T&& t)
-        {
-            return t;
-        }
-    } copy{};
+    inline constexpr invocable_obj copy(
+        nodiscard_tag, //
+        []<::std::copy_constructible T>(T&& t) noexcept -> T { return t; } //
+    );
 
     namespace details
     {
