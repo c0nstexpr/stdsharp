@@ -274,11 +274,13 @@ namespace stdsharp::functional
     );
 
     template<::std::size_t N>
-    inline constexpr invocable_obj get_from_param_pack(
+    inline constexpr invocable_obj get( //
         nodiscard_tag,
-        []<typename... Args>(Args&&... args) noexcept->decltype(auto) //
+        []<typename... Args> // clang-format off
+            requires(N < sizeof...(Args)) // clang-format on
+        (Args&&... args) noexcept->decltype(auto) //
         {
-            return ::std::tuple<Args&&...>(args...).get(N); //
+            return ::std::get<N>(::std::tuple<Args&&...>(args...)); //
         } //
     );
 }
