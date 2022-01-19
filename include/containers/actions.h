@@ -47,7 +47,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto emplace = functional::tagged_cpo<actions::emplace_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::emplace_fn> emplace{};
 
     namespace details
     {
@@ -94,7 +94,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr auto emplace_back = functional::tagged_cpo<actions::emplace_back_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::emplace_back_fn> emplace_back{};
 
     namespace details
     {
@@ -141,7 +141,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr auto emplace_front = functional::tagged_cpo<actions::emplace_front_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::emplace_front_fn> emplace_front;
 
     struct erase_fn
     {
@@ -192,7 +192,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto erase = functional::tagged_cpo<actions::erase_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::erase_fn> erase;
 
     struct erase_if_fn
     {
@@ -210,7 +210,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto erase_if = functional::tagged_cpo<actions::erase_if_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::erase_if_fn> erase_if{};
 
     namespace details
     {
@@ -257,7 +257,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr auto pop_front = functional::tagged_cpo<actions::pop_front_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::pop_front_fn> pop_front{};
 
     namespace details
     {
@@ -304,7 +304,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr auto pop_back = functional::tagged_cpo<actions::pop_back_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::pop_back_fn> pop_back;
 
     struct resize_fn
     {
@@ -322,7 +322,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr auto resize = functional::tagged_cpo<actions::resize_fn>;
+    inline constexpr functional::tagged_cpo_t<actions::resize_fn> resize{};
 
     template<typename Container>
     struct make_container_fn
@@ -379,6 +379,6 @@ namespace stdsharp::containers::actions
     };
 
     template<typename Container>
-    inline constexpr auto make_container =
-        functional::tagged_cpo<actions::make_container_fn<Container>>;
+    inline constexpr functional::tagged_cpo_t<actions::make_container_fn<Container>>
+        make_container{};
 }

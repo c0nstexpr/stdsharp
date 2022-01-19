@@ -57,19 +57,19 @@ namespace stdsharp::reflection
     using member_t = details::member_t<Literal>;
 
     template<auto Literal>
-    inline constexpr auto member = functional::tagged_cpo<member_t<Literal>>;
+    inline constexpr functional::tagged_cpo_t<member_t<Literal>> member{};
 
     template<auto Literal>
     using data_member_t = details::data_member_t<Literal>;
 
     template<auto Literal>
-    inline constexpr auto data_member = functional::tagged_cpo<data_member_t<Literal>>;
+    inline constexpr functional::tagged_cpo_t<data_member_t<Literal>> data_member{};
 
     template<auto Literal>
     using member_function_t = details::member_function_t<Literal>;
 
     template<auto Literal>
-    inline constexpr auto member_function = functional::tagged_cpo<member_function_t<Literal>>;
+    inline constexpr functional::tagged_cpo_t<member_function_t<Literal>> member_function{};
 
     template<typename>
     struct data_members_t;
