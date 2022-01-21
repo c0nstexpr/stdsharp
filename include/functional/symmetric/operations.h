@@ -2,7 +2,7 @@
 #include "functional/functional.h"
 #include "functional/operations.h"
 #include "pattern_match.h"
-#include "type_traits/type_traits.h"
+#include "type_traits/type_sequence.h"
 
 namespace stdsharp::functional::symmetric
 {
@@ -42,7 +42,7 @@ namespace stdsharp::functional::symmetric
         };
     }
 
-    struct operation_t : nodiscard_tag_t
+    struct operation_fn : nodiscard_tag_t
     {
         template<
             typename... Args,
@@ -64,23 +64,28 @@ namespace stdsharp::functional::symmetric
             Args&&... //
         ) const noexcept(concepts::nothrow_copy_constructible<Iter>)
         {
-            return bind_ref_front(containers::actions::erase, container, copy(iter));
+            return bind_ref_front(containers::actions::erase, container, ::std::move(iter));
         }
 
-        template<typename Container, typename... Args>
-            requires ::std::invocable<containers::actions::emplace_back_fn, Container, Args...>
+        template<typename... Args> // clang-format off
+            requires ::std::invocable<
+                containers::actions::emplace_back_fn,
+                typename type_traits::type_sequence<Args...>::template get_t<0>
+            >
         [[nodiscard]] constexpr auto operator()(
             const containers::actions::emplace_back_fn,
-            Container& container,
-            Args&&... //
-        ) const noexcept
+            Args&&... args
+        ) const noexcept // clang-format on
         {
-            return bind_ref_front(containers::actions::pop_back, container);
+            return bind_ref_front(
+                containers::actions::pop_back,
+                functional::get<0>(::std::forward<Args&&>(args)...) //
+            );
         }
 
         template<::std::copy_constructible T, typename... Args>
         [[nodiscard]] constexpr auto operator()(
-            const ::std::invocable<T, Args...> auto&,
+            const ::std::invocable<T&, Args...> auto&,
             T& t,
             Args&&... //
         ) const noexcept(concepts::nothrow_copy_constructible<T>)
@@ -89,5 +94,5 @@ namespace stdsharp::functional::symmetric
         }
     };
 
-    inline constexpr auto operation = tagged_cpo<operation_t>;
+    inline constexpr tagged_cpo_t<operation_fn> operation{};
 }

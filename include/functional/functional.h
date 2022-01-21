@@ -273,14 +273,20 @@ namespace stdsharp::functional
         } //
     );
 
-    template<::std::size_t N>
-    inline constexpr invocable_obj get( //
-        nodiscard_tag,
-        []<typename... Args> // clang-format off
-            requires(N < sizeof...(Args)) // clang-format on
-        (Args&&... args) noexcept->decltype(auto) //
+    namespace detail
+    {
+        template<::std::size_t N>
+        struct get_fn : nodiscard_tag_t
         {
-            return ::std::get<N>(::std::tuple<Args&&...>(args...)); //
-        } //
-    );
+            template<typename... Args>
+                requires(N < sizeof...(Args))
+            [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const noexcept
+            {
+                return ::std::get<N>(::std::tuple<Args&&...>(args...));
+            }
+        };
+    }
+
+    template<::std::size_t N>
+    inline constexpr detail::get_fn<N> get{};
 }

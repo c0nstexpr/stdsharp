@@ -13,11 +13,13 @@ set(header_dir "include")
 set(utility_header_dir "${header_dir}/utility")
 set(containers_header_dir "${header_dir}/containers")
 set(traits_header_dir "${header_dir}/type_traits")
+set(functional_symmetric_header_dir "${header_dir}/functional/symmetric")
 
 set(src_dir "src")
 set(utility_src_dir "${src_dir}/utility")
 set(containers_src_dir "${src_dir}/containers")
 set(traits_src_dir "${src_dir}/type_traits")
+set(functional_symmetric_src_dir "${src_dir}/functional/symmetric")
 
 set(exe_src ${src_dir}/tests.cpp)
 set(
@@ -33,6 +35,7 @@ set(
     ${traits_header_dir}/value_sequence_test.h
     ${traits_header_dir}/type_sequence_test.h
     ${traits_header_dir}/member_test.h
+    ${functional_symmetric_header_dir}/operations_test.h
 )
 set(
     src
@@ -45,6 +48,7 @@ set(
     ${traits_src_dir}/value_sequence_test.cpp
     ${traits_src_dir}/type_sequence_test.cpp
     ${traits_src_dir}/member_test.cpp
+    ${functional_symmetric_src_dir}/operations_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 

@@ -1,4 +1,3 @@
-#include "functional/invocable_obj.h"
 #include "utility/utility_test.h"
 #include "algorithm_test.h"
 #include "pattern_match_test.h"
@@ -8,6 +7,7 @@
 #include "type_traits/value_sequence_test.h"
 #include "type_traits/type_sequence_test.h"
 #include "type_traits/member_test.h"
+#include "functional/symmetric/operations_test.h"
 
 #include "random/random.h"
 #include "fstream/fstream.h"
@@ -25,4 +25,5 @@ int main()
     type_traits::value_sequence_test();
     type_traits::type_sequence_test();
     type_traits::member_test();
+    functional::symmetric::operations_test();
 }
