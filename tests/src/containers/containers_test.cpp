@@ -26,7 +26,7 @@ namespace stdsharp::test::containers
                 static_expect<associative_container<multiset<T>>>();
                 static_expect<associative_container<multimap<T, T>>>();
 
-                constexpr auto associative_vec = associative_container<vec> == false;
+                constexpr auto associative_vec = !associative_container<vec>;
 
                 static_expect<associative_vec>();
 

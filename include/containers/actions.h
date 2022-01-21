@@ -23,12 +23,9 @@ namespace stdsharp::containers::actions
 
     struct emplace_fn
     {
-        template<
-            typename... Args,
-            actions::details::seq_emplace_req<Args...> Container // clang-format off
-        > // clang-format on
+        template<typename... Args>
         constexpr decltype(auto) operator()(
-            Container& container,
+            actions::details::seq_emplace_req<Args...> auto& container,
             const decltype(container.cbegin()) iter,
             Args&&... args //
         ) const
@@ -145,23 +142,25 @@ namespace stdsharp::containers::actions
 
     struct erase_fn
     {
-        template<
-            actions::details::associative_like_req Container,
-            ::std::equality_comparable_with<typename ::std::decay_t<Container>::key_type>
-                KeyType // clang-format off
-        > // clang-format on
-        constexpr auto operator()(Container& container, const KeyType& key) const
+        template<actions::details::associative_like_req Container>
+        constexpr auto operator()(
+            Container& container,
+            const ::std::equality_comparable_with<
+                typename ::std::decay_t<Container>::key_type // clang-format off
+            > auto& key // clang-format on
+        ) const
         {
             return container.erase(key);
         }
 
-        template<
-            sequence_container Container,
-            ::std::equality_comparable_with<typename ::std::decay_t<Container>::value_type>
-                ValueType // clang-format off
-        > // clang-format on
+        template<sequence_container Container>
             requires(!stdsharp::containers::details::std_array<Container>)
-        constexpr auto operator()(Container& container, const ValueType& value) const
+        constexpr auto operator()(
+            Container& container,
+            const ::std::equality_comparable_with<
+                typename ::std::decay_t<Container>::value_type // clang-format off
+            > auto& value // clang-format on
+        ) const
         {
             return ::std::erase(container, value);
         }

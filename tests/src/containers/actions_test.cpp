@@ -30,7 +30,8 @@ namespace stdsharp::test::containers::actions
             stdsharp::containers::actions::emplace_back(v, std::move(value));
             stdsharp::containers::actions::emplace_front(v, std::move(value));
 
-            stdsharp::containers::actions::erase(v, value);
+            // TODO: MSVC bug
+            stdsharp::containers::actions::erase_fn{}(v, value);
             stdsharp::containers::actions::erase(v, iter);
             stdsharp::containers::actions::erase(v, iter, iter);
             stdsharp::containers::actions::erase_if(v, dummy_predicate);
@@ -65,7 +66,8 @@ namespace stdsharp::test::containers::actions
             dummy_predicate_t<pair<const T, int>> dummy_predicate //
         )
         {
-            stdsharp::containers::actions::emplace(v, std::move(value), 0);
+            // TODO: MSVC bug
+            stdsharp::containers::actions::emplace_fn{}(v, std::move(value), 0);
 
             stdsharp::containers::actions::erase(v, value);
             stdsharp::containers::actions::erase(v, iter);
@@ -77,8 +79,9 @@ namespace stdsharp::test::containers::actions
         {
             feature("vector actions") = []<typename T>(const type_identity<T>)
             {
+                constexpr auto v = vec_req<T>;
                 println(fmt::format("current type {}", reflection::type_name<T>()));
-                static_expect<vec_req<T>>();
+                static_expect<v>();
             } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
 
             struct range_as_iterators_params
@@ -133,8 +136,9 @@ namespace stdsharp::test::containers::actions
         {
             feature("unordered map actions") = []<typename T>(const type_identity<T>)
             {
+                constexpr auto v = unordered_map_req<T>;
                 println(fmt::format("current type {}", reflection::type_name<T>()));
-                static_expect<unordered_map_req<T>>();
+                static_expect<v>();
             } | tuple{type_identity<int>{}, type_identity<unique_ptr<long>>{}};
         }
     }
