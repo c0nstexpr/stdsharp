@@ -9,9 +9,13 @@ namespace stdsharp::functional
     template<typename... Fns>
     struct trivial_overload : invocable_obj<Fns>...
     {
+        using invocable_obj<Fns>::invocable_obj...;
+
+        trivial_overload() = default;
+
         template<typename... Args>
         constexpr explicit trivial_overload(Args&&... args) //
-            noexcept((nothrow_constructible_from<invocable_obj<Fns>, Args> && ...)):
+            noexcept((concepts::nothrow_constructible_from<invocable_obj<Fns>, Args> && ...)):
             invocable_obj<Fns>(::std::forward<Args>(args))...
         {
         }

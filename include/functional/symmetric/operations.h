@@ -94,5 +94,5 @@ namespace stdsharp::functional::symmetric
         }
     };
 
-    inline constexpr tagged_cpo_t<operation_fn> operation{};
+    inline constexpr cpo_t<operation_fn> operation{};
 }

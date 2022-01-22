@@ -15,7 +15,7 @@ namespace stdsharp::functional
     };
 
     template<::std::size_t I>
-    inline constexpr tagged_cpo_t<decompose_by_fn<I>> decompose_by{};
+    inline constexpr cpo_t<decompose_by_fn<I>> decompose_by{};
 
     namespace details
     {
