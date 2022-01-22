@@ -1,6 +1,4 @@
 #include "containers/actions.h"
-#include "functional/functional.h"
-#include "functional/operations.h"
 #include "pattern_match.h"
 #include "type_traits/type_sequence.h"
 

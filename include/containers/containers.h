@@ -519,9 +519,12 @@ namespace stdsharp::containers
                 SizeType,
                 Hasher,
                 KeyEqual // clang-format off
-            > && // clang-format on
-            requires(ContainerType instance, ConstIter const_iter, ValueType value)
-        // clang-format off
+            > && 
+            requires(
+                ContainerType instance,
+                ConstIter const_iter,
+                typename ContainerType::value_type value
+            ) 
             {
                 requires !container_emplace_constructible<ContainerType, ValueType> ||
                 (::std::default_initializable<KeyEqual> ?
@@ -630,10 +633,7 @@ namespace stdsharp::containers
     }
 
     template<typename Container>
-    concept reversible_aware_container = requires
-    {
-        requires details::reversible_container_req<::std::decay_t<Container>>;
-    };
+    concept reversible_container = details::reversible_container_req<Container>;
 
     template<typename Container>
     concept allocator_aware_container = requires
