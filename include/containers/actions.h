@@ -40,7 +40,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr functional::cpo_t<emplace_fn> emplace{};
+    inline constexpr functional::cpo_fn<emplace_fn> emplace{};
 
     namespace details
     {
@@ -82,7 +82,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr functional::cpo_t<emplace_back_fn> emplace_back{};
+    inline constexpr functional::cpo_fn<emplace_back_fn> emplace_back{};
 
     namespace details
     {
@@ -128,7 +128,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr functional::cpo_t<emplace_front_fn> emplace_front;
+    inline constexpr functional::cpo_fn<emplace_front_fn> emplace_front;
 
     struct erase_fn
     {
@@ -181,7 +181,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr functional::cpo_t<erase_fn> erase;
+    inline constexpr functional::cpo_fn<erase_fn> erase;
 
     struct erase_if_fn
     {
@@ -199,7 +199,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr functional::cpo_t<erase_if_fn> erase_if{};
+    inline constexpr functional::cpo_fn<erase_if_fn> erase_if{};
 
     namespace details
     {
@@ -246,7 +246,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr functional::cpo_t<pop_front_fn> pop_front{};
+    inline constexpr functional::cpo_fn<pop_front_fn> pop_front{};
 
     namespace details
     {
@@ -293,7 +293,7 @@ namespace stdsharp::containers::actions
     {
     };
 
-    inline constexpr functional::cpo_t<pop_back_fn> pop_back;
+    inline constexpr functional::cpo_fn<pop_back_fn> pop_back;
 
     struct resize_fn
     {
@@ -311,7 +311,7 @@ namespace stdsharp::containers::actions
         }
     };
 
-    inline constexpr functional::cpo_t<resize_fn> resize{};
+    inline constexpr functional::cpo_fn<resize_fn> resize{};
 
     template<typename Container>
     struct make_container_fn
@@ -368,5 +368,5 @@ namespace stdsharp::containers::actions
     };
 
     template<typename Container>
-    inline constexpr functional::cpo_t<make_container_fn<Container>> make_container{};
+    inline constexpr functional::cpo_fn<make_container_fn<Container>> make_container{};
 }
