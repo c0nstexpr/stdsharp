@@ -125,23 +125,7 @@ namespace stdsharp::functional
         struct conditional_invoke_fn
         {
             template<::std::invocable Func>
-                requires(nodiscard_func_obj<Func>&& Condition)
-            [[nodiscard]] constexpr decltype(auto) operator()(Func&& func, const auto&) const
-                noexcept(concepts::nothrow_invocable<Func>)
-            {
-                return func();
-            }
-
-            template<::std::invocable Func>
             requires Condition constexpr decltype(auto) operator()(Func&& func, const auto&) const
-                noexcept(concepts::nothrow_invocable<Func>)
-            {
-                return func();
-            }
-
-            template<::std::invocable Func>
-                requires nodiscard_func_obj<Func>
-            [[nodiscard]] constexpr decltype(auto) operator()(const auto&, Func&& func) const
                 noexcept(concepts::nothrow_invocable<Func>)
             {
                 return func();
@@ -164,14 +148,6 @@ namespace stdsharp::functional
                 return func();
             }
 
-            template<::std::invocable Func>
-                requires nodiscard_func_obj<Func>
-            [[nodiscard]] constexpr decltype(auto) operator()(Func&& func) const
-                noexcept(concepts::nothrow_invocable<Func>)
-            {
-                return func();
-            }
-
             constexpr void operator()(const auto&) noexcept {}
         };
     }
@@ -188,22 +164,16 @@ namespace stdsharp::functional
             typename... Args,
             typename Invoker = details::
                 bind_ref_front_invoker<Func, type_traits::coerce_t<Args>...> // clang-format off
-        > requires (::std::constructible_from<Invoker, Func, type_traits::coerce_t<Args>...> &&
-            (!nodiscard_func_obj<Func> || ::std::move_constructible<Invoker>)) // clang-format on
-        constexpr auto operator()(Func&& func, Args&&... args) const noexcept( //
-            concepts::nothrow_constructible_from<Invoker, Func, type_traits::coerce_t<Args>...> &&
-            (!nodiscard_func_obj<Func> || concepts::nothrow_move_constructible<Invoker>)
-            // clang-format off
-        ) // clang-format on
+        > // clang-format on
+            requires ::std::constructible_from<Invoker, Func, type_traits::coerce_t<Args>...>
+        constexpr Invoker operator()(Func&& func, Args&&... args) const noexcept(
+            concepts::nothrow_constructible_from<Invoker, Func, type_traits::coerce_t<Args>...> //
+        )
         {
-            Invoker obj{
+            return {
                 ::std::forward<Func>(func),
                 ::ranges::coerce<Args>{}(::std::forward<Args>(args))... //
             };
-
-            if constexpr(nodiscard_func_obj<Func>)
-                return invocable_obj{nodiscard_tag, ::std::move(obj)}; // clang-format off
-            else return obj;
         }
     } bind_ref_front{};
 
@@ -272,21 +242,4 @@ namespace stdsharp::functional
             return details::projector{::std::forward<Func>(func)}; //
         } //
     );
-
-    namespace detail
-    {
-        template<::std::size_t N>
-        struct get_fn : nodiscard_tag_t
-        {
-            template<typename... Args>
-                requires(N < sizeof...(Args))
-            [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const noexcept
-            {
-                return ::std::get<N>(::std::tuple<Args&&...>(args...));
-            }
-        };
-    }
-
-    template<::std::size_t N>
-    inline constexpr detail::get_fn<N> get{};
 }

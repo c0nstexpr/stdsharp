@@ -13,14 +13,6 @@ namespace stdsharp::functional
     {
     } nodiscard_tag;
 
-    template<typename T>
-    struct is_nodiscard_func_obj : ::std::bool_constant<::std::derived_from<T, nodiscard_tag_t>>
-    {
-    };
-
-    template<typename T>
-    concept nodiscard_func_obj = is_nodiscard_func_obj<T>::value;
-
     template<typename Invocable, typename = void>
     class invocable_obj : public ::ranges::overloaded<Invocable>
     {

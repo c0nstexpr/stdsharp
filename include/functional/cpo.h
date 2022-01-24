@@ -59,25 +59,20 @@ namespace stdsharp::functional
     public:
         using Tag::Tag;
 
-#define BS_CPO_FN_OPERATOR(const_, ref_, attr, req)                                          \
-    template<typename... T>                                                                  \
-    requires ::std::invocable<fn_t<const_ Tag ref_>, T...> req attr constexpr decltype(auto) \
-        operator()(T&&... t)                                                                 \
-            const_ ref_ noexcept(concepts::nothrow_invocable<fn_t<const_ Tag ref_>, T...>)   \
-    {                                                                                        \
-        return get_fn(static_cast<const_ Tag ref_>(*this))(::std::forward<T>(t)...);         \
+#define BS_CPO_FN_OPERATOR(const_, ref_)                                               \
+    template<typename... T>                                                            \
+        requires ::std::invocable<fn_t<const_ Tag ref_>, T...>                         \
+    constexpr decltype(auto) operator()(T&&... t)                                      \
+        const_ ref_ noexcept(concepts::nothrow_invocable<fn_t<const_ Tag ref_>, T...>) \
+    {                                                                                  \
+        return get_fn(static_cast<const_ Tag ref_>(*this))(::std::forward<T>(t)...);   \
     }
 
-#define BS_CPO_FN_OPERATOR_PACK(const_, ref_, attr, req)                       \
-    BS_CPO_FN_OPERATOR(const_, ref_, [[nodiscard]], &&nodiscard_func_obj<Tag>) \
-    BS_CPO_FN_OPERATOR(const_, ref_, , )
+        BS_CPO_FN_OPERATOR(const, &)
+        BS_CPO_FN_OPERATOR(const, && )
+        BS_CPO_FN_OPERATOR(, &&)
+        BS_CPO_FN_OPERATOR(, & )
 
-        BS_CPO_FN_OPERATOR_PACK(const, &, , )
-        BS_CPO_FN_OPERATOR_PACK(const, &&, , )
-        BS_CPO_FN_OPERATOR_PACK(, &&, , )
-        BS_CPO_FN_OPERATOR_PACK(, &, , )
-
-#undef BS_CPO_FN_OPERATOR_PACK
 #undef BS_CPO_BASE_FN_OPERATOR
     };
 }

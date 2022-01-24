@@ -5,6 +5,8 @@
 #pragma once
 #include <range/v3/action.hpp>
 
+#include "functional/cpo.h"
+#include "functional/functional.h"
 #include "containers/containers.h"
 
 namespace stdsharp::containers::actions
