@@ -157,7 +157,7 @@ namespace stdsharp::functional
 
     inline constexpr details::optional_invoke_fn optional_invoke{};
 
-    inline constexpr struct : nodiscard_tag_t
+    inline constexpr struct
     {
         template< //
             typename Func,

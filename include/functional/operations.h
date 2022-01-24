@@ -83,7 +83,7 @@ namespace stdsharp::functional
 
 
 #define BS_UTIL_SHIFT_OPERATE(direction, operate)                                        \
-    inline constexpr struct direction##_shift : nodiscard_tag_t                          \
+    inline constexpr struct direction##_shift                                            \
     {                                                                                    \
         template<typename T, typename U>                                                 \
             requires requires(T && left, U&& right)                                      \
@@ -186,7 +186,7 @@ namespace stdsharp::functional
         }                                                                                          \
     } pre_##operator_prefix##crease_v{};                                                           \
                                                                                                    \
-    inline constexpr struct post_##operator_prefix##crease : nodiscard_tag_t                       \
+    inline constexpr struct post_##operator_prefix##crease                                         \
     {                                                                                              \
         template<iterator::weakly_decrementable T>                                                 \
         [[nodiscard]] constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(v op##op)) \

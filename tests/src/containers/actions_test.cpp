@@ -1,6 +1,6 @@
 #include "containers/actions_test.h"
 #include "containers/actions.h"
-#include "type_traits/object.h"
+#include "functional/get.h"
 
 namespace stdsharp::test::containers::actions
 {
@@ -96,7 +96,7 @@ namespace stdsharp::test::containers::actions
                 {
                     stdsharp::containers::actions::erase(
                         v_list,
-                        v_list | decompose_to<>(rng_as_iters) | ::ranges::unique,
+                        ::ranges::subrange{v_list} | decompose | ::ranges::unique,
                         v_list.cend() //
                     );
                 };
@@ -107,7 +107,7 @@ namespace stdsharp::test::containers::actions
 
                 println(fmt::format("after first unique operation, values are: {}", v_list));
 
-                v_list | decompose_to<>(rng_as_iters) | std::ranges::sort;
+                ::ranges::subrange{v_list} | decompose | std::ranges::sort;
 
                 println(fmt::format("after sort, values are: {}", v_list));
 
