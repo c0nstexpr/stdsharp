@@ -1,10 +1,7 @@
 #pragma once
 #include <range/v3/functional.hpp>
-#include <type_traits>
-#include <utility>
 
 #include "functional/operations.h"
-#include "utility/utility.h"
 
 namespace stdsharp::functional
 {

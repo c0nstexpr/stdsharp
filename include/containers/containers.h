@@ -73,7 +73,7 @@ namespace stdsharp::containers
         }; // clang-format on
 
     template<typename Container>
-    concept container_erasable = requires
+    concept container_erasable = !details::std_array<Container> && requires
     {
         requires erasable<
             typename ::std::decay_t<Container>::value_type,
@@ -94,7 +94,7 @@ namespace stdsharp::containers
         }; // clang-format on
 
     template<typename Container>
-    concept container_move_insertable = requires
+    concept container_move_insertable = !details::std_array<Container> && requires
     {
         requires move_insertable<
             typename ::std::decay_t<Container>::value_type, // clang-format off
@@ -132,7 +132,7 @@ namespace stdsharp::containers
         }; // clang-format on
 
     template<typename Container, typename... Args>
-    concept container_emplace_constructible = requires
+    concept container_emplace_constructible = !details::std_array<Container> && requires
     {
         requires emplace_constructible<
             typename ::std::decay_t<Container>::value_type,
@@ -662,4 +662,7 @@ namespace stdsharp::containers
     {
         requires details::unordered_associative_container_req<::std::decay_t<Container>>;
     };
+
+    template<typename Predicate, typename Container>
+    concept container_predicatable = ::std::predicate<::std::ranges::range_value_t<Container>>;
 }

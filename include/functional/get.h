@@ -2,6 +2,7 @@
 // Created by BlurringShadow on 2021-10-15.
 //
 #pragma once
+#include "concepts/concepts.hpp"
 #include "functional/cpo.h"
 #include "functional/functional.h"
 #include "range/v3/functional/pipeable.hpp"
@@ -13,7 +14,7 @@
 namespace stdsharp::functional
 {
     template<::std::size_t N>
-    struct pack_get_fn : nodiscard_tag_t
+    struct pack_get_fn
     {
         template<typename... Args>
             requires(N < sizeof...(Args))
@@ -29,19 +30,7 @@ namespace stdsharp::functional
     namespace details
     {
         template<::std::size_t N>
-        struct std_get_fn : nodiscard_tag_t
-        {
-            template<typename T>
-                requires requires { ::std::get<N>(::std::declval<T>()); }
-            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(::std::get<N>(::std::declval<T>())))
-            {
-                return ::std::get<N>(::std::forward<T>(t));
-            }
-        };
-
-        template<::std::size_t N>
-        struct adl_get_fn : nodiscard_tag_t
+        struct get_fn
         {
             template<typename T>
                 requires requires { get<N>(::std::declval<T>()); }
@@ -54,12 +43,29 @@ namespace stdsharp::functional
     }
 
     template<::std::size_t N>
-    struct get_fn : ::ranges::overloaded<details::adl_get_fn<N>, details::std_get_fn<N>>
+    struct get_fn
     {
+        template<typename... Args>
+            requires(
+                ::std::invocable<details::get_fn<N>, Args...> &&
+                !functional::cpo_invocable<get_fn<N>, Args...>)
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(concepts::nothrow_invocable<details::get_fn<N>, Args...>)
+        {
+            return details::get_fn<N>{}(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires functional::cpo_invocable<get_fn<N>, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(functional::cpo_nothrow_invocable<get_fn<N>, Args...>)
+        {
+            return functional::cpo(*this, ::std::forward<Args>(args)...);
+        }
     };
 
     template<::std::size_t N>
-    inline constexpr cpo_fn<get_fn<N>> get{};
+    inline constexpr get_fn<N> get{};
 
     template<::std::size_t N, typename... Args>
     using get_t = decltype(get<N>(::std::declval<Args>()...));
@@ -93,7 +99,6 @@ namespace stdsharp::functional
                     functional::get<I>(::std::forward<U>(u))... //
                 );
             }
-
 
         public:
 #define BS_OPERATOR(const_, ref_)                                                                \
