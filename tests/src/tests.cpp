@@ -20,10 +20,10 @@ int main()
     algorithm::algorithm_test();
     pattern_match_test();
     containers::containers_test();
-    containers::actions::actions_test();
+    actions::actions_test();
     concurrent_object_test();
     type_traits::value_sequence_test();
     type_traits::type_sequence_test();
     type_traits::member_test();
-    functional::symmetric::operations_test();
+    functional::operations_test();
 }

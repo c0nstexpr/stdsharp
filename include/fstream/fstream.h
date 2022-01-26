@@ -48,13 +48,13 @@ namespace stdsharp::fstream
 
             template<typename Container = ::std::vector<T>>
                 requires ::std::invocable<
-                    decltype(containers::actions::emplace_back),
+                    decltype(actions::emplace_back),
                     Container&,
                     T // clang-format off
                 > // clang-format on
             [[nodiscard]] constexpr auto& operator()(Container& container, ::std::istream& is) const
             {
-                while(is) containers::actions::emplace_back(container, get_from_stream<T>(is));
+                while(is) actions::emplace_back(container, get_from_stream<T>(is));
 
                 return container;
             }

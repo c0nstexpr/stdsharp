@@ -498,10 +498,22 @@ namespace stdsharp::type_traits
                 ::std::size_t index = 0;
 
                 ::std::ranges::sort(excepted.begin(), excepted.end());
+// TODO replace with ranges views
+#ifdef _MSC_VER
+                ::std::ranges::copy_if( //
+                    ::std::views::iota(::std::size_t{0}, value_sequence::size),
+                    res.begin(),
+                    [&excepted, &index](const auto v)
+                    {
+                        if(::std::ranges::binary_search(excepted, v)) return false;
+                        ++index;
+                        return true;
+                    } //
+                );
+#else
                 {
                     ::std::array<::std::size_t, value_sequence::size> candidates{};
 
-                    // TODO replace with ranges views
                     ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
 
                     ::std::ranges::copy_if(
@@ -515,6 +527,7 @@ namespace stdsharp::type_traits
                         } //
                     );
                 }
+#endif
                 return ::std::pair{res, index};
             }();
 

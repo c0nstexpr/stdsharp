@@ -2,17 +2,42 @@
 // Created by BlurringShadow on 2021-10-15.
 //
 #pragma once
-#include "concepts/concepts.hpp"
 #include "functional/cpo.h"
 #include "functional/functional.h"
+#include "functional/get.h"
 #include "range/v3/functional/pipeable.hpp"
-#include "range/v3/range_fwd.hpp"
 #include "type_traits/type_traits.h"
-#include <memory>
-#include <utility>
+#include <type_traits>
+
+// TODO: MSVC ADL bug
+// move definition to "functional" namespace
+namespace stdsharp
+{
+    template<::std::size_t N, typename T>
+        requires requires { get<N>(::std::declval<T>()); }
+    constexpr decltype(auto) adl_get(T&& t) noexcept(noexcept(get<N>(::std::declval<T>())))
+    {
+        return get<N>(::std::forward<T>(t));
+    }
+}
 
 namespace stdsharp::functional
 {
+    namespace details
+    {
+        template<::std::size_t N>
+        struct get_fn
+        {
+            template<typename T>
+                requires requires { adl_get<N>(::std::declval<T>()); }
+            constexpr decltype(auto) operator()(T&& t) const
+                noexcept(noexcept(adl_get<N>(::std::declval<T>())))
+            {
+                return adl_get<N>(::std::forward<T>(t));
+            }
+        };
+    }
+
     template<::std::size_t N>
     struct pack_get_fn
     {
@@ -27,108 +52,101 @@ namespace stdsharp::functional
     template<::std::size_t N>
     inline constexpr pack_get_fn<N> pack_get{};
 
-    namespace details
-    {
-        template<::std::size_t N>
-        struct get_fn
-        {
-            template<typename T>
-                requires requires { get<N>(::std::declval<T>()); }
-            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(get<N>(::std::declval<T>())))
-            {
-                return get<N>(::std::forward<T>(t));
-            }
-        };
-    }
-
     template<::std::size_t N>
     struct get_fn
     {
-        template<typename... Args>
-            requires(
-                ::std::invocable<details::get_fn<N>, Args...> &&
-                !functional::cpo_invocable<get_fn<N>, Args...>)
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(concepts::nothrow_invocable<details::get_fn<N>, Args...>)
+        template<typename T>
+            requires(::std::invocable<details::get_fn<N>, T> && !cpo_invocable<get_fn<N>, T>)
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+            noexcept(concepts::nothrow_invocable<details::get_fn<N>, T>)
         {
-            return details::get_fn<N>{}(::std::forward<Args>(args)...);
+            return details::get_fn<N>{}(::std::forward<T>(t));
         }
 
-        template<typename... Args>
-            requires functional::cpo_invocable<get_fn<N>, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(functional::cpo_nothrow_invocable<get_fn<N>, Args...>)
+        template<typename T>
+            requires cpo_invocable<get_fn<N>, T>
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+            noexcept(cpo_nothrow_invocable<get_fn<N>, T>)
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return cpo(*this, ::std::forward<T>(t));
         }
     };
 
     template<::std::size_t N>
     inline constexpr get_fn<N> get{};
 
-    template<::std::size_t N, typename... Args>
-    using get_t = decltype(get<N>(::std::declval<Args>()...));
+    template<::std::size_t N, typename T>
+    using get_t = ::std::invoke_result_t<get_fn<N>, T>;
 
-    inline constexpr struct decompose_fn : ::ranges::pipeable_base
+    template<typename T>
+    using type_size_seq_t = ::std::make_index_sequence<::std::tuple_size_v<::std::decay_t<T>>>;
+
+    inline constexpr struct decompose_fn
+    {
+        template<typename T, ::std::size_t... I, ::std::invocable<get_t<I, T>...> Fn>
+        constexpr auto operator()(
+            T&& t,
+            Fn&& fn,
+            const ::std::index_sequence<I...> //
+        ) const noexcept(concepts::nothrow_invocable<Fn, get_t<I, T>...>) -> decltype(auto)
+        {
+            return ::std::invoke(::std::forward<Fn>(fn), get<I>(::std::forward<T>(t))...);
+        }
+
+        template<typename T, typename Fn>
+            requires ::std::invocable<decompose_fn, T, Fn, type_size_seq_t<T>>
+        constexpr auto operator()(T&& t, Fn&& fn) const
+            noexcept(concepts::nothrow_invocable<decompose_fn, T, Fn, type_size_seq_t<T>>)
+                -> decltype(auto)
+        {
+            return (*this)(::std::forward<T>(t), ::std::forward<Fn>(fn), type_size_seq_t<T>{});
+        }
+    } decompose{};
+
+    inline constexpr struct to_decompose_fn : ::ranges::pipeable_base
     {
         template<typename T>
-        class with_param
+        class bind_t
         {
-            T t_;
+            using value_t = type_traits::coerce_t<T>;
 
-            template<typename U>
-                requires ::std::constructible_from<T, U>
-            constexpr explicit with_param(U&& u) noexcept(
-                concepts::nothrow_constructible_from<T, U>):
-                t_(::std::forward<U>(u))
+            value_t t_;
+
+            template<concepts::decay_same_as<bind_t> This, typename... Args>
+                requires ::std::invocable<bind_t, Args...>
+            friend decltype(auto) operator|(This&& instance, Args&&... args) //
+                noexcept(concepts::nothrow_invocable<bind_t, Args...>)
             {
-            }
-
-            friend struct decompose_fn;
-
-            template<::std::size_t... I, typename U, ::std::invocable<get_t<I, U>...> Fn>
-            static constexpr decltype(auto) impl(
-                Fn&& fn,
-                U&& u,
-                const ::std::index_sequence<I...> // clang-format off
-            ) noexcept(concepts::nothrow_invocable<Fn, get_t<I, T>...>) // clang-format on
-            {
-                return ::std::invoke(
-                    ::std::forward<Fn>(fn),
-                    functional::get<I>(::std::forward<U>(u))... //
-                );
+                return ::std::forward<bind_t>(instance)(std::forward<Args>(args)...);
             }
 
         public:
-#define BS_OPERATOR(const_, ref_)                                                                \
-    template<typename Fn, typename Seq = ::std::make_index_sequence<::std::tuple_size_v<T>>>     \
-    constexpr decltype(auto) operator()(Fn&& fn, const Seq seq = {})                             \
-        const_ ref_ noexcept(noexcept(                                                           \
-            impl(::std::declval<Fn>(), ::std::declval<const_ T ref_>(), seq))) requires requires \
-    {                                                                                            \
-        impl(::std::declval<Fn>(), ::std::declval<const_ T ref_>(), seq);                        \
-    } { return impl(::std::forward<Fn>(fn), static_cast<const_ T ref_>(t_), seq); }              \
-                                                                                                 \
-    template<typename Fn>                                                                        \
-        requires ::std::invocable<const_ with_param ref_, Fn>                                    \
-    constexpr decltype(auto) operator|(Fn&& fn)                                                  \
-        const_ ref_ noexcept(concepts::nothrow_invocable<const_ with_param ref_, Fn>)            \
-    {                                                                                            \
-        return static_cast<const_ with_param ref_>(*this)(::std::forward<Fn>(fn));               \
-    }
+            // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            constexpr bind_t(T&& t) noexcept(concepts::coercable<T>): t_(t) {}
 
-            BS_OPERATOR(const, &)
-            BS_OPERATOR(const, &&)
+#define BS_OPERATOR(const_, ref)                                                              \
+    template<typename... Args>                                                                \
+        requires ::std::invocable<decompose_fn, const_ value_t ref, Args...>                  \
+    constexpr decltype(auto) operator()(Args&&... args)                                       \
+        const_ ref noexcept(concepts::nothrow_invocable<decompose_fn, T, Args...>)            \
+    {                                                                                         \
+        return decompose(static_cast<const_ value_t ref>(t_), ::std::forward<Args>(args)...); \
+    }
             BS_OPERATOR(, &)
+            BS_OPERATOR(const, &)
             BS_OPERATOR(, &&)
+            BS_OPERATOR(const, &&)
+
 #undef BS_OPERATOR
         };
 
+
         template<typename T>
-        constexpr auto operator()(T&& t) const noexcept
+            requires ::std::constructible_from<bind_t<T>, T>
+        [[nodiscard]] constexpr bind_t<T> operator()(T&& t) const
+            noexcept(concepts::nothrow_constructible_from<bind_t<T>, T>)
         {
-            return with_param<T>{::std::forward<T>(t)};
+            return t;
         }
-    } decompose{};
+    } to_decompose{};
 }

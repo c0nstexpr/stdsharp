@@ -1,7 +1,7 @@
 #include "functional/symmetric/operations_test.h"
 #include "functional/symmetric/operations.h"
 
-namespace stdsharp::test::functional::symmetric
+namespace stdsharp::test::functional
 {
     boost::ut::suite& operations_test()
     {
@@ -11,10 +11,7 @@ namespace stdsharp::test::functional::symmetric
             using namespace boost::ut;
             using namespace bdd;
             using namespace utility;
-
-            namespace libfunctional = stdsharp::functional;
-            using namespace libfunctional;
-            using namespace libfunctional::symmetric;
+            using namespace stdsharp::functional;
 
             feature("symmetric operation cpo") = []
             {
@@ -28,9 +25,9 @@ namespace stdsharp::test::functional::symmetric
                     {
                         auto vec = origin;
                         constexpr auto v = 0;
-                        const auto& revert = libfunctional::symmetric::operation_fn{}(
-                            containers::actions::emplace_back, vec, v);
-                        containers::actions::emplace_back(vec, v);
+                        const auto& revert = stdsharp::functional::details::operation_fn{}(
+                            actions::emplace_back, vec, v);
+                        actions::emplace_back(vec, v);
                         revert();
                         expect(std::ranges::equal(origin, vec))
                             << fmt::format("actual vec content{}", vec);

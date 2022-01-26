@@ -664,5 +664,6 @@ namespace stdsharp::containers
     };
 
     template<typename Predicate, typename Container>
-    concept container_predicatable = ::std::predicate<::std::ranges::range_value_t<Container>>;
+    concept container_predicatable =
+        ::std::predicate<Predicate, ::std::ranges::range_value_t<Container>>;
 }

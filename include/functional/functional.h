@@ -1,7 +1,9 @@
 #pragma once
+#include <functional>
 #include <range/v3/functional.hpp>
 
 #include "functional/operations.h"
+#include "range/v3/functional/pipeable.hpp"
 
 namespace stdsharp::functional
 {
@@ -44,7 +46,7 @@ namespace stdsharp::functional
     namespace details
     {
         template<typename Func, typename... T>
-        class bind_ref_front_invoker : ::std::tuple<Func, T...>
+        class bind_ref_front_invoker : ::std::tuple<Func, T...>, public ::ranges::pipeable_base
         {
             using base = ::std::tuple<Func, T...>;
             using base::base;
@@ -61,7 +63,7 @@ namespace stdsharp::functional
                 noexcept(Noexcept_)
             {
                 return ::std::apply(
-                    [&]<typename... U>(U && ... u) noexcept(Noexcept_)->decltype(auto) //
+                    [&args...]<typename... U>(U && ... u) noexcept(Noexcept_)->decltype(auto) //
                     {
                         return ::std::invoke(
                             ::std::forward<U>(u)...,
@@ -173,6 +175,30 @@ namespace stdsharp::functional
             };
         }
     } bind_ref_front{};
+
+    inline constexpr struct
+    {
+        template<typename Func, typename... Args>
+        constexpr auto operator()(Func&& func, Args&&... args) const noexcept
+        {
+            using bind_t = decltype(::std::bind_front(
+                ::std::forward<Func>(func),
+                ::std::forward<Args>(args)... //
+                ));
+
+            struct pipeable_bind_t : bind_t, ::ranges::pipeable_base
+            {
+                using bind_t::bind_t;
+            };
+
+            return pipeable_bind_t{
+                ::std::bind_front(
+                    ::std::forward<Func>(func),
+                    ::std::forward<Args>(args)... // clang-format off
+                ) // clang-format on
+            };
+        }
+    } pipeable_bind_front{};
 
     inline constexpr invocable_obj returnable_invoke(
         nodiscard_tag,

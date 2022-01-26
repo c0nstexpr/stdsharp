@@ -6,14 +6,48 @@
 #include <range/v3/action.hpp>
 
 #include "functional/cpo.h"
+#include "functional/trivial_overload.h"
 #include "functional/functional.h"
 #include "containers/containers.h"
 
-namespace stdsharp::containers::actions
+// TODO: MSVC ADL bug
+// move definition to "functional" namespace
+namespace stdsharp::details
+{
+    struct adl_erase_fn
+    {
+        template<containers::sequence_container Container>
+            requires containers::container_erasable<Container>
+        constexpr auto operator()(
+            Container& container,
+            const ::std::equality_comparable_with<
+                typename ::std::decay_t<Container>::value_type> auto& value //
+        ) const
+        {
+            return erase(container, value);
+        }
+    };
+
+    struct adl_erase_if_fn
+    {
+        template<typename Container, containers::container_predicatable<Container> Predicate>
+            requires requires
+            {
+                erase_if(::std::declval<Container&>(), ::std::declval<Predicate>());
+            }
+        constexpr ::std::ranges::range_size_t<Container>
+            operator()(Container& container, Predicate&& predicate_fn) const
+        {
+            return erase_if(container, ::std::forward<Predicate>(predicate_fn));
+        }
+    };
+}
+
+namespace stdsharp::actions
 {
     namespace details
     {
-        using namespace ranges;
+        using namespace containers;
 
         template<typename Container, typename... Args>
         concept seq_emplace_req =
@@ -23,7 +57,7 @@ namespace stdsharp::containers::actions
         concept associative_like_req =
             associative_container<Container> || unordered_associative_container<Container>;
 
-        struct emplace_fn
+        struct seq_emplace_fn
         {
             template<typename... Args>
             constexpr decltype(auto) operator()(
@@ -34,7 +68,10 @@ namespace stdsharp::containers::actions
             {
                 return container.emplace(iter, ::std::forward<Args>(args)...);
             }
+        };
 
+        struct associative_like_emplace_fn
+        {
             template<associative_like_req Container, typename... Args>
                 requires container_emplace_constructible<Container, Args...>
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
@@ -43,7 +80,12 @@ namespace stdsharp::containers::actions
             }
         };
 
-        struct erase_fn
+        // TODO: MSVC unknown bug
+        // combine these two emplace fn into one
+        using emplace_fn =
+            functional::trivial_overload<seq_emplace_fn, associative_like_emplace_fn>;
+
+        struct default_erase_fn
         {
             template<associative_like_req Container>
                 requires container_erasable<Container>
@@ -56,20 +98,10 @@ namespace stdsharp::containers::actions
                 return container.erase(key);
             }
 
-            template<sequence_container Container>
-                requires container_erasable<Container>
-            constexpr auto operator()(
-                Container& container,
-                const ::std::equality_comparable_with<
-                    typename ::std::decay_t<Container>::value_type> auto& value //
-            ) const
-            {
-                return erase(container, value);
-            }
-
             template<
                 typename Container,
-                ::std::convertible_to<const_iterator_t<Container>>... ConstIter // clang-format off
+                ::std::convertible_to<
+                    ranges::const_iterator_t<Container>>... ConstIter // clang-format off
             > // clang-format on
                 requires container_erasable<Container> && requires
                 {
@@ -84,10 +116,13 @@ namespace stdsharp::containers::actions
             {
                 return container.erase(
                     const_iter_begin,
-                    static_cast<const_iterator_t<Container>>(const_iter_end)... //
+                    static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
                 );
             }
         };
+
+        using erase_fn =
+            functional::trivial_overload<default_erase_fn, stdsharp::details::adl_erase_fn>;
     }
 
     inline constexpr struct emplace_fn
@@ -101,6 +136,26 @@ namespace stdsharp::containers::actions
             return details::emplace_fn{}(::std::forward<Args>(args)...);
         }
 
+        // template<typename... Args>
+        //     requires(!functional::cpo_invocable<emplace_fn, Args...>)
+        // constexpr decltype(auto) operator()(
+        //     details::seq_emplace_req<Args...> auto& container,
+        //     const decltype(container.cbegin()) iter,
+        //     Args&&... args //
+        // ) const
+        // {
+        //     return container.emplace(iter, ::std::forward<Args>(args)...);
+        // }
+
+        // template<details::associative_like_req Container, typename... Args>
+        //     requires(
+        //         containers::container_emplace_constructible<Container, Args...> &&
+        //         !functional::cpo_invocable<emplace_fn, Args...>)
+        // constexpr decltype(auto) operator()(Container& container, Args&&... args) const
+        // {
+        //     return container.emplace(::std::forward<Args>(args)...);
+        // }
+
         template<typename... Args>
             requires functional::cpo_invocable<emplace_fn, Args...>
         constexpr decltype(auto) operator()(Args&&... args) const
@@ -108,6 +163,25 @@ namespace stdsharp::containers::actions
             return functional::cpo(*this, ::std::forward<Args>(args)...);
         }
     } emplace{};
+
+    inline constexpr struct erase_fn
+    {
+        template<typename... Args>
+            requires(
+                ::std::invocable<details::erase_fn, Args...> &&
+                !functional::cpo_invocable<erase_fn, Args...>)
+        constexpr decltype(auto) operator()(Args&&... args) const
+        {
+            return details::erase_fn{}(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires functional::cpo_invocable<erase_fn, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const
+        {
+            return functional::cpo(*this, ::std::forward<Args>(args)...);
+        }
+    } erase{};
 
     namespace details
     {
@@ -117,7 +191,7 @@ namespace stdsharp::containers::actions
                 requires ::std::invocable<
                     actions::emplace_fn,
                     Container&,
-                    const_iterator_t<Container>,
+                    ranges::const_iterator_t<Container>,
                     Args... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
@@ -146,7 +220,7 @@ namespace stdsharp::containers::actions
                 requires ::std::invocable<
                     actions::emplace_fn,
                     Container&,
-                    const_iterator_t<Container>,
+                    ranges::const_iterator_t<Container>,
                     Args... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const
@@ -166,32 +240,6 @@ namespace stdsharp::containers::actions
                 operator()(Container& container, Args&&... args) const
             {
                 return container.emplace_front(::std::forward<Args>(args)...);
-            }
-        };
-
-        struct adl_erase_if_fn
-        {
-            template<typename Container, container_predicatable<Container> Predicate>
-                requires requires
-                {
-                    erase_if(::std::declval<Container&>(), ::std::declval<Predicate>());
-                }
-            constexpr ::std::ranges::range_size_t<Container>
-                operator()(Container& container, Predicate&& predicate_fn) const
-            {
-                return erase_if(container, ::std::forward<Predicate>(predicate_fn));
-            }
-        };
-
-        struct erase_if_fn
-        {
-            template<typename Container, container_predicatable<Container> Predicate>
-            constexpr auto operator()(Container& container, Predicate predicate_fn) const
-            {
-                const auto& it = ::std::remove_if(container.begin(), container.end(), predicate_fn);
-                const auto r = ::std::distance(it, container.cend());
-                erase(container, it, container.cend());
-                return r;
             }
         };
 
@@ -222,27 +270,25 @@ namespace stdsharp::containers::actions
     {
     } emplace_front{};
 
-    inline constexpr struct erase_fn
+    namespace details
     {
-        template<typename... Args>
-            requires(
-                ::std::invocable<details::erase_fn, Args...> &&
-                !functional::cpo_invocable<erase_fn, Args...>)
-        constexpr decltype(auto) operator()(Args&&... args) const
+        struct erase_if_fn
         {
-            return details::erase_fn{}(::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires functional::cpo_invocable<erase_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
-        }
-    } erase{};
+            template<typename Container, container_predicatable<Container> Predicate>
+            constexpr auto operator()(Container& container, Predicate predicate_fn) const
+            {
+                const auto& it = static_cast<ranges::const_iterator_t<Container>>(
+                    ::std::remove_if(container.begin(), container.end(), predicate_fn) //
+                );
+                const auto r = ::std::distance(it, container.cend());
+                erase(container, it, container.cend());
+                return r;
+            }
+        };
+    }
 
     inline constexpr struct erase_if_fn :
-        ::ranges::overloaded<details::adl_erase_if_fn, details::erase_if_fn>
+        ::ranges::overloaded<stdsharp::details::adl_erase_if_fn, details::erase_if_fn>
     {
     } erase_if{};
 
@@ -271,7 +317,7 @@ namespace stdsharp::containers::actions
         {
             template<typename Container>
                 requires ::std::
-                    invocable<actions::erase_fn, Container&, const_iterator_t<Container>>
+                    invocable<actions::erase_fn, Container&, ranges::const_iterator_t<Container>>
             constexpr void operator()(Container& container) const
             {
                 erase(container, container.cbegin());
@@ -289,7 +335,7 @@ namespace stdsharp::containers::actions
         {
             template<typename Container>
                 requires ::std::
-                    invocable<actions::erase_fn, Container&, const_iterator_t<Container>>
+                    invocable<actions::erase_fn, Container&, ranges::const_iterator_t<Container>>
             constexpr void operator()(Container& container) const
             {
                 erase(container, container.cbegin());
