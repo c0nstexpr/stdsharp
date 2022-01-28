@@ -7,7 +7,7 @@
 #include "type_traits/value_sequence_test.h"
 #include "type_traits/type_sequence_test.h"
 #include "type_traits/member_test.h"
-#include "functional/symmetric/operations_test.h"
+#include "functional/symmetric_operations_test.h"
 
 #include "random/random.h"
 #include "fstream/fstream.h"
@@ -25,5 +25,5 @@ int main()
     type_traits::value_sequence_test();
     type_traits::type_sequence_test();
     type_traits::member_test();
-    functional::operations_test();
+    functional::symmetric_operations_test();
 }

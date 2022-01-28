@@ -100,12 +100,12 @@ namespace stdsharp::functional
         using operation_fn = ::ranges::overloaded<specialized_operation_fn, default_operation_fn>;
     }
 
-    inline constexpr struct operation_fn
+    inline constexpr struct symmetric_operation_fn
     {
         template<typename... Args>
             requires(
                 ::std::invocable<details::operation_fn, Args...> &&
-                !cpo_invocable<operation_fn, Args...>)
+                !cpo_invocable<symmetric_operation_fn, Args...>)
         constexpr decltype(auto) operator()(Args&&... args) const
             noexcept(concepts::nothrow_invocable<details::operation_fn, Args...>)
         {
@@ -113,11 +113,11 @@ namespace stdsharp::functional
         }
 
         template<typename... Args>
-            requires cpo_invocable<operation_fn, Args...>
+            requires cpo_invocable<symmetric_operation_fn, Args...>
         constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(cpo_nothrow_invocable<operation_fn, Args...>)
+            noexcept(cpo_nothrow_invocable<symmetric_operation_fn, Args...>)
         {
             return cpo(*this, ::std::forward<Args>(args)...);
         }
-    } operation{};
+    } symmetric_operation{};
 }

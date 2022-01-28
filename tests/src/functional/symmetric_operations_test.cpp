@@ -1,9 +1,9 @@
-#include "functional/symmetric/operations_test.h"
-#include "functional/symmetric/operations.h"
+#include "functional/symmetric_operations_test.h"
+#include "functional/symmetric_operations.h"
 
 namespace stdsharp::test::functional
 {
-    boost::ut::suite& operations_test()
+    boost::ut::suite& symmetric_operations_test()
     {
         static boost::ut::suite suite = []
         {
@@ -15,6 +15,22 @@ namespace stdsharp::test::functional
 
             feature("symmetric operation cpo") = []
             {
+                given("given a int") = [](const int int_v)
+                {
+                    print(fmt::format("{}", int_v));
+
+                    // clang-tidy bug below
+                    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+                    then("assign to 0 and revert back") = [](const int origin)
+                    {
+                        auto v = origin;
+                        const auto& revert = symmetric_operation(assign_v, v, 0);
+                        assign_v(v, 0);
+                        revert();
+                        expect(origin == v) << fmt::format("actual value {}", v);
+                    } | tuple{int_v};
+                } | tuple{1, 2, 3};
+
                 given("given vector<int> instance") = [](const vector<int>& vec)
                 {
                     print(fmt::format("{}", vec));
@@ -25,7 +41,7 @@ namespace stdsharp::test::functional
                     {
                         auto vec = origin;
                         constexpr auto v = 0;
-                        const auto& revert = stdsharp::functional::details::operation_fn{}(
+                        const auto& revert = stdsharp::functional::symmetric_operation(
                             actions::emplace_back, vec, v);
                         actions::emplace_back(vec, v);
                         revert();

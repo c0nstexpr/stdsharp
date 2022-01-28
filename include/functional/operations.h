@@ -25,7 +25,9 @@ namespace stdsharp::functional
 
     inline constexpr invocable_obj copy(
         nodiscard_tag, //
-        []<::std::copy_constructible T>(T&& t) noexcept -> T { return t; } //
+        []<typename T, ::std::copy_constructible DecayT = ::std::decay_t<T>>(T&& t) //
+        noexcept(concepts::nothrow_copy_constructible<DecayT>)
+            ->DecayT { return t; } //
     );
 
     namespace details
@@ -43,12 +45,12 @@ namespace stdsharp::functional
 
         struct assign_by_construct
         {
-            template<typename T, typename... U>
-                requires ::std::constructible_from<::std::remove_reference_t<T>, U...>
+            template<typename T, typename... U, typename ActualT = ::std::remove_reference_t<T>>
+                requires ::std::constructible_from<ActualT, U...>
             constexpr decltype(auto) operator()(T& left, U&&... right) const
-                noexcept(noexcept(left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...}))
+                noexcept(noexcept(left = ActualT{::std::forward<U>(right)...}))
             {
-                return left = ::std::remove_cvref_t<T>{::std::forward<U>(right)...};
+                return left = ActualT{::std::forward<U>(right)...};
             }
         };
     }

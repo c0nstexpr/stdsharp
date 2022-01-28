@@ -3,5 +3,5 @@
 
 namespace stdsharp::test::functional
 {
-    boost::ut::suite& operations_test();
+    boost::ut::suite& symmetric_operations_test();
 }
