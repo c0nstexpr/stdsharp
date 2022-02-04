@@ -231,7 +231,6 @@ namespace stdsharp::concepts
 
     template<typename T>
     concept nothrow_copyable = nothrow_movable<T> && //
-        ::std::copyable<T> && //
         nothrow_copy_constructible<T> && //
         nothrow_assignable_from<
             ::std::add_lvalue_reference_t<T>,
@@ -266,10 +265,7 @@ namespace stdsharp::concepts
     };
 
     template<typename T>
-    concept nothrow_coercable = requires(T&& t)
-    {
-        requires noexcept(::ranges::coerce<T>{}(::std::forward<T>(t)));
-    };
+    concept nothrow_coercable = noexcept(::ranges::coerce<T>{}(::std::declval<T>()));
 
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;
@@ -280,8 +276,7 @@ namespace stdsharp::concepts
 
     template<typename Func, typename... Args> // clang-format off
     concept nothrow_invocable_rnonvoid = nothrow_invocable<Func, Args...> &&
-        not_same_as<::std::invoke_result_t<Func, Args...>, void>;
-    // clang-format on
+        not_same_as<::std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     template<typename Func, typename ReturnT, typename... Args>
     concept invocable_r = ::std::is_invocable_r_v<ReturnT, Func, Args...>;
