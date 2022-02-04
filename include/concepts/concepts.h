@@ -143,6 +143,18 @@ namespace stdsharp::concepts
         }; // clang-format on
 
     template<typename T, typename... Args>
+    concept list_initializable_from = requires
+    {
+        T{::std::declval<Args>()...};
+    };
+
+    template<typename T, typename... Args>
+    concept nothrow_list_initializable_from = requires
+    {
+        requires noexcept(T{::std::declval<Args>()...});
+    };
+
+    template<typename T, typename... Args>
     concept implicitly_constructible_from = ::std::constructible_from<T, Args...> && requires
     {
         ::std::declval<void(const T&)>()({::std::declval<Args>()...});
