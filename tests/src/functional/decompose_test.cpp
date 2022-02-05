@@ -1,14 +1,7 @@
-#include "functional/get_test.h"
-#include "functional/get.h"
+#include "functional/decompose_test.h"
+#include "functional/decompose.h"
 #include "containers/actions.h"
 #include "range/v3/view/subrange.hpp"
-#include <utility>
-
-// TODO: MSVC ADL bug
-// type declarations to prevent compile errors
-using rng = const std::invoke_result_t<::ranges::make_subrange_fn, std::vector<int>&>&;
-using t0 = stdsharp::functional::get_t<0, rng>;
-using t1 = stdsharp::functional::get_t<1, rng>;
 
 namespace stdsharp::test::functional
 {
@@ -18,7 +11,7 @@ namespace stdsharp::test::functional
     using namespace bdd;
     using namespace stdsharp::functional;
 
-    boost::ut::suite& get_test()
+    boost::ut::suite& decompose_test()
     {
         static boost::ut::suite suite = []
         {

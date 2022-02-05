@@ -16,8 +16,8 @@ int main()
 {
     using namespace stdsharp::test;
 
-    utility::utility_test();
-    algorithm::algorithm_test();
+    utility_test();
+    algorithm_test();
     pattern_match_test();
     containers::containers_test();
     actions::actions_test();

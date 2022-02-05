@@ -19,7 +19,7 @@ config_interface_lib(std_sharp_utility)
 add_library(stdsharp::utility ALIAS std_sharp_utility)
 
 #
-# Model project dependencies 
+# Model project dependencies
 #
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)

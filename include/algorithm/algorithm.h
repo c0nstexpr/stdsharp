@@ -1,16 +1,17 @@
 #pragma once
 
 #include <algorithm>
-#include <stdexcept>
 
 #ifndef NDEBUG
     #include <fmt/format.h>
+    #include <stdexcept>
 #endif
 
-#include "functional/functional.h"
+#include "functional/operations.h"
+#include "functional/invoke.h"
 #include "cassert/cassert.h"
 
-namespace stdsharp::algorithm
+namespace stdsharp
 {
     inline constexpr auto set_if = []<typename U, typename T, ::std::predicate<U, T> Comp>
         requires ::std::assignable_from<T&, U&&> // clang-format off
@@ -31,7 +32,7 @@ namespace stdsharp::algorithm
     inline constexpr auto set_if_greater = []<typename T, typename U>
         requires ::std::invocable<decltype(set_if), T&, U, ::std::ranges::greater>
             // clang-format off
-    (T& left, U&& right) // clang-format on
+        (T& left, U&& right) // clang-format on
     noexcept(concepts::nothrow_invocable<decltype(set_if), T&, U, ::std::ranges::greater>)->T&
     {
         return set_if(left, ::std::forward<U>(right), functional::greater_v);
@@ -46,7 +47,7 @@ namespace stdsharp::algorithm
         return set_if(left, ::std::forward<U>(right), functional::less_v);
     };
 
-    inline constexpr functional::invocable_obj is_between(
+    inline constexpr auto is_between = functional::make_trivial_invocables(
         functional::nodiscard_tag,
         []< // clang-format on
             typename T,

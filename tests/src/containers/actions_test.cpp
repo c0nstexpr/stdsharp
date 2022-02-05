@@ -7,9 +7,6 @@ namespace stdsharp::test::actions
     using namespace std::ranges;
     using namespace boost::ut;
     using namespace bdd;
-    using namespace stdsharp::functional;
-    using namespace stdsharp::ranges;
-    using namespace stdsharp::containers;
 
     template<typename T>
     using dummy_predicate_t = bool(const T&);
@@ -76,6 +73,16 @@ namespace stdsharp::test::actions
             println(fmt::format("current type {}", reflection::type_name<T>()));
             static_expect<vec_req<T>>();
         } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
+
+        feature("vector concept checking") = []
+        {
+            using vec = std::vector<int>;
+
+            println(fmt::format("current type {}", reflection::type_name<vec>()));
+            static_expect<containers::sequence_container<vec>>();
+            static_expect<!containers::associative_container<vec>>();
+            static_expect<!containers::unordered_associative_container<vec>>();
+        };
     }
 
     void set_actions_test()
@@ -85,6 +92,15 @@ namespace stdsharp::test::actions
             println(fmt::format("current type {}", reflection::type_name<T>()));
             static_expect<set_req<T>>();
         } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
+
+        feature("set concept checking") = []
+        {
+            using set = std::set<int>;
+
+            println(fmt::format("current type {}", reflection::type_name<set>()));
+            static_expect<containers::associative_container<set>>();
+            static_expect<!containers::sequence_container<set>>();
+        };
     }
 
     void unordered_map_actions_test()
@@ -94,6 +110,15 @@ namespace stdsharp::test::actions
             println(fmt::format("current type {}", reflection::type_name<T>()));
             static_expect<unordered_map_req<T>>();
         } | tuple{type_identity<int>{}, type_identity<unique_ptr<long>>{}};
+
+        feature("unordered map concept checking") = []
+        {
+            using map = std::unordered_map<int, int>;
+
+            println(fmt::format("current type {}", reflection::type_name<map>()));
+            static_expect<containers::unordered_associative_container<map>>();
+            static_expect<!containers::sequence_container<map>>();
+        };
     }
 
     boost::ut::suite& actions_test()

@@ -3,9 +3,8 @@
 #include <filesystem>
 
 #include "containers/actions.h"
-#include "functional/invocable_obj.h"
 
-namespace stdsharp::fstream
+namespace stdsharp
 {
     namespace details
     {

@@ -73,7 +73,7 @@ namespace stdsharp::test::type_traits
 
     template<typename TestSeq>
     constexpr auto remove_at_by_seq_t_feat(
-        boost::ut::reflection::source_location&& sl =
+        const boost::ut::reflection::source_location& sl =
             boost::ut::reflection::source_location::current() // clang-format off
     ) noexcept // clang-format on
     {
@@ -85,7 +85,8 @@ namespace stdsharp::test::type_traits
             {
                 by_seq_t_feat<T, Expect, TestSeq::template remove_at_by_seq_t>(
                     "given indices sequence",
-                    "use indices type as remove_at_by_seq_t template arg, type should be expected",
+                    "use indices type as remove_at_by_seq_t template arg, type should be "
+                    "expected",
                     sl //
                 );
             },
@@ -95,7 +96,7 @@ namespace stdsharp::test::type_traits
 
     template<typename TestSeq>
     constexpr auto append_by_seq_t_feat( //
-        boost::ut::reflection::source_location&& sl =
+        const boost::ut::reflection::source_location& sl =
             boost::ut::reflection::source_location::current() // clang-format off
     ) noexcept // clang-format on
     {
@@ -117,12 +118,14 @@ namespace stdsharp::test::type_traits
                         print(fmt::format("sequence type: {}", reflection::type_name<Seq>()));
 
                         by_seq_t_then<Expect, Seq, TestSeq::template append_by_seq_t>(
-                            "use seq type as append_by_seq_t template arg, type should be expected",
+                            "use seq type as append_by_seq_t template arg, type should be "
+                            "expected",
                             sl //
                         );
 
                         by_seq_t_then<FrontExpect, Seq, TestSeq::template append_front_by_seq_t>(
-                            "use seq type as append_front_by_seq_t template arg, type should be "
+                            "use seq type as append_front_by_seq_t template arg, type should "
+                            "be "
                             "expected",
                             sl //
                         );
@@ -137,7 +140,7 @@ namespace stdsharp::test::type_traits
 
     template<typename TestSeq>
     constexpr auto indexed_by_seq_t_feat( //
-        boost::ut::reflection::source_location&& sl =
+        const boost::ut::reflection::source_location& sl =
             boost::ut::reflection::source_location::current() // clang-format off
     ) noexcept // clang-format on
     {
@@ -149,7 +152,8 @@ namespace stdsharp::test::type_traits
             {
                 by_seq_t_feat<T, Expect, TestSeq::template indexed_by_seq_t>(
                     "given indices sequence",
-                    "use indices type as indexed_by_seq_t template arg, type should be expected",
+                    "use indices type as indexed_by_seq_t template arg, type should be "
+                    "expected",
                     sl //
                 );
             },
@@ -159,7 +163,7 @@ namespace stdsharp::test::type_traits
 
     template<typename TestSeq>
     constexpr auto invoke_feat( //
-        boost::ut::reflection::source_location&& sl =
+        const boost::ut::reflection::source_location& sl =
             boost::ut::reflection::source_location::current() // clang-format off
     ) noexcept // clang-format on
     {
@@ -170,20 +174,24 @@ namespace stdsharp::test::type_traits
         return bind_front(
             []<typename T>(const boost::ut::reflection::source_location& sl, const T)
             {
-                struct fn
-                {
-                    const boost::ut::reflection::source_location sl;
-
-                    auto operator()() const
+                given("given function") = bind_front(
+                    [](const boost::ut::reflection::source_location& sl)
                     {
                         print(fmt::format("function type: {}", reflection::type_name<T>()));
 
-                        then("sequence invoke should be invocable") =
-                            bind_front(&static_expect<invocable<decltype(TestSeq::invoke), T>>, sl);
-                    }
-                };
-
-                given("given function") = fn{sl};
+                        then("sequence invoke should be invocable") = bind_front(
+                            &static_expect< //
+                                invocable<
+                                    typename TestSeq:: // clang-format off
+                                        template invoke_fn<stdsharp::type_traits::empty_t>,
+                                    T
+                                >
+                            >,
+                            sl // clang-format on
+                        );
+                    },
+                    sl //
+                );
             },
             sl //
         );
@@ -191,7 +199,7 @@ namespace stdsharp::test::type_traits
 
     template<typename EmptySeq, typename TestSeq>
     constexpr auto construct_feat( //
-        boost::ut::reflection::source_location&& sl =
+        const boost::ut::reflection::source_location& sl =
             boost::ut::reflection::source_location::current() // clang-format off
     ) noexcept // clang-format on
     {

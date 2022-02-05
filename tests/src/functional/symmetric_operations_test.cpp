@@ -1,5 +1,6 @@
 #include "functional/symmetric_operations_test.h"
 #include "functional/symmetric_operations.h"
+#include "containers/actions.h"
 
 namespace stdsharp::test::functional
 {
@@ -10,8 +11,10 @@ namespace stdsharp::test::functional
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace utility;
             using namespace stdsharp::functional;
+            using namespace stdsharp::containers;
+
+            pack_get<0>(1, 2);
 
             feature("symmetric operation cpo") = []
             {

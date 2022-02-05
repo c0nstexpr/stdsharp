@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <type_traits>
 
-namespace stdsharp::cstdint
+namespace stdsharp
 {
     using i8 = ::std::int8_t; ///< 8-bit signed integer type.
     using u8 = ::std::uint8_t; ///< 8-bit unsigned integer type.
@@ -16,6 +16,24 @@ namespace stdsharp::cstdint
     using u64 = ::std::uint64_t; ///< 64-bit unsigned integer type.
     using ssize_t =
         ::std::make_signed_t<::std::size_t>; ///< Signed integer type corresponding to `size_t`.
+
+    inline constexpr struct
+    {
+        template<typename T>
+        constexpr ::std::make_unsigned_t<T> operator()(const T t)
+        {
+            return static_cast<::std::make_unsigned_t<T>>(t);
+        }
+    } make_unsigned{};
+
+    inline constexpr struct
+    {
+        template<typename T>
+        constexpr ::std::make_signed_t<T> operator()(const T t)
+        {
+            return static_cast<::std::make_signed_t<T>>(t);
+        }
+    } make_signed{};
 
     inline namespace literals
     {

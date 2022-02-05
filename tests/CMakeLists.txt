@@ -35,7 +35,7 @@ set(
     ${traits_header_dir}/value_sequence_test.h
     ${traits_header_dir}/type_sequence_test.h
     ${traits_header_dir}/member_test.h
-    ${functional_header_dir}/get_test.h
+    ${functional_header_dir}/decompose_test.h
     ${functional_header_dir}/symmetric_operations_test.h
 )
 set(
@@ -49,7 +49,7 @@ set(
     ${traits_src_dir}/value_sequence_test.cpp
     ${traits_src_dir}/type_sequence_test.cpp
     ${traits_src_dir}/member_test.cpp
-    ${functional_src_dir}/get_test.cpp
+    ${functional_src_dir}/decompose_test.cpp
     ${functional_src_dir}/symmetric_operations_test.cpp
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")

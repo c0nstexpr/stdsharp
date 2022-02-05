@@ -5,7 +5,7 @@
 #pragma once
 #include <memory>
 
-namespace stdsharp::memory
+namespace stdsharp
 {
     template<typename T>
     concept allocator_req = ::std::copyable<T> && requires

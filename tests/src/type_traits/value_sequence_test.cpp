@@ -13,13 +13,13 @@ namespace stdsharp::test::type_traits
         {
         };
 
-        template<typename Seq, typename Expect>
-        using remove_t_test_params = std::tuple<Seq, Expect>;
-
         template<typename, auto...>
         struct unique_seq_t_test_params
         {
         };
+
+        template<typename Seq, typename Expect>
+        using remove_t_test_params = std::tuple<Seq, Expect>;
     }
 
     template<auto... V>
@@ -36,7 +36,6 @@ namespace stdsharp::test::type_traits
             using namespace literals;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace functional;
             using namespace utility;
 
             using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
@@ -119,7 +118,7 @@ namespace stdsharp::test::type_traits
                 static_expect<default_initializable<test_seq::template transform_t<Functor...>>>();
                 // clang-format off
             } | tuple<
-                regular_value_sequence<identity_v>,
+                regular_value_sequence<::std::identity{}>,
                 regular_value_sequence<
                     [](const int v) mutable { return v + 1; },
                     [](const int v) { return v + 42; },
