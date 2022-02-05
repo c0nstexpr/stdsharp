@@ -3,11 +3,11 @@
 #pragma once
 
 #include <ranges>
-#include <variant>
 #include <numeric>
 #include <algorithm>
 
-#include "functional/functional.h"
+#include "concepts/concepts.h"
+#include "type_traits/core_traits.h"
 
 namespace stdsharp::type_traits
 {
@@ -26,12 +26,12 @@ namespace stdsharp::type_traits
             return [&func](const auto& v) // clang-format off
                 noexcept(concepts::nothrow_predicate<Func, decltype(v)>) // clang-format on
             {
-                return !functional::invoke_r<bool>(func, v); //
+                return !static_cast<bool>(::std::invoke(func, v)); //
             };
         }
     }
 
-    template<auto From, ::std::size_t Size, auto PlusF = functional::plus_v>
+    template<auto From, ::std::size_t Size, auto PlusF = ::std::plus{}>
     using make_value_sequence_t = decltype( //
         details::make_value_sequence<From, PlusF>(::std::make_index_sequence<Size>{}) //
     );
@@ -47,7 +47,7 @@ namespace stdsharp::type_traits
                     make_value_sequence_t<
                         seq::size - 1,
                         seq::size,
-                        functional::minus_v // clang-format off
+                        ::std::minus{} // clang-format off
                     >
             >; // clang-format on
         };
@@ -62,7 +62,9 @@ namespace stdsharp::type_traits
                 ::std::array<::std::size_t, unique_value_sequence::seq::size> res{
                     unique_value_sequence::seq::find(Values)... //
                 };
-                ::std::sort(res.begin(), res.end());
+                ::std::ranges::sort(res);
+
+                // TODO: replace with ranges algorithm
                 return ::std::pair{res, ::std::unique(res.begin(), res.end()) - res.cbegin()};
             }();
 
@@ -78,7 +80,7 @@ namespace stdsharp::type_traits
         };
 
         template<::std::size_t I, auto Value>
-        struct indexed_value : stdsharp::type_traits::constant<Value>
+        struct indexed_value : constant<Value>
         {
             template<::std::size_t J>
                 requires(I == J)
@@ -98,17 +100,32 @@ namespace stdsharp::type_traits
         };
 
         template<typename T, typename Comp>
-        constexpr auto value_comparer(const T& value, Comp& comp = {}) noexcept
+        struct value_comparer
         {
-            return ::ranges::overload(
-                [&comp, &value]<typename U> requires ::std::invocable<Comp, U, T> //
-                (const U& other) // clang-format off
-                    noexcept(concepts::nothrow_invocable_r<Comp, bool, U, T>)
-                { // clang-format on
-                    return functional::invoke_r<bool>(comp, other, value);
-                },
-                [](const auto&) noexcept { return false; } //
-            );
+            const T& value;
+            Comp& comp;
+
+            constexpr value_comparer(const T& value, Comp& comp) noexcept: value(value), comp(comp)
+            {
+            }
+
+            template<typename U>
+                requires ::std::invocable<Comp, U, T>
+            constexpr auto operator()(const U& other) const
+                noexcept(concepts::nothrow_invocable_r<Comp, bool, U, T>)
+            {
+                return static_cast<bool>(::std::invoke(comp, other, value));
+            }
+
+            template<typename U>
+                requires(!::std::invocable<Comp, U, T>)
+            constexpr auto operator()(const U&) const noexcept { return false; }
+        };
+
+        template<typename T, typename Comp>
+        constexpr auto make_value_comparer(const T& value, Comp& comp = {}) noexcept
+        {
+            return value_comparer<T, Comp>(value, comp);
         }
 
         template<typename Proj, typename Func, auto... Values>
@@ -171,14 +188,32 @@ namespace stdsharp::type_traits
 
         using index_seq = typename base::index_seq;
 
-        static constexpr auto invoke = []<typename Func>
-            requires(::std::invocable<Func, decltype(Values)>&&...) // clang-format off
-            (Func&& func) noexcept(
-                (concepts::nothrow_invocable<Func, decltype(Values)> && ...)
-            ) ->decltype(auto) // clang-format on
+        template<typename ResultType = empty_t>
+        struct invoke_fn
         {
-            return functional::merge_invoke<>(::std::bind_front(func, Values)...);
+            template<typename Func>
+                requires requires
+                {
+                    requires(::std::invocable<Func, decltype(Values)> && ...);
+                    requires ::std::constructible_from<
+                        ResultType,
+                        ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
+                    >; // clang-format on
+                }
+            constexpr auto operator()(Func&& func) const noexcept(
+                (concepts::nothrow_invocable<Func, decltype(Values)> && ...) &&
+                concepts::nothrow_constructible_from<
+                    ResultType,
+                    ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
+                > // clang-format on
+            )
+            {
+                return ResultType{::std::invoke(func, Values)...};
+            };
         };
+
+        template<typename ResultType = empty_t>
+        static constexpr invoke_fn<ResultType> invoke{};
 
         template<template<auto...> typename T>
         using apply_t = T<Values...>;
@@ -199,7 +234,7 @@ namespace stdsharp::type_traits
                     return []<auto F>(const type_traits::constant<F>) noexcept
                     {
                         return value_sequence<::std::invoke(F, Values)...>{}; // clang-format off
-                    }(constant<Func...>{});
+                    }(constant<Func>{}...);
                 else return value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
             };
         };
@@ -236,7 +271,7 @@ namespace stdsharp::type_traits
                 {
                     requires ::std::invocable<
                         IfFunc,
-                        decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
+                        details::value_comparer<T, Comp>,
                         Proj // clang-format off
                     >; // clang-format on
                 }
@@ -247,13 +282,13 @@ namespace stdsharp::type_traits
             ) const noexcept( //
                 concepts::nothrow_invocable<
                     IfFunc,
-                    decltype(stdsharp::type_traits::details::value_comparer(v, comp)),
+                    details::value_comparer<T, Comp>,
                     Proj // clang-format off
                 >
             ) // clang-format on
             {
                 return IfFunc::operator()(
-                    details::value_comparer(v, comp),
+                    details::make_value_comparer(v, comp),
                     ::std::forward<Proj>(proj) //
                 );
             } //
@@ -332,7 +367,8 @@ namespace stdsharp::type_traits
                             nothrow_invocable_r<Func, bool, ::std::invoke_result_t<Proj, T>> //
                     )
                 {
-                    if(functional::invoke_r<bool>(func, ::std::invoke(proj, ::std::forward<T>(v))))
+                    if(static_cast<bool>(
+                           ::std::invoke(func, ::std::invoke(proj, ::std::forward<T>(v)))))
                         return false;
                     ++i;
                     return true;
@@ -360,7 +396,7 @@ namespace stdsharp::type_traits
                         concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
-                        if(functional::invoke_r<bool>(func, v)) ++i;
+                        if(static_cast<bool>(::std::invoke(func, v))) ++i;
                         return true;
                     },
                     ::std::forward<Proj>(proj) //
@@ -399,10 +435,12 @@ namespace stdsharp::type_traits
                     concepts::nothrow_invocable_r<Comp, bool, LeftProjected, RightProjected> //
                 )
                 {
-                    return functional::invoke_r<bool>(
-                        comp, //
-                        ::std::invoke(proj, get<I>()),
-                        ::std::invoke(proj, get<I + 1>()) //
+                    return static_cast<bool>( //
+                        ::std::invoke(
+                            comp, //
+                            ::std::invoke(proj, get<I>()),
+                            ::std::invoke(proj, get<I + 1>()) // clang-format off
+                        ) // clang-format on
                     );
                 }
 

@@ -12,10 +12,8 @@ namespace stdsharp::type_traits
         struct reverse_type_sequence_t
         {
             using seq = type_sequence<Types...>;
-            using type = typename seq::template indexed_by_seq_t<make_value_sequence_t<
-                seq::size - 1,
-                seq::size,
-                functional::minus_v> // clang-format off
+            using type = typename seq::template indexed_by_seq_t<
+                make_value_sequence_t<seq::size - 1, seq::size, ::std::minus{}> // clang-format off
             >; // clang-format on
         };
 
@@ -119,7 +117,6 @@ namespace stdsharp::type_traits
     public:
         using typename base::index_seq;
         using base::size;
-        using base::invoke;
         using base::for_each;
         using base::for_each_n;
         using base::find_if;
@@ -140,9 +137,6 @@ namespace stdsharp::type_traits
         template<::std::size_t I>
         using get_t = typename decltype(base::template get<I>())::type;
 
-        template<::std::size_t I>
-        static constexpr auto get = functional::constructor<get_t<I>>;
-
         template<::std::size_t... OtherInts>
         using indexed_t = regular_type_sequence<get_t<OtherInts>...>;
 
@@ -157,6 +151,12 @@ namespace stdsharp::type_traits
 
         template<typename... Others>
         using append_t = regular_type_sequence<Types..., Others...>;
+
+        template<typename T = empty_t>
+        using invoke_fn = typename base::template invoke_fn<T>;
+
+        template<typename T = empty_t>
+        static constexpr invoke_fn invoke{};
 
         template<typename Seq>
         using append_by_seq_t = typename //
