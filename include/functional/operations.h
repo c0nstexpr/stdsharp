@@ -6,29 +6,48 @@
 
 #include <functional>
 
-#include "type_traits/type_traits.h"
 #include "iterator/iterator.h"
-#include "functional/invocable_obj.h"
+#include "functional/invocables.h"
+#include "cstdint/cstdint.h"
 
 namespace stdsharp::functional
 {
     template<typename T>
-    inline constexpr invocable_obj constructor(
-        nodiscard_tag,
-        []<typename... Args> // clang-format off
-            requires ::std::constructible_from<T, Args...> // clang-format on
-        (Args&&... args) noexcept(concepts::nothrow_constructible_from<T, Args...>) //
+    struct constructor_fn
+    {
+        template<typename... Args>
+            requires ::std::constructible_from<T, Args...>
+        [[nodiscard]] constexpr auto operator()(Args&&... args) const
+            noexcept(concepts::nothrow_constructible_from<T, Args...>)
+        {
+            return T(::std::forward<Args>(args)...); //
+        }
+
+        template<typename... Args>
+            requires(
+                !::std::constructible_from<T, Args...> &&
+                concepts::list_initializable_from<T, Args...> //
+            )
+        [[nodiscard]] constexpr auto operator()(Args&&... args) const
+            noexcept(concepts::nothrow_list_initializable_from<T, Args...>)
         {
             return T{::std::forward<Args>(args)...}; //
-        } //
-    );
+        }
+    };
 
-    inline constexpr invocable_obj copy(
-        nodiscard_tag, //
-        []<typename T, ::std::copy_constructible DecayT = ::std::decay_t<T>>(T&& t) //
-        noexcept(concepts::nothrow_copy_constructible<DecayT>)
-            ->DecayT { return t; } //
-    );
+    template<typename T>
+    inline constexpr constructor_fn<T> constructor{};
+
+    inline constexpr struct copy_fn
+    {
+        template<typename T>
+            requires ::std::constructible_from<::std::decay_t<T>, T>
+        [[nodiscard]] constexpr ::std::decay_t<T> operator()(T&& t) const
+            noexcept(concepts::nothrow_constructible_from<::std::decay_t<T>>)
+        {
+            return t;
+        }
+    } copy{};
 
     namespace details
     {
@@ -56,18 +75,17 @@ namespace stdsharp::functional
     }
 
     inline constexpr struct assign :
-        ::ranges::overloaded<details::assign, details::assign_by_construct>,
+        sequenced_invocables<details::assign, details::assign_by_construct>,
         nodiscard_tag_t
     {
     } assign_v{};
 
-
-    inline constexpr ::std ::ranges ::equal_to equal_to_v{};
-    inline constexpr ::std ::ranges ::not_equal_to not_equal_to_v{};
-    inline constexpr ::std ::ranges ::less less_v{};
-    inline constexpr ::std ::ranges ::greater greater_v{};
-    inline constexpr ::std ::ranges ::less_equal less_equal_v{};
-    inline constexpr ::std ::ranges ::greater_equal greater_equal_v{};
+    inline constexpr ::std ::ranges::equal_to equal_to_v{};
+    inline constexpr ::std ::ranges::not_equal_to not_equal_to_v{};
+    inline constexpr ::std ::ranges::less less_v{};
+    inline constexpr ::std ::ranges::greater greater_v{};
+    inline constexpr ::std ::ranges::less_equal less_equal_v{};
+    inline constexpr ::std ::ranges::greater_equal greater_equal_v{};
     inline constexpr ::std::compare_three_way compare_three_way_v{};
     inline constexpr ::std ::plus<> plus_v{};
     inline constexpr ::std ::minus<> minus_v{};
@@ -138,7 +156,7 @@ namespace stdsharp::functional
     }                                                                                             \
                                                                                                   \
     inline constexpr struct operator_type##_assign :                                              \
-        ::ranges::overloaded<                                                                     \
+        sequenced_invocables<                                                                     \
             details::operator_type##_assign,                                                      \
             details::indirect_##operator_type##_assign>,                                          \
         nodiscard_tag_t                                                                           \
@@ -229,7 +247,7 @@ namespace stdsharp::functional
                 ) // clang-format on
             )
             {
-                if(distance >= 0) return (*this)(v, type_traits::make_unsigned(distance));
+                if(distance >= 0) return (*this)(v, make_unsigned(distance));
 
                 for(; distance < 0; ++distance) pre_decrease_v(v);
                 return v;
@@ -237,7 +255,7 @@ namespace stdsharp::functional
         };
     }
 
-    inline constexpr struct advance : ::ranges::overloaded<plus_assign, details::advance_by_op>
+    inline constexpr struct advance : sequenced_invocables<plus_assign, details::advance_by_op>
     {
     } advance_v{};
 }

@@ -1,6 +1,7 @@
-#include "containers/actions.h"
-#include "pattern_match.h"
-#include "functional/get.h"
+#pragma once
+#include "functional/operations.h"
+#include "functional/bind.h"
+#include "tuple/tuple.h"
 
 namespace stdsharp::functional
 {
@@ -53,34 +54,9 @@ namespace stdsharp::functional
                 auto Op = arithmetic_operation<Operation>{} // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(const Operation, Args&&... args) const
-                noexcept(noexcept(bind_ref_front(Op, ::std::forward<Args>(args)...)))
+                noexcept(noexcept(bind(Op, ::std::forward<Args>(args)...)))
             {
-                return bind_ref_front(Op, ::std::forward<Args>(args)...);
-            }
-
-            template<typename Container, typename Iter, typename... Args>
-                requires ::std::invocable<actions::emplace_fn, Container, Iter, Args...>
-            [[nodiscard]] constexpr auto operator()(
-                const actions::emplace_fn,
-                Container& container,
-                const Iter iter,
-                Args&&... //
-            ) const noexcept(concepts::nothrow_copy_constructible<Iter>)
-            {
-                return bind_ref_front(actions::erase, container, ::std::move(iter));
-            }
-
-            template<typename... Args>
-                requires ::std::invocable<actions::emplace_back_fn, Args...>
-            [[nodiscard]] constexpr auto operator()(
-                const actions::emplace_back_fn,
-                Args&&... args //
-            ) const noexcept
-            {
-                return bind_ref_front(
-                    actions::pop_back,
-                    pack_get<0>(::std::forward<Args&&>(args)...) //
-                );
+                return bind(Op, ::std::forward<Args>(args)...);
             }
         };
 
@@ -93,11 +69,11 @@ namespace stdsharp::functional
                 Args&&... //
             ) const noexcept(concepts::nothrow_copy_constructible<T>)
             {
-                return bind_ref_front(assign_v, t, copy(t));
+                return bind(assign_v, t, copy(t));
             }
         };
 
-        using operation_fn = ::ranges::overloaded<specialized_operation_fn, default_operation_fn>;
+        using operation_fn = sequenced_invocables<specialized_operation_fn, default_operation_fn>;
     }
 
     inline constexpr struct symmetric_operation_fn
