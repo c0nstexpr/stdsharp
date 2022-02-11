@@ -300,4 +300,11 @@ namespace stdsharp::concepts
 
     template<typename T, typename U>
     concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
+
+    template<typename T>
+    concept nullable_pointer = ::std::default_initializable<T> && //
+        ::std::copy_constructible<T> && //
+        copy_assignable<T> && //
+        ::std::equality_comparable<T> && //
+        weakly_equality_comparable_with<T, ::std::nullptr_t>;
 }
