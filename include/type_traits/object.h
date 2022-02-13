@@ -37,12 +37,12 @@ namespace stdsharp::type_traits
 
         template<typename... U>
             requires(
-                ::std::constructible_from<Base, U...> && (::std::default_initializable<T> && ...) //
+                ::std::constructible_from<Base, U...> && (::std::constructible_from<T> && ...) //
             )
         constexpr explicit inherited(U&&... u) //
             noexcept(
                 concepts::nothrow_constructible_from<Base, U...> &&
-                (concepts::nothrow_default_initializable<T> && ...) // clang-format off
+                (concepts::nothrow_constructible_from<T> && ...) // clang-format off
             ):
             Base(::std::forward<U>(u)...) // clang-format on
         {
