@@ -29,6 +29,9 @@ namespace stdsharp::concepts
     concept volatile_ = ::std::is_volatile_v<T>;
 
     template<typename T>
+    concept const_volatile = const_<T> && volatile_<T>;
+
+    template<typename T>
     concept abstract = ::std::is_abstract_v<T>;
 
     template<typename T>
