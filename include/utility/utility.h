@@ -3,12 +3,9 @@
 #pragma once
 
 #include <utility>
-#include <array>
-#include <vector>
-#include <string>
-#include <string_view>
 
-#include "type_traits/core_traits.h"
+#include "utility/pack_get.h"
+#include "utility/value_wrapper.h"
 
 namespace stdsharp
 {
