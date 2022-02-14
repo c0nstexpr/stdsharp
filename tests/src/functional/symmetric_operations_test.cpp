@@ -14,8 +14,6 @@ namespace stdsharp::test::functional
             using namespace stdsharp::functional;
             using namespace stdsharp::containers;
 
-            pack_get<0>(1, 2);
-
             feature("symmetric operation cpo") = []
             {
                 given("given a int") = [](const int int_v)

@@ -29,10 +29,7 @@ namespace stdsharp
             requires(N < sizeof...(Args))
         [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const noexcept
         {
-            return impl(
-                ::std::index_sequence_for<Args...>{},
-                ::std::forward<Args>(args)... //
-            );
+            return impl(::std::index_sequence_for<Args...>{}, ::std::forward<Args>(args)...);
         }
     };
 
