@@ -49,7 +49,8 @@ namespace stdsharp::actions
     public:
         template<typename... Args>
             requires(
-                !functional::cpo_invocable<impl, Args...> && ::std::invocable<impl, Args...> //
+                !functional::cpo_invocable<emplace_fn, Args...> &&
+                ::std::invocable<impl, Args...> //
             )
         constexpr decltype(auto) operator()(Args&&... args) const //
         {
@@ -118,7 +119,9 @@ namespace stdsharp::actions
 
     public:
         template<typename... Args>
-            requires(::std::invocable<impl, Args...> && !functional::cpo_invocable<impl, Args...>)
+            requires(
+                ::std::invocable<impl, Args...> && !functional::cpo_invocable<erase_fn, Args...> //
+            )
         constexpr decltype(auto) operator()(Args&&... args) const
         {
             return impl{}(::std::forward<Args>(args)...);
