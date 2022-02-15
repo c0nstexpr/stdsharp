@@ -6,6 +6,18 @@
 
 namespace stdsharp::functional
 {
+    template<typename... T>
+    using std_bind_t = decltype(::std::bind(::std::declval<T>()...));
+
+    template<typename... T>
+    concept std_bindable = requires
+    {
+        ::std::bind(::std::declval<T>()...);
+    };
+
+    template<typename... T>
+    concept nothrow_std_bindable = noexcept(::std::bind(::std::declval<T>()...));
+
     template<typename Func, typename... T>
     class bind_t : value_wrapper<Func>, value_wrapper<T>...
     {
