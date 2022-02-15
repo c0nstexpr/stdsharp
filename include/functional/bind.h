@@ -1,5 +1,8 @@
 #pragma once
-#include "functional/pipeable.h"
+#include <functional>
+
+#include "utility/value_wrapper.h"
+#include "type_traits/core_traits.h"
 
 namespace stdsharp::functional
 {
@@ -40,7 +43,7 @@ namespace stdsharp::functional
     template<typename Func, typename... Args>
     bind_t(Func&&, Args&&...) -> bind_t<::std::decay_t<Func>, type_traits::coerce_t<Args>...>;
 
-    inline constexpr struct bind_fn : pipeable_base<>
+    inline constexpr struct bind_fn
     {
         template<typename Func, typename... Args>
             requires requires { bind_t{::std::declval<Func>(), ::std::declval<Args>()...}; }

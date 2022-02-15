@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "functional/bind.h"
+#include "functional/pipeable.h"
 #include "tuple/tuple.h"
 
 namespace stdsharp::functional
