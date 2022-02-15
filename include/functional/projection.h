@@ -1,5 +1,5 @@
 #pragma once
-#include "utility/value_wrapper.h"
+#include "functional/bind.h"
 #include "functional/invocables.h"
 #include "functional/cpo.h"
 
@@ -80,14 +80,50 @@ namespace stdsharp::functional
 #undef BS_OPERATOR
     };
 
+    template<typename Proj>
+    projector(Proj&&) -> projector<::std::decay_t<Proj>>;
+
     inline constexpr auto make_projector = make_trivial_invocables(
         nodiscard_tag,
-        []<typename Func>(Func&& func) //
-        noexcept(noexcept(projector{::std::forward<Func>(func)}))
+        []<typename Func> // clang-format off
+            requires requires { projector{::std::declval<Func>()}; }
+        (Func&& func)
+            noexcept(noexcept(projector{::std::forward<Func>(func)})) // clang-format on
         {
             return projector{::std::forward<Func>(func)}; //
         } //
     );
 
     using make_projector_fn = decltype(make_projector);
+
+    inline constexpr auto projected = make_trivial_invocables(
+        nodiscard_tag,
+        []< //
+            typename Proj,
+            typename Func,
+            std_bindable<Func> Projector =
+                ::std::invoke_result_t<make_projector_fn, Proj> // clang-format off
+        >
+        (Proj&& proj, Func&& func) noexcept(
+            concepts::nothrow_invocable<make_projector_fn, Proj> &&
+                nothrow_std_bindable<Projector, Func>
+        ) // clang-format on
+        {
+            return ::std::bind(
+                make_projector(::std::forward<Proj>(proj)),
+                ::std::forward<Func>(func) //
+            );
+        } //
+    );
+
+    using projected_fn = decltype(projected);
+
+    template<typename... Args>
+    concept projectable = ::std::invocable<projected_fn, Args...>;
+
+    template<typename... Args>
+    concept nothrow_projectable = concepts::nothrow_invocable<projected_fn, Args...>;
+
+    template<typename... Args>
+    using projected_t = ::std::invoke_result_t<projected_fn, Args...>;
 }
