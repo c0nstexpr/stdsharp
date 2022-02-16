@@ -50,8 +50,9 @@ namespace stdsharp::test
             {
                 given("given three values") = []
                 {
-                    print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
                     static constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
+
+                    print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
 
                     then( // clang-format off
                         is_in_range ?

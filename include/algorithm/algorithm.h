@@ -55,91 +55,56 @@ namespace stdsharp
 
     inline constexpr struct is_between_fn
     {
-        template<
-            typename T,
-            typename Min,
-            typename Max,
-            typename Compare = ::std::ranges::less // clang-format off
-        > // clang-format on
-            requires ::std::predicate<Compare, const T, const Min> &&
-                ::std::predicate<Compare, const Max, const T> &&
-                ::std::predicate<Compare, const Max, const Min>
-        [[nodiscard]] constexpr auto operator()(
-            const T& v, //
-            const Min& min,
-            const Max& max,
-            Compare cmp = {} //
-        ) const
-            noexcept(
-                !cassert::is_debug && concepts::nothrow_predicate<Compare, const T, const Min> &&
-                concepts::nothrow_predicate<Compare, const Max, const T> &&
-                concepts::nothrow_predicate<Compare, const Max, const Min> // clang-format off
-        ) // clang-format on
+    private:
+        struct check_fn
         {
-            if constexpr(cassert::is_debug)
+            template<typename Min, typename Max, typename Compare>
+                requires(is_debug)
+            constexpr auto operator()(const Min& min, const Max& max, Compare& cmp) const
+            {
                 if(functional::invoke_r<bool>(cmp, max, min))
                 {
+                    if(::std::is_constant_evaluated())
+                    {
+                        static_assert(true, "max value should not less than min value");
+                        return;
+                    }
+
                     if constexpr(
-                        ::fmt::is_formattable<Min>::value && ::fmt::is_formattable<Max>::value //
+                        ::fmt::is_formattable<Min>::value && //
+                        ::fmt::is_formattable<Max>::value //
                     )
-                        throw ::std::invalid_argument{// clang-format off
+                        throw ::std::invalid_argument{
+                            // clang-format off
                             ::fmt::format(
-                                "projected max value {} should not less than projected min value {}",
+                                "max value {} should not less than min value {}",
                                 max,
                                 min
                             )
-                        };
-                    else throw ::std::invalid_argument{
-                        "projected max value should not less than projected min value"
-                    }; // clang-format on
+                        }; // clang-format on
+                    else
+                        throw ::std::invalid_argument{"max value should not less than min value"};
                 }
+            }
+        };
 
-            return !functional::invoke_r<bool>(cmp, v, min) &&
-                !functional::invoke_r<bool>(cmp, max, v);
-        }
-
-        template<
-            typename T,
-            typename Min,
-            typename Max,
-            typename Compare,
-            typename Proj // clang-format off
-        > // clang-format on
-            requires ::std::invocable<Proj, const T> && //
-                ::std::invocable<Proj, const Min> && //
-                ::std::invocable<Proj, const Max> && //
-                ::std::invocable<
-                    is_between_fn,
-                    ::std::invoke_result_t<Proj, const T>,
-                    ::std::invoke_result_t<Proj, const Min>,
-                    ::std::invoke_result_t<Proj, const Max>,
-                    Compare // clang-format off
-                > // clang-format on
-        [[nodiscard]] constexpr auto operator()(
-            const T& v, //
-            const Min& min,
-            const Max& max,
-            Compare&& cmp,
-            Proj proj //
-        ) const noexcept( //
-            concepts::nothrow_invocable<Proj, const T>&& // clang-format off
-                concepts::nothrow_invocable<Proj, const Min> &&
-                concepts::nothrow_invocable<Proj, const Max> &&
-                concepts::nothrow_invocable<
-                    is_between_fn,
-                    ::std::invoke_result_t<Proj, const T>,
-                    ::std::invoke_result_t<Proj, const Min>,
-                    ::std::invoke_result_t<Proj, const Max>,
-                    Compare
-                > // clang-format on
-        )
+    public:
+        template<typename T, typename Min, typename Max, typename Compare = ::std::ranges::less>
+            requires ::std::predicate<Compare, const T, const Min> &&
+                ::std::predicate<Compare, const Max, const T> &&
+                ::std::predicate<Compare, const Max, const Min>
+        [[nodiscard]] constexpr auto
+            operator()(const T& t, const Min& min, const Max& max, Compare cmp = {}) const
+            noexcept( // clang-format off
+                concepts::nothrow_predicate<Compare, const T, const Min> &&
+                    concepts::nothrow_predicate<Compare, const Max, const T> &&
+                    functional::nothrow_optional_invocable<check_fn, Max, Min, Compare>
+            ) // clang-format on
         {
-            return (*this)(
-                ::std::invoke(proj, v),
-                ::std::invoke(proj, min),
-                ::std::invoke(proj, max),
-                ::std::forward<Compare>(cmp) //
-            );
+            functional::optional_invoke(check_fn{}, max, min, cmp);
+
+            return !functional::invoke_r<bool>(cmp, t, min) &&
+                !functional::invoke_r<bool>(cmp, max, t);
         }
     } is_between{};
 }
