@@ -9,15 +9,10 @@ namespace stdsharp::functional
         return type_traits::empty; //
     };
 
-    inline constexpr sequenced_invocables optional_invoke{
-        []<::std::invocable Func>(Func&& func) // clang-format off
-            noexcept(concepts::nothrow_invocable<Func>)
-            -> decltype(auto)
-        { // clang-format on
-            return ::std::invoke(::std::forward<Func>(func));
-        },
-        empty_invoke //
-    };
+    inline constexpr sequenced_invocables optional_invoke{::ranges::invoke, empty_invoke};
+
+    template<typename... Args>
+    concept nothrow_optional_invocable = noexcept(optional_invoke(::std::declval<Args>()...));
 
     template<bool Condition>
     struct conditional_invoke_fn
