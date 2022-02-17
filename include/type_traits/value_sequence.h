@@ -11,6 +11,9 @@
 
 namespace stdsharp::type_traits
 {
+    template<auto...>
+    struct value_sequence;
+
     namespace details
     {
         template<auto From, auto PlusF, ::std::size_t... I>
@@ -29,7 +32,16 @@ namespace stdsharp::type_traits
                 return !static_cast<bool>(::std::invoke(func, v)); //
             };
         }
+
+        struct as_value_sequence
+        {
+            template<typename... Constant>
+            using invoke = value_sequence<Constant::value...>;
+        };
     }
+
+    template<typename T>
+    using as_value_sequence_t = ::meta::apply<details::as_value_sequence, T>;
 
     template<auto From, ::std::size_t Size, auto PlusF = ::std::plus{}>
     using make_value_sequence_t = decltype( //
@@ -45,8 +57,8 @@ namespace stdsharp::type_traits
             using type = typename seq:: //
                 template indexed_by_seq_t< //
                     make_value_sequence_t<
-                        seq::size - 1,
-                        seq::size,
+                        seq::size() - 1,
+                        seq::size(),
                         ::std::minus{} // clang-format off
                     >
             >; // clang-format on
@@ -59,7 +71,7 @@ namespace stdsharp::type_traits
 
             static constexpr auto filtered_indices = []
             {
-                ::std::array<::std::size_t, unique_value_sequence::seq::size> res{
+                ::std::array<::std::size_t, unique_value_sequence::seq::size()> res{
                     unique_value_sequence::seq::find(Values)... //
                 };
                 ::std::ranges::sort(res);
@@ -74,7 +86,7 @@ namespace stdsharp::type_traits
                 // clang-format off
             >; // clang-format on
 
-            using type = typename take_value_sequence< //
+            using type = typename as_value_sequence_t< //
                 make_value_sequence_t<::std::size_t{}, filtered_indices.second> // clang-format off
             >::template apply_t<filtered_seq>; // clang-format on
         };
@@ -92,9 +104,11 @@ namespace stdsharp::type_traits
 
         template<auto... Values, size_t... I>
         struct value_sequence<type_traits::value_sequence<Values...>, ::std::index_sequence<I...>> :
+            regular_value_sequence<Values...>,
             details::indexed_value<I, Values>...
         {
             using indexed_value<I, Values>::get...;
+            using regular_value_sequence<Values...>::size;
 
             using index_seq = ::std::index_sequence<I...>;
         };
@@ -181,10 +195,10 @@ namespace stdsharp::type_traits
         };
 
     public:
+        using base::size;
+
         template<::std::size_t I>
         static constexpr value_sequence::get_fn<I> get{};
-
-        static constexpr auto size = sizeof...(Values);
 
         using index_seq = typename base::index_seq;
 
@@ -221,8 +235,17 @@ namespace stdsharp::type_traits
         template<::std::size_t... OtherInts>
         using indexed_t = regular_value_sequence<get<OtherInts>()...>;
 
+    private:
+        template<template<auto...> typename T>
+        struct invoker
+        {
+            template<typename... Constant>
+            using invoke = T<Constant::value...>;
+        };
+
+    public:
         template<typename Seq>
-        using indexed_by_seq_t = typename take_value_sequence<Seq>::template apply_t<indexed_t>;
+        using indexed_by_seq_t = ::meta::apply<invoker<indexed_t>, Seq>;
 
     private:
         template<auto... Func>
@@ -304,8 +327,8 @@ namespace stdsharp::type_traits
             {
                 const auto v =
                     FindFunc::operator()(::std::forward<Func>(func), ::std::forward<Proj>(proj));
-                if constexpr(Equal) return v == size; // clang-format off
-                else return v != size; // clang-format on
+                if constexpr(Equal) return v == size(); // clang-format off
+                else return v != size(); // clang-format on
             }
         };
 
@@ -453,7 +476,7 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(
                     Comp& comp,
                     Proj& proj,
-                    const ::std::index_sequence<I...> = ::std::make_index_sequence<size - 2>{}
+                    const ::std::index_sequence<I...> = ::std::make_index_sequence<size() - 2>{}
                     // clang-format off
                 ) noexcept((concepts::nothrow_invocable<by_index<I>, Comp, Proj> && ...))
                 // clang-format on
@@ -477,9 +500,9 @@ namespace stdsharp::type_traits
 
             template<typename Comp = ::std::nullptr_t, typename Proj = ::std::nullptr_t>
             [[nodiscard]] constexpr auto operator()(const Comp& = {}, const Proj& = {}) const //
-                noexcept requires(size < 2)
+                noexcept requires(size() < 2)
             {
-                return size;
+                return size();
             }
         } adjacent_find{};
 
@@ -497,7 +520,7 @@ namespace stdsharp::type_traits
         );
 
         template<::std::size_t Size>
-        using back_t = select_range_indexed_t<size - Size, Size>;
+        using back_t = select_range_indexed_t<size() - Size, Size>;
 
         template<::std::size_t Size>
         using front_t = select_range_indexed_t<0, Size>;
@@ -506,24 +529,23 @@ namespace stdsharp::type_traits
         using append_t = regular_value_sequence<Values..., Others...>;
 
         template<typename Seq>
-        using append_by_seq_t = typename take_value_sequence<Seq>::template apply_t<append_t>;
+        using append_by_seq_t = ::meta::apply<invoker<append_t>, Seq>;
 
         template<auto... Others>
         using append_front_t = regular_value_sequence<Others..., Values...>;
 
         template<typename Seq>
-        using append_front_by_seq_t =
-            typename take_value_sequence<Seq>::template apply_t<append_front_t>;
+        using append_front_by_seq_t = ::meta::apply<invoker<append_front_t>, Seq>;
 
     private:
         template<::std::size_t Index>
         struct insert
         {
             template<auto... Others>
-            using type = typename to_value_sequence_t<
-                typename to_value_sequence_t<front_t<Index>>:: //
+            using type = typename as_value_sequence_t<
+                typename as_value_sequence_t<front_t<Index>>:: //
                 template append_t<Others...> // clang-format off
-            >::template append_by_seq_t<back_t<size - Index>>; // clang-format on
+            >::template append_by_seq_t<back_t<size() - Index>>; // clang-format on
         };
 
         template<::std::size_t... Index>
@@ -531,7 +553,7 @@ namespace stdsharp::type_traits
         {
             static constexpr auto select_indices = []() noexcept
             {
-                ::std::array<::std::size_t, size> res{};
+                ::std::array<::std::size_t, size()> res{};
                 ::std::array excepted = {Index...};
                 ::std::size_t index = 0;
 
@@ -539,7 +561,7 @@ namespace stdsharp::type_traits
 // TODO replace with ranges views
 #ifdef _MSC_VER
                 ::std::ranges::copy_if( //
-                    ::std::views::iota(::std::size_t{0}, value_sequence::size),
+                    ::std::views::iota(::std::size_t{0}, value_sequence::size()),
                     res.begin(),
                     [&excepted, &index](const auto v)
                     {
@@ -550,7 +572,7 @@ namespace stdsharp::type_traits
                 );
 #else
                 {
-                    ::std::array<::std::size_t, value_sequence::size> candidates{};
+                    ::std::array<::std::size_t, value_sequence::size()> candidates{};
 
                     ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
 
@@ -581,20 +603,19 @@ namespace stdsharp::type_traits
         using insert_t = typename insert<Index>::template type<Other...>;
 
         template<::std::size_t Index, typename Seq>
-        using insert_by_seq_t =
-            typename take_value_sequence<Seq>::template apply_t<insert<Index>::template type>;
+        using insert_by_seq_t = ::meta::apply<invoker<insert<Index>::template type>, Seq>;
 
         template<::std::size_t... Index>
         using remove_at_t = typename remove_at<Index...>::type;
 
         template<typename Seq>
-        using remove_at_by_seq_t = typename take_value_sequence<Seq>::template apply_t<remove_at_t>;
+        using remove_at_by_seq_t = ::meta::apply<invoker<remove_at_t>, Seq>;
 
         template<::std::size_t Index, auto Other>
-        using replace_t = typename to_value_sequence_t<
-            typename to_value_sequence_t<front_t<Index>>::template append_t<Other>
+        using replace_t = typename as_value_sequence_t<
+            typename as_value_sequence_t<front_t<Index>>::template append_t<Other>
             // clang-format off
-        >::template append_by_seq_t<back_t<size - Index - 1>>; // clang-format on
+        >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
 }
 
@@ -614,7 +635,7 @@ namespace std
     template<auto... Values>
     struct tuple_size<::stdsharp::type_traits::value_sequence<Values...>> :
         ::stdsharp::type_traits:: // clang-format off
-            index_constant<::stdsharp::type_traits::value_sequence<Values...>::size>
+            index_constant<::stdsharp::type_traits::value_sequence<Values...>::size()>
     // clang-format on
     {
     };

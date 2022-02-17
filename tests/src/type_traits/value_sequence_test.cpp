@@ -81,7 +81,7 @@ namespace stdsharp::test::type_traits
             } | tuple<
                 regular_value_sequence<0, 0>,
                 regular_value_sequence<1, 1>,
-                regular_value_sequence<'!', test_seq::size>
+                regular_value_sequence<'!', test_seq::size()>
             >{}; // clang-format on
 
             feature("count") = []<auto V, auto Expect>(const regular_value_sequence<V, Expect>)

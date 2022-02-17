@@ -74,34 +74,11 @@ namespace stdsharp::type_traits
     template<typename T>
     using coerce_t = ::std::invoke_result_t<::ranges::coerce<T>, T&&>;
 
-    template<auto...>
+    template<auto... V>
     struct regular_value_sequence
     {
+        static constexpr auto size() noexcept { return sizeof...(V); }
     };
-
-    template<auto...>
-    struct value_sequence;
-
-    template<typename>
-    struct take_value_sequence;
-
-    template<template<auto...> typename T, auto... Values>
-    struct take_value_sequence<T<Values...>>
-    {
-        template<template<auto...> typename U>
-        using apply_t = U<Values...>;
-
-        using as_sequence_t = regular_value_sequence<Values...>;
-
-        using as_value_sequence_t = value_sequence<Values...>;
-    };
-
-    template<typename Sequence>
-    using to_regular_value_sequence_t = typename take_value_sequence<Sequence>::as_sequence_t;
-
-    template<typename Sequence> // clang-format off
-    using to_value_sequence_t = typename
-        take_value_sequence<Sequence>::as_value_sequence_t; // clang-format on
 
     template<typename T, typename U>
     using ref_align_t = ::std::conditional_t<
@@ -120,27 +97,8 @@ namespace stdsharp::type_traits
     template<typename T, typename U>
     using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
-    template<typename...>
-    struct regular_type_sequence
-    {
-    };
-
-    template<typename...>
-    struct type_sequence;
-
-    template<typename>
-    struct take_type_sequence;
-
-    template<template<typename...> typename T, typename... Types>
-    struct take_type_sequence<T<Types...>>
-    {
-        template<template<typename...> typename U>
-        using apply_t = U<Types...>;
-
-        using as_sequence_t = regular_type_sequence<Types...>;
-
-        using as_type_sequence_t = type_sequence<Types...>;
-    };
+    template<typename... T>
+    using regular_type_sequence = ::meta::list<T...>;
 
     inline namespace literals
     {
@@ -151,10 +109,7 @@ namespace stdsharp::type_traits
             using base::base;
 
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays,hicpp-explicit-conversions)
-            constexpr ltr(const char (&arr)[Size]) noexcept: ltr::base(::std::to_array(arr)) {}
-
-            // NOLINTNEXTLINE(hicpp-explicit-conversions)
-            constexpr ltr(const ::std::array<char, Size>& arr) noexcept: ltr::base(arr) {}
+            constexpr ltr(const char (&arr)[Size]) noexcept: ltr(::std::to_array(arr)) {}
 
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
             constexpr ltr& operator=(const char (&arr)[Size]) noexcept
@@ -162,12 +117,10 @@ namespace stdsharp::type_traits
                 *this = ::std::to_array(arr);
             }
 
-            constexpr ltr& operator=(const ::std::array<char, Size>& arr) noexcept { *this = arr; }
-
             // NOLINTNEXTLINE(hicpp-explicit-conversions)
             constexpr operator ::std::string_view() const noexcept
             {
-                return {this->data(), Size - 1};
+                return {base::data(), Size - 1};
             }
 
             constexpr auto to_string_view() const noexcept
@@ -182,6 +135,14 @@ namespace stdsharp::type_traits
             return ltr;
         }
     }
+}
+
+namespace meta::extension
+{
+    template<invocable Fn, template<auto...> typename T, auto... V>
+    struct apply<Fn, T<V...>> : lazy::invoke<Fn, ::stdsharp::type_traits::constant<V>...>
+    {
+    };
 }
 
 namespace stdsharp::inline literals
