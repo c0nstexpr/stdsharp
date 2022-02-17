@@ -109,7 +109,7 @@ namespace stdsharp::type_traits
             using base::base;
 
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays,hicpp-explicit-conversions)
-            constexpr ltr(const char (&arr)[Size]) noexcept: ltr(::std::to_array(arr)) {}
+            constexpr ltr(const char (&arr)[Size]) noexcept: base(::std::to_array(arr)) {}
 
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
             constexpr ltr& operator=(const char (&arr)[Size]) noexcept
