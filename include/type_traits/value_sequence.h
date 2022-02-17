@@ -8,6 +8,7 @@
 
 #include "concepts/concepts.h"
 #include "type_traits/core_traits.h"
+#include "utility/pack_get.h"
 
 namespace stdsharp::type_traits
 {
@@ -21,16 +22,6 @@ namespace stdsharp::type_traits
         constexpr auto make_value_sequence(::std::index_sequence<I...>) noexcept
         {
             return regular_value_sequence<::std::invoke(PlusF, From, I)...>{};
-        }
-
-        template<typename Func>
-        constexpr auto make_value_predicator(Func& func) noexcept
-        {
-            return [&func](const auto& v) // clang-format off
-                noexcept(concepts::nothrow_predicate<Func, decltype(v)>) // clang-format on
-            {
-                return !static_cast<bool>(::std::invoke(func, v)); //
-            };
         }
 
         struct as_value_sequence
@@ -124,16 +115,14 @@ namespace stdsharp::type_traits
             }
 
             template<typename U>
-                requires ::std::invocable<Comp, U, T>
+                requires ::std::predicate<Comp, U, T>
             constexpr auto operator()(const U& other) const
-                noexcept(concepts::nothrow_invocable_r<Comp, bool, U, T>)
+                noexcept(concepts::nothrow_predicate<Comp, U, T>)
             {
                 return static_cast<bool>(::std::invoke(comp, other, value));
             }
 
-            template<typename U>
-                requires(!::std::invocable<Comp, U, T>)
-            constexpr auto operator()(const U&) const noexcept { return false; }
+            constexpr auto operator()(const auto&) const noexcept { return false; }
         };
 
         template<typename T, typename Comp>
@@ -141,30 +130,6 @@ namespace stdsharp::type_traits
         {
             return value_comparer<T, Comp>(value, comp);
         }
-
-        template<typename Proj, typename Func, auto... Values>
-        concept value_sequence_invocable =
-            ((::std::invocable<Proj, decltype(Values)> &&
-              ::std::invocable<Func, ::std::invoke_result_t<Proj, decltype(Values)>>)&&...);
-
-        template<typename Proj, typename Func, auto... Values> // clang-format off
-        concept value_sequence_nothrow_invocable = (
-            concepts::nothrow_invocable<Func, ::std::invoke_result_t<Proj, decltype(Values)>> &&
-            ...
-        );
-
-        template<typename Proj, typename Func, auto... Values>
-        concept value_sequence_predicate =
-            (::std::predicate<Func, ::std::invoke_result_t<Proj, decltype(Values)>> && ...);
-
-        template<typename Proj, typename Func, auto... Values>
-        concept value_sequence_nothrow_predicate = (
-            concepts::nothrow_invocable_r<
-                Func,
-                bool,
-                ::std::invoke_result_t<Proj, decltype(Values)>
-            > && ...
-        );
     } // clang-format on
 
     template<auto... Values>
@@ -252,81 +217,58 @@ namespace stdsharp::type_traits
         struct transform_fn
         {
             [[nodiscard]] constexpr auto operator()() const noexcept
+                requires(sizeof...(Func) == 1) &&
+                requires
             {
-                if constexpr(sizeof...(Func) == 1)
-                    return []<auto F>(const type_traits::constant<F>) noexcept
-                    {
-                        return value_sequence<::std::invoke(F, Values)...>{}; // clang-format off
-                    }(constant<Func>{}...);
-                else return value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
+                typename value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>;
+            } { return value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>{}; };
+
+            [[nodiscard]] constexpr auto operator()() const noexcept requires requires
+            {
+                typename value_sequence<::std::invoke(Func, Values)...>;
+            }
+            {
+                return value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
             };
         };
 
         template<::std::size_t From, ::std::size_t... I>
-        static constexpr indexed_t<From + I...> select_range_indexed( // clang-format off
-            ::std::index_sequence<I...>
-        ) noexcept; // clang-format on
+        static constexpr indexed_t<From + I...>
+            select_range_indexed(::std::index_sequence<I...>) noexcept;
 
         template<typename IfFunc>
         struct if_not_fn : private IfFunc
         {
-            template<typename Func, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const noexcept( //
-                details::value_sequence_nothrow_predicate<Proj, Func, Values...> // clang-format off
-            ) // clang-format on
+            template<typename Func>
+                requires ::std::invocable<IfFunc, Func>
+            [[nodiscard]] constexpr auto operator()(Func func) const
+                noexcept(concepts::nothrow_invocable<IfFunc, Func>)
             {
-                return IfFunc::operator()(
-                    details::make_value_predicator(func),
-                    ::std::forward<Proj>(proj) //
-                );
+                return IfFunc::operator()(func);
             }
         };
 
         template<typename IfFunc>
         struct do_fn : private IfFunc
         {
-            template<
-                typename T,
-                typename Comp = ::std::ranges::equal_to,
-                typename Proj = ::std::identity // clang-format off
-            > // clang-format on
-                requires requires(T v, Comp comp)
-                {
-                    requires ::std::invocable<
-                        IfFunc,
-                        details::value_comparer<T, Comp>,
-                        Proj // clang-format off
-                    >; // clang-format on
-                }
-            [[nodiscard]] constexpr auto operator()( //
-                const T& v,
-                Comp comp = {},
-                Proj&& proj = {} //
-            ) const noexcept( //
-                concepts::nothrow_invocable<
-                    IfFunc,
-                    details::value_comparer<T, Comp>,
-                    Proj // clang-format off
-                >
-            ) // clang-format on
+            template<typename T, typename Comp = ::std::ranges::equal_to>
+                requires ::std::invocable<IfFunc, details::value_comparer<T, Comp>>
+            [[nodiscard]] constexpr auto operator()(const T& v, Comp comp = {}) const
+                noexcept(concepts::nothrow_invocable<IfFunc, details::value_comparer<T, Comp>>)
             {
-                return IfFunc::operator()(
-                    details::make_value_comparer(v, comp),
-                    ::std::forward<Proj>(proj) //
-                );
-            } //
+                return IfFunc::operator()(details::make_value_comparer(v, comp));
+            }
         };
 
         template<typename FindFunc, bool Equal = true>
         struct algo_fn : private FindFunc
         {
-            template<typename Func, typename Proj = ::std::identity>
-                requires ::std::invocable<FindFunc, Func, Proj>
-            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(concepts::nothrow_invocable<FindFunc, Func, Proj>)
+            template<typename Func>
+                requires ::std::invocable<FindFunc, Func>
+            [[nodiscard]] constexpr auto operator()(Func func) const
+                noexcept(concepts::nothrow_invocable<FindFunc, Func>)
             {
-                const auto v =
-                    FindFunc::operator()(::std::forward<Func>(func), ::std::forward<Proj>(proj));
+                const auto v = FindFunc::operator()(::std::forward<Func>(func));
                 if constexpr(Equal) return v == size(); // clang-format off
                 else return v != size(); // clang-format on
             }
@@ -335,69 +277,41 @@ namespace stdsharp::type_traits
     public:
         static constexpr struct
         {
-            template<
-                typename Func,
-                details::value_sequence_invocable<Func, Values...> Proj = ::std::identity
-                // clang-format off
-            > // clang-format on
-            constexpr auto operator()(Func func, Proj proj = {}) const
-                noexcept(details::value_sequence_nothrow_invocable<Proj, Func, Values...>)
+            template<typename Func>
+                requires(::std::invocable<Func, decltype(Values)>&&...)
+            constexpr auto operator()(Func func) const
+                noexcept((concepts::nothrow_invocable<Func, decltype(Values)> && ...))
             {
-                (::std::invoke(func, ::std::invoke(proj, Values)), ...);
+                (::std::invoke(func, Values), ...);
                 return func;
             }
         } for_each{};
 
         static constexpr struct
         {
-            template<
-                typename Func,
-                details::value_sequence_invocable<Func, Values...> Proj = ::std::identity
-                // clang-format off
-            > // clang-format on
-            constexpr auto operator()(auto for_each_n_count, Func func, Proj proj = {}) const
-                noexcept(details::value_sequence_nothrow_invocable<Proj, Func, Values...>)
+            template<typename Func>
+                requires(::std::invocable<Func, decltype(Values)>&&...)
+            constexpr auto operator()(auto for_each_n_count, Func func) const
+                noexcept((concepts::nothrow_invocable<Func, decltype(Values)> && ...))
             {
-                const auto f = [&]<typename T>(T&& v) noexcept( // clang-format off
-                    concepts::nothrow_invocable<Func, ::std::invoke_result_t<Proj, T>>
-                ) // clang-format on
-                {
-                    if(for_each_n_count == 0) return false;
-                    ::std::invoke(func, ::std::invoke(proj, ::std::forward<T>(v)));
-                    --for_each_n_count;
-                    return true;
-                };
-
-                (f(Values) && ...);
+                ((for_each_n_count == 0 ?
+                      false :
+                      (::std::invoke(func, Values), --for_each_n_count, true)) &&
+                 ...);
                 return func;
             }
         } for_each_n{};
 
         static constexpr struct
         {
-            template<
-                typename Func,
-                details::value_sequence_predicate<Func, Values...> Proj = ::std::identity
-                // clang-format off
-            > // clang-format on
-            [[nodiscard]] constexpr auto operator()(Func func, Proj proj = {}) const
-                noexcept(details::value_sequence_nothrow_predicate<Proj, Func, Values...>)
+            template<typename Func>
+                requires(::std::predicate<Func, decltype(Values)>&&...)
+            [[nodiscard]] constexpr auto operator()(Func func) const
+                noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
-                const auto f = [&func, &proj, &i]<typename T>(T&& v) //
-                    noexcept( //
-                        concepts::
-                            nothrow_invocable_r<Func, bool, ::std::invoke_result_t<Proj, T>> //
-                    )
-                {
-                    if(static_cast<bool>(
-                           ::std::invoke(func, ::std::invoke(proj, ::std::forward<T>(v)))))
-                        return false;
-                    ++i;
-                    return true;
-                };
 
-                (f(Values) && ...);
+                ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
 
                 return i;
             }
@@ -409,9 +323,10 @@ namespace stdsharp::type_traits
 
         static constexpr struct
         {
-            template<typename Func, typename Proj = ::std::identity>
-            [[nodiscard]] constexpr auto operator()(Func func, Proj&& proj = {}) const
-                noexcept(details::value_sequence_nothrow_predicate<Proj, Func, Values...>)
+            template<typename Func>
+                requires(::std::predicate<Func, decltype(Values)>&&...)
+            [[nodiscard]] constexpr auto operator()(Func func) const
+                noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
                 for_each(
@@ -421,8 +336,7 @@ namespace stdsharp::type_traits
                     {
                         if(static_cast<bool>(::std::invoke(func, v))) ++i;
                         return true;
-                    },
-                    ::std::forward<Proj>(proj) //
+                    } //
                 );
 
                 return i;
@@ -447,24 +361,12 @@ namespace stdsharp::type_traits
             template<::std::size_t I>
             struct by_index
             {
-                template<
-                    typename Comp,
-                    typename Proj, // clang-format off
-                    typename LeftProjected = ::std::invoke_result_t<Proj, decltype(get<I>())>,
-                    typename RightProjected = ::std::invoke_result_t<Proj, decltype(get<I + 1>())>
-                > // clang-format on
-                    requires concepts::invocable_r<Comp, bool, LeftProjected, RightProjected>
-                constexpr auto operator()(Comp& comp, Proj& proj) const noexcept(
-                    concepts::nothrow_invocable_r<Comp, bool, LeftProjected, RightProjected> //
-                )
+                template<typename Comp>
+                    requires ::std::predicate<Comp>
+                constexpr auto operator()(Comp& comp) const
+                    noexcept(concepts::nothrow_predicate<Comp, bool>)
                 {
-                    return static_cast<bool>( //
-                        ::std::invoke(
-                            comp, //
-                            ::std::invoke(proj, get<I>()),
-                            ::std::invoke(proj, get<I + 1>()) // clang-format off
-                        ) // clang-format on
-                    );
+                    return static_cast<bool>(::std::invoke(comp, get<I>(), get<I + 1>()));
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
@@ -472,35 +374,35 @@ namespace stdsharp::type_traits
 
             struct impl
             {
-                template<typename Comp, typename Proj, ::std::size_t... I>
-                constexpr auto operator()(
-                    Comp& comp,
-                    Proj& proj,
-                    const ::std::index_sequence<I...> = ::std::make_index_sequence<size() - 2>{}
-                    // clang-format off
-                ) noexcept((concepts::nothrow_invocable<by_index<I>, Comp, Proj> && ...))
-                // clang-format on
+                template<typename Comp, ::std::size_t... I>
+                constexpr auto operator()(Comp& comp, const ::std::index_sequence<I...>) const
+                    noexcept((concepts::nothrow_invocable<by_index<I>, Comp> && ...))
                 {
                     ::std::size_t res{};
                     ( //
-                        (by_index<I>{}(comp, proj) ? true : (++res, false)) || ... //
+                        (by_index<I>{}(comp) ? true : (++res, false)) || ... //
                     );
                     return res;
+                }
+
+                template<typename Comp, typename Seq = ::std::make_index_sequence<size() - 2>>
+                constexpr auto operator()(Comp& comp) const
+                    noexcept(concepts::nothrow_invocable<impl, Comp&, Seq>)
+                {
+                    return (*this)(comp, Seq{});
                 }
             };
 
         public:
-            template<typename Comp = ::std::ranges::equal_to, typename Proj = ::std::identity>
-                requires(::std::invocable<Proj, decltype(Values)>&&...)
-            [[nodiscard]] constexpr auto operator()(Comp comp = {}, Proj proj = {}) const
-                noexcept(concepts::nothrow_invocable<impl, Comp, Proj>)
+            template<typename Comp = ::std::ranges::equal_to>
+                requires((::std::invocable<decltype(Values)> && ...) && size() >= 2)
+            [[nodiscard]] constexpr auto operator()(Comp comp = {}) const
+                noexcept(concepts::nothrow_invocable<impl, Comp>)
             {
-                return impl{}(comp, proj);
+                return impl{}(comp);
             }
 
-            template<typename Comp = ::std::nullptr_t, typename Proj = ::std::nullptr_t>
-            [[nodiscard]] constexpr auto operator()(const Comp& = {}, const Proj& = {}) const //
-                noexcept requires(size() < 2)
+            [[nodiscard]] constexpr auto operator()(const int = {}) const noexcept
             {
                 return size();
             }
@@ -510,6 +412,7 @@ namespace stdsharp::type_traits
         static constexpr transform_fn<Func...> transform{};
 
         template<auto... Func>
+            requires ::std::invocable<transform_fn<Func...>>
         using transform_t = decltype(transform<Func...>());
 
         template<::std::size_t From, ::std::size_t Size>
