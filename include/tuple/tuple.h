@@ -24,13 +24,13 @@ namespace stdsharp
         template<typename T>
             requires requires
             {
-                adl::adl_get<N>(::std::declval<T>());
+                ::adl::adl_get<N>(::std::declval<T>());
                 requires !functional::cpo_invocable<get_fn<N>, T>;
             }
         [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-            noexcept(noexcept(adl::adl_get<N>(::std::declval<T>())))
+            noexcept(noexcept(::adl::adl_get<N>(::std::declval<T>())))
         {
-            return adl::adl_get<N>(::std::forward<T>(t));
+            return ::adl::adl_get<N>(::std::forward<T>(t));
         }
 
         template<typename T>
