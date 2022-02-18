@@ -15,7 +15,7 @@ namespace stdsharp::functional
             ::std::invocable<Args...> Op =
                 decltype(::std::declval<Tag>() << ::std::declval<T>()) // clang-format off
         > // clang-format on
-            requires(!::std ::invocable<Tag, Args...>)
+            requires(!::std::invocable<Tag, Args...>)
         constexpr decltype(auto) operator()(Tag&& tag, T&& t, Args&&... args) const noexcept(
             (noexcept(::std::declval<Tag>() << ::std::declval<T>())) &&
             concepts::nothrow_invocable<Op, Args...> //
