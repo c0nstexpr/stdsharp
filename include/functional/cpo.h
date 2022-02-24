@@ -6,7 +6,7 @@
 
 namespace stdsharp::functional
 {
-    inline constexpr struct cpo_fn
+    inline constexpr struct cpo_invoke_fn
     {
         template<
             typename Tag,
@@ -37,11 +37,11 @@ namespace stdsharp::functional
                 ::std::forward<Args>(args)... //
             );
         }
-    } cpo{};
+    } cpo_invoke{};
 
     template<typename... Args>
-    concept cpo_invocable = ::std ::invocable<cpo_fn, Args...>;
+    concept cpo_invocable = ::std ::invocable<cpo_invoke_fn, Args...>;
 
     template<typename... Args>
-    concept cpo_nothrow_invocable = concepts::nothrow_invocable<cpo_fn, Args...>;
+    concept cpo_nothrow_invocable = concepts::nothrow_invocable<cpo_invoke_fn, Args...>;
 }

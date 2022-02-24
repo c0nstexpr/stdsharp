@@ -92,7 +92,7 @@ namespace stdsharp::functional
             requires functional::cpo_invocable<make_composed_fn, Args...>
         constexpr decltype(auto) operator()(Args&&... args) const
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     } make_composed{};
 

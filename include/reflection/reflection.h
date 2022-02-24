@@ -72,7 +72,7 @@ namespace stdsharp::reflection
         constexpr decltype(auto) operator()(Args&&... args) const
             noexcept(functional::cpo_nothrow_invocable<member_t<Literal>, Args...>)
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     };
 
@@ -100,7 +100,7 @@ namespace stdsharp::reflection
         constexpr decltype(auto) operator()(Args&&... args) const
             noexcept(functional::cpo_nothrow_invocable<data_member_t<Literal>, Args...>)
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     };
 
@@ -128,7 +128,7 @@ namespace stdsharp::reflection
         constexpr decltype(auto) operator()(Args&&... args) const
             noexcept(functional::cpo_nothrow_invocable<member_function_t<Literal>, Args...>)
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     };
 

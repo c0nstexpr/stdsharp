@@ -93,7 +93,7 @@ namespace stdsharp::functional
         constexpr decltype(auto) operator()(Args&&... args) const
             noexcept(cpo_nothrow_invocable<symmetric_operation_fn, Args...>)
         {
-            return cpo(*this, ::std::forward<Args>(args)...);
+            return cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     } symmetric_operation{};
 }

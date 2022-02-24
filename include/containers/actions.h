@@ -61,7 +61,7 @@ namespace stdsharp::actions
             requires functional::cpo_invocable<emplace_fn, Args...>
         constexpr decltype(auto) operator()(Args&&... args) const
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     } emplace{};
 
@@ -131,7 +131,7 @@ namespace stdsharp::actions
             requires functional::cpo_invocable<erase_fn, Args...>
         constexpr decltype(auto) operator()(Args&&... args) const
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     } erase{};
 
@@ -288,7 +288,7 @@ namespace stdsharp::actions
             requires functional::cpo_invocable<resize_fn, Args...>
         constexpr decltype(auto) operator()(Args&&... args) const
         {
-            return functional::cpo(*this, ::std::forward<Args>(args)...);
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     } resize{};
 
