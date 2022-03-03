@@ -36,12 +36,11 @@ namespace stdsharp::type_traits
     template<typename T>
     constexpr const auto& static_const_v = ::ranges::static_const<T>::value;
 
-    template<bool conditional, auto left, auto right>
-    inline constexpr auto conditional_v = ::std::conditional_t<
-        conditional,
-        type_traits::constant<left>,
-        type_traits::constant<right> // clang-format off
-    >::value; // clang-format on
+    template<bool conditional, auto Left, auto>
+    inline constexpr auto conditional_v = Left;
+
+    template<auto Left, auto Right>
+    inline constexpr auto conditional_v<false, Left, Right> = Right;
 
     template<typename T>
     concept constant_value = requires
