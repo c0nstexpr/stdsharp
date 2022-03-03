@@ -148,13 +148,12 @@ namespace stdsharp
         using base::destroy;
         using base::select_on_container_copy_construction;
 
-        template<typename... Args>
-        static constexpr void construct(T& a, Args&&... args) requires requires
+        template<typename U, typename... Args>
+            requires ::std::constructible_from<U, Args...>
+        static constexpr void construct(T& a, U* ptr, Args&&... args) //
+            noexcept(concepts::nothrow_constructible_from<U, Args...>)
         {
-            base::construct(a, ::std::forward<Args>(args)...);
-        }
-        {
-            base::construct(a, ::std::forward<Args>(args)...); //
+            base::construct(a, ptr, ::std::forward<Args>(args)...);
         }
     };
 
@@ -163,4 +162,10 @@ namespace stdsharp
     {
         typename allocator_traits<T>;
     };
+
+    template<typename>
+    struct allocator_of;
+
+    template<typename T>
+    using allocator_of_t = ::meta::_t<allocator_of<T>>;
 }
