@@ -1,4 +1,4 @@
-#include <type_traits/value_sequence_test.h>
+#include "type_traits/value_sequence_test.h"
 #include "type_traits/type_sequence_test.h"
 #include "type_traits/type_sequence.h"
 
@@ -50,7 +50,6 @@ namespace stdsharp::test::type_traits
             using namespace literals;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace type_traits;
 
             using test_seq = type_sequence<int, float, char, unsigned, float>;
 
@@ -99,7 +98,7 @@ namespace stdsharp::test::type_traits
             } | tuple<
                 find_test_params<float, 1>,
                 find_test_params<char, 2>,
-                find_test_params<void, test_seq::size>
+                find_test_params<void, test_seq::size()>
             >{}; // clang-format on
 
             feature("count") = []<typename T, auto Expect>(const count_test_params<T, Expect>)
@@ -198,9 +197,9 @@ namespace stdsharp::test::type_traits
                     };
                 }; // clang-format off
             } | tuple<
-                unique_seq_t_test_params<regular_type_sequence<>>,
+                unique_seq_t_test_params<type_sequence<>>,
                 unique_seq_t_test_params<
-                    regular_type_sequence<int, float, void, char>,
+                    type_sequence<int, float, void, char>,
                     int, float, int, void, char, void
                 >
             >{}; // clang-format on

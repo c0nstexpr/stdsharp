@@ -1,5 +1,7 @@
 #include "pattern_match_test.h"
 #include "pattern_match.h"
+#include "functional/operations.h"
+#include "functional/functional.h"
 
 #include "utility/utility.h"
 
@@ -36,7 +38,7 @@ namespace stdsharp::test
                             constexpr auto v = []
                             {
                                 my_enum matched{};
-                                const auto& matched_assign = bind_ref_front(assign_v, matched);
+                                const auto& matched_assign = bind(assign_v, matched);
 
                                 pattern_match(
                                     my_enum::two,

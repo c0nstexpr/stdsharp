@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 include(cmake/Utils.cmake)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 #
 # Project details
@@ -19,7 +19,7 @@ config_interface_lib(std_sharp_utility)
 add_library(stdsharp::utility ALIAS std_sharp_utility)
 
 #
-# Model project dependencies 
+# Model project dependencies
 #
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)

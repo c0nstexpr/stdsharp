@@ -29,6 +29,9 @@ namespace stdsharp::concepts
     concept volatile_ = ::std::is_volatile_v<T>;
 
     template<typename T>
+    concept const_volatile = const_<T> && volatile_<T>;
+
+    template<typename T>
     concept abstract = ::std::is_abstract_v<T>;
 
     template<typename T>
@@ -42,12 +45,6 @@ namespace stdsharp::concepts
 
     template<typename T>
     concept unsigned_ = ::std::is_unsigned_v<T>;
-
-    template<typename T>
-    concept signed_integral = signed_<T> && ::std::integral<T>;
-
-    template<typename T>
-    concept unsigned_integral = unsigned_<T> && ::std::integral<T>;
 
     template<typename T>
     concept floating_point = ::std::is_floating_point_v<T>;
@@ -149,6 +146,18 @@ namespace stdsharp::concepts
         }; // clang-format on
 
     template<typename T, typename... Args>
+    concept list_initializable_from = requires
+    {
+        T{::std::declval<Args>()...};
+    };
+
+    template<typename T, typename... Args>
+    concept nothrow_list_initializable_from = requires
+    {
+        requires noexcept(T{::std::declval<Args>()...});
+    };
+
+    template<typename T, typename... Args>
     concept implicitly_constructible_from = ::std::constructible_from<T, Args...> && requires
     {
         ::std::declval<void(const T&)>()({::std::declval<Args>()...});
@@ -225,7 +234,6 @@ namespace stdsharp::concepts
 
     template<typename T>
     concept nothrow_copyable = nothrow_movable<T> && //
-        ::std::copyable<T> && //
         nothrow_copy_constructible<T> && //
         nothrow_assignable_from<
             ::std::add_lvalue_reference_t<T>,
@@ -253,6 +261,15 @@ namespace stdsharp::concepts
     concept nothrow_inter_convertible =
         nothrow_convertible_to<T, U> && nothrow_convertible_from<T, U>;
 
+    template<typename T>
+    concept coercable = requires(T&& t)
+    {
+        ::ranges::coerce<T>{}(::std::forward<T>(t));
+    };
+
+    template<typename T>
+    concept nothrow_coercable = noexcept(::ranges::coerce<T>{}(::std::declval<T>()));
+
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;
 
@@ -262,8 +279,7 @@ namespace stdsharp::concepts
 
     template<typename Func, typename... Args> // clang-format off
     concept nothrow_invocable_rnonvoid = nothrow_invocable<Func, Args...> &&
-        not_same_as<::std::invoke_result_t<Func, Args...>, void>;
-    // clang-format on
+        not_same_as<::std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     template<typename Func, typename ReturnT, typename... Args>
     concept invocable_r = ::std::is_invocable_r_v<ReturnT, Func, Args...>;
@@ -287,4 +303,11 @@ namespace stdsharp::concepts
 
     template<typename T, typename U>
     concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
+
+    template<typename T>
+    concept nullable_pointer = ::std::default_initializable<T> && //
+        ::std::copy_constructible<T> && //
+        copy_assignable<T> && //
+        ::std::equality_comparable<T> && //
+        weakly_equality_comparable_with<T, ::std::nullptr_t>;
 }

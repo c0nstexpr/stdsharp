@@ -4,7 +4,7 @@
 
 #include <random>
 
-namespace stdsharp::utility
+namespace stdsharp
 {
     inline constexpr struct
     {

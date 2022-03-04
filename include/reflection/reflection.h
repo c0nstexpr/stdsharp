@@ -4,6 +4,7 @@
 
 #pragma once
 #include <array>
+#include <string_view>
 
 #include "functional/cpo.h"
 
@@ -14,7 +15,7 @@ namespace stdsharp::reflection
     namespace details
     {
         template<::std::convertible_to<::std::string_view> auto Literal>
-        struct member_t : functional::nodiscard_tag_t
+        struct member_t
         {
             static constexpr ::std::string_view name = Literal;
         };
@@ -54,22 +55,85 @@ namespace stdsharp::reflection
     }
 
     template<auto Literal>
-    using member_t = details::member_t<Literal>;
+    struct member_t
+    {
+        template<typename... Args>
+            requires(
+                ::std::invocable<details::member_t<Literal>, Args...> &&
+                !functional::cpo_invocable<member_t<Literal>, Args...>)
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(concepts::nothrow_invocable<details::member_t<Literal>, Args...>)
+        {
+            return details::member_t<Literal>{}(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires functional::cpo_invocable<member_t<Literal>, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(functional::cpo_nothrow_invocable<member_t<Literal>, Args...>)
+        {
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
+        }
+    };
 
     template<auto Literal>
-    inline constexpr auto member = functional::tagged_cpo<member_t<Literal>>;
+    inline constexpr member_t<Literal> member{};
 
     template<auto Literal>
-    using data_member_t = details::data_member_t<Literal>;
+    struct data_member_t
+    {
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr data_member_t(const member_t<Literal> = {}) noexcept {}
+
+        template<typename... Args>
+            requires(
+                ::std::invocable<details::data_member_t<Literal>, Args...> &&
+                !functional::cpo_invocable<data_member_t<Literal>, Args...>)
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(concepts::nothrow_invocable<details::data_member_t<Literal>, Args...>)
+        {
+            return details::data_member_t<Literal>{}(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires functional::cpo_invocable<data_member_t<Literal>, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(functional::cpo_nothrow_invocable<data_member_t<Literal>, Args...>)
+        {
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
+        }
+    };
 
     template<auto Literal>
-    inline constexpr auto data_member = functional::tagged_cpo<data_member_t<Literal>>;
+    inline constexpr data_member_t<Literal> data_member{};
 
     template<auto Literal>
-    using member_function_t = details::member_function_t<Literal>;
+    struct member_function_t : member_t<Literal>
+    {
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr member_function_t(const member_t<Literal> = {}) noexcept {}
+
+        template<typename... Args>
+            requires(
+                ::std::invocable<details::member_function_t<Literal>, Args...> &&
+                !functional::cpo_invocable<member_function_t<Literal>, Args...>)
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(concepts::nothrow_invocable<details::member_function_t<Literal>, Args...>)
+        {
+            return details::member_function_t<Literal>{}(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires functional::cpo_invocable<member_function_t<Literal>, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(functional::cpo_nothrow_invocable<member_function_t<Literal>, Args...>)
+        {
+            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
+        }
+    };
 
     template<auto Literal>
-    inline constexpr auto member_function = functional::tagged_cpo<member_function_t<Literal>>;
+    inline constexpr member_function_t<Literal> member_function{};
 
     template<typename>
     struct data_members_t;

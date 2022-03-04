@@ -3,15 +3,11 @@
 #pragma once
 
 #include <utility>
-#include <array>
-#include <vector>
-#include <string>
-#include <string_view>
 
-#include "functional/invocable_obj.h"
-#include "type_traits/type_traits.h"
+#include "utility/pack_get.h"
+#include "utility/value_wrapper.h"
 
-namespace stdsharp::utility
+namespace stdsharp
 {
     using namespace ::std::literals;
 
@@ -52,7 +48,7 @@ namespace stdsharp::utility
     namespace details
     {
         template<typename T, typename U>
-        struct forward_like_fn : functional::nodiscard_tag_t
+        struct forward_like_fn
         {
         private:
             struct deduce_helper
@@ -64,18 +60,18 @@ namespace stdsharp::utility
             [[nodiscard]] constexpr auto operator()(U&& x) const noexcept
                 -> decltype(::std::declval<type_traits::const_ref_align_t<T&&, deduce_helper>>().m)
             {
-                return utility::auto_cast(x);
+                return auto_cast(x);
             }
         };
 
         template<typename T>
-        struct forward_like_fn<T, void> : functional::nodiscard_tag_t
+        struct forward_like_fn<T, void>
         {
             template<typename U>
             [[nodiscard]] constexpr auto operator()(U&& x) const noexcept
                 -> type_traits::const_ref_align_t<T&&, ::std::remove_reference_t<U>>
             {
-                return utility::auto_cast(x);
+                return auto_cast(x);
             }
         };
     }

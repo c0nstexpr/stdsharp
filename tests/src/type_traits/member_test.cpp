@@ -69,7 +69,7 @@ namespace stdsharp::test::type_traits
                                 mem_func_args,
                                 my_class::mem_func_args_t // clang-format off
                             >
-                        >() << fmt::format( 
+                        >() << fmt::format(
                             "actually member func args type {}",
                             reflection::type_name<mem_func_args>()
                         ); // clang-format on

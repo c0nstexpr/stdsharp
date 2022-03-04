@@ -4,7 +4,7 @@
 
 #pragma once
 #include <iterator>
-#include <concepts/concepts.h>
+#include "concepts/concepts.h"
 
 namespace stdsharp::iterator
 {
@@ -12,7 +12,7 @@ namespace stdsharp::iterator
     concept weakly_decrementable = ::std::movable<I> && requires(I i)
     {
         typename ::std::iter_difference_t<I>;
-        requires concepts::signed_integral<::std::iter_difference_t<I>>; // clang-format off
+        requires ::std::signed_integral<::std::iter_difference_t<I>>; // clang-format off
         { --i } -> ::std::same_as<I&>; // clang-format on
         i--;
     };

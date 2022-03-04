@@ -3,7 +3,7 @@
 #include <fmt/ranges.h>
 #include <gsl/gsl>
 
-#include "type_traits/type_traits.h"
+#include "type_traits/core_traits.h"
 
 namespace stdsharp::test
 {

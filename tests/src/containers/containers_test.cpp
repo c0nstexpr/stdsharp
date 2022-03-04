@@ -18,22 +18,22 @@ namespace stdsharp::test::containers
 
                 println(fmt::format("current type {}", reflection::type_name<T>()));
 
-                static_expect<sequence_container<vec>>();
                 static_expect<contiguous_container<vec>>();
 
-                static_expect<associative_container<set<T>>>();
-                static_expect<associative_container<map<T, T>>>();
-                static_expect<associative_container<multiset<T>>>();
-                static_expect<associative_container<multimap<T, T>>>();
+                static_expect<unique_associative_container<set<T>>>();
 
-                constexpr auto associative_vec = associative_container<vec> == false;
+                static_expect<unique_associative_container<map<T, T>>>();
+                static_expect<multikey_associative_container<multiset<T>>>();
+                static_expect<multikey_associative_container<multimap<T, T>>>();
+
+                constexpr auto associative_vec = !associative_container<vec>;
 
                 static_expect<associative_vec>();
 
-                static_expect<unordered_associative_container<unordered_set<T>>>();
-                static_expect<unordered_associative_container<unordered_map<T, T>>>();
-                static_expect<unordered_associative_container<unordered_multiset<T>>>();
-                static_expect<unordered_associative_container<unordered_multimap<T, T>>>();
+                static_expect<unique_unordered_associative_container<unordered_set<T>>>();
+                static_expect<unique_unordered_associative_container<unordered_map<T, T>>>();
+                static_expect<multikey_unordered_associative_container<unordered_multiset<T>>>();
+                static_expect<multikey_unordered_associative_container<unordered_multimap<T, T>>>();
             } | tuple{type_identity<int>{}, type_identity<unique_ptr<int>>{}};
         };
 

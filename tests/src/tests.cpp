@@ -7,7 +7,7 @@
 #include "type_traits/value_sequence_test.h"
 #include "type_traits/type_sequence_test.h"
 #include "type_traits/member_test.h"
-#include "property/property_test.h"
+#include "functional/symmetric_operations_test.h"
 
 #include "random/random.h"
 #include "fstream/fstream.h"
@@ -16,14 +16,14 @@ int main()
 {
     using namespace stdsharp::test;
 
-    utility::utility_test();
-    algorithm::algorithm_test();
+    utility_test();
+    algorithm_test();
     pattern_match_test();
     containers::containers_test();
-    containers::actions::actions_test();
+    actions::actions_test();
     concurrent_object_test();
     type_traits::value_sequence_test();
     type_traits::type_sequence_test();
     type_traits::member_test();
-    property::property_test();
+    functional::symmetric_operations_test();
 }

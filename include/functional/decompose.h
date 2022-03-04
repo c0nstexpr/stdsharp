@@ -2,162 +2,57 @@
 // Created by BlurringShadow on 2021-10-15.
 //
 #pragma once
-#include "functional/cpo.h"
-#include "functional/functional.h"
-#include "type_traits/type_traits.h"
-#include "utility/utility.h"
+#include "functional/bind.h"
+#include "functional/pipeable.h"
+#include "tuple/tuple.h"
 
 namespace stdsharp::functional
 {
-    template<::std::size_t I>
-    struct decompose_by_fn
+    inline constexpr struct decompose_fn
     {
-    };
-
-    template<::std::size_t I>
-    inline constexpr auto decompose_by = tagged_cpo<decompose_by_fn<I>>;
-
-    namespace details
-    {
-        template<
-            typename Decomposer,
-            typename,
-            typename = ::std::make_index_sequence<Decomposer::size> // clang-format off
-        > // clang-format on
-        struct decompose_fn;
-
-        template<typename Decomposer, typename Parameter, ::std::size_t... I>
-        struct decompose_fn<Decomposer, Parameter, ::std::index_sequence<I...>>
+        template<typename T, ::std::size_t... I, ::std::invocable<get_t<I, T>...> Fn>
+        constexpr auto operator()(
+            T&& t,
+            Fn&& fn,
+            const ::std::index_sequence<I...> //
+        ) const noexcept(concepts::nothrow_invocable<Fn, get_t<I, T>...>) -> decltype(auto)
         {
-            Decomposer decomposer{};
-            Parameter parameter{};
+            return ::std::invoke(::std::forward<Fn>(fn), get<I>(::std::forward<T>(t))...);
+        }
 
-        private:
-            template<
-                typename This,
-                typename ForwardDecomposer = decltype(::std::declval<This>().decomposer),
-                typename ForwardParam = decltype(::std::declval<This>().parameter),
-                ::std::invocable< //
-                    ::std::invoke_result_t<
-                        decltype(decompose_by<I>),
-                        ForwardDecomposer,
-                        ForwardParam // clang-format off
-                    >...
-                > Fn
-            > // clang-format on
-            static constexpr auto impl(This&& instance, Fn&& fn) noexcept( //
-                concepts::nothrow_invocable<
-                    Fn, //
-                    ::std::invoke_result_t<
-                        decltype(decompose_by<I>),
-                        ForwardDecomposer,
-                        ForwardParam // clang-format off
-                    >...
-                > // clang-format on
-            )
-            {
-                return ::std::invoke(
-                    ::std::forward<Fn>(fn),
-                    decompose_by<I>(
-                        ::std::forward<This>(instance).decomposer,
-                        ::std::forward<This>(instance).parameter // clang-format off
-                    )... // clang-format on
-                );
-            }
+        template<typename T, typename Fn>
+            requires ::std::invocable<decompose_fn, T, Fn, type_size_seq_t<T>>
+        constexpr auto operator()(T&& t, Fn&& fn) const
+            noexcept(concepts::nothrow_invocable<decompose_fn, T, Fn, type_size_seq_t<T>>)
+                -> decltype(auto)
+        {
+            return (*this)(::std::forward<T>(t), ::std::forward<Fn>(fn), type_size_seq_t<T>{});
+        }
+    } decompose{};
 
-        public:
-#define BS_DECOMPOSE_TO_OPERATOR(const_, ref)                                                    \
-    template<typename Fn>                                                                        \
-        requires requires                                                                        \
-        {                                                                                        \
-            decompose_fn::impl(::std::declval<const_ decompose_fn ref>(), ::std::declval<Fn>()); \
-        }                                                                                        \
-    [[nodiscard]] constexpr auto operator()(Fn&& fn) const_ ref noexcept(noexcept(               \
-        decompose_fn::impl(::std::declval<const_ decompose_fn ref>(), ::std::forward<Fn>(fn))))  \
-    {                                                                                            \
-        return decompose_fn::impl(                                                               \
-            static_cast<const_ decompose_fn ref>(*this), ::std::forward<Fn>(fn));                \
-    }
+    template<typename... Args>
+    concept decomposable = ::std::invocable<decompose_fn, Args...>;
 
-            BS_DECOMPOSE_TO_OPERATOR(, &)
-            BS_DECOMPOSE_TO_OPERATOR(const, &)
-            BS_DECOMPOSE_TO_OPERATOR(, &&)
-            BS_DECOMPOSE_TO_OPERATOR(const, &&)
+    template<typename... Args>
+    concept nothrow_decomposable = concepts::nothrow_invocable<decompose_fn, Args...>;
 
-#undef BS_DECOMPOSE_TO_OPERATOR
-        };
-    }
-
-    template<typename Decomposer, typename Parameter, ::std::size_t... I>
-    struct decompose_fn :
-        ::std::conditional_t<
-            sizeof...(I) == 0,
-            details::decompose_fn<Decomposer, Parameter>,
-            details::
-                decompose_fn<Decomposer, Parameter, ::std::index_sequence<I...>> // clang-format off
-        > // clang-format on
+    inline constexpr struct to_decompose_fn : pipeable_base<>
     {
     private:
-        template<concepts::decay_same_as<decompose_fn> This, typename Fn>
-            requires ::std::invocable<This, Fn>
-        friend auto operator|(This&& instance, Fn&& fn) //
-            noexcept(concepts::nothrow_invocable<This, Fn>)
+        using make_pipeable_fn = make_pipeable_fn<pipe_mode::right>;
+
+        template<typename T>
+        using bind_t = bind_type<decompose_fn, T>;
+
+    public:
+        template<typename T>
+        // requires bindable<decompose_fn, T> && ::std::invocable<make_pipeable_fn, bind_t<T>>
+        [[nodiscard]] constexpr auto operator()(T&& t) const noexcept( //
+            nothrow_bindable<decompose_fn, T>&&
+                concepts::nothrow_invocable<make_pipeable_fn, bind_t<T>> //
+        )
         {
-            return ::std::forward<This>(instance)(::std::forward<Fn>(fn));
+            return make_pipeable<pipe_mode::right>(bind(decompose, ::std::forward<T>(t)));
         }
-    };
-
-    template<typename Decomposer, typename Parameter>
-    decompose_fn(Decomposer&&, Parameter&&)
-        -> decompose_fn<::std::decay_t<Decomposer>, type_traits::coerce_t<Parameter>>;
-
-    template<::std::size_t... I>
-    inline constexpr invocable_obj make_decompose(
-        nodiscard_tag,
-        []<typename Decomposer, typename Parameter> // clang-format off
-            requires requires
-            {
-                decompose_fn{
-                    ::std::declval<Decomposer>(),
-                    ::std::declval<Parameter>()
-                };
-            } // clang-format on
-        (Decomposer&& decomposer, Parameter&& parameter) noexcept( //
-            noexcept( //
-                decompose_fn{
-                    ::std::declval<Decomposer>(),
-                    ::std::declval<Parameter>() //
-                } // clang-format off
-            ) // clang-format off
-        )
-        {
-            return decompose_fn{
-                ::std::forward<Decomposer>(decomposer),
-                ::std::forward<Parameter>(parameter) //
-            };
-        } //
-    );
-
-    template<::std::size_t... I>
-    inline constexpr invocable_obj decompose_to(
-        nodiscard_tag,
-        []<::std::copy_constructible Decomposer>(Decomposer&& decomposer) noexcept( //
-            noexcept( //
-                ::ranges::make_pipeable( //
-                    bind_ref_front(
-                        make_decompose<I...>,
-                        ::std::forward<Decomposer>(decomposer) // clang-format off
-                    )
-                )
-            ) // clang-format on
-        )
-        {
-            return ::ranges::make_pipeable( //
-                bind_ref_front(
-                    make_decompose<I...>,
-                    ::std::forward<Decomposer>(decomposer) // clang-format off
-                ) // clang-format on
-            );
-        } //
-    );
+    } to_decompose{};
 }

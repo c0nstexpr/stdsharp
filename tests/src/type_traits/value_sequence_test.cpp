@@ -13,13 +13,13 @@ namespace stdsharp::test::type_traits
         {
         };
 
-        template<typename Seq, typename Expect>
-        using remove_t_test_params = std::tuple<Seq, Expect>;
-
         template<typename, auto...>
         struct unique_seq_t_test_params
         {
         };
+
+        template<typename Seq, typename Expect>
+        using remove_t_test_params = std::tuple<Seq, Expect>;
     }
 
     template<auto... V>
@@ -36,7 +36,6 @@ namespace stdsharp::test::type_traits
             using namespace literals;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace functional;
             using namespace utility;
 
             using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
@@ -82,7 +81,7 @@ namespace stdsharp::test::type_traits
             } | tuple<
                 regular_value_sequence<0, 0>,
                 regular_value_sequence<1, 1>,
-                regular_value_sequence<'!', test_seq::size>
+                regular_value_sequence<'!', test_seq::size()>
             >{}; // clang-format on
 
             feature("count") = []<auto V, auto Expect>(const regular_value_sequence<V, Expect>)
@@ -114,20 +113,19 @@ namespace stdsharp::test::type_traits
                 }; // clang-format off
             } | tuple<apply_t_test_params<regular_value_sequence>>{}; // clang-format on
 
-            // TODO clang lambda NTTP
-            constexpr auto lam_1 = [](const int v) mutable { return v + 1; };
-            constexpr auto lam_2 = [](const int v) { return v + 42; };
-            constexpr auto lam_3 = [](const size_t v) { return v + 42; };
-            constexpr auto lam_4 = [](const int v) { return v + 6; };
-            constexpr auto lam_5 = []<auto Size>(const array<char, Size>& str) { return str[0]; };
-
             feature("transform_t") = []<auto... Functor>(const regular_value_sequence<Functor...>)
             {
                 static_expect<default_initializable<test_seq::template transform_t<Functor...>>>();
                 // clang-format off
             } | tuple<
-                regular_value_sequence<identity_v>,
-                regular_value_sequence<lam_1, lam_2, lam_3, lam_4, lam_5>
+                regular_value_sequence<::std::identity{}>,
+                regular_value_sequence<
+                    [](const int v) mutable { return v + 1; },
+                    [](const int v) { return v + 42; },
+                    [](const size_t v) { return v + 42; },
+                    [](const int v) { return v + 6; },
+                    []<auto Size>(const array<char, Size>& str) { return str[0]; }
+                >
             >{}; // clang-format on
 
             // clang-format off

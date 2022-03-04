@@ -1,26 +1,27 @@
 #pragma once
 
 #include <algorithm>
-#include <stdexcept>
 
 #ifndef NDEBUG
     #include <fmt/format.h>
+    #include <stdexcept>
 #endif
 
-#include "functional/functional.h"
+#include "functional/operations.h"
+#include "functional/invoke.h"
 #include "cassert/cassert.h"
 
-namespace stdsharp::algorithm
+namespace stdsharp
 {
-    inline constexpr auto set_if = []<typename U, typename T, ::std::predicate<U, T> Comp>
-        requires ::std::assignable_from<T&, U&&> // clang-format off
+    inline constexpr auto set_if = []<typename T, typename U, ::std::predicate<U, T> Comp>
+        requires ::std::assignable_from<T&, U> // clang-format off
         (
             T& left,
             U&& right,
             Comp comp = {}
         ) noexcept(
-            concepts::nothrow_invocable_r<Comp, bool, U, T> &&
-            concepts::nothrow_assignable_from<T, U&&>
+            concepts::nothrow_predicate<Comp, U, T> &&
+            concepts::nothrow_assignable_from<T&, U>
         ) ->T& // clang-format on
     {
         if(functional::invoke_r<bool>(::std::move(comp), right, left))
@@ -28,70 +29,82 @@ namespace stdsharp::algorithm
         return left;
     };
 
+    using set_if_fn = decltype(set_if);
+
     inline constexpr auto set_if_greater = []<typename T, typename U>
-        requires ::std::invocable<decltype(set_if), T&, U, ::std::ranges::greater>
+        requires ::std::invocable<set_if_fn, T&, U, ::std::ranges::greater>
             // clang-format off
-    (T& left, U&& right) // clang-format on
-    noexcept(concepts::nothrow_invocable<decltype(set_if), T&, U, ::std::ranges::greater>)->T&
+        (T& left, U&& right) // clang-format on
+    noexcept(concepts::nothrow_invocable<set_if_fn, T&, U, ::std::ranges::greater>)->T&
     {
         return set_if(left, ::std::forward<U>(right), functional::greater_v);
     };
 
+    using set_if_greater_fn = decltype(set_if_greater);
+
     inline constexpr auto set_if_less = []<typename T, typename U>
-        requires ::std::invocable<decltype(set_if), T&, U, ::std::ranges::less>
+        requires ::std::invocable<set_if_fn, T&, U, ::std::ranges::less>
             // clang-format off
     (T& left, U&& right) // clang-format on
-    noexcept(concepts::nothrow_invocable<decltype(set_if), T&, U, ::std::ranges::less>)->T&
+    noexcept(concepts::nothrow_invocable<set_if_fn, T&, U, ::std::ranges::less>)->T&
     {
         return set_if(left, ::std::forward<U>(right), functional::less_v);
     };
 
-    inline constexpr functional::invocable_obj is_between(
-        functional::nodiscard_tag,
-        []< // clang-format on
-            typename T,
-            typename Min,
-            typename Max,
-            typename Compare = ::std::ranges::less,
-            typename Proj = ::std::identity,
-            typename ProjT = ::std::invoke_result_t<Proj, T>,
-            typename ProjMin = ::std::invoke_result_t<Proj, Min>,
-            typename ProjMax = ::std::invoke_result_t<Proj, Max> // clang-format off
-        >
-            requires ::std::predicate<Compare, const ProjT, const ProjMin> &&
-                ::std::predicate<Compare, const ProjMax, const ProjT> &&
-                ::std::predicate<Compare, const ProjMax, const ProjMin> // clang-format on
-        (T&& v, Min&& min, Max&& max, Compare cmp = {}, Proj proj = {}) noexcept(
-            !cassert::is_debug &&
-            concepts::nothrow_predicate<Compare, const ProjT, const ProjMin> &&
-            concepts::nothrow_predicate<Compare, const ProjMax, const ProjT> &&
-            concepts::nothrow_predicate<Compare, const ProjMax, const ProjMin> // clang-format off
-        ) // clang-format on
+    using set_if_less_fn = decltype(set_if_less);
+
+    inline constexpr struct is_between_fn
+    {
+    private:
+        struct check_fn
         {
-            const auto& projected_v = ::std::invoke(proj, ::std::forward<T>(v));
-            const auto& projected_min = ::std::invoke(proj, ::std::forward<Min>(min));
-            const auto& projected_max = ::std::invoke(proj, ::std::forward<Max>(max));
-
-            if constexpr(cassert::is_debug)
-                if(functional::invoke_r<bool>(cmp, projected_max, projected_min))
+            template<typename Min, typename Max, typename Compare>
+                requires(is_debug)
+            constexpr auto operator()(const Min& min, const Max& max, Compare& cmp) const
+            {
+                if(functional::invoke_r<bool>(cmp, max, min))
                 {
-                    if constexpr(
-                        ::fmt::is_formattable<ProjMin>::value &&
-                        ::fmt::is_formattable<ProjMax>::value)
-                        throw ::std::invalid_argument{// clang-format off
-                            ::fmt::format(
-                                "projected max value {} should not less than projected min value {}",
-                                projected_max,
-                                projected_min
-                            )
-                        };
-                    else throw ::std::invalid_argument{
-                        "projected max value should not less than projected min value"
-                    }; // clang-format on
-                }
+                    if(::std::is_constant_evaluated())
+                    {
+                        static_assert(true, "max value should not less than min value");
+                        return;
+                    }
 
-            return !functional::invoke_r<bool>(cmp, projected_v, projected_min) &&
-                !functional::invoke_r<bool>(cmp, projected_max, projected_v);
-        } //
-    );
+                    if constexpr(
+                        ::fmt::is_formattable<Min>::value && //
+                        ::fmt::is_formattable<Max>::value //
+                    )
+                        throw ::std::invalid_argument{
+                            // clang-format off
+                            ::fmt::format(
+                                "max value {} should not less than min value {}",
+                                max,
+                                min
+                            )
+                        }; // clang-format on
+                    else
+                        throw ::std::invalid_argument{"max value should not less than min value"};
+                }
+            }
+        };
+
+    public:
+        template<typename T, typename Min, typename Max, typename Compare = ::std::ranges::less>
+            requires ::std::predicate<Compare, const T, const Min> &&
+                ::std::predicate<Compare, const Max, const T> &&
+                ::std::predicate<Compare, const Max, const Min>
+        [[nodiscard]] constexpr auto
+            operator()(const T& t, const Min& min, const Max& max, Compare cmp = {}) const
+            noexcept( // clang-format off
+                concepts::nothrow_predicate<Compare, const T, const Min> &&
+                    concepts::nothrow_predicate<Compare, const Max, const T> &&
+                    functional::nothrow_optional_invocable<check_fn, Max, Min, Compare>
+            ) // clang-format on
+        {
+            functional::optional_invoke(check_fn{}, max, min, cmp);
+
+            return !functional::invoke_r<bool>(cmp, t, min) &&
+                !functional::invoke_r<bool>(cmp, max, t);
+        }
+    } is_between{};
 }

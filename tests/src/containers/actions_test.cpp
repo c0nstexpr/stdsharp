@@ -1,142 +1,124 @@
 #include "containers/actions_test.h"
 #include "containers/actions.h"
-#include "type_traits/object.h"
 
-namespace stdsharp::test::containers::actions
+namespace stdsharp::test::actions
 {
     using namespace std;
     using namespace std::ranges;
     using namespace boost::ut;
     using namespace bdd;
-    using namespace stdsharp::functional;
-    using namespace stdsharp::ranges;
-    using namespace stdsharp::containers;
-    using namespace stdsharp::containers::actions;
 
-    namespace
+    template<typename T>
+    using dummy_predicate_t = bool(const T&);
+
+    template<typename T>
+    concept vec_req = requires(
+        vector<T> v,
+        iterator_t<vector<T>> iter,
+        T value,
+        dummy_predicate_t<T> dummy_predicate //
+    )
     {
-        template<typename T>
-        using dummy_predicate_t = bool(const T&);
+        stdsharp::actions::emplace(v, iter, std::move(value));
+        stdsharp::actions::emplace_back(v, std::move(value));
+        stdsharp::actions::emplace_front(v, std::move(value));
 
-        template<typename T>
-        concept vec_req = requires(
-            vector<T> v,
-            decltype(v.cbegin()) iter,
-            T value,
-            dummy_predicate_t<T> dummy_predicate //
-        )
+        stdsharp::actions::erase(v, value);
+        stdsharp::actions::erase(v, iter);
+        stdsharp::actions::erase(v, iter, iter);
+        stdsharp::actions::erase_if(v, dummy_predicate);
+
+        stdsharp::actions::pop_front(v);
+        stdsharp::actions::pop_back(v);
+
+        stdsharp::actions::resize(v, 0);
+    };
+
+    template<typename T>
+    concept set_req = requires(
+        set<T> v,
+        iterator_t<set<T>> iter,
+        T value,
+        dummy_predicate_t<T> dummy_predicate //
+    )
+    {
+        stdsharp::actions::emplace(v, std::move(value));
+
+        stdsharp::actions::erase(v, value);
+        stdsharp::actions::erase(v, iter);
+        stdsharp::actions::erase(v, iter, iter);
+        stdsharp::actions::erase_if(v, dummy_predicate);
+    };
+
+    template<typename T>
+    concept unordered_map_req = requires(
+        unordered_map<T, int> v,
+        iterator_t<unordered_map<T, int>> iter,
+        T value,
+        dummy_predicate_t<pair<const T, int>> dummy_predicate //
+    )
+    {
+        stdsharp::actions::emplace(v, std::move(value), 0);
+
+        stdsharp::actions::erase(v, value);
+        stdsharp::actions::erase(v, iter);
+        stdsharp::actions::erase(v, iter, iter);
+        stdsharp::actions::erase_if(v, dummy_predicate);
+    };
+
+    void vector_actions_test()
+    {
+        feature("vector actions") = []<typename T>(const type_identity<T>)
         {
-            stdsharp::containers::actions::emplace(v, iter, std::move(value));
-            stdsharp::containers::actions::emplace_back(v, std::move(value));
-            stdsharp::containers::actions::emplace_front(v, std::move(value));
+            println(fmt::format("current type {}", reflection::type_name<T>()));
+            static_expect<vec_req<T>>();
+        } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
 
-            stdsharp::containers::actions::erase(v, value);
-            stdsharp::containers::actions::erase(v, iter);
-            stdsharp::containers::actions::erase(v, iter, iter);
-            stdsharp::containers::actions::erase_if(v, dummy_predicate);
+        feature("vector concept checking") = []
+        {
+            using vec = std::vector<int>;
 
-            stdsharp::containers::actions::pop_front(v);
-            stdsharp::containers::actions::pop_back(v);
-
-            stdsharp::containers::actions::resize(v, 0);
+            println(fmt::format("current type {}", reflection::type_name<vec>()));
+            static_expect<containers::sequence_container<vec>>();
+            static_expect<!containers::associative_container<vec>>();
+            static_expect<!containers::unordered_associative_container<vec>>();
         };
+    }
 
-        template<typename T>
-        concept set_req = requires(
-            set<T> v,
-            decltype(v.cbegin()) iter,
-            T value,
-            dummy_predicate_t<T> dummy_predicate //
-        )
+    void set_actions_test()
+    {
+        feature("set actions") = []<typename T>(const type_identity<T>)
         {
-            stdsharp::containers::actions::emplace(v, std::move(value));
+            println(fmt::format("current type {}", reflection::type_name<T>()));
+            static_expect<set_req<T>>();
+        } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
 
-            stdsharp::containers::actions::erase(v, value);
-            stdsharp::containers::actions::erase(v, iter);
-            stdsharp::containers::actions::erase(v, iter, iter);
-            stdsharp::containers::actions::erase_if(v, dummy_predicate);
+        feature("set concept checking") = []
+        {
+            using set = std::set<int>;
+
+            println(fmt::format("current type {}", reflection::type_name<set>()));
+            static_expect<containers::associative_container<set>>();
+            static_expect<!containers::sequence_container<set>>();
         };
+    }
 
-        template<typename T>
-        concept unordered_map_req = requires(
-            unordered_map<T, int> v,
-            decltype(v.cbegin()) iter,
-            T value,
-            dummy_predicate_t<pair<const T, int>> dummy_predicate //
-        )
+    void unordered_map_actions_test()
+    {
+        feature("unordered map actions") = []<typename T>(const type_identity<T>)
         {
-            stdsharp::containers::actions::emplace(v, std::move(value), 0);
+            println(fmt::format("current type {}", reflection::type_name<T>()));
+            static_expect<unordered_map_req<T>>();
+        } | tuple{type_identity<int>{}, type_identity<unique_ptr<long>>{}};
 
-            stdsharp::containers::actions::erase(v, value);
-            stdsharp::containers::actions::erase(v, iter);
-            stdsharp::containers::actions::erase(v, iter, iter);
-            stdsharp::containers::actions::erase_if(v, dummy_predicate);
+        feature("unordered map concept checking") = []
+        {
+            using map = std::unordered_map<int, int>;
+
+            println(fmt::format("current type {}", reflection::type_name<map>()));
+            static_expect<containers::unordered_associative_container<map>>();
+            static_expect<!containers::sequence_container<map>>();
         };
-
-        void vector_actions_test()
-        {
-            feature("vector actions") = []<typename T>(const type_identity<T>)
-            {
-                println(fmt::format("current type {}", reflection::type_name<T>()));
-                static_expect<vec_req<T>>();
-            } | tuple{type_identity<int>{}, type_identity<unique_ptr<float>>{}};
-
-            struct range_as_iterators_params
-            {
-                vector<int> initial_v_list;
-                initializer_list<int> expected_v_list;
-            };
-
-            // clang-format off
-            feature("range as iterators") = [](range_as_iterators_params params) // clang-format on
-            {
-                auto& v_list = params.initial_v_list;
-
-                const auto unique_op = [&v_list = v_list]
-                {
-                    stdsharp::containers::actions::erase(
-                        v_list,
-                        v_list | decompose_to<>(rng_as_iters) | ::ranges::unique,
-                        v_list.cend() //
-                    );
-                };
-
-                println(fmt::format("current value: {}", v_list));
-
-                unique_op();
-
-                println(fmt::format("after first unique operation, values are: {}", v_list));
-
-                v_list | decompose_to<>(rng_as_iters) | std::ranges::sort;
-
-                println(fmt::format("after sort, values are: {}", v_list));
-
-                unique_op();
-
-                expect(std::ranges::equal(params.expected_v_list, v_list)) << //
-                    fmt::format("actual values are: {}", v_list); // clang-format off
-            } | tuple{
-                range_as_iterators_params{{1, 2, 1, 1, 3, 3, 3, 4, 5, 4}, {1, 2, 3, 4, 5}}
-            }; // clang-format on
-        }
-
-        void set_actions_test()
-        {
-            feature("set actions") = []<typename T>(const type_identity<T>)
-            {
-                println(fmt::format("current type {}", reflection::type_name<T>()));
-                static_expect<set_req<T>>();
-            } | tuple{type_identity<int>{}};
-        }
-
-        void unordered_map_actions_test()
-        {
-            feature("unordered map actions") = []<typename T>(const type_identity<T>)
-            {
-                println(fmt::format("current type {}", reflection::type_name<T>()));
-                static_expect<unordered_map_req<T>>();
-            } | tuple{type_identity<int>{}, type_identity<unique_ptr<long>>{}};
-        }
     }
 
     boost::ut::suite& actions_test()

@@ -1,7 +1,7 @@
 #include "algorithm_test.h"
 #include "algorithm/algorithm.h"
 
-namespace stdsharp::test::algorithm
+namespace stdsharp::test
 {
     boost::ut::suite& algorithm_test()
     {
@@ -10,10 +10,9 @@ namespace stdsharp::test::algorithm
             using namespace std;
             using namespace boost::ut;
             using namespace bdd;
-            using namespace stdsharp::algorithm;
 
             feature("set_if") = []<auto First, auto Second>( // clang-format off
-                const static_params<First, Second> 
+                const static_params<First, Second>
             ) // clang-format on
             {
                 given("given two values") = []
@@ -51,8 +50,9 @@ namespace stdsharp::test::algorithm
             {
                 given("given three values") = []
                 {
-                    print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
                     static constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
+
+                    print(fmt::format("value: {}, min value: {}, max value: {}", Value, Min, Max));
 
                     then( // clang-format off
                         is_in_range ?
