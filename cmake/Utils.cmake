@@ -25,7 +25,6 @@ endfunction()
 include(cmake/Conan.cmake)
 conan()
 
-
 function(init_proj)
     cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" "${ARGN}")
     message(STATUS "Started CMake for ${PROJECT_NAME} v${PROJECT_VERSION}...\n")
@@ -33,8 +32,6 @@ function(init_proj)
     #
     # Setup alternative names
     #
-    set(PROJECT_NAME_LOWERCASE ${PROJECT_NAME} PARENT_SCOPE)
-    set(PROJECT_NAME_UPPERCASE ${PROJECT_NAME} PARENT_SCOPE)
     if (${${CMAKE_CURRENT_FUNCTION}_USE_ALT_NAMES})
         string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
         string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)

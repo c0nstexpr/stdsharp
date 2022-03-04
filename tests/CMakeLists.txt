@@ -4,7 +4,7 @@
 project(${CMAKE_PROJECT_NAME}Tests LANGUAGES CXX)
 init_proj()
 
-verbose_message("Adding tests under ${PROJECT_NAME}...")
+verbose_message("Adding tests under ${CMAKE_PROJECT_NAME}...")
 
 #
 # Set the sources for the unit tests and add the executable(s)
@@ -80,14 +80,12 @@ target_include_directories(
 
 add_subdirectory(./ut)
 
-find_package(Microsoft.GSL CONFIG REQUIRED)
-
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp::utility Microsoft.GSL::GSL)
-
+target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp)
 
 #
 # Add the unit tests
 #
+enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 
 verbose_message("Finished adding unit tests for ${CMAKE_PROJECT_NAME}.")

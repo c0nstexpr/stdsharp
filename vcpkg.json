@@ -1,9 +1,8 @@
 {
-  "name": "stdsharp-utility",
+  "name": "stdsharp",
   "version": "0.1.0",
   "dependencies": [
     "fmt",
-    "range-v3",
-    "ms-gsl"
+    "range-v3"
   ]
 }

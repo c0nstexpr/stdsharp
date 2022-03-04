@@ -1,7 +1,6 @@
 #pragma once
 #include <boost/ut.hpp>
 #include <fmt/ranges.h>
-#include <gsl/gsl>
 
 #include "type_traits/core_traits.h"
 

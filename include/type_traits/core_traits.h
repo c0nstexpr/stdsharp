@@ -5,6 +5,7 @@
 #include <array>
 #include <type_traits>
 #include <string_view>
+#include <functional>
 
 #include <range/v3/functional/arithmetic.hpp>
 #include <range/v3/utility/static_const.hpp>
