@@ -1,0 +1,5 @@
+---
+Checks: '-*,boost-*,bugprone-*,cert-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*,clang-analyzer-*,-modernize-use-trailing-return-type,-readability-named-parameter,-hicpp-named-parameter,-hicpp-braces-around-statements,-readability-braces-around-statements,-readability-misleading-indentation,-cppcoreguidelines-macro-usage,-cppcoreguidelines-non-private-member-variables-in-classes,-misc-non-private-member-variables-in-classes,-bugprone-macro-parentheses,-bugprone-forwarding-reference-overload'
+WarningsAsErrors: ''
+FormatStyle: 'file'
+User: blurringshadow

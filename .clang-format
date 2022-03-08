@@ -1,0 +1,62 @@
+---
+# Language: Cpp workaround to solve clang-format bug
+Standard: Auto
+BasedOnStyle: LLVM
+
+AccessModifierOffset: -4
+AlignAfterOpenBracket: AlwaysBreak # Align
+AlignEscapedNewlines: Left # Right
+AlignOperands: DontAlign # Align
+AlignTrailingComments: false # true
+AllowShortBlocksOnASingleLine: Always # Never
+AllowShortCaseLabelsOnASingleLine: true # false
+AllowShortIfStatementsOnASingleLine: Always # Never
+AllowShortLoopsOnASingleLine: true # false
+AlwaysBreakTemplateDeclarations: Yes # MultiLine
+BinPackArguments: false # true
+BinPackParameters: false # true
+#BraceWrapping:
+#   AfterCaseLabel: true
+#   AfterClass: true
+#   AfterControlStatement: MultiLine
+#   AfterEnum: true
+#  AfterFunction: true
+#   AfterNamespace: true
+#   AfterObjCDeclaration: true
+#   AfterStruct: true
+#   AfterUnion: true
+#   AfterExternBlock: true
+#   BeforeCatch: true
+#   BeforeElse: true
+#   BeforeLambdaBody: true
+#   BeforeWhile: true
+#   IndentBraces: false
+#   SplitEmptyFunction: false
+#   SplitEmptyRecord: false
+#   SplitEmptyNamespace: false
+BreakBeforeBraces: Allman # Attach
+BreakInheritanceList: AfterColon # BeforeColon
+BreakBeforeTernaryOperators: false # true
+BreakConstructorInitializers: AfterColon # BeforeColon
+ColumnLimit: 100 # 80
+ConstructorInitializerAllOnOneLineOrOnePerLine: true # false
+FixNamespaceComments: false # true
+# Clang13 IndentAccessModifiers : false # true
+IndentGotoLabels: false # true
+IndentPPDirectives: BeforeHash # None
+IndentRequires: true # false
+IndentWidth: 4 # 2
+IndentWrappedFunctionNames: true # false
+KeepEmptyLinesAtTheStartOfBlocks: false # true
+MaxEmptyLinesToKeep: 2 # 1
+NamespaceIndentation: All # None
+# Clang13 PPIndentWidth: 4 # -1
+PenaltyBreakFirstLessLess: 3 # 120
+PointerAlignment: Left # Right
+SortIncludes: false # CaseSensitive
+SortUsingDeclarations: false # true
+SpaceAfterTemplateKeyword: false # true
+SpaceBeforeCtorInitializerColon: false # true
+SpaceBeforeParens: Never # ControlStatements
+SpacesInContainerLiterals: false # true
+...
