@@ -1,3 +1,0 @@
----
-InheritParentConfig: true
-Checks: '-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-readability-named-parameter'

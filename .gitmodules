@@ -1,3 +1,0 @@
-[submodule "tests/ut"]
-	path = tests/ut
-	url = https://github.com/boost-ext/ut
