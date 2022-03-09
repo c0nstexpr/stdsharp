@@ -1,11 +1,10 @@
 #pragma once
 
-#include <cstdint>
-#include <cstddef>
-#include <type_traits>
+#include "utility/utility.h"
 
 namespace stdsharp
 {
+    using byte = ::std::underlying_type_t<::std::byte>;
     using i8 = ::std::int8_t; ///< 8-bit signed integer type.
     using u8 = ::std::uint8_t; ///< 8-bit unsigned integer type.
     using i16 = ::std::int16_t; ///< 16-bit signed integer type.
@@ -20,71 +19,41 @@ namespace stdsharp
     inline constexpr struct
     {
         template<typename T>
-        constexpr ::std::make_unsigned_t<T> operator()(const T t)
+        [[nodiscard]] constexpr ::std::make_unsigned_t<T> operator()(const T t) noexcept
         {
-            return static_cast<::std::make_unsigned_t<T>>(t);
+            return auto_cast(t);
         }
     } make_unsigned{};
 
     inline constexpr struct
     {
         template<typename T>
-        constexpr ::std::make_signed_t<T> operator()(const T t)
+        [[nodiscard]] constexpr ::std::make_signed_t<T> operator()(const T t) noexcept
         {
-            return static_cast<::std::make_signed_t<T>>(t);
+            return auto_cast(t);
         }
     } make_signed{};
 
     inline namespace literals
     {
-        [[nodiscard]] constexpr auto operator""_i8(const unsigned long long value) noexcept
-        {
-            return static_cast<i8>(value);
-        }
+#define BS_INT_LITERALS(literal)                                                               \
+    [[nodiscard]] constexpr auto operator""_##literal(const unsigned long long value) noexcept \
+    {                                                                                          \
+        return static_cast<literal>(value);                                                    \
+    }
 
-        [[nodiscard]] constexpr auto operator""_u8(const unsigned long long value) noexcept
-        {
-            return static_cast<u8>(value);
-        }
+#define BS_SIGNS_INT_LITERALS(num) BS_INT_LITERALS(i##num) BS_INT_LITERALS(u##num)
 
-        [[nodiscard]] constexpr auto operator""_i16(const unsigned long long value) noexcept
-        {
-            return static_cast<i16>(value);
-        }
+        BS_SIGNS_INT_LITERALS(8)
+        BS_SIGNS_INT_LITERALS(16)
+        BS_SIGNS_INT_LITERALS(32)
+        BS_SIGNS_INT_LITERALS(64)
 
-        [[nodiscard]] constexpr auto operator""_u16(const unsigned long long value) noexcept
-        {
-            return static_cast<u16>(value);
-        }
+#undef BS_SIGNS_INT_LITERALS
 
-        [[nodiscard]] constexpr auto operator""_i32(const unsigned long long value) noexcept
-        {
-            return static_cast<i32>(value);
-        }
+        BS_INT_LITERALS(byte)
 
-        [[nodiscard]] constexpr auto operator""_u32(const unsigned long long value) noexcept
-        {
-            return static_cast<u32>(value);
-        }
+#undef BS_INT_LITERALS
 
-        [[nodiscard]] constexpr auto operator""_i64(const unsigned long long value) noexcept
-        {
-            return static_cast<i64>(value);
-        }
-
-        [[nodiscard]] constexpr auto operator""_u64(const unsigned long long value) noexcept
-        {
-            return static_cast<u64>(value);
-        }
-
-        [[nodiscard]] constexpr auto operator""_uz(const unsigned long long value) noexcept
-        {
-            return static_cast<::std::size_t>(value);
-        }
-
-        [[nodiscard]] constexpr auto operator""_z(const unsigned long long value) noexcept
-        {
-            return static_cast<ssize_t>(value);
-        }
     }
 }

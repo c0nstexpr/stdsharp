@@ -130,7 +130,7 @@ namespace stdsharp::type_traits
         };
 
         template<ltr ltr>
-        constexpr auto operator"" _ltr() noexcept
+        [[nodiscard]] constexpr auto operator"" _ltr() noexcept
         {
             return ltr;
         }
