@@ -66,11 +66,13 @@ namespace stdsharp
                 {
                     if(::std::is_constant_evaluated())
                     {
-                        static_assert(true, "max value should not less than min value");
+                        static_assert(
+                            type_traits::always_false<Min>(),
+                            "max value should not less than min value" //
+                        );
                         return;
                     }
-
-                    if constexpr(
+                    else if constexpr(
                         ::fmt::is_formattable<Min>::value && //
                         ::fmt::is_formattable<Max>::value //
                     )

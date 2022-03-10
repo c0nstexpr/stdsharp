@@ -12,6 +12,12 @@
 
 namespace stdsharp::type_traits
 {
+    template<typename...>
+    constexpr auto always_false(const auto&...) noexcept
+    {
+        return false;
+    }
+
     inline constexpr struct empty_t final
     {
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
