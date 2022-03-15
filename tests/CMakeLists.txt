@@ -73,13 +73,7 @@ endif ()
 
 target_compile_options(${PROJECT_NAME}_LIB PUBLIC ${additional_option})
 
-target_include_directories(
-    ${PROJECT_NAME}_LIB
-    SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-add_subdirectory(./ut)
-
+find_package(ut)
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp)
 
 #

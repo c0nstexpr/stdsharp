@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "dependencies": [
     "fmt",
-    "range-v3"
+    "range-v3",
+    "boost-ext-ut"
   ]
 }

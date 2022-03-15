@@ -1,0 +1,12 @@
+{
+    "registries": [
+        {
+            "kind": "git",
+            "repository": "https://github.com/BlurringShadow/vcpkg-registry",
+            "baseline": "5e289fcb4b36ad6b79ffc9a70262c1dd807a2ea2",
+            "packages": [
+                "boost-ext-ut"
+            ]
+        }
+    ]
+}

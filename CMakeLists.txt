@@ -31,4 +31,7 @@ verbose_message("Successfully added all dependencies and linked against them.")
 #
 target_install(stdsharp VER ${PROJECT_VERSION} NAMESPACE "stdsharp::")
 
-add_subdirectory(tests)
+option(STDSHARP_BUILD_TEST CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+if(STDSHARP_BUILD_TEST)
+    add_subdirectory(tests)
+endif()
