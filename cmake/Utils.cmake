@@ -2,7 +2,6 @@
 # Print a message only if the `VERBOSE_OUTPUT` option is on
 #
 include(cmake/StandardSettings.cmake)
-include(cmake/CPM.cmake)
 include(cmake/CCache.cmake)
 include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)

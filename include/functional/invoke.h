@@ -9,6 +9,8 @@ namespace stdsharp::functional
         return type_traits::empty; //
     };
 
+    using empty_invoke_fn = decltype(empty_invoke);
+
     inline constexpr sequenced_invocables optional_invoke{::ranges::invoke, empty_invoke};
 
     template<typename... Args>

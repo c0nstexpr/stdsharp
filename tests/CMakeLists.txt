@@ -73,7 +73,16 @@ endif ()
 
 target_compile_options(${PROJECT_NAME}_LIB PUBLIC ${additional_option})
 
-find_package(ut)
+message("adding boost-ext/ut")
+
+include(FetchContent)
+FetchContent_Declare(
+  boost-ext-ut
+  GIT_REPOSITORY https://github.com/boost-ext/ut.git
+  GIT_TAG 1d304bb6e67b51dfa4fdd794eac537913d5f9e42
+)
+FetchContent_MakeAvailable(boost-ext-ut)
+
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp)
 
 #

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "functional/invocables.h"
 #include <algorithm>
 
 #ifndef NDEBUG
@@ -55,42 +56,6 @@ namespace stdsharp
 
     inline constexpr struct is_between_fn
     {
-    private:
-        struct check_fn
-        {
-            template<typename Min, typename Max, typename Compare>
-                requires(is_debug)
-            constexpr auto operator()(const Min& min, const Max& max, Compare& cmp) const
-            {
-                if(functional::invoke_r<bool>(cmp, max, min))
-                {
-                    if(::std::is_constant_evaluated())
-                    {
-                        static_assert(
-                            type_traits::always_false<Min>(),
-                            "max value should not less than min value" //
-                        );
-                        return;
-                    }
-                    else if constexpr(
-                        ::fmt::is_formattable<Min>::value && //
-                        ::fmt::is_formattable<Max>::value //
-                    )
-                        throw ::std::invalid_argument{
-                            // clang-format off
-                            ::fmt::format(
-                                "max value {} should not less than min value {}",
-                                max,
-                                min
-                            )
-                        }; // clang-format on
-                    else
-                        throw ::std::invalid_argument{"max value should not less than min value"};
-                }
-            }
-        };
-
-    public:
         template<typename T, typename Min, typename Max, typename Compare = ::std::ranges::less>
             requires ::std::predicate<Compare, const T, const Min> &&
                 ::std::predicate<Compare, const Max, const T> &&
@@ -100,10 +65,40 @@ namespace stdsharp
             noexcept( // clang-format off
                 concepts::nothrow_predicate<Compare, const T, const Min> &&
                     concepts::nothrow_predicate<Compare, const Max, const T> &&
-                    functional::nothrow_optional_invocable<check_fn, Max, Min, Compare>
+                    !is_debug
             ) // clang-format on
         {
-            functional::optional_invoke(check_fn{}, max, min, cmp);
+            functional::make_sequenced_invocables(
+                [&]() requires(is_debug) //
+                {
+                    if(::std::is_constant_evaluated())
+                    {
+                        if(functional::invoke_r<bool>(cmp, max, min))
+                            static_assert(
+                                !type_traits::always_false<T>(),
+                                "max value should not less than min value" //
+                            );
+                    }
+                    else if(functional::invoke_r<bool>(cmp, max, min))
+                        if constexpr(
+                            ::fmt::is_formattable<Min>::value && //
+                            ::fmt::is_formattable<Max>::value //
+                        )
+                            throw ::std::invalid_argument{
+                                // clang-format off
+                                ::fmt::format(
+                                    "max value {} should not less than min value {}",
+                                    max,
+                                    min
+                                )
+                            }; // clang-format on
+                        else
+                            throw ::std::invalid_argument{
+                                "max value should not less than min value" //
+                            };
+                },
+                functional::empty_invoke //
+            );
 
             return !functional::invoke_r<bool>(cmp, t, min) &&
                 !functional::invoke_r<bool>(cmp, max, t);
