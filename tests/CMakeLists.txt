@@ -65,6 +65,14 @@ FetchContent_Declare(
 if(MSVC)
     # target_compile_options(ut INTERFACE "/interface" "/translateInclude" "/ifcOnly")
     set(BOOST_UT_DISABLE_MODULE ON)
+else()
+    find_program(CLANG_TIDY "clang-tidy")
+    if(CLANG_TIDY)
+        message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
+    else()
+        message(STATUS "clang-tidy not found")
+    endif()
 endif()
 FetchContent_MakeAvailable(boost-ext-ut)
 
@@ -79,13 +87,6 @@ target_include_directories(
 #     target_enable_coverage(${PROJECT_NAME} FORMAT lcov)
 # endif()
 
-find_program(CLANG_TIDY "clang-tidy")
-if(CLANG_TIDY)
-    message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
-else()
-    message(STATUS "clang-tidy not found")
-endif()
 
 #
 # Add the unit tests
