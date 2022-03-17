@@ -84,8 +84,8 @@ namespace stdsharp
                     typename decltype(u_traits)::allocator_type u_alloc //
                 )
                 { // clang-format off
-                    { other_p -> v } -> ::std::same_as<decltype(((*other_p).v))>;
-                    { other_const_p -> v } -> ::std::same_as<decltype(((*other_const_p).v))>;
+                    { other_p->v } -> ::std::same_as<decltype(((*other_p).v))>;
+                    { other_const_p->v } -> ::std::same_as<decltype(((*other_const_p).v))>;
 
                     { t_traits.construct(alloc, other_p) };
                     { t_traits.destroy(alloc, other_p) }; // clang-format on

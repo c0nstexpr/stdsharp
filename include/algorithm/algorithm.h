@@ -71,34 +71,27 @@ namespace stdsharp
             functional::make_sequenced_invocables(
                 [&]() requires(is_debug) //
                 {
-                    if(::std::is_constant_evaluated())
+                    if(functional::invoke_r<bool>(cmp, max, min))
                     {
-                        if(functional::invoke_r<bool>(cmp, max, min))
-                            static_assert(
-                                !type_traits::always_false<T>(),
-                                "max value should not less than min value" //
-                            );
-                    }
-                    else if(functional::invoke_r<bool>(cmp, max, min))
-                        if constexpr(
+                        constexpr ltr message = "max value should not less than min value";
+                        if(::std::is_constant_evaluated()) unreachable<message>();
+                        else if constexpr(
                             ::fmt::is_formattable<Min>::value && //
-                            ::fmt::is_formattable<Max>::value //
+                            ::fmt::is_formattable<Max>::value // clang-format off
                         )
                             throw ::std::invalid_argument{
-                                // clang-format off
                                 ::fmt::format(
                                     "max value {} should not less than min value {}",
                                     max,
                                     min
                                 )
-                            }; // clang-format on
-                        else
-                            throw ::std::invalid_argument{
-                                "max value should not less than min value" //
                             };
+                        else throw ::std::invalid_argument{::std::string{message}};
+                        // clang-format on
+                    }
                 },
                 functional::empty_invoke //
-            );
+                )();
 
             return !functional::invoke_r<bool>(cmp, t, min) &&
                 !functional::invoke_r<bool>(cmp, max, t);
