@@ -3,8 +3,7 @@
 #
 include(cmake/StandardSettings.cmake)
 include(cmake/CCache.cmake)
-include(GenerateExportHeader)
-include(CMakePackageConfigHelpers)
+include(cmake/CPM.cmake)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Debug mode.\n")
@@ -114,7 +113,6 @@ function(config_lib lib_name includes src lib_type)
         PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 endfunction()
 
@@ -149,101 +147,13 @@ function(config_exe exe_name exe_src)
         endif ()
 
         target_link_libraries(${exe_name} PUBLIC ${exe_name}_LIB)
-        endif ()
-endfunction()
-
-#
-# install target
-#
-function(target_install target_name)
-    include(GNUInstallDirs)
-
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "VER;NAMESPACE" "" "${ARGN}")
-
-    install(
-        TARGETS ${target_name}
-        EXPORT ${target_name}Targets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION include
-        PUBLIC_HEADER DESTINATION include
-    )
-
-    install(
-        EXPORT ${target_name}Targets
-        FILE ${target_name}Targets.cmake
-        NAMESPACE ${${CMAKE_CURRENT_FUNCTION}_NAMESPACE}
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
-    )
-
-    #
-    # Add version header
-    #
-    configure_file(
-        ${CMAKE_SOURCE_DIR}/cmake/version.h.in
-        ${CMAKE_CURRENT_BINARY_DIR}/include/${target_name}/version.h
-        @ONLY
-    )
-
-    install(
-        FILES ${CMAKE_CURRENT_BINARY_DIR}/include/${target_name}/version.h
-        DESTINATION include/${target_name}
-    )
-
-    #
-    # Install the `include` directory
-    #
-    install(
-        DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/${target_name}
-        DESTINATION include
-    )
-
-    verbose_message("Install targets succesfully build. Install with `cmake --build <build_directory> --target install --config <build_config>`.")
-
-    #
-    # Quick `ConfigVersion.cmake` creation
-    #
-    set(VERSION_FILE_NAME ${target_name}Version.cmake)
-    set(CONFIG_FILE_NAME ${target_name}Config.cmake)
-
-    write_basic_package_version_file(
-        ${CONFIG_FILE_NAME}
-        VERSION ${${CMAKE_CURRENT_FUNCTION}_VER}
-        COMPATIBILITY SameMajorVersion
-    )
-
-    configure_package_config_file(
-        ${CMAKE_SOURCE_DIR}/cmake/Config.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}
-        INSTALL_DESTINATION
-        ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    )
-
-    install(
-        FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}
-        ${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}
-    )
-
-    message(STATUS "Finished building requirements for installing the package.\n")
-endfunction()
-
-#
-# Generate export header
-#
-function(target_export_header target_name)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "INSTALL" "" "" ${ARGN})
-
-    generate_export_header(${target_name})
-
-    message(STATUS "Generated the export header `${target_name}_export.h`")
-
-    if (${${CMAKE_CURRENT_FUNCTION}_INSTALL})
-        install(
-            FILES ${PROJECT_BINARY_DIR}/${target_name}_export.h
-            DESTINATION include
-        )
     endif ()
+endfunction()
+
+#
+# Create executable, setup header and source files
+#
+function(target_install)
+    CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
+    packageProject(${ARGN})
 endfunction()

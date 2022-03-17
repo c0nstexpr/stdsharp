@@ -54,26 +54,7 @@ set(
 )
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
-if (MSVC) # visual studio doesn't support clang-tidy directly by cmake
-    set_target_properties(
-        ${PROJECT_NAME}
-        PROPERTIES
-        VS_GLOBAL_EnableClangTidyCodeAnalysis true
-    )
-    set(additional_option /W0)
-    set(BOOST_UT_DISABLE_MODULE true)
-else ()
-    if (DEFINED ENV{CLANG_TIDY_WHERE})
-        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY "$ENV{CLANG_TIDY_WHERE}")
-    endif ()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "(.*Clang)|GNU")
-        set(additional_option -w)
-    endif ()
-endif ()
-
-target_compile_options(${PROJECT_NAME}_LIB PUBLIC ${additional_option})
-
-message("adding boost-ext/ut")
+message(STATUS "adding boost-ext/ut")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -81,9 +62,21 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/boost-ext/ut.git
   GIT_TAG 1d304bb6e67b51dfa4fdd794eac537913d5f9e42
 )
+if(MSVC)
+    # target_compile_options(ut INTERFACE "/interface" "/translateInclude" "/ifcOnly")
+    set(BOOST_UT_DISABLE_MODULE ON)
+endif()
 FetchContent_MakeAvailable(boost-ext-ut)
 
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp)
+
+find_program(CLANG_TIDY "clang-tidy")
+if(CLANG_TIDY)
+    message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+    set_target_properties(${PROJECT_NAME}_LIB PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY})
+else()
+    message(STATUS "clang-tidy not found")
+endif()
 
 #
 # Add the unit tests

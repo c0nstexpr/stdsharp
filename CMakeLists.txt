@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 include(cmake/Utils.cmake)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 #
 # Project details
@@ -11,7 +12,7 @@ project("stdsharp" VERSION 0.1.0 LANGUAGES CXX)
 
 init_proj()
 
-config_interface_lib(stdsharp)
+config_interface_lib(${PROJECT_NAME})
 
 #
 # Model project dependencies
@@ -19,17 +20,38 @@ config_interface_lib(stdsharp)
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 
+target_compile_options(
+    ${PROJECT_NAME}
+    INTERFACE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-logical-op-parentheses -Wno-dangling-else -Werror>
+              $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+)
+
 target_link_libraries(
-    stdsharp
+    ${PROJECT_NAME}
     INTERFACE fmt::fmt range-v3::range-v3
 )
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
-#
-# Install library for easy downstream inclusion
-#
-target_install(stdsharp VER ${PROJECT_VERSION} NAMESPACE "stdsharp::")
+include(GNUInstallDirs)
+target_install(
+  NAME ${PROJECT_NAME}
+  VERSION ${PROJECT_VERSION}
+  NAMESPACE ${PROJECT_NAME}
+  BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include
+  INCLUDE_DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  COMPATIBILITY SameMajorVersion
+)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+install(
+    FILES ${CPM_DOWNLOAD_LOCATION}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
+)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(STDSHARP_BUILD_TEST ON)
