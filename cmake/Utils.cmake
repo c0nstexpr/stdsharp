@@ -24,7 +24,7 @@ include(cmake/Conan.cmake)
 conan()
 
 function(init_proj)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" "${ARGN}")
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" ${ARGN})
     message(STATUS "Started CMake for ${PROJECT_NAME} v${PROJECT_VERSION}...\n")
 
     #
@@ -47,7 +47,7 @@ endfunction()
 # Create header only library
 #
 function(config_interface_lib lib_name)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" "${ARGN}")
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
 
     add_library(${lib_name} INTERFACE)
 
@@ -77,7 +77,7 @@ endfunction()
 # Create static or shared library, setup header and source files
 #
 function(config_lib lib_name includes src lib_type)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" "${ARGN}")
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
 
     # Find all headers and implementation files
     list(JOIN includes "\n    " includes_str)
@@ -120,7 +120,7 @@ endfunction()
 # Create executable, setup header and source files
 #
 function(config_exe exe_name exe_src)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" "${ARGN}")
+    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" ${ARGN})
     set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
 
     list(JOIN exe_src "\n    " exe_src_str)
@@ -156,4 +156,45 @@ endfunction()
 function(target_install)
     CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
     packageProject(${ARGN})
+endfunction()
+
+function(target_enable_coverage target_name)
+    message(STATUS "enable coverage for ${target_name}")
+    cmake_parse_arguments(ARG "" "FORMAT" "" ${ARGN})
+
+    set(options -fprofile-instr-generate -fcoverage-mapping)
+
+    target_compile_options(${target_name} PUBLIC ${options})
+    target_link_options(${target_name} PUBLIC ${options})
+
+    get_filename_component(llvm_bin ${CMAKE_CXX_COMPILER} DIRECTORY)
+    set(file_profdata_name ${target_name}.profdata)
+
+    add_custom_command(
+        OUTPUT ${file_profdata_name}
+        COMMAND ${llvm_bin}/llvm-profdata
+        ARGS merge -sparse $<TARGET_NAME_IF_EXISTS:${target_name}>.profraw
+    )
+
+    if(${ARG_FORMAT} STREQUAL text)
+        set(coverage_file coverage.json)
+    elseif(${ARG_FORMAT} STREQUAL html)
+        set(coverage_file coverage.html)
+    elseif(${ARG_FORMAT} STREQUAL lcov)
+        set(coverage_file coverage.lcov)
+    else()
+        message(WARNING "unknown format ${ARG_FORMAT}")
+        set(coverage_file coverage.${ARG_FORMAT})
+    endif()
+
+    add_custom_command(
+        OUTPUT ${coverage_file}
+        DEPENDS ${file_profdata_name}
+        COMMAND ${llvm_bin}/llvm-cov
+        ARGS export --format=text --object=$<TARGET_FILE:${target_name}> --instr-profile=${file_profdata_name} > ${coverage_file}
+        VERBATIM
+        USES_TERMINAL
+    )
+
+    add_custom_target(coverage DEPENDS ${coverage_file})
 endfunction()

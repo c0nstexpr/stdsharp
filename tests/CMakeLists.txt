@@ -68,12 +68,21 @@ if(MSVC)
 endif()
 FetchContent_MakeAvailable(boost-ext-ut)
 
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ut stdsharp)
+target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp)
+target_include_directories(
+    ${PROJECT_NAME}_LIB
+    SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+# TODO enable coverage
+# if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
+#     target_enable_coverage(${PROJECT_NAME} FORMAT lcov)
+# endif()
 
 find_program(CLANG_TIDY "clang-tidy")
 if(CLANG_TIDY)
     message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-    set_target_properties(${PROJECT_NAME}_LIB PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY})
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
 else()
     message(STATUS "clang-tidy not found")
 endif()
