@@ -52,7 +52,7 @@ namespace stdsharp
                 noexcept((case_nothrow_invocable_<Cases> && ...))
             {
                 (
-                    [](Cases&& c) // clang-format off
+                    []([[maybe_unused]] Cases&& c) // clang-format off
                             noexcept(case_nothrow_invocable_<Cases>) // clang-format on
                     {
                         if constexpr(::std::invocable<Cases, condition_type_identity>)

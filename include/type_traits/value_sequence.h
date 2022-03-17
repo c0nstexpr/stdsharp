@@ -311,7 +311,8 @@ namespace stdsharp::type_traits
             {
                 ::std::size_t i = 0;
 
-                ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
+                type_traits::empty =
+                    ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
 
                 return i;
             }

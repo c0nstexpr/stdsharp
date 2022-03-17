@@ -18,8 +18,12 @@ namespace stdsharp::type_traits
         return false;
     }
 
-    inline constexpr struct empty_t final
+    using ignore_t = decltype(::std::ignore);
+
+    inline constexpr struct empty_t : ignore_t
     {
+        using ignore_t::operator=;
+
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr empty_t(const auto&...) noexcept {}
     } empty;
@@ -134,6 +138,10 @@ namespace stdsharp::type_traits
                 return static_cast<::std::string_view>(*this); //
             }
         };
+
+        template<::std::size_t Size>
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+        ltr(const char (&)[Size])->ltr<Size>;
 
         template<ltr ltr>
         [[nodiscard]] constexpr auto operator"" _ltr() noexcept
