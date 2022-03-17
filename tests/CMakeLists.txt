@@ -64,23 +64,24 @@ FetchContent_Declare(
 )
 if(MSVC)
     # target_compile_options(ut INTERFACE "/interface" "/translateInclude" "/ifcOnly")
+    message(STATUS "disable module for msvc")
     set(BOOST_UT_DISABLE_MODULE ON)
-else()
-    find_program(CLANG_TIDY "clang-tidy")
-    if(CLANG_TIDY)
-        message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
-    else()
-        message(STATUS "clang-tidy not found")
-    endif()
 endif()
 FetchContent_MakeAvailable(boost-ext-ut)
 
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp)
+find_program(CLANG_TIDY "clang-tidy")
+if(CLANG_TIDY)
+    message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
+else()
+    message(STATUS "clang-tidy not found")
+endif()
+
 target_include_directories(
     ${PROJECT_NAME}_LIB
     SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
 )
+target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp ut)
 
 # TODO enable coverage
 # if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
