@@ -14,13 +14,13 @@ namespace stdsharp
 #endif
         ;
 
-    template<auto Message>
-    inline constexpr auto unreachable = [] constexpr noexcept
+    inline constexpr auto unreachable = [](const auto&...) constexpr noexcept
     {
+        // NOLINTNEXTLINE
         struct
         {
             int _;
         } _;
-        [[maybe_unused]] auto v = _._;
+        ++_._;
     };
 }

@@ -73,8 +73,8 @@ namespace stdsharp
                 {
                     if(functional::invoke_r<bool>(cmp, max, min))
                     {
-                        constexpr ltr message = "max value should not less than min value";
-                        if(::std::is_constant_evaluated()) unreachable<message>();
+                        constexpr auto message = "max value should not less than min value";
+                        if(::std::is_constant_evaluated()) unreachable();
                         else if constexpr(
                             ::fmt::is_formattable<Min>::value && //
                             ::fmt::is_formattable<Max>::value // clang-format off

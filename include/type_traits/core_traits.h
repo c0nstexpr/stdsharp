@@ -133,7 +133,7 @@ namespace stdsharp::type_traits
                 return {base::data(), Size - 1};
             }
 
-            constexpr auto to_string_view() const noexcept
+            [[nodiscard]] constexpr auto to_string_view() const noexcept
             {
                 return static_cast<::std::string_view>(*this); //
             }
