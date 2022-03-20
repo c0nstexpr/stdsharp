@@ -12,7 +12,7 @@ project("stdsharp" VERSION 0.1.0 LANGUAGES CXX)
 
 init_proj()
 
-config_interface_lib(${PROJECT_NAME})
+config_interface_lib(${PROJECT_NAME} SYSTEM_INCLUDED ON)
 
 #
 # Model project dependencies
@@ -22,8 +22,8 @@ find_package(range-v3 CONFIG REQUIRED)
 
 target_compile_options(
     ${PROJECT_NAME}
-    INTERFACE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-logical-op-parentheses -Wno-dangling-else -Werror>
-              $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    INTERFACE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-logical-op-parentheses -Wno-dangling-else>
+              $<$<CXX_COMPILER_ID:MSVC>:/wd4127>
 )
 
 target_link_libraries(
@@ -55,6 +55,8 @@ install(
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(STDSHARP_BUILD_TEST ON)
+else()
+    target_include_as_system(${PROJECT_NAME} INTERFACE)
 endif()
 option(STDSHARP_BUILD_TEST "Whether to build test")
 

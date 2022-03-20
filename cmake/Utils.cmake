@@ -24,13 +24,13 @@ include(cmake/Conan.cmake)
 conan()
 
 function(init_proj)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "USE_ALT_NAMES" "" "" ${ARGN})
+    cmake_parse_arguments(ARG "USE_ALT_NAMES" "" "" ${ARGN})
     message(STATUS "Started CMake for ${PROJECT_NAME} v${PROJECT_VERSION}...\n")
 
     #
     # Setup alternative names
     #
-    if (${${CMAKE_CURRENT_FUNCTION}_USE_ALT_NAMES})
+    if (${ARG_USE_ALT_NAMES})
         string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
         string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)
     endif ()
@@ -43,11 +43,18 @@ function(init_proj)
     endif ()
 endfunction()
 
+function(target_include_as_system target_name lib_type)
+    target_include_directories(
+        ${target_name}
+        SYSTEM BEFORE ${lib_type} $<TARGET_PROPERTY:INTERFACE_INCLUDE_DIRECTORIES>
+    )
+endfunction()
+
 #
 # Create header only library
 #
 function(config_interface_lib lib_name)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
+    cmake_parse_arguments(ARG "" "STD" "" ${ARGN})
 
     add_library(${lib_name} INTERFACE)
 
@@ -56,7 +63,7 @@ function(config_interface_lib lib_name)
     #
     # Set the project standard and warnings
     #
-    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
+    set(std ${ARG_STD})
     if (${std})
         target_compile_features(${lib_name} INTERFACE cxx_std_${std})
         message(STATUS "Using c++ ${std}.\n")
@@ -68,8 +75,8 @@ function(config_interface_lib lib_name)
     target_include_directories(
         ${lib_name}
         INTERFACE
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
 endfunction()
 
@@ -77,7 +84,7 @@ endfunction()
 # Create static or shared library, setup header and source files
 #
 function(config_lib lib_name includes src lib_type)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "" ${ARGN})
+    cmake_parse_arguments(ARG "" "STD" "" ${ARGN})
 
     # Find all headers and implementation files
     list(JOIN includes "\n    " includes_str)
@@ -99,7 +106,7 @@ function(config_lib lib_name includes src lib_type)
     #
     # Set the project standard and warnings
     #
-    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
+    set(std ${ARG_STD})
     if (${std})
         target_compile_features(${lib_name} PUBLIC cxx_std_${std})
         message(STATUS "Using c++ ${std}.\n")
@@ -111,8 +118,8 @@ function(config_lib lib_name includes src lib_type)
     target_include_directories(
         ${lib_name}
         PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
 endfunction()
 
@@ -120,22 +127,22 @@ endfunction()
 # Create executable, setup header and source files
 #
 function(config_exe exe_name exe_src)
-    cmake_parse_arguments(${CMAKE_CURRENT_FUNCTION} "" "STD" "INCLUDES;SOURCES" ${ARGN})
-    set(std ${${CMAKE_CURRENT_FUNCTION}_STD})
+    cmake_parse_arguments(ARG "" "STD" "INCLUDES;SOURCES" ${ARGN})
+    set(std ${ARG_STD})
 
     list(JOIN exe_src "\n    " exe_src_str)
     verbose_message("Found the following executable source files:\n    ${exe_src_str}")
 
     add_executable(${exe_name} ${exe_src})
 
-    if (${CMAKE_CURRENT_FUNCTION}_INCLUDES)
+    if (ARG_INCLUDES)
         verbose_message("Configuring executable library")
 
-        if (${CMAKE_CURRENT_FUNCTION}_SOURCES)
+       if (ARG_SOURCES)
             config_lib(
                 ${exe_name}_LIB
-                "${${CMAKE_CURRENT_FUNCTION}_INCLUDES}"
-                "${${CMAKE_CURRENT_FUNCTION}_SOURCES}"
+                "${ARG_INCLUDES}"
+                "${ARG_SOURCES}"
                 STATIC
                 STD ${std}
             )

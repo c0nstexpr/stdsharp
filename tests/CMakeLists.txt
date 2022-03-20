@@ -55,39 +55,39 @@ set(
 config_exe(${PROJECT_NAME} ${exe_src} INCLUDES "${headers}" SOURCES "${src}")
 
 message(STATUS "adding boost-ext/ut")
-
 include(FetchContent)
 FetchContent_Declare(
   boost-ext-ut
-  GIT_REPOSITORY https://github.com/boost-ext/ut.git
-  GIT_TAG 1d304bb6e67b51dfa4fdd794eac537913d5f9e42
+  GIT_REPOSITORY https://github.com/BlurringShadow/ut.git
+  GIT_TAG 581e958f41943553012407c6a0b99d632ddcc032
 )
-if(MSVC)
-    # target_compile_options(ut INTERFACE "/interface" "/translateInclude" "/ifcOnly")
-    message(STATUS "disable module for msvc")
-    set(BOOST_UT_DISABLE_MODULE ON)
-endif()
 FetchContent_MakeAvailable(boost-ext-ut)
 
-find_program(CLANG_TIDY "clang-tidy")
-if(CLANG_TIDY)
-    message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
-else()
-    message(STATUS "clang-tidy not found")
-endif()
-
-target_include_directories(
+target_compile_options(
     ${PROJECT_NAME}_LIB
-    SYSTEM PUBLIC $<TARGET_PROPERTY:ut,INTERFACE_INCLUDE_DIRECTORIES>
+    PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
+           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 )
+
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp ut)
+
+#
+# Configure clang-tidy
+#
+if(NOT MSVC)
+    find_program(CLANG_TIDY "clang-tidy")
+    if(CLANG_TIDY)
+        message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY ${CLANG_TIDY} -p ${CMAKE_CURRENT_BINARY_DIR})
+    else()
+        message(STATUS "clang-tidy not found")
+    endif()
+endif()
 
 # TODO enable coverage
 # if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
 #     target_enable_coverage(${PROJECT_NAME} FORMAT lcov)
 # endif()
-
 
 #
 # Add the unit tests
