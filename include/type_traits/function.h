@@ -1,4 +1,4 @@
-﻿// Created by BlurringShadow at 2021-03-03-下午 4:33
+// Created by BlurringShadow at 2021-03-03-下午 4:33
 
 #pragma once
 #include "type_sequence.h"

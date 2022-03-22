@@ -14,12 +14,6 @@ namespace stdsharp::reflection
 
     namespace details
     {
-        template<::std::convertible_to<::std::string_view> auto Literal>
-        struct member_t
-        {
-            static constexpr ::std::string_view name = Literal;
-        };
-
         template<typename>
         struct is_std_pair;
 
@@ -27,45 +21,12 @@ namespace stdsharp::reflection
         struct is_std_pair<::std::pair<T, U>>
         {
         };
-
-        template<auto Literal>
-        struct data_member_t : details::member_t<Literal>
-        {
-            template<typename T>
-                requires requires
-                {
-                    requires static_cast<::std::string_view>(Literal) == "first";
-                    is_std_pair<::std::remove_cvref_t<T>>{};
-                }
-            constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).first; }
-
-            template<typename T>
-                requires requires
-                {
-                    requires static_cast<::std::string_view>(Literal) == "second";
-                    is_std_pair<::std::remove_cvref_t<T>>{};
-                }
-            constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).second; }
-        };
-
-        template<auto Literal>
-        struct member_function_t : details::member_t<Literal>
-        {
-        };
     }
 
-    template<auto Literal>
+    template<::std::convertible_to<::std::string_view> auto Literal>
     struct member_t
     {
-        template<typename... Args>
-            requires(
-                ::std::invocable<details::member_t<Literal>, Args...> &&
-                !functional::cpo_invocable<member_t<Literal>, Args...>)
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(concepts::nothrow_invocable<details::member_t<Literal>, Args...>)
-        {
-            return details::member_t<Literal>{}(::std::forward<Args>(args)...);
-        }
+        static constexpr ::std::string_view name = Literal;
 
         template<typename... Args>
             requires functional::cpo_invocable<member_t<Literal>, Args...>
@@ -80,20 +41,26 @@ namespace stdsharp::reflection
     inline constexpr member_t<Literal> member{};
 
     template<auto Literal>
-    struct data_member_t
+    struct data_member_t : member_t<Literal>
     {
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr data_member_t(const member_t<Literal> = {}) noexcept {}
 
-        template<typename... Args>
-            requires(
-                ::std::invocable<details::data_member_t<Literal>, Args...> &&
-                !functional::cpo_invocable<data_member_t<Literal>, Args...>)
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(concepts::nothrow_invocable<details::data_member_t<Literal>, Args...>)
-        {
-            return details::data_member_t<Literal>{}(::std::forward<Args>(args)...);
-        }
+        template<typename T>
+            requires requires
+            {
+                requires static_cast<::std::string_view>(Literal) == "first";
+                details::is_std_pair<::std::remove_cvref_t<T>>{};
+            }
+        constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).first; }
+
+        template<typename T>
+            requires requires
+            {
+                requires static_cast<::std::string_view>(Literal) == "second";
+                details::is_std_pair<::std::remove_cvref_t<T>>{};
+            }
+        constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).second; }
 
         template<typename... Args>
             requires functional::cpo_invocable<data_member_t<Literal>, Args...>
@@ -112,16 +79,6 @@ namespace stdsharp::reflection
     {
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr member_function_t(const member_t<Literal> = {}) noexcept {}
-
-        template<typename... Args>
-            requires(
-                ::std::invocable<details::member_function_t<Literal>, Args...> &&
-                !functional::cpo_invocable<member_function_t<Literal>, Args...>)
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(concepts::nothrow_invocable<details::member_function_t<Literal>, Args...>)
-        {
-            return details::member_function_t<Literal>{}(::std::forward<Args>(args)...);
-        }
 
         template<typename... Args>
             requires functional::cpo_invocable<member_function_t<Literal>, Args...>

@@ -1,9 +1,8 @@
-﻿// Created by BlurringShadow at 2021-03-12-下午 1:56
+// Created by BlurringShadow at 2021-03-12-下午 1:56
 
 #pragma once
 
 #include <shared_mutex>
-#include <mutex>
 
 #include "reflection/reflection.h"
 #include "functional/operations.h"
@@ -25,7 +24,7 @@ namespace stdsharp
         constexpr auto& raw() noexcept { return object_; }
 
         template<auto Name>
-            requires(std::ranges::equal(Name, "raw"_ltr))
+            requires(Name == "raw"sv)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->raw(); };
@@ -34,7 +33,7 @@ namespace stdsharp
         constexpr auto& raw() const noexcept { return object_; }
 
         template<auto Name>
-            requires(std::ranges::equal(Name, "raw"_ltr))
+            requires(Name == "raw"sv)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->raw(); };
@@ -48,7 +47,7 @@ namespace stdsharp
         }
 
         template<auto Name>
-            requires(std::ranges::equal(Name, "read"_ltr))
+            requires(Name == "read"sv)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
             return [this]() { return this->read(); };
@@ -62,7 +61,7 @@ namespace stdsharp
         }
 
         template<auto Name>
-            requires(std::ranges::equal(Name, "write"_ltr))
+            requires(Name == "write"sv)
         constexpr auto operator()(const reflection::member_t<Name>) noexcept
         {
             return [this]() { return this->write(); };
