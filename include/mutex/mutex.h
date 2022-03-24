@@ -2,15 +2,11 @@
 
 #include <mutex>
 #include <concepts>
+#include <source_location>
 
 namespace stdsharp
 {
     using namespace ::std::literals;
-
-    namespace details
-    {
-
-    }
 
     template<typename T>
     concept basic_lockable = requires(T t)
@@ -33,10 +29,40 @@ namespace stdsharp
     };
 
     template<typename T>
+    concept shared_lockable = requires(T t)
+    {
+        t.lock_shared();
+        requires noexcept(t.unlock_shared()); // clang-format off
+        { t.try_lock_shared() } -> ::std::same_as<bool>; // clang-format on
+    };
+
+    template<typename T>
+    concept shared_timed_lockable = shared_lockable<T> && requires(T t)
+    { // clang-format off
+        { t.try_lock_shared_for(1s) } -> ::std::same_as<bool>;
+        { t.try_lock_shared_until(std::chrono::system_clock::now()) } -> ::std::same_as<bool>; // clang-format on
+    };
+
+    template<typename T>
     concept mutex =
         lockable<T> && !::std::movable<T> && ::std::default_initializable<T> && requires(T t)
-    { // clang-format off
+    {
+        requires noexcept(t.unlock()); // clang-format off
         { t.lock() } -> ::std::same_as<void>;
         { t.unlock() } -> ::std::same_as<void>; // clang-format on
     };
+
+    template<typename T>
+    concept timed_mutex = timed_lockable<T> && mutex<T>;
+
+    template<typename T>
+    concept shared_mutex = mutex<T> && shared_lockable<T> && requires(T t)
+    {
+        requires noexcept(t.try_unlock_shared()); // clang-format off
+        { t.lock_shared() } -> ::std::same_as<void>;
+        { t.unlock_shared() } -> ::std::same_as<void>; // clang-format on
+    };
+
+    template<typename T>
+    concept shared_timed_mutex = timed_mutex<T> && shared_mutex<T> && shared_timed_lockable<T>;
 }
