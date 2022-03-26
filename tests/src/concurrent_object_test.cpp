@@ -14,7 +14,6 @@ namespace stdsharp::test
             feature("construct") = []
             {
                 static_expect<default_initializable<concurrent_object<int>>>(); //
-                static_expect<default_initializable<concurrent_object<int>>, tuple<>, tuple<>>(); //
             };
         };
 

@@ -12,7 +12,7 @@ namespace stdsharp
     concept basic_lockable = requires(T t)
     {
         t.lock();
-        requires noexcept(t.unlock());
+        t.unlock();
     };
 
     template<typename T>
@@ -32,7 +32,7 @@ namespace stdsharp
     concept shared_lockable = requires(T t)
     {
         t.lock_shared();
-        requires noexcept(t.unlock_shared()); // clang-format off
+        t.unlock_shared(); // clang-format off
         { t.try_lock_shared() } -> ::std::same_as<bool>; // clang-format on
     };
 
@@ -46,8 +46,7 @@ namespace stdsharp
     template<typename T>
     concept mutex =
         lockable<T> && !::std::movable<T> && ::std::default_initializable<T> && requires(T t)
-    {
-        requires noexcept(t.unlock()); // clang-format off
+    { // clang-format off
         { t.lock() } -> ::std::same_as<void>;
         { t.unlock() } -> ::std::same_as<void>; // clang-format on
     };
@@ -58,7 +57,7 @@ namespace stdsharp
     template<typename T>
     concept shared_mutex = mutex<T> && shared_lockable<T> && requires(T t)
     {
-        requires noexcept(t.try_unlock_shared()); // clang-format off
+        t.try_unlock_shared(); // clang-format off
         { t.lock_shared() } -> ::std::same_as<void>;
         { t.unlock_shared() } -> ::std::same_as<void>; // clang-format on
     };
