@@ -27,24 +27,6 @@ namespace stdsharp
         {
         }
 
-        constexpr auto& raw() noexcept { return object_; }
-
-        template<auto Name>
-            requires(Name == "raw"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) noexcept
-        {
-            return [this]() { return this->raw(); };
-        }
-
-        constexpr auto& raw() const noexcept { return object_; }
-
-        template<auto Name>
-            requires(Name == "raw"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) const noexcept
-        {
-            return [this]() { return this->raw(); };
-        }
-
         template<::std::invocable<const T&> Func>
         void read(Func&& func) const
         {
