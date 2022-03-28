@@ -4,11 +4,8 @@
 
 #include <shared_mutex>
 
-#include "concurrent_object.h"
 #include "mutex/mutex.h"
-#include "tuple/tuple.h"
 #include "reflection/reflection.h"
-#include "functional/operations.h"
 
 namespace stdsharp
 {
@@ -52,7 +49,7 @@ namespace stdsharp
         void read(Func&& func) const
         {
             ::std::shared_lock _(lockable_);
-            func(object_);
+            ::std::invoke(func, object_);
         }
 
         template<auto Name>
@@ -66,7 +63,7 @@ namespace stdsharp
         void write(Func&& func)
         {
             ::std::unique_lock _{lockable_};
-            func(object_);
+            ::std::invoke(func, object_);
         }
 
         template<auto Name>
