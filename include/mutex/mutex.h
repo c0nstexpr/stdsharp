@@ -2,7 +2,6 @@
 
 #include <mutex>
 #include <concepts>
-#include <source_location>
 
 namespace stdsharp
 {
