@@ -6,6 +6,7 @@
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
+#include "scope.h"
 
 namespace stdsharp
 {
@@ -28,14 +29,26 @@ namespace stdsharp
         }
 
         template<::std::invocable<const T&> Func>
-        void read(Func&& func) const
+        void read(Func&& func) const&
         {
-            ::std::shared_lock{lockable_}, ::std::invoke(func, object_);
+            scope(
+                [&object = object_, &func] { ::std::invoke(func, object); },
+                ::std::unique_lock{lockable_} //
+            );
+        }
+
+        template<::std::invocable<const T&> Func>
+        void read(Func&& func) const&&
+        {
+            scope(
+                [&object = object_, &func] { ::std::invoke(func, static_cast<const T&&>(object)); },
+                ::std::unique_lock{lockable_} //
+            );
         }
 
         template<auto Name>
             requires(Name == "read"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) const noexcept
+        constexpr auto operator()(const reflection::member_t<Name>) const& noexcept
         {
             return [this]<typename... Args>
                 requires requires { this->read(::std::declval<Args>()...); }
@@ -46,16 +59,37 @@ namespace stdsharp
             };
         }
 
+        template<auto Name>
+            requires(Name == "read"sv)
+        constexpr auto operator()(const reflection::member_t<Name>) const&& noexcept
+        {
+            return [this]<typename... Args>
+                requires requires { this->read(::std::declval<Args>()...); }
+            (Args && ... args) //
+                noexcept(noexcept(this->read(::std::declval<Args>()...)))
+            {
+                return static_cast<const concurrent_object&&>(*this).read(
+                    ::std::forward<Args>(args)... //
+                );
+            };
+        }
+
         template<::std::invocable<T&> Func>
         void write(Func&& func) &
         {
-            ::std::unique_lock{lockable_}, ::std::invoke(func, object_);
+            scope(
+                [&object = object_, &func] { ::std::invoke(func, object); },
+                ::std::unique_lock{lockable_} //
+            );
         }
 
         template<::std::invocable<T> Func>
         void write(Func&& func) &&
         {
-            ::std::unique_lock{lockable_}, ::std::invoke(func, ::std::move(object_));
+            scope(
+                [&object = object_, &func] { ::std::invoke(func, ::std::move(object)); },
+                ::std::unique_lock{lockable_} //
+            );
         }
 
         template<auto Name>
