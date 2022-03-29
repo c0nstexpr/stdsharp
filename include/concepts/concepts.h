@@ -221,6 +221,9 @@ namespace stdsharp::concepts
     concept nothrow_move_assignable = ::std::is_nothrow_move_assignable_v<T>;
 
     template<typename T>
+    concept nothrow_destructible = ::std::is_nothrow_destructible_v<T>;
+
+    template<typename T>
     concept nothrow_swappable = ::std::is_nothrow_swappable_v<T>;
 
     template<typename T, typename U>
