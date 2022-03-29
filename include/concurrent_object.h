@@ -30,29 +30,58 @@ namespace stdsharp
         template<::std::invocable<const T&> Func>
         void read(Func&& func) const
         {
-            ::std::shared_lock _(lockable_);
-            ::std::invoke(func, object_);
+            ::std::shared_lock{lockable_}, ::std::invoke(func, object_);
         }
 
         template<auto Name>
             requires(Name == "read"sv)
         constexpr auto operator()(const reflection::member_t<Name>) const noexcept
         {
-            return [this]() { return this->read(); };
+            return [this]<typename... Args>
+                requires requires { this->read(::std::declval<Args>()...); }
+            (Args && ... args) //
+                noexcept(noexcept(this->read(::std::declval<Args>()...)))
+            {
+                return this->read(::std::forward<Args>(args)...);
+            };
         }
 
         template<::std::invocable<T&> Func>
-        void write(Func&& func)
+        void write(Func&& func) &
         {
-            ::std::unique_lock _{lockable_};
-            ::std::invoke(func, object_);
+            ::std::unique_lock{lockable_}, ::std::invoke(func, object_);
+        }
+
+        template<::std::invocable<T> Func>
+        void write(Func&& func) &&
+        {
+            ::std::unique_lock{lockable_}, ::std::invoke(func, ::std::move(object_));
         }
 
         template<auto Name>
             requires(Name == "write"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) noexcept
+        constexpr auto operator()(const reflection::member_t<Name>) & noexcept
         {
-            return [this]() { return this->write(); };
+            return [this]<typename... Args>
+                requires requires { this->write(::std::declval<Args>()...); }
+            (Args && ... args) //
+                noexcept(noexcept(this->write(::std::declval<Args>()...)))
+            {
+                return this->write(::std::forward<Args>(args)...);
+            };
+        }
+
+        template<auto Name>
+            requires(Name == "write"sv)
+        constexpr auto operator()(const reflection::member_t<Name>) && noexcept
+        {
+            return [this]<typename... Args>
+                requires requires { ::std::move(*this).write(::std::declval<Args>()...); }
+            (Args && ... args) //
+                noexcept(noexcept(::std::move(*this).write(::std::declval<Args>()...)))
+            {
+                return ::std::move(*this).write(::std::forward<Args>(args)...);
+            };
         }
 
     private:
