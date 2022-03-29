@@ -4,6 +4,8 @@
 
 namespace stdsharp
 {
+    inline constexpr ::std::size_t char_bit = CHAR_BIT;
+
     using byte = ::std::underlying_type_t<::std::byte>;
     using i8 = ::std::int8_t; ///< 8-bit signed integer type.
     using u8 = ::std::uint8_t; ///< 8-bit unsigned integer type.
