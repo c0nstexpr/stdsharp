@@ -3,6 +3,7 @@
 #pragma once
 
 #include <shared_mutex>
+#include <utility>
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
@@ -15,12 +16,13 @@ namespace stdsharp
     class concurrent_object
     {
         template<typename Other>
-        friend void swap(concurrent_object& left, Other&& right) requires requires
+            requires requires(concurrent_object& left)
+            {
+                ::std::declval<concurrent_object&>().swap(::std::declval<Other>());
+            }
+        friend void swap(concurrent_object& left, Other&& right)
         {
-            left.swap(right);
-        }
-        {
-            left.swap(right); //
+            left.swap(::std::forward<Other>(right)); //
         }
 
         template<typename OtherLockable>
@@ -120,14 +122,14 @@ namespace stdsharp
             return *this;
         }
 
+        ~concurrent_object() = default;
+
         template<typename OtherLockable>
             requires ::std::swappable<T>
         void swap(concurrent_object<T, OtherLockable>& other)
         {
             ::std::ranges::swap(object_, forward_object(other));
         }
-
-        ~concurrent_object() = default;
 
         template<::std::invocable<const T&> Func>
         void read(Func&& func) const&
@@ -141,10 +143,7 @@ namespace stdsharp
         template<::std::invocable<const T&&> Func>
         void read(Func&& func) const&&
         {
-            scope(
-                [&object = object_, &func] { ::std::invoke(func, static_cast<const T&&>(object)); },
-                ::std::unique_lock{lockable_} //
-            );
+            ::std::invoke(func, static_cast<const T&&>(object_));
         }
 
         template<auto Name>
@@ -154,7 +153,6 @@ namespace stdsharp
             return [this]<typename... Args>
                 requires requires { this->read(::std::declval<Args>()...); }
             (Args && ... args) //
-                noexcept(noexcept(this->read(::std::declval<Args>()...)))
             {
                 return this->read(::std::forward<Args>(args)...);
             };
@@ -167,11 +165,9 @@ namespace stdsharp
             return [this]<typename... Args>
                 requires requires { this->read(::std::declval<Args>()...); }
             (Args && ... args) //
-                noexcept(noexcept(this->read(::std::declval<Args>()...)))
             {
-                return static_cast<const concurrent_object&&>(*this).read(
-                    ::std::forward<Args>(args)... //
-                );
+                return static_cast<const concurrent_object&&>(*this) //
+                    .read(::std::forward<Args>(args)...);
             };
         }
 
@@ -187,10 +183,7 @@ namespace stdsharp
         template<::std::invocable<T> Func>
         void write(Func&& func) &&
         {
-            scope(
-                [&object = object_, &func] { ::std::invoke(func, ::std::move(object)); },
-                ::std::unique_lock{lockable_} //
-            );
+            ::std::invoke(func, ::std::move(object_));
         }
 
         template<auto Name>
@@ -200,7 +193,6 @@ namespace stdsharp
             return [this]<typename... Args>
                 requires requires { this->write(::std::declval<Args>()...); }
             (Args && ... args) //
-                noexcept(noexcept(this->write(::std::declval<Args>()...)))
             {
                 return this->write(::std::forward<Args>(args)...);
             };
@@ -213,7 +205,6 @@ namespace stdsharp
             return [this]<typename... Args>
                 requires requires { ::std::move(*this).write(::std::declval<Args>()...); }
             (Args && ... args) //
-                noexcept(noexcept(::std::move(*this).write(::std::declval<Args>()...)))
             {
                 return ::std::move(*this).write(::std::forward<Args>(args)...);
             };
