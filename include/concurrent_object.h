@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include <optional>
 #include <shared_mutex>
-#include <utility>
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
 #include "scope.h"
+#include "type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -15,6 +16,8 @@ namespace stdsharp
         requires basic_lockable<Lockable>
     class concurrent_object
     {
+        using optional_t = ::std::optional<T>;
+
         template<typename Other>
             requires requires(concurrent_object& left)
             {
@@ -26,35 +29,64 @@ namespace stdsharp
         }
 
         template<typename OtherLockable>
-        static void forward_object(const concurrent_object<T, OtherLockable>& other)
+            requires concepts::copy_assignable<optional_t>
+        static void assign_value(
+            optional_t& object, //
+            const concurrent_object<T, OtherLockable>& other //
+        )
         {
-            union
-            {
-                T obj;
-            } u;
-            scope([&other, &u] { u.obj = other.object_; }, ::std::shared_lock{other.lockable_});
-            return ::std::move(u.obj);
+            other.read([&object](optional_t& obj) { object = obj; });
         }
 
         template<typename OtherLockable>
-        static void forward_object(concurrent_object<T, OtherLockable>&& other)
+            requires concepts::move_assignable<optional_t>
+        static void assign_value(
+            optional_t& object, //
+            concurrent_object<T, OtherLockable>&& other //
+        )
         {
-            union
-            {
-                T obj;
-            } u;
-            scope(
-                [&other, &u] { u.obj = ::std::move(other).object_; },
-                ::std::unique_lock{other.lockable_} //
-            );
-            return ::std::move(u.obj);
+            ::std::move(other).write([&object](optional_t&& obj) { object = ::std::move(obj); });
         }
 
         template<typename Other>
-        using forward_object_t = decltype(forward_object(::std::declval<Other>()));
+        static constexpr auto other_assignable = requires(optional_t obj)
+        {
+            assign_value(obj, ::std::declval<Other>());
+        };
+
+        template<typename Other, typename... LockableArg>
+            requires requires
+            {
+                ::std::constructible_from<concurrent_object, LockableArg...>&&
+                    other_assignable<Other>;
+            } // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        concurrent_object(const type_traits::empty_t, Other&& other, LockableArg&&... lockable_arg):
+            concurrent_object(::std::forward<LockableArg>(lockable_arg)...)
+        {
+            assign_value(object_, ::std::forward<Other>(other));
+        }
+
+        template<typename Other>
+            requires(other_assignable<Other>)
+        concurrent_object& assign_impl(Other&& other)
+        {
+            write([&other](optional_t& obj) { assign_value(obj, ::std::forward<Other>(other)); });
+            return *this;
+        }
 
     public:
+        using value_type = T;
+        using lock_type = Lockable;
+
         concurrent_object() = default;
+
+        template<typename... LockableArg>
+            requires ::std::constructible_from<Lockable, LockableArg...>
+        explicit concurrent_object(LockableArg&&... lockable_arg) //
+            noexcept(concepts::nothrow_constructible_from<Lockable, LockableArg...>):
+            lockable_(::std::forward<LockableArg>(lockable_arg)...)
+        {
+        }
 
         template<typename TArg, typename... LockableArg>
             requires ::std::constructible_from<T, TArg> &&
@@ -70,62 +102,67 @@ namespace stdsharp
         template<typename Other, typename... LockableArg>
             requires requires
             {
-                requires ::std::
-                    constructible_from<concurrent_object, forward_object_t<Other>, LockableArg...>;
+                requires ::std::constructible_from<
+                    concurrent_object,
+                    type_traits::empty_t,
+                    Other,
+                    LockableArg... // clang-format off
+                >; // clang-format on
             } // NOLINTNEXTLINE(hicpp-explicit-conversions)
-        concurrent_object(Other&& other, LockableArg&&... lockable_arg) noexcept(
-            concepts::nothrow_constructible_from<
-                concurrent_object,
-                forward_object_t<Other>,
-                LockableArg... // clang-format off
-            >
-        ):
-            // clang-format on
+        concurrent_object(Other&& other, LockableArg&&... lockable_arg):
             concurrent_object(
-                forward_object(::std::forward<Other>(other)),
+                type_traits::empty,
+                ::std::forward<Other>(other),
                 ::std::forward<LockableArg>(lockable_arg)... //
             )
         {
         }
 
-        concurrent_object(const concurrent_object& other) requires ::std::copy_constructible<T> &&
-            ::std::default_initializable<Lockable> : object_(forward_object(other))
+        concurrent_object(const concurrent_object& other) //
+            requires ::std::constructible_from<concurrent_object, const concurrent_object&> :
+            concurrent_object(other)
         {
         }
 
         concurrent_object(concurrent_object&& other) noexcept(false) //
-            requires ::std::move_constructible<T> && ::std::default_initializable<Lockable> :
-            object_(forward_object(::std::move(other)))
+            requires ::std::constructible_from<concurrent_object, concurrent_object> :
+            concurrent_object(::std::move(other))
         {
         }
 
         template<typename Other>
-            requires requires { requires ::std::assignable_from<T, forward_object_t<Other>>; }
+            requires requires
+            {
+                ::std::declval<concurrent_object>().assign_impl(::std::declval<Other>());
+            }
         concurrent_object& operator=(Other&& other) //
-            noexcept(concepts::nothrow_assignable_from<T, forward_object_t<Other>>)
         {
-            object_ = forward_object(::std::forward<Other>(other));
+            if(this != ::std::addressof(other)) assign_impl(::std::forward<Other>(other));
             return *this;
         }
 
-        concurrent_object& operator=(const concurrent_object& other) //
-            requires concepts::copy_assignable<T>
+        concurrent_object& operator=(const concurrent_object& other) requires requires
         {
-            if(this != &other) object_ = forward_object(other);
+            ::std::declval<concurrent_object>().assign_impl(other);
+        }
+        {
+            if(this != &other) assign_impl(other);
             return *this;
         }
 
-        concurrent_object& operator=(concurrent_object&& other) noexcept(false) //
-            requires concepts::move_assignable<T>
+        concurrent_object& operator=(concurrent_object&& other) noexcept(false) requires requires
         {
-            if(this != &other) object_ = forward_object(::std::move(other));
+            ::std::declval<concurrent_object>().assign_impl(::std::move(other));
+        }
+        {
+            if(this != &other) assign_impl(::std::move(other));
             return *this;
         }
 
         ~concurrent_object() = default;
 
         template<typename OtherLockable>
-            requires ::std::swappable<T>
+            requires ::std::swappable<optional_t>
         void swap(concurrent_object<T, OtherLockable>& other)
         {
             ::std::ranges::swap(object_, forward_object(other));
@@ -210,8 +247,10 @@ namespace stdsharp
             };
         }
 
+        constexpr const auto& lockable() const noexcept { return lockable_; }
+
     private:
-        T object_;
+        ::std::optional<T> object_;
 
         mutable Lockable lockable_;
     };
