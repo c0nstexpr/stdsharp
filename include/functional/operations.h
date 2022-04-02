@@ -54,7 +54,7 @@ namespace stdsharp::functional
         struct assign
         {
             template<typename T, typename U = T>
-                requires ::std::assignable_from<T&, U>
+                requires concepts::assignable<T&, U>
             constexpr decltype(auto) operator()(T& left, U&& right) const
                 noexcept(noexcept(left = ::std::forward<U>(right)))
             {

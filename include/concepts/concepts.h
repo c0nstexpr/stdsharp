@@ -95,6 +95,9 @@ namespace stdsharp::concepts
     concept trivial = ::std::is_trivial_v<T>;
 
     template<typename T, typename U>
+    concept assignable = ::std::is_assignable_v<T, U>;
+
+    template<typename T, typename U>
     concept assignable_to = ::std::assignable_from<U, T>;
 
     template<typename T>
@@ -212,6 +215,9 @@ namespace stdsharp::concepts
     concept nothrow_copy_constructible = ::std::is_nothrow_copy_constructible_v<T>;
 
     template<typename T, typename U>
+    concept nothrow_assignable = ::std::is_nothrow_assignable_v<T, U>;
+
+    template<typename T, typename U>
     concept nothrow_assignable_from = ::std::is_nothrow_assignable_v<T, U>;
 
     template<typename T>
@@ -275,14 +281,6 @@ namespace stdsharp::concepts
 
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;
-
-    template<typename Func, typename... Args>
-    concept invocable_rnonvoid = ::std::invocable<Func, Args...> && // clang-format off
-        not_same_as<::std::invoke_result_t<Func, Args...>, void>;
-
-    template<typename Func, typename... Args> // clang-format off
-    concept nothrow_invocable_rnonvoid = nothrow_invocable<Func, Args...> &&
-        not_same_as<::std::invoke_result_t<Func, Args...>, void>; // clang-format on
 
     template<typename Func, typename ReturnT, typename... Args>
     concept invocable_r = ::std::is_invocable_r_v<ReturnT, Func, Args...>;
