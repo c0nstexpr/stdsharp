@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   job:
@@ -14,14 +14,14 @@ jobs:
       NINJA_VER: 1.10.2
       CMAKE_BUILD_DIR: build/
       VCPKG_ROOT: vcpkg
-      VCPKG_ID: 'a2fcb03749ff5897b5985092934dc6057680c789'
+      VCPKG_ID: "01d6f6ff1e5332b926099f0c23bda996940ad4e8"
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-2022 ]
+        os: [ubuntu-latest, windows-2022]
         include:
           - os: ubuntu-latest
-            llvm_ver: 13
+            llvm_ver: 14
     steps:
       - uses: actions/checkout@v2
         with:
