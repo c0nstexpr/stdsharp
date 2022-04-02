@@ -56,7 +56,7 @@ namespace stdsharp::functional
             template<typename T, typename U = T>
                 requires concepts::assignable<T&, U>
             constexpr decltype(auto) operator()(T& left, U&& right) const
-                noexcept(noexcept(left = ::std::forward<U>(right)))
+                noexcept(concepts::nothrow_assignable<T&, U>)
             {
                 return left = ::std::forward<U>(right);
             }
@@ -75,8 +75,7 @@ namespace stdsharp::functional
     }
 
     inline constexpr struct assign :
-        sequenced_invocables<details::assign, details::assign_by_construct>,
-        nodiscard_tag_t
+        sequenced_invocables<details::assign, details::assign_by_construct>
     {
     } assign_v{};
 
@@ -158,8 +157,7 @@ namespace stdsharp::functional
     inline constexpr struct operator_type##_assign :                                              \
         sequenced_invocables<                                                                     \
             details::operator_type##_assign,                                                      \
-            details::indirect_##operator_type##_assign>,                                          \
-        nodiscard_tag_t                                                                           \
+            details::indirect_##operator_type##_assign>                                           \
     {                                                                                             \
     } operator_type##_assign_v{};
 

@@ -9,7 +9,7 @@ namespace stdsharp
     namespace details
     {
         template<typename T>
-        struct get_from_stream_fn : functional::nodiscard_tag_t
+        struct get_from_stream_fn
         {
             template<typename... Args>
                 requires ::std::constructible_from<T, Args...>
@@ -32,7 +32,7 @@ namespace stdsharp
                 details::get_from_stream_fn<T>,
                 ::std::ifstream // clang-format off
             > // clang-format on
-        struct read_all_to_container_fn : functional::nodiscard_tag_t
+        struct read_all_to_container_fn
         {
             template<typename Container = ::std::vector<T>>
                 requires ::std::invocable<read_all_to_container_fn, Container&>
@@ -71,7 +71,7 @@ namespace stdsharp
                 ::std::add_lvalue_reference_t<Container>,
                 ::std::filesystem::path // clang-format off
             > // clang-format on
-        struct read_all_fn : functional::nodiscard_tag_t
+        struct read_all_fn
         {
             [[nodiscard]] constexpr auto operator()(::std::istream& is) const
             {
@@ -86,7 +86,7 @@ namespace stdsharp
             }
         };
 
-        struct read_all_text_fn : functional::nodiscard_tag_t
+        struct read_all_text_fn
         {
             [[nodiscard]] auto operator()(::std::istream& is) const
             {
