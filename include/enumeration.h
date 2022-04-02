@@ -33,6 +33,7 @@ namespace stdsharp
     {
         using base = enumeration<T>;
         using base::base;
+        using base::value;
 
         // NOLINTNEXTLINE(hicpp-signed-bitwise)
         constexpr auto operator|(const T other) const noexcept { return flag{value | other}; }

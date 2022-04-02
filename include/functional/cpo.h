@@ -2,6 +2,8 @@
 // Created by BlurringShadow on 2021-9-22.
 //
 #pragma once
+#include <functional>
+
 #include "concepts/concepts.h"
 
 namespace stdsharp::functional

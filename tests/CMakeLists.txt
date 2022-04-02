@@ -75,10 +75,13 @@ target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp ut)
 # Configure clang-tidy
 #
 if(NOT MSVC)
-    find_program(CLANG_TIDY "clang-tidy")
+    find_program(CLANG_TIDY clang-tidy)
     if(CLANG_TIDY)
         message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY \"${CLANG_TIDY}\" src/tests.cpp -p ${CMAKE_BINARY_DIR})
+
+        string(REPLACE ";" ";${CMAKE_CURRENT_SOURCE_DIR}/" files "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+
+        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY "clang-tidy;${files}")
     else()
         message(STATUS "clang-tidy not found")
     endif()

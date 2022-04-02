@@ -59,7 +59,7 @@ namespace stdsharp
         static constexpr bool move_assignable = other_assignable<concurrent_object>;
 
         template<typename Other>
-            requires(other_assignable<Other>) // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            requires(other_assignable<Other>)
         concurrent_object(const empty_t, Other&& other)
         {
             assign_value(object_, ::std::forward<Other>(other));

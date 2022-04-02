@@ -1,5 +1,6 @@
 #pragma once
 #include <nonstd/scope.hpp>
+#include <functional>
 
 #include "concepts/concepts.h"
 
