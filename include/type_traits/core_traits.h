@@ -10,6 +10,8 @@
 #include <range/v3/functional/arithmetic.hpp>
 #include <range/v3/utility/static_const.hpp>
 
+using namespace ::std::literals;
+
 namespace stdsharp::type_traits
 {
     template<typename...>

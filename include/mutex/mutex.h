@@ -3,10 +3,10 @@
 #include <mutex>
 #include <concepts>
 
-namespace stdsharp
-{
-    using namespace ::std::literals;
+using namespace ::std::literals;
 
+namespace stdsharp::concepts
+{
     template<typename T>
     concept basic_lockable = requires(T t)
     {

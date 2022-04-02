@@ -9,8 +9,6 @@
 
 namespace stdsharp
 {
-    using namespace ::std::literals;
-
     inline constexpr struct
     {
     private:

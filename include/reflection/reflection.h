@@ -10,8 +10,6 @@
 
 namespace stdsharp::reflection
 {
-    using namespace ::std::literals;
-
     namespace details
     {
         template<typename>
