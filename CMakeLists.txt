@@ -28,7 +28,7 @@ target_compile_options(
 
 target_link_libraries(
     ${PROJECT_NAME}
-    INTERFACE fmt::fmt range-v3::range-v3 scope-lite
+    INTERFACE fmt::fmt range-v3::range-v3
 )
 
 verbose_message("Successfully added all dependencies and linked against them.")
