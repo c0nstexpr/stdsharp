@@ -3,6 +3,7 @@
 #pragma once
 
 #include "concepts/concepts.h"
+#include <utility>
 
 namespace stdsharp::type_traits
 {
@@ -25,8 +26,8 @@ namespace stdsharp::type_traits
         private_object() noexcept = default;
         private_object(const private_object&) = default;
         private_object& operator=(const private_object&) = default;
-        private_object(private_object&&) = default;
-        private_object& operator=(private_object&&) = default;
+        private_object(private_object&&) noexcept = default;
+        private_object& operator=(private_object&&) noexcept = default;
         ~private_object() = default;
     };
 
@@ -69,29 +70,21 @@ namespace stdsharp::type_traits
             Base::operator=(::std::forward<U>(u));
             return *this;
         }
-
-        constexpr explicit operator Base&() noexcept { return *this; }
-        constexpr explicit operator const Base&() const noexcept { return *this; }
     };
 
     template<typename... T>
     inherited(T&&...) -> inherited<::std::decay_t<T>...>;
 
-    template<typename... T>
     struct make_inherited_fn
     {
-        template<
-            typename Base,
-            typename... U,
-            typename Inherited = inherited<::std::decay_t<Base>, T...>>
-            requires ::std::constructible_from<Inherited, Base, U...>
+        template<typename Base, typename... U>
+            requires requires { inherited{::std::declval<Base>(), ::std::declval<U>()...}; }
         [[nodiscard]] constexpr auto operator()(Base&& base, U&&... u) const
-            noexcept(concepts::nothrow_constructible_from<Inherited, Base, U...>)
+            noexcept(noexcept(inherited{::std::declval<Base>(), ::std::declval<U>()...}))
         {
-            return Inherited{::std::forward<Base>(base), ::std::forward<U>(u)...};
+            return inherited{::std::forward<Base>(base), ::std::forward<U>(u)...};
         }
     };
 
-    template<typename... T>
-    inline constexpr make_inherited_fn<T...> make_inherited{};
+    inline constexpr make_inherited_fn make_inherited{};
 }

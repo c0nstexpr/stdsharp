@@ -22,22 +22,24 @@ namespace stdsharp::functional
     template<pipe_mode Mode = pipe_mode::left>
     struct make_pipeable_fn
     {
-        template<typename Fun>
-            requires ::std::invocable<make_trivial_invocables_fn, Fun> && //
+        template<typename Fn>
+            requires ::std::invocable<make_trivial_invocables_fn, Fn> && //
                 ::std::invocable<
-                    type_traits::make_inherited_fn<pipeable_base<Mode>>,
-                    ::std::invoke_result_t<make_trivial_invocables_fn, Fun> // clang-format off
+                    type_traits::make_inherited_fn,
+                    pipeable_base<Mode>,
+                    ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
                 > // clang-format on
-        constexpr auto operator()(Fun&& fun) const noexcept( //
-            noexcept( //
-                type_traits::make_inherited<pipeable_base<Mode>>(
-                    make_trivial_invocables(::std::declval<Fun>()) // clang-format off
-                )
-            ) // clang-format on
+        constexpr auto operator()(Fn&& fun) const noexcept( //
+            concepts::nothrow_invocable<
+                type_traits::make_inherited_fn,
+                pipeable_base<Mode>,
+                ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
+            > // clang-format on
         )
         {
-            return type_traits::make_inherited<pipeable_base<Mode>>(
-                make_trivial_invocables(::std::forward<Fun>(fun)) //
+            return type_traits::make_inherited(
+                pipeable_base<Mode>{},
+                make_trivial_invocables(::std::forward<Fn>(fun)) //
             );
         }
     };
