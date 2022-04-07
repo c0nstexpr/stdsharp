@@ -16,8 +16,7 @@ namespace stdsharp
 
     inline constexpr auto unreachable = [](const auto&...) constexpr noexcept
     {
-        // NOLINTNEXTLINE
-        struct
+        struct // NOLINT
         {
             int _;
         } _;

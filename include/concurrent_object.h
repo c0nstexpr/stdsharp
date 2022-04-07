@@ -82,7 +82,7 @@ namespace stdsharp
         explicit concurrent_object(TArg&&... t_arg): object_(::std::forward<TArg>(t_arg)...) {}
 
         template<typename Other>
-            requires(other_assignable<Other>) // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            requires(other_assignable<Other>)
         concurrent_object(Other&& other):
             concurrent_object(type_traits::empty, ::std::forward<Other>(other))
         {

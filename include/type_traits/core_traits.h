@@ -26,7 +26,6 @@ namespace stdsharp::type_traits
     {
         using ignore_t::operator=;
 
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr empty_t(const auto&...) noexcept {}
     } empty;
 
@@ -120,16 +119,13 @@ namespace stdsharp::type_traits
             using base = ::std::array<char, Size>;
             using base::base;
 
-            // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays,hicpp-explicit-conversions)
             constexpr ltr(const char (&arr)[Size]) noexcept: base(::std::to_array(arr)) {}
 
-            // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
             constexpr ltr& operator=(const char (&arr)[Size]) noexcept
             {
                 *this = ::std::to_array(arr);
             }
 
-            // NOLINTNEXTLINE(hicpp-explicit-conversions)
             constexpr operator ::std::string_view() const noexcept
             {
                 return {base::data(), Size - 1};
@@ -142,8 +138,7 @@ namespace stdsharp::type_traits
         };
 
         template<::std::size_t Size>
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
-        ltr(const char (&)[Size])->ltr<Size>;
+        ltr(const char (&)[Size]) -> ltr<Size>;
 
         template<ltr ltr>
         [[nodiscard]] constexpr auto operator"" _ltr() noexcept

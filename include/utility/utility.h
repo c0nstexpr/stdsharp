@@ -18,10 +18,7 @@ namespace stdsharp
             T&& t;
 
             template<typename U>
-                requires requires
-                {
-                    static_cast<U>(t);
-                } // NOLINTNEXTLINE(hicpp-explicit-conversions)
+                requires requires { static_cast<U>(t); }
             [[nodiscard]] constexpr operator U() const&& noexcept(noexcept(static_cast<U>(t)))
             {
                 return static_cast<U>(t);

@@ -12,17 +12,14 @@ namespace stdsharp
         T value;
 
         template<typename... U>
-            requires ::std::
-                constructible_from<T, U...> // NOLINTNEXTLINE(hicpp-explicit-conversions)
+            requires ::std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(concepts::nothrow_constructible_from<T, U...>):
             value(::std::forward<U>(u)...)
         {
         }
 
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr operator T&() noexcept { return value; }
 
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr operator const T&() const noexcept { return value; }
     };
 

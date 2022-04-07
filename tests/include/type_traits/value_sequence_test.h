@@ -40,9 +40,7 @@ namespace stdsharp::test::type_traits
             }
         };
 
-        if constexpr(is_trivially_copyable_v<boost::ut::reflection::source_location>)
-            then(then_str) = fn{sl}; // clang-format off
-        else then(then_str) = fn{move(sl)}; // NOLINT(hicpp-move-const-arg,performance-move-const-arg)
+        then(then_str) = fn{sl};
     } // clang-format on
 
     template<typename T, typename Expect, template<typename> typename AtBySeq>

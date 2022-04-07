@@ -24,9 +24,8 @@ namespace stdsharp::functional
     public:
         template<typename Fn, typename... U>
             requires ::std::constructible_from<value_wrapper<Func>, Fn> &&
-                (::std::constructible_from<value_wrapper<T>, U>&&...)
-                // NOLINTNEXTLINE(hicpp-explicit-conversions)
-                constexpr bind_t(Fn&& fn, U&&... u):
+                (::std::constructible_from<value_wrapper<T>, U>&&...) constexpr bind_t(
+                    Fn&& fn, U&&... u):
                 value_wrapper<Func>(::std::forward<Fn>(fn)),
                 value_wrapper<T>(::std::forward<U>(u))...
             {

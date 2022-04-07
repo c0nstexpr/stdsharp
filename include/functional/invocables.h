@@ -63,7 +63,6 @@ namespace stdsharp::functional
 
         template<typename... Args>
             requires(::std::constructible_from<value_wrapper<Func>, Args>&&...)
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr invocables(Args&&... args) //
             noexcept((concepts::nothrow_constructible_from<value_wrapper<Func>, Args> && ...)):
             value_wrapper<Func>(::std::forward<Args>(args))...

@@ -51,7 +51,6 @@ namespace stdsharp::functional
     {
         template<typename... U>
             requires(::std::constructible_from<value_wrapper<T>, U>&&...)
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr composed(U&&... u): value_wrapper<T>(::std::forward<U>(u))... {}
 
 #define BS_OPERATOR(const_, ref)                                                                 \

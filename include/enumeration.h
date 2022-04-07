@@ -36,7 +36,7 @@ namespace stdsharp
         using base::value;
 
         template<typename U>
-        constexpr flag(const U t) noexcept: base{t} // NOLINT(hicpp-explicit-conversions)
+        constexpr flag(const U t) noexcept: base{t}
         {
         }
 

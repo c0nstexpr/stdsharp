@@ -41,7 +41,6 @@ namespace stdsharp::reflection
     template<auto Literal>
     struct data_member_t : member_t<Literal>
     {
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr data_member_t(const member_t<Literal> = {}) noexcept {}
 
         template<typename T>
@@ -75,7 +74,6 @@ namespace stdsharp::reflection
     template<auto Literal>
     struct member_function_t : member_t<Literal>
     {
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr member_function_t(const member_t<Literal> = {}) noexcept {}
 
         template<typename... Args>
