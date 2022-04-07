@@ -8,7 +8,6 @@
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
 #include "scope.h"
-#include "type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -123,16 +122,29 @@ namespace stdsharp
         ~concurrent_object() = default;
 
         template<typename OtherLockable>
-            requires ::std::swappable<value_type>
-        void swap(concurrent_object<T, OtherLockable>& other)
+        void swap(concurrent_object<T, OtherLockable>& other) //
+            requires ::std::swappable_with<
+                value_type,
+                typename ::std::remove_reference_t<decltype(other)>::value_type // clang-format off
+            > // clang-format on
         {
-            ::std::ranges::swap(object_, forward_object(other));
+            write(
+                [&other](value_type& obj)
+                {
+                    other.write(
+                        [&obj](auto& other_obj)
+                        {
+                            ::std::ranges::swap(obj, other_obj); //
+                        } //
+                    );
+                } //
+            );
         }
 
         template<::std::invocable<const value_type&> Func>
         void read(Func&& func) const&
         {
-            scope(
+            scope::make_raii_scope(
                 [&object = object_, &func] { ::std::invoke(func, object); },
                 ::std::unique_lock{lockable_} //
             );
@@ -141,7 +153,7 @@ namespace stdsharp
         template<::std::invocable<const value_type> Func>
         void read(Func&& func) const&&
         {
-            ::std::invoke(func, static_cast<const T&&>(object_));
+            ::std::invoke(func, static_cast<const value_type&&>(object_));
         }
 
         template<auto Name>
@@ -172,7 +184,7 @@ namespace stdsharp
         template<::std::invocable<value_type&> Func>
         void write(Func&& func) &
         {
-            scope(
+            scope::make_raii_scope(
                 [&object = object_, &func] { ::std::invoke(func, object); },
                 ::std::unique_lock{lockable_} //
             );
