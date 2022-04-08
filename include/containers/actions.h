@@ -4,7 +4,10 @@
 
 #pragma once
 #include <range/v3/action.hpp>
+#include <utility>
 
+#include "containers/actions.h"
+#include "functional/invocables.h"
 #include "tuple/tuple.h"
 #include "containers/containers.h"
 
@@ -65,78 +68,92 @@ namespace stdsharp::actions
         }
     } emplace{};
 
-    inline constexpr struct erase_fn
+    namespace details
     {
-    private:
-        struct impl
+        void erase(auto&&, auto&&) = delete;
+
+        struct erase_fn
         {
-            template<containers::sequence_container Container>
-                requires containers::container_erasable<Container>
-            constexpr auto operator()(
-                Container& container,
-                const ::std::equality_comparable_with<
-                    typename ::std::decay_t<Container>::value_type> auto& value //
-            ) const
+        private:
+            struct impl
             {
-                return erase(container, value);
-            }
-
-            template<details::associative_like_req Container>
-                requires containers::container_erasable<Container>
-            constexpr auto operator()(
-                Container& container,
-                const ::std::equality_comparable_with<
-                    typename ::std::decay_t<Container>::key_type> auto& key //
-            ) const
-            {
-                return container.erase(key);
-            }
-
-            template<
-                typename Container, // clang-format off
-                ::std::convertible_to<ranges::const_iterator_t<Container>>... ConstIter
-            > // clang-format on
-                requires details::container_erasable<Container> && requires
+                template<containers::sequence_container Container>
+                    requires containers::container_erasable<Container>
+                constexpr auto operator()(
+                    Container& container,
+                    const ::std::equality_comparable_with<
+                        typename ::std::decay_t<Container>::value_type> auto& value //
+                ) const requires requires
                 {
-                    requires(
-                        containers::sequence_container<Container> || // clang-format off
-                            details::associative_like_req<Container> // clang-format on
-                    );
-                    requires sizeof...(ConstIter) <= 1;
+                    erase(container, value);
                 }
-            constexpr auto operator()(
-                Container& container,
-                const decltype(container.cbegin()) const_iter_begin,
-                const ConstIter... const_iter_end //
-            ) const
+                {
+                    return erase(container, value);
+                }
+
+                template<details::associative_like_req Container>
+                    requires containers::container_erasable<Container>
+                constexpr auto operator()(
+                    Container& container,
+                    const ::std::equality_comparable_with<
+                        typename ::std::decay_t<Container>::key_type> auto& key //
+                ) const
+                {
+                    return container.erase(key);
+                }
+
+                template<
+                    typename Container, // clang-format off
+                    ::std::convertible_to<ranges::const_iterator_t<Container>>... ConstIter
+                > // clang-format on
+                    requires details::container_erasable<Container> && requires
+                    {
+                        requires(
+                            containers::sequence_container<Container> || // clang-format off
+                            details::associative_like_req<Container> // clang-format on
+                        );
+                        requires sizeof...(ConstIter) <= 1;
+                    }
+                constexpr auto operator()(
+                    Container& container,
+                    const decltype(container.cbegin()) const_iter_begin,
+                    const ConstIter... const_iter_end //
+                ) const
+                {
+                    return container.erase(
+                        const_iter_begin,
+                        static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
+                    );
+                }
+            };
+
+        public:
+            template<typename... Args>
+                requires(
+                    ::std::invocable<impl, Args...> &&
+                    !functional::cpo_invocable<erase_fn, Args...> //
+                )
+            constexpr decltype(auto) operator()(Args&&... args) const
             {
-                return container.erase(
-                    const_iter_begin,
-                    static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
-                );
+                return impl{}(::std::forward<Args>(args)...);
+            }
+
+            template<typename... Args>
+                requires functional::cpo_invocable<erase_fn, Args...>
+            constexpr decltype(auto) operator()(Args&&... args) const
+            {
+                return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
             }
         };
+    }
 
-    public:
-        template<typename... Args>
-            requires(
-                ::std::invocable<impl, Args...> && !functional::cpo_invocable<erase_fn, Args...> //
-            )
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return impl{}(::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires functional::cpo_invocable<erase_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
-        }
-    } erase{};
+    inline namespace cpo
+    {
+        using details::erase_fn;
+        inline constexpr erase_fn erase{};
+    }
 
     inline constexpr struct emplace_back_fn
-
     {
     private:
         struct default_fn
@@ -224,36 +241,58 @@ namespace stdsharp::actions
         }
     } emplace_front{};
 
-    inline constexpr struct erase_if_fn
+    namespace details
     {
-        template<
-            containers::container_erasable Container,
-            containers::container_predicatable<Container> Predicate // clang-format off
-        > // clang-format on
-            requires requires
-            {
-                erase_if(::std::declval<Container&>(), ::std::declval<Predicate>());
-            }
-        constexpr ::std::ranges::range_size_t<Container>
-            operator()(Container& container, Predicate&& predicate_fn) const
-        {
-            return erase_if(container, ::std::forward<Predicate>(predicate_fn));
-        }
+        void erase_if(auto&&, auto&&) = delete;
 
-        template<
-            containers::container_erasable Container,
-            containers::container_predicatable<Container> Predicate // clang-format off
-        > // clang-format on
-        constexpr auto operator()(Container& container, Predicate predicate_fn) const
+        struct adl_erase_if_fn
         {
-            const auto& it = static_cast<ranges::const_iterator_t<Container>>(
-                ::std::remove_if(container.begin(), container.end(), predicate_fn) //
-            );
-            const auto r = ::std::distance(it, container.cend());
-            erase(container, it, container.cend());
-            return r;
-        }
-    } erase_if{};
+            template<
+                containers::container_erasable Container,
+                containers::container_predicatable<Container> Predicate // clang-format off
+            > // clang-format on
+            constexpr auto operator()(Container& container, Predicate&& predicate_fn) const //
+                requires requires
+            { // clang-format off
+                { erase_if(container, ::std::declval<Predicate>()) } ->
+                    ::std::same_as<::std::ranges::range_size_t<Container>>;
+            } // clang-format on
+            {
+                return erase_if(container, ::std::forward<Predicate>(predicate_fn));
+            }
+        };
+
+        struct default_erase_if_fn
+        {
+            template<
+                containers::container_erasable Container,
+                containers::container_predicatable<Container> Predicate // clang-format off
+            > // clang-format on
+                requires requires(::std::ranges::iterator_t<Container> iter)
+                {
+                    requires ::std::permutable<decltype(iter)>;
+                    ::std::ranges::distance(
+                        iter,
+                        ::std::declval<ranges::const_iterator_t<Container>>() //
+                    );
+                }
+            constexpr auto operator()(Container& container, Predicate predicate_fn) const
+            { // TODO: Replace with range algo
+                const auto& it = static_cast<ranges::const_iterator_t<Container>>(
+                    ::std::remove_if(container.begin(), container.end(), predicate_fn) //
+                );
+                const auto r = ::std::ranges::distance(it, container.cend());
+                actions::erase(container, it, container.cend());
+                return r;
+            }
+        };
+    }
+    inline namespace cpo
+    {
+        using erase_if_fn = functional::
+            sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
+        inline constexpr erase_if_fn erase_if{};
+    }
 
     inline constexpr struct resize_fn
     {

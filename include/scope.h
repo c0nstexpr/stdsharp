@@ -44,7 +44,7 @@ namespace stdsharp::scope
 
         constexpr ~scoped()
         {
-            const auto execute = [this] noexcept { ::std::invoke(::std::move(value)); };
+            const auto execute = [this]() noexcept { ::std::invoke(::std::move(value)); };
 
             if constexpr(Policy == enum_t::on_exit) execute();
             else if(::std::uncaught_exceptions() == 0)

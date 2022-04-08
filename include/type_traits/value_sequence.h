@@ -221,7 +221,10 @@ namespace stdsharp::type_traits
                 requires
             {
                 typename value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>;
-            } { return value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>{}; };
+            }
+            {
+                return value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>{};
+            };
 
             [[nodiscard]] constexpr auto operator()() const noexcept requires requires
             {

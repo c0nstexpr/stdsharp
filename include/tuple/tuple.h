@@ -4,46 +4,45 @@
 #include "functional/operations.h"
 #include "functional/cpo.h"
 
-namespace adl
-{
-    // TODO: MSVC ADL bug
-    // move definition to "details" namespace
-    template<::std::size_t N, typename T>
-        requires requires { get<N>(::std::declval<T>()); }
-    constexpr decltype(auto) adl_get(T&& t) noexcept(noexcept(get<N>(::std::declval<T>())))
-    {
-        return get<N>(::std::forward<T>(t));
-    }
-}
-
 namespace stdsharp
 {
-    template<::std::size_t N>
-    struct get_fn
+    namespace details
     {
-        template<typename T>
-            requires requires
+        template<::std::size_t>
+        void get(auto) = delete;
+
+        template<::std::size_t N>
+        struct get_fn
+        {
+            template<typename T>
+                requires requires
+                {
+                    get<N>(::std::declval<T>());
+                    requires !functional::cpo_invocable<get_fn<N>, T>;
+                }
+            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+                noexcept(noexcept(get<N>(::std::declval<T>())))
             {
-                ::adl::adl_get<N>(::std::declval<T>());
-                requires !functional::cpo_invocable<get_fn<N>, T>;
+                return get<N>(::std::forward<T>(t));
             }
-        [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-            noexcept(noexcept(::adl::adl_get<N>(::std::declval<T>())))
-        {
-            return ::adl::adl_get<N>(::std::forward<T>(t));
-        }
 
-        template<typename T>
-            requires functional::cpo_invocable<get_fn<N>, T>
-        [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-            noexcept(functional::cpo_nothrow_invocable<get_fn<N>, T>)
-        {
-            return cpo(*this, ::std::forward<T>(t));
-        }
-    };
+            template<typename T>
+                requires functional::cpo_invocable<get_fn<N>, T>
+            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+                noexcept(functional::cpo_nothrow_invocable<get_fn<N>, T>)
+            {
+                return functional::cpo_invoke(*this, ::std::forward<T>(t));
+            }
+        };
+    }
 
-    template<::std::size_t N>
-    inline constexpr get_fn<N> get{};
+    inline namespace cpo
+    {
+        using details::get_fn;
+
+        template<::std::size_t N>
+        inline constexpr get_fn<N> get{};
+    }
 
     template<::std::size_t N, typename T>
     using get_t = ::std::invoke_result_t<get_fn<N>, T>;
@@ -208,9 +207,8 @@ namespace stdsharp
         constexpr auto operator()(Tuples&&... t)
         {
             return tuples_apply(
-                []<typename... Args>(Args && ... args) {
-                    return ::std::tuple{::std::forward<Args>(args)...};
-                },
+                []<typename... Args>(Args&&... args)
+                { return ::std::tuple{::std::forward<Args>(args)...}; },
                 std::forward<Tuples>(t)... //
             );
         }
