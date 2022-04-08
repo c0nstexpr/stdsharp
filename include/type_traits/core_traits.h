@@ -116,15 +116,16 @@ namespace stdsharp::type_traits
         template<::std::size_t Size>
         struct ltr : ::std::array<char, Size>
         {
+        private:
+            using array_t = const char (&)[Size]; // NOLINT(*-avoid-c-arrays)
+
+        public:
             using base = ::std::array<char, Size>;
             using base::base;
 
-            constexpr ltr(const char (&arr)[Size]) noexcept: base(::std::to_array(arr)) {}
+            constexpr ltr(array_t arr) noexcept: base(::std::to_array(arr)) {}
 
-            constexpr ltr& operator=(const char (&arr)[Size]) noexcept
-            {
-                *this = ::std::to_array(arr);
-            }
+            constexpr ltr& operator=(array_t arr) noexcept { *this = ::std::to_array(arr); }
 
             constexpr operator ::std::string_view() const noexcept
             {
@@ -138,7 +139,7 @@ namespace stdsharp::type_traits
         };
 
         template<::std::size_t Size>
-        ltr(const char (&)[Size]) -> ltr<Size>;
+        ltr(const char (&)[Size]) -> ltr<Size>; // NOLINT(*-avoid-c-arrays)
 
         template<ltr ltr>
         [[nodiscard]] constexpr auto operator"" _ltr() noexcept

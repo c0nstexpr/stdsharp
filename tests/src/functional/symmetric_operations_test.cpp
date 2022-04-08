@@ -20,8 +20,6 @@ namespace stdsharp::test::functional
                 {
                     print(fmt::format("{}", int_v));
 
-                    // clang-tidy bug below
-                    // NOLINTNEXTLINE(performance-unnecessary-value-param)
                     then("assign to 0 and revert back") = [](const int origin)
                     {
                         auto v = origin;
@@ -36,8 +34,6 @@ namespace stdsharp::test::functional
                 {
                     print(fmt::format("{}", vec));
 
-                    // clang-tidy bug below
-                    // NOLINTNEXTLINE(performance-unnecessary-value-param)
                     then("use emplace back") = [](const vector<int>& origin)
                     {
                         auto vec = origin;

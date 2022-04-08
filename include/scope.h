@@ -25,7 +25,9 @@ namespace stdsharp::scope
     >; // clang-format on
 
     template<exit_fn_policy Policy, concepts::nothrow_invocable Fn>
-    struct [[nodiscard]] scoped : private value_wrapper<Fn>, type_traits::unique_object // NOLINT
+    struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
+        private value_wrapper<Fn>,
+        type_traits::unique_object
     {
     private:
         using enum_t = exit_fn_policy::enum_type;

@@ -22,10 +22,8 @@ namespace stdsharp::test
                     then("base on comparison result to set value") = []
                     {
                         constexpr auto order = partial_order(Second, First);
-                        constexpr auto greater =
-                            order > 0; // NOLINT(hicpp-use-nullptr,modernize-use-nullptr)
-                        constexpr auto less =
-                            order < 0; // NOLINT(hicpp-use-nullptr,modernize-use-nullptr)
+                        constexpr auto greater = order > 0; // NOLINT(*-use-nullptr)
+                        constexpr auto less = order < 0; // NOLINT(*-use-nullptr)
                         constexpr auto f = [](const auto expect, auto&& func)
                         {
                             auto first = First;

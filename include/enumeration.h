@@ -40,23 +40,20 @@ namespace stdsharp
         {
         }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
+        // NOLINTBEGIN(hicpp-signed-bitwise)
         constexpr auto operator|(const T other) const noexcept { return flag{value | other}; }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
         friend constexpr auto operator|(const T v, const flag e) noexcept { return flag{e | v}; }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
         constexpr flag operator|(const flag other) const noexcept { return flag{value | other}; }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
         constexpr flag operator&(const T other) const noexcept { return flag{value & other}; }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
         friend constexpr auto operator&(const T v, const flag e) noexcept { return flag{e & v}; }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
+
         constexpr auto operator&(const flag other) const noexcept { return flag{value & other}; }
+        // NOLINTEND(hicpp-signed-bitwise)
     };
 
     template<typename T>
