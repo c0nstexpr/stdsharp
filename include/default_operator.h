@@ -75,17 +75,18 @@ namespace stdsharp
     {                                                                              \
         {                                                                          \
             t op## = u                                                             \
-            } -> ::std::same_as<T>;                                                \
+            } -> ::std::same_as<T&>;                                               \
     }                                                                              \
     {                                                                              \
         return t op## = u;                                                         \
     }                                                                              \
                                                                                    \
     template<typename U>                                                           \
-        requires(Exchangable)                                                      \
     [[nodiscard]] friend constexpr T operator op(const U& u, const T& t) noexcept( \
         noexcept(t op u)) requires requires                                        \
     {                                                                              \
+        requires !::std::same_as<T, U>;                                            \
+        requires Exchangable;                                                      \
         {                                                                          \
             t op u                                                                 \
             } -> ::std::same_as<T>;                                                \
@@ -95,15 +96,15 @@ namespace stdsharp
     }
 
         BS_ARITH_OP(+)
-        BS_ARITH_OP(-)
-        BS_ARITH_OP(*)
-        BS_ARITH_OP(/)
-        BS_ARITH_OP(%)
-        BS_ARITH_OP(&)
-        BS_ARITH_OP(|)
-        BS_ARITH_OP(^)
-        BS_ARITH_OP(<<)
-        BS_ARITH_OP(>>)
+        // BS_ARITH_OP(-)
+        // BS_ARITH_OP(*)
+        // BS_ARITH_OP(/)
+        // BS_ARITH_OP(%)
+        // BS_ARITH_OP(&)
+        // BS_ARITH_OP(|)
+        // BS_ARITH_OP(^)
+        // BS_ARITH_OP(<<)
+        // BS_ARITH_OP(>>)
 
 #undef BS_ARITH_OP
 
@@ -149,15 +150,15 @@ namespace stdsharp
     }
 
         BS_ARITH_OP(+)
-        BS_ARITH_OP(-)
-        BS_ARITH_OP(*)
-        BS_ARITH_OP(/)
-        BS_ARITH_OP(%)
-        BS_ARITH_OP(&)
-        BS_ARITH_OP(|)
-        BS_ARITH_OP(^)
-        BS_ARITH_OP(<<)
-        BS_ARITH_OP(>>)
+        // BS_ARITH_OP(-)
+        // BS_ARITH_OP(*)
+        // BS_ARITH_OP(/)
+        // BS_ARITH_OP(%)
+        // BS_ARITH_OP(&)
+        // BS_ARITH_OP(|)
+        // BS_ARITH_OP(^)
+        // BS_ARITH_OP(<<)
+        // BS_ARITH_OP(>>)
 
 #undef BS_ARITH_OP
 

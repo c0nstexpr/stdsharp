@@ -15,13 +15,13 @@ namespace stdsharp
     {
         struct space_size_delegate
         {
-            constexpr decltype(auto) operator()(auto& t) const noexcept { return t.value_; }
+            constexpr auto& operator()(auto& t) const noexcept { return t.value_; }
         };
     }
 
     template<auto Num, auto Denom>
     class space_size<::std::ratio<Num, Denom>> :
-        public default_arithmetic_assign_operation<
+        default_arithmetic_assign_operation<
             space_size<::std::ratio<Num, Denom>>,
             details::space_size_delegate // clang-format off
         >, // clang-format on
@@ -87,8 +87,7 @@ namespace stdsharp
         using t = space_size<std::ratio<1>>;
 
         t s{};
-        [[maybe_unused]] auto v2_ = +s;
-        // s = s + 0;
-        // s + t::zero();
+        s = s + 0;
+        //  s + t::zero();
     };
 }
