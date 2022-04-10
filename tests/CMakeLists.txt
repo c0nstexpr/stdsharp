@@ -74,7 +74,10 @@ target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp ut)
 #
 # Configure clang-tidy
 #
-if(NOT MSVC)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy" ON)
+
+message(STATUS "clang-tidy is ${ENABLE_CLANG_TIDY}")
+if((NOT MSVC) AND ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY clang-tidy)
     if(CLANG_TIDY)
         message(STATUS "found clang-tidy: ${CLANG_TIDY}")
