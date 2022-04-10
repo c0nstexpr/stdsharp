@@ -197,7 +197,8 @@ namespace stdsharp::functional
 #define BS_UTIL_INCREMENT_DECREMENT_OPERATE(operator_prefix, op, al_op)                            \
     inline constexpr struct pre_##operator_prefix##crease                                          \
     {                                                                                              \
-        template<::std::weakly_incrementable T>                                                    \
+        template<typename T>                                                                       \
+            requires requires(T t) { op##op t; }                                                   \
         constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(op##op v))               \
         {                                                                                          \
             return op##op v;                                                                       \
@@ -207,6 +208,7 @@ namespace stdsharp::functional
     inline constexpr struct post_##operator_prefix##crease                                         \
     {                                                                                              \
         template<iterator::weakly_decrementable T>                                                 \
+            requires requires(T t) { t op##op; }                                                   \
         [[nodiscard]] constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(v op##op)) \
         {                                                                                          \
             return v op##op;                                                                       \
