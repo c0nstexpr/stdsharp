@@ -8,10 +8,10 @@
 #include "type_traits/type_sequence_test.h"
 #include "type_traits/member_test.h"
 #include "functional/symmetric_operations_test.h"
+#include "filesystem/filesystem_test.h"
 
 #include "random/random.h"
 #include "fstream/fstream.h"
-#include "filesystem/filesystem.h"
 
 int main()
 {
@@ -27,4 +27,5 @@ int main()
     type_traits::type_sequence_test();
     type_traits::member_test();
     functional::symmetric_operations_test();
+    filesystem::filesystem_test();
 }

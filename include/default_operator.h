@@ -1,6 +1,8 @@
 #pragma once
 
 #include "concepts/concepts.h"
+#include "type_traits/core_traits.h"
+#include "type_traits/type_traits.h"
 
 namespace stdsharp
 {
@@ -65,46 +67,68 @@ namespace stdsharp
         }
     };
 
-    template<typename T, bool Exchangable = true>
+    template<
+        typename T,
+        bool Exchangable = true,
+        ::std::constructible_from Delegate = type_traits::empty_t // clang-format off
+    > // clang-format on
     class default_arithmetic_operation : default_post_incremention_and_decremention<T>
     {
-#define BS_ARITH_OP(op)                                                            \
-    template<typename U>                                                           \
-    [[nodiscard]] friend constexpr T operator op(T t, const U& u) noexcept(        \
-        noexcept(t op## = u)) requires requires                                    \
-    {                                                                              \
-        {                                                                          \
-            t op## = u                                                             \
-            } -> ::std::same_as<T&>;                                               \
-    }                                                                              \
-    {                                                                              \
-        return t op## = u;                                                         \
-    }                                                                              \
-                                                                                   \
-    template<typename U>                                                           \
-    [[nodiscard]] friend constexpr T operator op(const U& u, const T& t) noexcept( \
-        noexcept(t op u)) requires requires                                        \
-    {                                                                              \
-        requires !::std::same_as<T, U>;                                            \
-        requires Exchangable;                                                      \
-        {                                                                          \
-            t op u                                                                 \
-            } -> ::std::same_as<T>;                                                \
-    }                                                                              \
-    {                                                                              \
-        return t op u;                                                             \
+        static constexpr Delegate delegate{};
+
+#define BS_ARITH_OP(op)                                                         \
+    template<::std::same_as<T> This>                                            \
+    [[nodiscard]] friend constexpr T operator op(                               \
+        const This& t, /**/                                                     \
+        const concepts::not_same_as<T> auto& u /* clang-format off */        \
+    ) /* clang-format on */                                                 \
+        noexcept(noexcept(delegate(t) op u)) /**/                               \
+        requires requires                                                       \
+    {                                                                           \
+        requires ::std::constructible_from<This, decltype(delegate(t) op u)> && \
+            !::std::same_as<Delegate, type_traits::empty_t>;                    \
+    }                                                                           \
+    {                                                                           \
+        return T{delegate(t) op u};                                             \
+    }                                                                           \
+                                                                                \
+    [[nodiscard]] friend constexpr T operator op(                               \
+        T t, /**/                                                               \
+        const concepts::not_same_as<T> auto& u /* clang-format off */        \
+    ) noexcept(noexcept(t op## = u)) /* clang-format on */                  \
+        requires requires                                                       \
+    {                                                                           \
+        {                                                                       \
+            t op## = u                                                          \
+            } -> ::std::same_as<T&>;                                            \
+    }                                                                           \
+    {                                                                           \
+        return t op## = u;                                                      \
+    }                                                                           \
+                                                                                \
+    [[nodiscard]] friend constexpr T operator op(                               \
+        const concepts::not_same_as<T> auto& u,                                 \
+        const T& t) noexcept(noexcept(t op u)) requires requires                \
+    {                                                                           \
+        requires Exchangable;                                                   \
+        {                                                                       \
+            t op u                                                              \
+            } -> ::std::same_as<T>;                                             \
+    }                                                                           \
+    {                                                                           \
+        return t op u;                                                          \
     }
 
         BS_ARITH_OP(+)
-        // BS_ARITH_OP(-)
-        // BS_ARITH_OP(*)
-        // BS_ARITH_OP(/)
-        // BS_ARITH_OP(%)
-        // BS_ARITH_OP(&)
-        // BS_ARITH_OP(|)
-        // BS_ARITH_OP(^)
-        // BS_ARITH_OP(<<)
-        // BS_ARITH_OP(>>)
+        BS_ARITH_OP(-)
+        BS_ARITH_OP(*)
+        BS_ARITH_OP(/)
+        BS_ARITH_OP(%)
+        BS_ARITH_OP(&)
+        BS_ARITH_OP(|)
+        BS_ARITH_OP(^)
+        BS_ARITH_OP(<<)
+        BS_ARITH_OP(>>)
 
 #undef BS_ARITH_OP
 
@@ -125,51 +149,54 @@ namespace stdsharp
     {
         static constexpr Delegate delegate{};
 
-#define BS_ARITH_OP(op)                                                  \
-    template<::std::same_as<T> This, typename U>                         \
-    friend constexpr T& operator op##=(This& t, const U& u) noexcept(    \
-        noexcept(delegate(t) op## = u)) requires requires                \
-    {                                                                    \
-        requires !::std::same_as<T, U>;                                  \
-        delegate(t) op## = u;                                            \
-    }                                                                    \
-    {                                                                    \
-        delegate(t) op## = u;                                            \
-        return t;                                                        \
-    }                                                                    \
-                                                                         \
-    template<::std::same_as<T> This>                                     \
-    friend constexpr T& operator op##=(This& t, const This& u) noexcept( \
-        noexcept(delegate(t) op## = delegate(u))) requires requires      \
-    {                                                                    \
-        delegate(t) op## = delegate(u);                                  \
-    }                                                                    \
-    {                                                                    \
-        delegate(t) op## = delegate(u);                                  \
-        return t;                                                        \
+#define BS_ARITH_OP(op)                                                                      \
+    template<::std::same_as<T> This>                                                         \
+    friend constexpr T& operator op##=(This& t, const concepts::not_same_as<T> auto& u) /**/ \
+        noexcept(noexcept(delegate(t) op## = u)) /**/                                        \
+        requires requires                                                                    \
+    {                                                                                        \
+        delegate(t) op## = u;                                                                \
+    }                                                                                        \
+    {                                                                                        \
+        delegate(t) op## = u;                                                                \
+        return t;                                                                            \
+    }                                                                                        \
+                                                                                             \
+    template<::std::same_as<T> This>                                                         \
+    friend constexpr T& operator op##=(This& t, const This& u) /**/                          \
+        noexcept(noexcept(delegate(t) op## = delegate(u))) /**/                              \
+        requires requires                                                                    \
+    {                                                                                        \
+        delegate(t) op## = delegate(u);                                                      \
+    }                                                                                        \
+    {                                                                                        \
+        delegate(t) op## = delegate(u);                                                      \
+        return t;                                                                            \
     }
 
         BS_ARITH_OP(+)
-        // BS_ARITH_OP(-)
-        // BS_ARITH_OP(*)
-        // BS_ARITH_OP(/)
-        // BS_ARITH_OP(%)
-        // BS_ARITH_OP(&)
-        // BS_ARITH_OP(|)
-        // BS_ARITH_OP(^)
-        // BS_ARITH_OP(<<)
-        // BS_ARITH_OP(>>)
+        BS_ARITH_OP(-)
+        BS_ARITH_OP(*)
+        BS_ARITH_OP(/)
+        BS_ARITH_OP(%)
+        BS_ARITH_OP(&)
+        BS_ARITH_OP(|)
+        BS_ARITH_OP(^)
+        BS_ARITH_OP(<<)
+        BS_ARITH_OP(>>)
 
 #undef BS_ARITH_OP
 
-#define BS_ARITH_OP(op)                                                                 \
-    template<::std::same_as<T> U>                                                       \
-    [[nodiscard]] friend constexpr T operator op(const U& t) noexcept requires requires \
-    {                                                                                   \
-        U{op delegate(t)};                                                              \
-    }                                                                                   \
-    {                                                                                   \
-        return T{op delegate(t)};                                                       \
+#define BS_ARITH_OP(op)                                           \
+    template<::std::same_as<T> U>                                 \
+    [[nodiscard]] friend constexpr T operator op(const U& t) /**/ \
+        noexcept(noexcept(U{op delegate(t)})) /**/                \
+        requires requires                                         \
+    {                                                             \
+        U{op delegate(t)};                                        \
+    }                                                             \
+    {                                                             \
+        return T{op delegate(t)};                                 \
     }
 
         BS_ARITH_OP(~);

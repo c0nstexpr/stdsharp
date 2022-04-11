@@ -19,7 +19,6 @@ namespace stdsharp::test
         static boost::ut::suite suite = []
         {
             using namespace std;
-            using namespace std;
             using namespace boost::ut;
             using namespace bdd;
             using namespace functional;

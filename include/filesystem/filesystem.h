@@ -6,7 +6,7 @@
 
 #include "default_operator.h"
 
-namespace stdsharp
+namespace stdsharp::filesystem
 {
     template<typename Period>
     class space_size;
@@ -15,19 +15,36 @@ namespace stdsharp
     {
         struct space_size_delegate
         {
-            constexpr auto& operator()(auto& t) const noexcept { return t.value_; }
+            template<typename Period>
+            constexpr auto& operator()(space_size<Period>& t) const noexcept
+            {
+                return t.value_;
+            }
+
+            template<typename Period>
+            constexpr auto operator()(const space_size<Period>& t) const noexcept
+            {
+                return t.value_;
+            }
         };
     }
 
     template<auto Num, auto Denom>
-    class space_size<::std::ratio<Num, Denom>> :
+    class [[nodiscard]] space_size<::std::ratio<Num, Denom>> :
         default_arithmetic_assign_operation<
             space_size<::std::ratio<Num, Denom>>,
             details::space_size_delegate // clang-format off
         >, // clang-format on
-        default_arithmetic_operation<space_size<::std::ratio<Num, Denom>>>
+        default_arithmetic_operation<
+            space_size<::std::ratio<Num, Denom>>,
+            true,
+            details::space_size_delegate // clang-format off
+        > // clang-format on
     {
         friend struct details::space_size_delegate;
+
+        template<typename>
+        friend class space_size;
 
         using value_type = ::std::uintmax_t;
 
@@ -50,7 +67,7 @@ namespace stdsharp
 
         space_size() = default;
 
-        constexpr space_size(const value_type value) noexcept: value_(value) {}
+        explicit constexpr space_size(const value_type value) noexcept: value_(value) {}
 
         template<typename Period>
         constexpr space_size(const space_size<Period> other) noexcept:
@@ -62,9 +79,9 @@ namespace stdsharp
         [[nodiscard]] constexpr auto operator<=>(const space_size<Period> other) const noexcept
         {
             if constexpr(::std::ratio_greater_v<period, Period>)
-                return value_ <=> from_ratio(other.size(), ::std::ratio_divide<Period, period>{});
+                return value_ <=> from_ratio(other.value_, ::std::ratio_divide<Period, period>{});
             else
-                return other.size() <=> from_ratio(value_, ::std::ratio_divide<period, Period>{});
+                return other.value_ <=> from_ratio(value_, ::std::ratio_divide<period, Period>{});
         }
 
         template<typename Period>
@@ -80,14 +97,5 @@ namespace stdsharp
         }
 
         [[nodiscard]] constexpr auto size() const noexcept { return value_; }
-    };
-
-    static const auto v = []
-    {
-        using t = space_size<std::ratio<1>>;
-
-        t s{};
-        s = s + 0;
-        //  s + t::zero();
     };
 }
