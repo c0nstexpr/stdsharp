@@ -4,6 +4,7 @@
 #include <limits>
 #include <ratio>
 
+#include "cstdint/cstdint.h"
 #include "default_operator.h"
 
 namespace stdsharp::filesystem
@@ -98,4 +99,91 @@ namespace stdsharp::filesystem
 
         [[nodiscard]] constexpr auto size() const noexcept { return value_; }
     };
+
+    namespace details
+    {
+        inline constexpr ::std::uintmax_t size_numeration_base = 1024;
+        inline constexpr ::std::uintmax_t size_dec_numeration_base = 1000;
+    }
+
+    using bits = space_size<::std::ratio<1, char_bit>>;
+
+    constexpr auto operator""_bit(unsigned long long v) noexcept { return bits{v}; }
+
+    using bytes = space_size<::std::ratio<1>>;
+
+    constexpr auto operator""_byte(unsigned long long v) noexcept { return bytes{v}; }
+
+    using kilobytes = space_size<::std::ratio<1, details::size_dec_numeration_base>>;
+
+    constexpr auto operator""_KB(unsigned long long v) noexcept { return kilobytes{v}; }
+
+    using megabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * kilobytes::period::den>>;
+
+    constexpr auto operator""_MB(unsigned long long v) noexcept { return megabytes{v}; }
+
+    using gigabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * megabytes::period::den>>;
+
+    constexpr auto operator""_GB(unsigned long long v) noexcept { return gigabytes{v}; }
+
+    using terabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * gigabytes::period::den>>;
+
+    constexpr auto operator""_TB(unsigned long long v) noexcept { return terabytes{v}; }
+
+    using petabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * terabytes::period::den>>;
+
+    constexpr auto operator""_PB(unsigned long long v) noexcept { return petabytes{v}; }
+
+    using exabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * petabytes::period::den>>;
+
+    constexpr auto operator""_EB(unsigned long long v) noexcept { return exabytes{v}; }
+
+    using zettabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * exabytes::period::den>>;
+
+    constexpr auto operator""_ZB(unsigned long long v) noexcept { return zettabytes{v}; }
+
+    using yottabytes =
+        space_size<::std::ratio<details::size_dec_numeration_base * zettabytes::period::den>>;
+
+    constexpr auto operator""_YB(unsigned long long v) noexcept { return yottabytes{v}; }
+
+
+    using kibibytes = space_size<::std::ratio<1, details::size_numeration_base>>;
+
+    constexpr auto operator""_KiB(unsigned long long v) noexcept { return kibibytes{v}; }
+
+    using mebibytes =
+        space_size<::std::ratio<details::size_numeration_base * kilobytes::period::den>>;
+
+    constexpr auto operator""_MiB(unsigned long long v) noexcept { return mebibytes{v}; }
+    using gibibytes =
+        space_size<::std::ratio<details::size_numeration_base * megabytes::period::den>>;
+
+    constexpr auto operator""_GiB(unsigned long long v) noexcept { return gibibytes{v}; }
+    using tebibytes =
+        space_size<::std::ratio<details::size_numeration_base * gigabytes::period::den>>;
+
+    constexpr auto operator""_TiB(unsigned long long v) noexcept { return tebibytes{v}; }
+    using pebibytes =
+        space_size<::std::ratio<details::size_numeration_base * terabytes::period::den>>;
+
+    constexpr auto operator""_PiB(unsigned long long v) noexcept { return pebibytes{v}; }
+    using exbibytes =
+        space_size<::std::ratio<details::size_numeration_base * petabytes::period::den>>;
+
+    constexpr auto operator""_EiB(unsigned long long v) noexcept { return exbibytes{v}; }
+    using zebibytes =
+        space_size<::std::ratio<details::size_numeration_base * exabytes::period::den>>;
+
+    constexpr auto operator""_ZiB(unsigned long long v) noexcept { return zebibytes{v}; }
+    using yobibytes =
+        space_size<::std::ratio<details::size_numeration_base * zettabytes::period::den>>;
+
+    constexpr auto operator""_YiB(unsigned long long v) noexcept { return yobibytes{v}; }
 }
