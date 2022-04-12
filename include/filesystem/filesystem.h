@@ -4,6 +4,10 @@
 #include <limits>
 #include <ratio>
 
+#if __cpp_lib_format >= 201907L
+    #include <format>
+#endif
+
 #include "cstdint/cstdint.h"
 #include "default_operator.h"
 #include "pattern_match.h"
@@ -256,3 +260,23 @@ namespace stdsharp::inline literals
 {
     using namespace stdsharp::filesystem::literals;
 }
+
+#if __cpp_lib_format >= 201907L
+
+namespace std
+{
+    template<typename Period, typename CharT>
+    struct formatter<::stdsharp::filesystem::space_size<Period>, CharT> :
+        formatter<::std::uintmax_t, CharT>
+    {
+        using space_size = ::stdsharp::filesystem::space_size<Period>;
+        // parse() is inherited from the base class
+
+        template<typename FormatContext>
+        auto format(const space_size s, FormatContext& fc)
+        {
+            return std::format_to(fc.out(), "{}", s.size());
+        }
+    };
+}
+#endif

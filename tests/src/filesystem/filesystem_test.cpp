@@ -38,8 +38,9 @@ namespace stdsharp::test::filesystem
                 > () << fmt::format("space size should have unary operator");
 
                 {
-                    static_expect<1_bit + 1_bit == 2_bit>() << fmt::format(
-                        "1 bit + 1 bit should be 2 bit, actually is {}", 1_bit + 1_bit);
+                    constexpr auto v = 1_bit + 1_bit;
+                    static_expect<v == 2_bit>()
+                        << fmt::format("1 bit + 1 bit should be 2 bit, actually is {}", v);
                 }
             };
         };
