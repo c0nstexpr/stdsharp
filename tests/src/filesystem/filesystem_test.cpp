@@ -1,3 +1,5 @@
+#include <fmt/ostream.h>
+
 #include "filesystem/filesystem.h"
 #include "filesystem/filesystem_test.h"
 
@@ -20,17 +22,25 @@ namespace stdsharp::test::filesystem
                     << fmt::format("space size should be constructbile by default");
 
                 static_expect<::std::invocable<::std::plus<>, t, int>>()
-                    << fmt::format("space size should be plus assignable from int");
+                    << fmt::format("space size should be able to plus int");
 
                 static_expect<::std::invocable<::std::plus<>, int, t>>()
-                    << fmt::format("int should be plus assignable from space size");
+                    << fmt::format("int should be able to plus space size");
+                static_expect<::std::invocable<::std::plus<>, t, t>>()
+                    << fmt::format("space size should be able plus itself");
 
                 static_expect < requires(t v)
                 {
+                    +v;
                     -v;
                     ~v;
                 }
-                > () << fmt::format("int should be plus assignable from space size");
+                > () << fmt::format("space size should have unary operator");
+
+                {
+                    static_expect<1_bit + 1_bit == 2_bit>() << fmt::format(
+                        "1 bit + 1 bit should be 2 bit, actually is {}", 1_bit + 1_bit);
+                }
             };
         };
         return suite;

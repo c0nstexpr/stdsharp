@@ -48,7 +48,7 @@ namespace stdsharp
 
         public:
             template<typename... Cases>
-            constexpr decltype(auto) operator()(Cases... cases) const
+            constexpr void operator()(Cases... cases) const
                 noexcept((case_nothrow_invocable_<Cases> && ...))
             {
                 (

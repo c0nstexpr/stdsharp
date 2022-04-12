@@ -6,6 +6,7 @@
 
 #include "cstdint/cstdint.h"
 #include "default_operator.h"
+#include "pattern_match.h"
 
 namespace stdsharp::filesystem
 {
@@ -103,87 +104,155 @@ namespace stdsharp::filesystem
     namespace details
     {
         inline constexpr ::std::uintmax_t size_numeration_base = 1024;
-        inline constexpr ::std::uintmax_t size_dec_numeration_base = 1000;
     }
 
     using bits = space_size<::std::ratio<1, char_bit>>;
 
-    constexpr auto operator""_bit(unsigned long long v) noexcept { return bits{v}; }
-
     using bytes = space_size<::std::ratio<1>>;
 
-    constexpr auto operator""_byte(unsigned long long v) noexcept { return bytes{v}; }
+    using kilobytes = space_size<::std::kilo>;
 
-    using kilobytes = space_size<::std::ratio<1, details::size_dec_numeration_base>>;
+    using megabytes = space_size<::std::mega>;
 
-    constexpr auto operator""_KB(unsigned long long v) noexcept { return kilobytes{v}; }
+    using gigabytes = space_size<::std::giga>;
 
-    using megabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * kilobytes::period::den>>;
+    using terabytes = space_size<::std::tera>;
 
-    constexpr auto operator""_MB(unsigned long long v) noexcept { return megabytes{v}; }
+    using petabytes = space_size<::std::peta>;
 
-    using gigabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * megabytes::period::den>>;
+    using exabytes = space_size<::std::exa>;
 
-    constexpr auto operator""_GB(unsigned long long v) noexcept { return gigabytes{v}; }
+#if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000
+    using zettabytes = space_size<::std::zetta>;
 
-    using terabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * gigabytes::period::den>>;
+    inline namespace literals
+    {
+        constexpr auto operator""_ZB(unsigned long long v) noexcept { return zettabytes{v}; }
+    }
 
-    constexpr auto operator""_TB(unsigned long long v) noexcept { return terabytes{v}; }
+    template<typename CharT, typename Traits>
+    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const zettabytes size)
+    {
+        return os << size.size() << " ZB";
+    };
 
-    using petabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * terabytes::period::den>>;
+    #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000'000
+    using yottabytes = space_size<::std::yotta>;
 
-    constexpr auto operator""_PB(unsigned long long v) noexcept { return petabytes{v}; }
+    inline namespace literals
+    {
+        constexpr auto operator""_YB(unsigned long long v) noexcept { return yottabytes{v}; }
+    }
 
-    using exabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * petabytes::period::den>>;
+    template<typename CharT, typename Traits>
+    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const yottabytes size)
+    {
+        return os << size.size() << " YB";
+    };
+    #endif
+#endif
 
-    constexpr auto operator""_EB(unsigned long long v) noexcept { return exabytes{v}; }
-
-    using zettabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * exabytes::period::den>>;
-
-    constexpr auto operator""_ZB(unsigned long long v) noexcept { return zettabytes{v}; }
-
-    using yottabytes =
-        space_size<::std::ratio<details::size_dec_numeration_base * zettabytes::period::den>>;
-
-    constexpr auto operator""_YB(unsigned long long v) noexcept { return yottabytes{v}; }
-
-
-    using kibibytes = space_size<::std::ratio<1, details::size_numeration_base>>;
-
-    constexpr auto operator""_KiB(unsigned long long v) noexcept { return kibibytes{v}; }
+    using kibibytes = space_size<::std::ratio<details::size_numeration_base>>;
 
     using mebibytes =
-        space_size<::std::ratio<details::size_numeration_base * kilobytes::period::den>>;
-
-    constexpr auto operator""_MiB(unsigned long long v) noexcept { return mebibytes{v}; }
+        space_size<::std::ratio<details::size_numeration_base * kibibytes::period::num>>;
     using gibibytes =
-        space_size<::std::ratio<details::size_numeration_base * megabytes::period::den>>;
-
-    constexpr auto operator""_GiB(unsigned long long v) noexcept { return gibibytes{v}; }
+        space_size<::std::ratio<details::size_numeration_base * mebibytes::period::num>>;
     using tebibytes =
-        space_size<::std::ratio<details::size_numeration_base * gigabytes::period::den>>;
-
-    constexpr auto operator""_TiB(unsigned long long v) noexcept { return tebibytes{v}; }
+        space_size<::std::ratio<details::size_numeration_base * gibibytes::period::num>>;
     using pebibytes =
-        space_size<::std::ratio<details::size_numeration_base * terabytes::period::den>>;
-
-    constexpr auto operator""_PiB(unsigned long long v) noexcept { return pebibytes{v}; }
+        space_size<::std::ratio<details::size_numeration_base * tebibytes::period::num>>;
     using exbibytes =
-        space_size<::std::ratio<details::size_numeration_base * petabytes::period::den>>;
+        space_size<::std::ratio<details::size_numeration_base * pebibytes::period::num>>;
 
-    constexpr auto operator""_EiB(unsigned long long v) noexcept { return exbibytes{v}; }
+#if(INTMAX_MAX / 1024) >= 1'152'921'504'606'846'976
     using zebibytes =
-        space_size<::std::ratio<details::size_numeration_base * exabytes::period::den>>;
+        space_size<::std::ratio<details::size_numeration_base * exbibytes::period::num>>;
 
-    constexpr auto operator""_ZiB(unsigned long long v) noexcept { return zebibytes{v}; }
+    inline namespace literals
+    {
+        constexpr auto operator""_ZiB(unsigned long long v) noexcept { return zebibytes{v}; }
+    }
+
+    template<typename CharT, typename Traits>
+    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const zebibytes size)
+    {
+        return os << size.size() << " ZiB";
+    };
+
+    #if(INTMAX_MAX / 1024 / 1024) >= 1'152'921'504'606'846'976
     using yobibytes =
-        space_size<::std::ratio<details::size_numeration_base * zettabytes::period::den>>;
+        space_size<::std::ratio<details::size_numeration_base * zebibytes::period::num>>;
 
-    constexpr auto operator""_YiB(unsigned long long v) noexcept { return yobibytes{v}; }
+    inline namespace literals
+    {
+        constexpr auto operator""_YiB(unsigned long long v) noexcept { return yobibytes{v}; }
+    }
+
+    template<typename CharT, typename Traits>
+    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const yobibytes size)
+    {
+        return os << size.size() << " YiB";
+    };
+    #endif
+#endif
+
+    template<typename CharT, typename Traits, typename Period>
+    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const space_size<Period> size)
+    {
+        constexpr_pattern_match::from_type<space_size<Period>>( //
+            [&](const ::std::type_identity<bits>) { os << size.size() << "bits"; },
+            [&](const ::std::type_identity<bytes>) { os << size.size() << "B"; },
+            [&](const ::std::type_identity<kilobytes>) { os << size.size() << "KB"; },
+            [&](const ::std::type_identity<megabytes>) { os << size.size() << "MB"; },
+            [&](const ::std::type_identity<gigabytes>) { os << size.size() << "GB"; },
+            [&](const ::std::type_identity<terabytes>) { os << size.size() << "TB"; },
+            [&](const ::std::type_identity<petabytes>) { os << size.size() << "PB"; },
+            [&](const ::std::type_identity<exabytes>) { os << size.size() << "EB"; },
+            [&](const ::std::type_identity<kibibytes>) { os << size.size() << "KiB"; },
+            [&](const ::std::type_identity<mebibytes>) { os << size.size() << "MiB"; },
+            [&](const ::std::type_identity<gibibytes>) { os << size.size() << "GiB"; },
+            [&](const ::std::type_identity<tebibytes>) { os << size.size() << "TiB"; },
+            [&](const ::std::type_identity<pebibytes>) { os << size.size() << "PiB"; },
+            [&](const ::std::type_identity<exbibytes>) { os << size.size() << "EiB"; } //
+        );
+
+        return os;
+    };
+
+    inline namespace literals
+    {
+        constexpr auto operator""_bit(unsigned long long v) noexcept { return bits{v}; }
+
+        constexpr auto operator""_B(unsigned long long v) noexcept { return bytes{v}; }
+
+        constexpr auto operator""_KB(unsigned long long v) noexcept { return kilobytes{v}; }
+
+        constexpr auto operator""_MB(unsigned long long v) noexcept { return megabytes{v}; }
+
+        constexpr auto operator""_GB(unsigned long long v) noexcept { return gigabytes{v}; }
+
+        constexpr auto operator""_TB(unsigned long long v) noexcept { return terabytes{v}; }
+
+        constexpr auto operator""_PB(unsigned long long v) noexcept { return petabytes{v}; }
+
+        constexpr auto operator""_EB(unsigned long long v) noexcept { return exabytes{v}; }
+
+        constexpr auto operator""_KiB(unsigned long long v) noexcept { return kibibytes{v}; }
+
+        constexpr auto operator""_MiB(unsigned long long v) noexcept { return mebibytes{v}; }
+
+        constexpr auto operator""_GiB(unsigned long long v) noexcept { return gibibytes{v}; }
+
+        constexpr auto operator""_TiB(unsigned long long v) noexcept { return tebibytes{v}; }
+
+        constexpr auto operator""_PiB(unsigned long long v) noexcept { return pebibytes{v}; }
+
+        constexpr auto operator""_EiB(unsigned long long v) noexcept { return exbibytes{v}; }
+    }
+}
+
+namespace stdsharp::inline literals
+{
+    using namespace stdsharp::filesystem::literals;
 }
