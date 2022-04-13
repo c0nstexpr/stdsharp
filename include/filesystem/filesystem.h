@@ -205,7 +205,7 @@ namespace stdsharp::filesystem
     auto& operator<<(std::basic_ostream<CharT, Traits>& os, const space_size<Period> size)
     {
         constexpr_pattern_match::from_type<space_size<Period>>( //
-            [&](const ::std::type_identity<bits>) { os << size.size() << "bits"; },
+            [&](const ::std::type_identity<bits>) { os << size.size() << "b"; },
             [&](const ::std::type_identity<bytes>) { os << size.size() << "B"; },
             [&](const ::std::type_identity<kilobytes>) { os << size.size() << "KB"; },
             [&](const ::std::type_identity<megabytes>) { os << size.size() << "MB"; },
@@ -266,14 +266,69 @@ namespace stdsharp::inline literals
 namespace std
 {
     template<typename Period, typename CharT>
-    struct formatter<::stdsharp::filesystem::space_size<Period>, CharT> :
-        formatter<::std::uintmax_t, CharT>
+    struct formatter<::stdsharp::filesystem::space_size<Period>, CharT>
     {
+    private:
         using space_size = ::stdsharp::filesystem::space_size<Period>;
-        // parse() is inherited from the base class
 
-        template<typename FormatContext>
-        auto format(const space_size s, FormatContext& fc)
+        static constexpr ::std::array size_units = {
+            "b", "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+
+        CharT fill_ = ' ';
+        enum
+        {
+            left,
+            right,
+            center
+        } align_ = left;
+
+        struct spec
+        {
+            u8 from_unit_index = 0;
+            u8 to_unit_index = 0;
+        };
+        ::std::optional<spec> space_size_spec_{};
+
+    public:
+        constexpr auto parse(const ::std::basic_format_parse_context<CharT>& ctx)
+        {
+            auto ctx_it = ctx.begin();
+            auto ctx_end = ctx.end();
+
+            // standard fmt spec
+            // fill-and-align
+            if(ctx_it != ctx_end)
+            {
+                fill_ = *ctx_it;
+                ++ctx_it;
+
+                if(ctx_it == ctx_end) throw ::std::format_error{"invalid format"};
+
+                switch(*ctx_it)
+                {
+                case '<': align_ = left; break;
+                case '>': align_ = right; break;
+                case '^': align_ = center; break;
+                }
+                ++ctx_it;
+
+                if(ctx_it == ctx_end) throw ::std::format_error{"invalid format"};
+            }
+
+            // width
+
+            // precision
+
+            // Locale
+
+            // space size spec
+
+
+            return ctx.it;
+        }
+
+        template<typename OutputIt>
+        auto format(const space_size s, std::basic_format_context<OutputIt, CharT>& fc)
         {
             return std::format_to(fc.out(), "{}", s.size());
         }
