@@ -1,12 +1,9 @@
 #pragma once
 
 #include <filesystem>
-#include <limits>
 #include <ratio>
 
 #include "format/format.h"
-
-#include "cstdint/cstdint.h"
 #include "default_operator.h"
 #include "pattern_match.h"
 
@@ -33,7 +30,14 @@ namespace stdsharp::filesystem
         };
     }
 
-    template<auto Num, auto Denom>
+    template<::std::uintmax_t Num, ::std::uintmax_t Denom>
+        requires(!::std::same_as<::std::ratio<Num, Denom>, typename ::std::ratio<Num, Denom>::type>)
+    class [[nodiscard]] space_size<::std::ratio<Num, Denom>> :
+        public space_size<typename ::std::ratio<Num, Denom>::type>
+    {
+    };
+
+    template<::std::uintmax_t Num, ::std::uintmax_t Denom>
     class [[nodiscard]] space_size<::std::ratio<Num, Denom>> :
         default_arithmetic_assign_operation<
             space_size<::std::ratio<Num, Denom>>,
@@ -55,9 +59,9 @@ namespace stdsharp::filesystem
         value_type value_{};
 
         template<auto N, auto D>
-        static constexpr auto from_ratio(const auto factor, const ::std::ratio<N, D>) noexcept
+        static constexpr auto cast_from(const auto factor, const ::std::ratio<N, D>) noexcept
         {
-            return factor * N / D;
+            return factor * Denom * N / (Num * D);
         }
 
     public:
@@ -75,17 +79,17 @@ namespace stdsharp::filesystem
 
         template<typename Period>
         constexpr space_size(const space_size<Period> other) noexcept:
-            value_(from_ratio(other.value_, ::std::ratio_divide<Period, period>{}))
+            value_(cast_from(other.value_, Period{}))
         {
         }
 
         template<typename Period>
         [[nodiscard]] constexpr auto operator<=>(const space_size<Period> other) const noexcept
         {
-            if constexpr(::std::ratio_greater_v<period, Period>)
-                return value_ <=> from_ratio(other.value_, ::std::ratio_divide<Period, period>{});
+            if constexpr(::std::ratio_greater_equal_v<period, Period>)
+                return value_ <=> cast_from(other.value_, Period{});
             else
-                return other.value_ <=> from_ratio(value_, ::std::ratio_divide<period, Period>{});
+                return other <=> *this;
         }
 
         template<typename Period>
@@ -199,10 +203,29 @@ namespace stdsharp::filesystem
     #endif
 #endif
 
-    template<typename CharT, typename Traits, typename Period>
-    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const space_size<Period> size)
+    template<typename CharT, typename Traits>
+    auto& operator<<(
+        std::basic_ostream<CharT, Traits>& os,
+        const concepts::same_as_any<
+            bits,
+            bytes,
+            kilobytes,
+            megabytes,
+            gigabytes,
+            terabytes,
+            petabytes,
+            exabytes,
+            kibibytes,
+            mebibytes,
+            gibibytes,
+            tebibytes,
+            pebibytes,
+            exbibytes // clang-format off
+        >
+        auto size // clang-format on
+    )
     {
-        constexpr_pattern_match::from_type<space_size<Period>>( //
+        constexpr_pattern_match::from_type<::std::remove_const_t<decltype(size)>>( //
             [&](const ::std::type_identity<bits>) { os << size.size() << "b"; },
             [&](const ::std::type_identity<bytes>) { os << size.size() << "B"; },
             [&](const ::std::type_identity<kilobytes>) { os << size.size() << "KB"; },
@@ -266,72 +289,312 @@ namespace fmt
 #endif
 {
     template<typename Period, typename CharT>
+        requires requires(
+            ::stdsharp::filesystem::space_size<Period> s,
+            ::std::basic_stringstream<CharT> ss //
+        )
+        {
+            ss << s;
+        }
     struct formatter<::stdsharp::filesystem::space_size<Period>, CharT>
     {
     private:
         using space_size = ::stdsharp::filesystem::space_size<Period>;
-        using u8 = ::stdsharp::u8;
 
-        static constexpr ::std::array size_units = {
-            "b", "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+#define FMTSHARP ::stdsharp::fmt
+        FMTSHARP::fill_spec<CharT> fill_{};
+        FMTSHARP::align_t align_{};
+        FMTSHARP::nested_spec<::std::size_t> width_{};
 
-        CharT fill_ = ' ';
-        enum
-        {
-            left,
-            right,
-            center
-        } align_ = left;
+        FMTSHARP::precision_spec precision_{};
 
-        struct spec
-        {
-            ::stdsharp::u8 from_unit_index = 0;
-            u8 to_unit_index = 0;
-        };
-        ::std::optional<spec> space_size_spec_{};
+        FMTSHARP::locale_spec locale_{};
+#undef FMTSHARP
+
+        ::std::basic_string_view<CharT> from_unit_;
+
+        template<typename T>
+        using identity = ::std::type_identity<T>;
 
     public:
-        constexpr auto parse(const basic_format_parse_context<CharT>& ctx)
+        constexpr auto parse(basic_format_parse_context<CharT>& ctx)
         {
-            auto ctx_it = ctx.begin();
-            auto ctx_end = ctx.end();
+            namespace fmtsharp = ::stdsharp::fmt;
 
-            // standard fmt spec
-            // fill-and-align
-            if(ctx_it != ctx_end)
             {
-                fill_ = *ctx_it;
-                ++ctx_it;
+                basic_format_parse_context<CharT> copied_ctx{
+                    ::std::basic_string_view{ctx.begin(), ctx.end()} //
+                };
 
-                if(ctx_it == ctx_end) throw format_error{"invalid format"};
+                const auto size = ::std::ranges::size(copied_ctx);
 
-                switch(*ctx_it)
+                const auto fill = fmtsharp::parse_fill_spec(copied_ctx);
+
+                if(fill.fill)
                 {
-                case '<': align_ = left; break;
-                case '>': align_ = right; break;
-                case '^': align_ = center; break;
-                }
-                ++ctx_it;
+                    const auto align = fmtsharp::parse_align_spec(copied_ctx);
 
-                if(ctx_it == ctx_end) throw format_error{"invalid format: unexpected end"};
+                    if(align != fmtsharp::align_t::none)
+                    {
+                        const auto width =
+                            fmtsharp::parse_nested_integer_spec<::std::size_t>(copied_ctx);
+
+                        if(!width.valueless_by_exception())
+                        {
+                            fill_ = fill;
+                            align_ = align;
+                            width_ = width;
+
+                            ctx.advance_to(ctx.begin() + (size - ::std::ranges::size(copied_ctx)));
+                        }
+                    }
+                }
             }
 
-            // width
+            precision_ = fmtsharp::parse_precision_spec(ctx);
+            locale_ = fmtsharp::parse_locale_spec(ctx);
 
-            // precision
+            {
+                const auto [from_unit] = ::ctre::starts_with<R"((?:[KMGTPE]i?)?B|b)">(ctx);
 
-            // Locale
+                if(from_unit)
+                {
+                    from_unit_ = from_unit;
+                    ctx.advance_to(from_unit.end());
+                }
+            }
 
-            // space size spec
+            fmtsharp::parse_end_assert(ctx);
 
-
-            return ctx.it;
+            return ctx.begin();
         }
 
         template<typename OutputIt>
-        auto format(const space_size s, basic_format_context<OutputIt, CharT>& fc)
+        auto format(const space_size s, basic_format_context<OutputIt, CharT>& fc) const
         {
-            return format_to(fc.out(), "{}", s.size());
+            namespace fmtsharp = ::stdsharp::fmt;
+
+            const auto& fill = fill_.fill;
+            const auto width = fmtsharp::get_arg(fc, width_);
+            const auto& formatted = [this, s = s, &fc]() mutable
+            {
+                const auto& precision = precision_.precision;
+                const auto from_unit = [from_unit_ = from_unit_]
+                {
+                    ::std::array<char, 4> from_unit{};
+
+                    ::std::ranges::transform(
+                        from_unit_,
+                        from_unit.begin(),
+                        [](const CharT c) { return static_cast<char>(c); } //
+                    );
+                    return from_unit;
+                }();
+
+                ::std::string_view current_unit{
+                    from_unit.begin(), //
+                    ::std::ranges::find(from_unit, char{}) //
+                };
+                ::std::basic_stringstream<CharT> ss;
+
+                const auto do_format = [&current_unit, &ss, &s]
+                {
+                    const auto format_case =
+                        [&]<typename SpaceSize>( // clang-format off
+                        const identity<SpaceSize>,
+                        const ::std::string_view next_unit
+                    ) noexcept // clang-format on
+                    {
+                        return [&, next_unit](const ::std::string_view)
+                        {
+                            const SpaceSize cast_size = s;
+
+                            ss << cast_size;
+
+                            s -= space_size{cast_size};
+                            current_unit = next_unit;
+                        };
+                    };
+
+                    ::stdsharp::pattern_match(
+                        current_unit,
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit.empty(); },
+                            [](const ::std::string_view)
+                            { throw format_error{"Precision exceeded"}; } //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "b"; },
+                            format_case(identity<::stdsharp::filesystem::bits>{}, "")
+                            //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "B"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::bytes>{},
+                                "b") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "KiB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::kibibytes>{},
+                                "B") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "KB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::kilobytes>{},
+                                "B") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "MiB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::mebibytes>{},
+                                "KiB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "MB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::megabytes>{},
+                                "KB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "GiB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::gibibytes>{},
+                                "MiB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "GB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::gigabytes>{},
+                                "MB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "TiB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::tebibytes>{},
+                                "GiB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "TB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::terabytes>{},
+                                "GB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "PiB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::pebibytes>{},
+                                "TiB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "PB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::petabytes>{},
+                                "TB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "EiB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::exbibytes>{},
+                                "PiB") //
+                        },
+                        ::std::pair{
+                            //
+                            [](const ::std::string_view unit) noexcept { return unit == "EB"; },
+                            format_case(
+                                identity<::stdsharp::filesystem::exabytes>{},
+                                "PB") //
+                        } //
+                    );
+                };
+
+                if(locale_.use_locale)
+#if __cpp_lib_format >= 201907L
+                    ss.imbue(fc.locale());
+#else
+                    ss.imbue(fc.locale().template get<::std::locale>());
+#endif
+                else
+                    ss.imbue(::std::locale::classic());
+
+                if(const auto precision_v = fmtsharp::get_arg(fc, precision); precision_v)
+                    for(auto i = *precision_v; i != 0; --i) do_format();
+                else
+                    while(s.size() > 0)
+                    {
+                        if(current_unit.empty())
+                        {
+                            ss << s;
+                            break;
+                        }
+
+                        do_format();
+                    }
+
+                return ss.str();
+            }();
+
+            if(
+                [=, &formatted, &fc, align = align_]
+                {
+                    if(fill && width && align != fmtsharp::align_t::none)
+                    {
+                        const auto width_v = *width;
+
+                        if(formatted.size() < width_v)
+                        {
+                            const auto fill_c = *fill;
+                            const auto fill_size = width_v - formatted.size();
+
+                            switch(align)
+                            {
+                            case fmtsharp::align_t::left:
+                                ::std::ranges::copy(formatted, fc.out());
+                                ::std::ranges::fill_n(fc.out(), fill_size, fill_c);
+                                break;
+
+                            case fmtsharp::align_t::right:
+                                ::std::ranges::fill_n(fc.out(), fill_size, fill_c);
+                                ::std::ranges::copy(formatted, fc.out());
+                                break;
+
+                            case fmtsharp::align_t::center:
+                            {
+                                const auto half_fill_s = fill_size / 2;
+                                ::std::ranges::fill_n(fc.out(), half_fill_s, fill_c);
+                                ::std::ranges::copy(formatted, fc.out());
+                                ::std::ranges::fill_n(fc.out(), fill_size - half_fill_s, fill_c);
+                            }
+                            break;
+
+                            default: break;
+                            }
+
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }() //
+            )
+                ::std::ranges::copy(formatted, fc.out());
+            return fc.out();
         }
     };
 }

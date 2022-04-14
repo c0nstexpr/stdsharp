@@ -1,11 +1,11 @@
 #pragma once
 
-#include "functional/invocables.h"
 #include <algorithm>
 
 #ifndef NDEBUG
-    #include <fmt/format.h>
     #include <stdexcept>
+
+    #include <fmt/format.h>
 #endif
 
 #include "functional/operations.h"
@@ -74,8 +74,7 @@ namespace stdsharp
                     if(functional::invoke_r<bool>(cmp, max, min))
                     {
                         constexpr auto message = "max value should not less than min value";
-                        if(::std::is_constant_evaluated()) unreachable();
-                        else if constexpr(
+                        if constexpr(
                             ::fmt::is_formattable<Min>::value && //
                             ::fmt::is_formattable<Max>::value // clang-format off
                         )

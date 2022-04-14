@@ -66,11 +66,12 @@ FetchContent_Declare(
   GIT_TAG 581e958f41943553012407c6a0b99d632ddcc032
 )
 FetchContent_MakeAvailable(boost-ext-ut)
+target_include_as_system(ut INTERFACE)
 
 target_compile_options(
     ${PROJECT_NAME}_LIB
     PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
-           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /external:anglebrackets /external:templates->
 )
 
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp ut)

@@ -44,10 +44,8 @@ function(init_proj)
 endfunction()
 
 function(target_include_as_system target_name lib_type)
-    target_include_directories(
-        ${target_name}
-        SYSTEM BEFORE ${lib_type} $<TARGET_PROPERTY:INTERFACE_INCLUDE_DIRECTORIES>
-    )
+    get_target_property(included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(${target_name} SYSTEM BEFORE ${lib_type} ${included})
 endfunction()
 
 #

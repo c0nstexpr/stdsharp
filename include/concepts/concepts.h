@@ -10,6 +10,9 @@
 
 namespace stdsharp::concepts
 {
+    template<typename T, typename... U>
+    concept same_as_any = (::std::same_as<T, U> || ...);
+
     template<typename T>
     concept enumeration = ::std::is_enum_v<T>;
 
@@ -38,6 +41,9 @@ namespace stdsharp::concepts
     concept aggregate = ::std::is_aggregate_v<T>;
 
     template<typename T>
+    concept character = same_as_any<T, char, char8_t, char16_t, char32_t, wchar_t>;
+
+    template<typename T>
     concept arithmetic = ::std::is_arithmetic_v<T>;
 
     template<typename T>
@@ -48,6 +54,31 @@ namespace stdsharp::concepts
 
     template<typename T>
     concept floating_point = ::std::is_floating_point_v<T>;
+
+    template<typename T, typename U = T>
+    concept arithmetic_like = ::std::three_way_comparable<T> && requires(T t1, U t2)
+    { // clang-format off
+        { t1 + t2 } -> ::std::same_as<T>;
+        { t1 - t2 } -> ::std::same_as<T>;
+        { t1 * t2 } -> ::std::same_as<T>;
+        { t1 / t2 } -> ::std::same_as<T>;
+        { t1 % t2 } -> ::std::same_as<T>;
+        { t1 & t2 } -> ::std::same_as<T>;
+        { t1 | t2 } -> ::std::same_as<T>;
+        { t1 ^ t2 } -> ::std::same_as<T>;
+        { t1 << t2 } -> ::std::same_as<T>;
+        { t1 >> t2 } -> ::std::same_as<T>;
+        { t1 += t2 } -> ::std::same_as<T&>;
+        { t1 -= t2 } -> ::std::same_as<T&>;
+        { t1 *= t2 } -> ::std::same_as<T&>;
+        { t1 /= t2 } -> ::std::same_as<T&>;
+        { t1 %= t2 } -> ::std::same_as<T&>;
+        { t1 &= t2 } -> ::std::same_as<T&>;
+        { t1 |= t2 } -> ::std::same_as<T&>;
+        { t1 ^= t2 } -> ::std::same_as<T&>;
+        { t1 <<= t2 } -> ::std::same_as<T&>;
+        { t1 >>= t2 } -> ::std::same_as<T&>;
+    };
 
     template<typename T>
     concept fundamental_array = ::std::is_array_v<T>;

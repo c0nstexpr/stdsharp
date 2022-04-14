@@ -6,7 +6,7 @@ namespace stdsharp
 {
     inline constexpr struct
     {
-        template<
+        template< // TODO: use structured binding trait
             typename Condition,
             ::std::predicate<const Condition>... Predicate,
             ::std::invocable<const Condition>... Func // clang-format off
@@ -20,9 +20,11 @@ namespace stdsharp
             (
                 [&condition](::std::pair<Predicate, Func>&& pair)
                 {
-                    if(static_cast<bool>(::std::invoke(::std::move(pair.first), condition)))
+                    auto&& [first, second] = ::std::move(pair);
+
+                    if(static_cast<bool>(::std::invoke(::std::move(first), condition)))
                     {
-                        ::std::invoke(::std::move(pair.second), condition);
+                        ::std::invoke(::std::move(second), condition);
                         return true;
                     }
                     return false;

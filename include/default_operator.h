@@ -2,7 +2,6 @@
 
 #include "concepts/concepts.h"
 #include "type_traits/core_traits.h"
-#include "type_traits/type_traits.h"
 
 namespace stdsharp
 {

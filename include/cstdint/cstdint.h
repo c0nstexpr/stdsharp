@@ -1,6 +1,7 @@
 #pragma once
 
-#include <climits>
+#include <limits>
+#include <stdexcept>
 
 #include "utility/utility.h"
 
@@ -58,6 +59,5 @@ namespace stdsharp
         BS_INT_LITERALS(byte)
 
 #undef BS_INT_LITERALS
-
     }
 }

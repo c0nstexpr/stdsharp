@@ -11,10 +11,4 @@ namespace stdsharp
         true
 #endif
         ;
-
-    inline constexpr auto unreachable = []() constexpr noexcept
-    {
-        int _; // NOLINT(*-init-variables)
-        ++_;
-    };
 }

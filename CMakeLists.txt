@@ -20,6 +20,16 @@ config_interface_lib(${PROJECT_NAME} SYSTEM_INCLUDED ON)
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 
+message(STATUS "adding ctre")
+include(FetchContent)
+FetchContent_Declare(
+  ctre
+  GIT_REPOSITORY https://github.com/hanickadot/compile-time-regular-expressions.git
+  GIT_TAG 5b914a62c71c6c6b336fd466a4e812db635b9fdc
+)
+FetchContent_MakeAvailable(ctre)
+target_include_as_system(ctre INTERFACE)
+
 target_compile_options(
     ${PROJECT_NAME}
     INTERFACE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-logical-op-parentheses -Wno-dangling-else>
@@ -28,7 +38,7 @@ target_compile_options(
 
 target_link_libraries(
     ${PROJECT_NAME}
-    INTERFACE fmt::fmt range-v3::range-v3
+    INTERFACE fmt::fmt range-v3::range-v3 ctre::ctre
 )
 
 verbose_message("Successfully added all dependencies and linked against them.")
