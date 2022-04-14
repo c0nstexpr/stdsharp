@@ -4,9 +4,7 @@
 #include <limits>
 #include <ratio>
 
-#if __cpp_lib_format >= 201907L
-    #include <format>
-#endif
+#include "format/format.h"
 
 #include "cstdint/cstdint.h"
 #include "default_operator.h"
@@ -262,14 +260,17 @@ namespace stdsharp::inline literals
 }
 
 #if __cpp_lib_format >= 201907L
-
 namespace std
+#else
+namespace fmt
+#endif
 {
     template<typename Period, typename CharT>
     struct formatter<::stdsharp::filesystem::space_size<Period>, CharT>
     {
     private:
         using space_size = ::stdsharp::filesystem::space_size<Period>;
+        using u8 = ::stdsharp::u8;
 
         static constexpr ::std::array size_units = {
             "b", "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
@@ -284,13 +285,13 @@ namespace std
 
         struct spec
         {
-            u8 from_unit_index = 0;
+            ::stdsharp::u8 from_unit_index = 0;
             u8 to_unit_index = 0;
         };
         ::std::optional<spec> space_size_spec_{};
 
     public:
-        constexpr auto parse(const ::std::basic_format_parse_context<CharT>& ctx)
+        constexpr auto parse(const basic_format_parse_context<CharT>& ctx)
         {
             auto ctx_it = ctx.begin();
             auto ctx_end = ctx.end();
@@ -302,7 +303,7 @@ namespace std
                 fill_ = *ctx_it;
                 ++ctx_it;
 
-                if(ctx_it == ctx_end) throw ::std::format_error{"invalid format"};
+                if(ctx_it == ctx_end) throw format_error{"invalid format"};
 
                 switch(*ctx_it)
                 {
@@ -312,7 +313,7 @@ namespace std
                 }
                 ++ctx_it;
 
-                if(ctx_it == ctx_end) throw ::std::format_error{"invalid format"};
+                if(ctx_it == ctx_end) throw format_error{"invalid format: unexpected end"};
             }
 
             // width
@@ -328,10 +329,9 @@ namespace std
         }
 
         template<typename OutputIt>
-        auto format(const space_size s, std::basic_format_context<OutputIt, CharT>& fc)
+        auto format(const space_size s, basic_format_context<OutputIt, CharT>& fc)
         {
-            return std::format_to(fc.out(), "{}", s.size());
+            return format_to(fc.out(), "{}", s.size());
         }
     };
 }
-#endif

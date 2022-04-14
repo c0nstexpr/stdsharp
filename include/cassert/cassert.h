@@ -2,8 +2,6 @@
 
 #include <cassert>
 
-#include "type_traits/core_traits.h"
-
 namespace stdsharp
 {
     inline constexpr auto is_debug =
@@ -14,12 +12,9 @@ namespace stdsharp
 #endif
         ;
 
-    inline constexpr auto unreachable = [](const auto&...) constexpr noexcept
+    inline constexpr auto unreachable = []() constexpr noexcept
     {
-        struct // NOLINT(*-member-init)
-        {
-            int _;
-        } _;
-        ++_._;
+        int _; // NOLINT(*-init-variables)
+        ++_;
     };
 }

@@ -6,6 +6,7 @@
 #include <ranges>
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
+#include <fmt/ranges.h>
 
 #include "type_traits/core_traits.h"
 
