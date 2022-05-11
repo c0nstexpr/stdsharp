@@ -99,11 +99,6 @@ endif()
 # if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
 #     target_enable_coverage(${PROJECT_NAME} FORMAT lcov)
 # endif()
-
-#
-# Add the unit tests
-#
-enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 
 verbose_message("Finished adding unit tests for ${CMAKE_PROJECT_NAME}.")

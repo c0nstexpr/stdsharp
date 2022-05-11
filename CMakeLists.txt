@@ -71,5 +71,9 @@ endif()
 option(STDSHARP_BUILD_TEST "Whether to build test")
 
 if(STDSHARP_BUILD_TEST)
+    #
+    # Add the unit tests
+    #
+    include(CTest)
     add_subdirectory(tests)
 endif()
