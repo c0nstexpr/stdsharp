@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include <limits>
 #include <stdexcept>
 

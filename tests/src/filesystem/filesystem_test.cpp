@@ -24,20 +24,18 @@ namespace stdsharp::test::filesystem
 
             feature("space size") = []
             {
-                using t = space_size<std::ratio<1>>;
-
-                static_expect<::std::default_initializable<t>>()
+                static_expect<default_initializable<bytes>>()
                     << FORMAT_NS::format("space size should be constructbile by default");
 
-                static_expect<::std::invocable<::std::plus<>, t, int>>()
+                static_expect<invocable<::std::plus<>, bytes, int>>()
                     << FORMAT_NS::format("space size should be able to plus int");
 
-                static_expect<::std::invocable<::std::plus<>, int, t>>()
+                static_expect<::std::invocable<::std::plus<>, int, bytes>>()
                     << FORMAT_NS::format("int should be able to plus space size");
-                static_expect<::std::invocable<::std::plus<>, t, t>>()
+                static_expect<::std::invocable<::std::plus<>, bytes, bytes>>()
                     << FORMAT_NS::format("space size should be able plus itself");
 
-                static_expect < requires(t v)
+                static_expect < requires(bytes v)
                 {
                     +v;
                     -v;
@@ -60,6 +58,7 @@ namespace stdsharp::test::filesystem
                     expect(eq(FORMAT_NS::format("{:->5.1GB}", v), "--1GB"sv));
                     expect(eq(FORMAT_NS::format("{:-^5.1GB}", v), "-1GB-"sv));
                     expect(eq(FORMAT_NS::format("{:.4GB}", v), "1GB0MB42KB0B"sv));
+                    expect(eq(FORMAT_NS::format("{}", 1.2_GB), "1.2GB"sv));
                 }
             };
         };

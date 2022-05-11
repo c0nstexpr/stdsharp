@@ -9,82 +9,82 @@
 
 namespace stdsharp::filesystem
 {
-    template<typename Period>
+    template<typename, typename>
     class space_size;
 
     namespace details
     {
         struct space_size_delegate
         {
-            template<typename Period>
-            constexpr auto& operator()(space_size<Period>& t) const noexcept
+            template<typename Rep, typename Period>
+            constexpr auto& operator()(space_size<Rep, Period>& t) const noexcept
             {
                 return t.value_;
             }
 
-            template<typename Period>
-            constexpr auto operator()(const space_size<Period>& t) const noexcept
+            template<typename Rep, typename Period>
+            constexpr auto operator()(const space_size<Rep, Period>& t) const noexcept
             {
                 return t.value_;
             }
         };
     }
 
-    template<::std::uintmax_t Num, ::std::uintmax_t Denom>
+    template<typename Rep, ::std::uintmax_t Num, ::std::uintmax_t Denom>
         requires(!::std::same_as<::std::ratio<Num, Denom>, typename ::std::ratio<Num, Denom>::type>)
-    class [[nodiscard]] space_size<::std::ratio<Num, Denom>> :
-        public space_size<typename ::std::ratio<Num, Denom>::type>
+    class space_size<Rep, ::std::ratio<Num, Denom>> :
+        public space_size<Rep, typename ::std::ratio<Num, Denom>::type>
     {
     };
 
-    template<::std::uintmax_t Num, ::std::uintmax_t Denom>
-    class [[nodiscard]] space_size<::std::ratio<Num, Denom>> :
+    template<typename Rep, ::std::uintmax_t Num, ::std::uintmax_t Denom>
+    class space_size<Rep, ::std::ratio<Num, Denom>> :
         default_arithmetic_assign_operation<
-            space_size<::std::ratio<Num, Denom>>,
+            space_size<Rep, ::std::ratio<Num, Denom>>,
             details::space_size_delegate // clang-format off
         >, // clang-format on
         default_arithmetic_operation<
-            space_size<::std::ratio<Num, Denom>>,
+            space_size<Rep, ::std::ratio<Num, Denom>>,
             true,
             details::space_size_delegate // clang-format off
         > // clang-format on
     {
+    public:
+        using rep = Rep;
+
+    private:
         friend struct details::space_size_delegate;
 
-        template<typename>
+        template<typename, typename>
         friend class space_size;
 
-        using value_type = ::std::uintmax_t;
-
-        value_type value_{};
+        rep value_{};
 
         template<auto N, auto D>
         static constexpr auto cast_from(const auto factor, const ::std::ratio<N, D>) noexcept
         {
-            return factor * Denom * N / (Num * D);
+            return static_cast<rep>(factor * Denom * N / (Num * D));
         }
 
     public:
         using period = ::std::ratio<Num, Denom>;
 
         static constexpr space_size zero() noexcept { return {}; }
-        static constexpr space_size max() noexcept
-        {
-            return ::std::numeric_limits<value_type>::max();
-        }
+        static constexpr space_size max() noexcept { return ::std::numeric_limits<rep>::max(); }
 
         space_size() = default;
 
-        explicit constexpr space_size(const value_type value) noexcept: value_(value) {}
+        explicit constexpr space_size(const rep value) noexcept: value_(value) {}
 
-        template<typename Period>
-        constexpr space_size(const space_size<Period> other) noexcept:
+        template<typename OtherRep, typename Period>
+        constexpr space_size(const space_size<OtherRep, Period> other) noexcept:
             value_(cast_from(other.value_, Period{}))
         {
         }
 
-        template<typename Period>
-        [[nodiscard]] constexpr auto operator<=>(const space_size<Period> other) const noexcept
+        template<typename OtherRep, typename Period>
+        [[nodiscard]] constexpr auto
+            operator<=>(const space_size<OtherRep, Period> other) const noexcept
         {
             if constexpr(::std::ratio_greater_equal_v<period, Period>)
                 return value_ <=> cast_from(other.value_, Period{});
@@ -92,14 +92,16 @@ namespace stdsharp::filesystem
                 return other <=> *this;
         }
 
-        template<typename Period>
-        [[nodiscard]] constexpr auto operator==(const space_size<Period> other) const noexcept
+        template<typename OtherRep, typename Period>
+        [[nodiscard]] constexpr auto
+            operator==(const space_size<OtherRep, Period> other) const noexcept
         {
             return (*this <=> other) == ::std::strong_ordering::equal;
         }
 
-        template<typename Period>
-        [[nodiscard]] constexpr auto operator!=(const space_size<Period> other) const noexcept
+        template<typename OtherRep, typename Period>
+        [[nodiscard]] constexpr auto
+            operator!=(const space_size<OtherRep, Period> other) const noexcept
         {
             return !(*this == other);
         }
@@ -112,134 +114,187 @@ namespace stdsharp::filesystem
         inline constexpr ::std::uintmax_t size_numeration_base = 1024;
     }
 
-    using bits = space_size<::std::ratio<1, char_bit>>;
+    using bits = space_size<::std::uintmax_t, ::std::ratio<1, char_bit>>;
 
-    using bytes = space_size<::std::ratio<1>>;
+    using bytes = space_size<::std::uintmax_t, ::std::ratio<1>>;
 
-    using kilobytes = space_size<::std::kilo>;
+    using kilobytes = space_size<::std::uintmax_t, ::std::kilo>;
 
-    using megabytes = space_size<::std::mega>;
+    using megabytes = space_size<::std::uintmax_t, ::std::mega>;
 
-    using gigabytes = space_size<::std::giga>;
+    using gigabytes = space_size<::std::uintmax_t, ::std::giga>;
 
-    using terabytes = space_size<::std::tera>;
+    using terabytes = space_size<::std::uintmax_t, ::std::tera>;
 
-    using petabytes = space_size<::std::peta>;
+    using petabytes = space_size<::std::uintmax_t, ::std::peta>;
 
-    using exabytes = space_size<::std::exa>;
+    using exabytes = space_size<::std::uintmax_t, ::std::exa>;
 
 #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000
-    using zettabytes = space_size<::std::zetta>;
+    using zettabytes = space_size<::std::uintmax_t, ::std::zetta>;
 
     inline namespace literals
     {
-        constexpr auto operator""_ZB(unsigned long long v) noexcept { return zettabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_ZB(unsigned long long v) noexcept
+        {
+            return zettabytes{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_ZB(long double v) noexcept
+        {
+            return space_size<long double, ::std::zetta>{v};
+        }
     }
 
-    template<typename CharT, typename Traits>
-    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const zettabytes size)
+    template<typename CharT, typename Traits, typename Rep>
+    auto& operator<<(
+        std::basic_ostream<CharT, Traits>& os, //
+        const space_size<Rep, zettabytes::period> size //
+    )
     {
         return os << size.size() << " ZB";
     };
 
     #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000'000
-    using yottabytes = space_size<::std::yotta>;
+    using yottabytes = space_size<::std::uintmax_t, ::std::yotta>;
 
     inline namespace literals
     {
-        constexpr auto operator""_YB(unsigned long long v) noexcept { return yottabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_YB(unsigned long long v) noexcept
+        {
+            return yottabytes{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_YB(long double v) noexcept
+        {
+            return space_size<long double, ::std::yotta>{v};
+        }
     }
 
-    template<typename CharT, typename Traits>
-    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const yottabytes size)
+    template<typename CharT, typename Traits, typename Rep>
+    auto& operator<<(
+        std::basic_ostream<CharT, Traits>& os, //
+        const space_size<Rep, yottabytes::period> size //
+    )
     {
         return os << size.size() << " YB";
     };
     #endif
 #endif
 
-    using kibibytes = space_size<::std::ratio<details::size_numeration_base>>;
+    using kibibytes = space_size<::std::uintmax_t, ::std::ratio<details::size_numeration_base>>;
 
-    using mebibytes =
-        space_size<::std::ratio<details::size_numeration_base * kibibytes::period::num>>;
-    using gibibytes =
-        space_size<::std::ratio<details::size_numeration_base * mebibytes::period::num>>;
-    using tebibytes =
-        space_size<::std::ratio<details::size_numeration_base * gibibytes::period::num>>;
-    using pebibytes =
-        space_size<::std::ratio<details::size_numeration_base * tebibytes::period::num>>;
-    using exbibytes =
-        space_size<::std::ratio<details::size_numeration_base * pebibytes::period::num>>;
+    using mebibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * kibibytes::period::num>>;
+    using gibibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * mebibytes::period::num>>;
+    using tebibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * gibibytes::period::num>>;
+    using pebibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * tebibytes::period::num>>;
+    using exbibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * pebibytes::period::num>>;
 
 #if(INTMAX_MAX / 1024) >= 1'152'921'504'606'846'976
-    using zebibytes =
-        space_size<::std::ratio<details::size_numeration_base * exbibytes::period::num>>;
+    using zebibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * exbibytes::period::num>>;
 
     inline namespace literals
     {
-        constexpr auto operator""_ZiB(unsigned long long v) noexcept { return zebibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_ZiB(unsigned long long v) noexcept
+        {
+            return zebibytes{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_ZiB(long double v) noexcept
+        {
+            return space_size<long double, zebibytes::period>{v};
+        }
     }
 
-    template<typename CharT, typename Traits>
-    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const zebibytes size)
+    template<typename CharT, typename Traits, typename Rep>
+    auto& operator<<(
+        std::basic_ostream<CharT, Traits>& os, //
+        const space_size<Rep, zebibytes::period> size //
+    )
     {
         return os << size.size() << " ZiB";
     };
 
     #if(INTMAX_MAX / 1024 / 1024) >= 1'152'921'504'606'846'976
-    using yobibytes =
-        space_size<::std::ratio<details::size_numeration_base * zebibytes::period::num>>;
+    using yobibytes = space_size<
+        ::std::uintmax_t,
+        ::std::ratio<details::size_numeration_base * zebibytes::period::num>>;
 
     inline namespace literals
     {
-        constexpr auto operator""_YiB(unsigned long long v) noexcept { return yobibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_YiB(unsigned long long v) noexcept
+        {
+            return yobibytes{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_YiB(long double v) noexcept
+        {
+            return space_size<long double, yobibytes::period>{v};
+        }
     }
 
-    template<typename CharT, typename Traits>
-    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const yobibytes size)
+    template<typename CharT, typename Traits, typename Rep>
+    auto& operator<<(
+        std::basic_ostream<CharT, Traits>& os, //
+        const space_size<Rep, yobibytes::period> size //
+    )
     {
         return os << size.size() << " YiB";
     };
     #endif
 #endif
 
-    template<typename CharT, typename Traits>
-    auto& operator<<(
-        std::basic_ostream<CharT, Traits>& os,
-        const concepts::same_as_any<
-            bits,
-            bytes,
-            kilobytes,
-            megabytes,
-            gigabytes,
-            terabytes,
-            petabytes,
-            exabytes,
-            kibibytes,
-            mebibytes,
-            gibibytes,
-            tebibytes,
-            pebibytes,
-            exbibytes // clang-format off
-        >
-        auto size // clang-format on
-    )
+    template<typename CharT, typename Traits, typename Rep, typename Period>
+        requires requires(std::basic_ostream<CharT, Traits> os, Rep rep)
+        {
+            requires concepts::same_as_any<
+                Period,
+                bits::period,
+                bytes::period,
+                kilobytes::period,
+                megabytes::period,
+                gigabytes::period,
+                terabytes::period,
+                petabytes::period,
+                exabytes::period,
+                kibibytes::period,
+                mebibytes::period,
+                gibibytes::period,
+                tebibytes::period,
+                pebibytes::period,
+                exbibytes::period // clang-format off
+            >; // clang-format on
+            os << rep;
+        }
+    auto& operator<<(std::basic_ostream<CharT, Traits>& os, const space_size<Rep, Period> size)
     {
-        constexpr_pattern_match::from_type<::std::remove_const_t<decltype(size)>>( //
-            [&](const ::std::type_identity<bits>) { os << size.size() << "b"; },
-            [&](const ::std::type_identity<bytes>) { os << size.size() << "B"; },
-            [&](const ::std::type_identity<kilobytes>) { os << size.size() << "KB"; },
-            [&](const ::std::type_identity<megabytes>) { os << size.size() << "MB"; },
-            [&](const ::std::type_identity<gigabytes>) { os << size.size() << "GB"; },
-            [&](const ::std::type_identity<terabytes>) { os << size.size() << "TB"; },
-            [&](const ::std::type_identity<petabytes>) { os << size.size() << "PB"; },
-            [&](const ::std::type_identity<exabytes>) { os << size.size() << "EB"; },
-            [&](const ::std::type_identity<kibibytes>) { os << size.size() << "KiB"; },
-            [&](const ::std::type_identity<mebibytes>) { os << size.size() << "MiB"; },
-            [&](const ::std::type_identity<gibibytes>) { os << size.size() << "GiB"; },
-            [&](const ::std::type_identity<tebibytes>) { os << size.size() << "TiB"; },
-            [&](const ::std::type_identity<pebibytes>) { os << size.size() << "PiB"; },
-            [&](const ::std::type_identity<exbibytes>) { os << size.size() << "EiB"; } //
+        constexpr_pattern_match::from_type<Period>( //
+            [&](const ::std::type_identity<bits::period>) { os << size.size() << "b"; },
+            [&](const ::std::type_identity<bytes::period>) { os << size.size() << "B"; },
+            [&](const ::std::type_identity<kilobytes::period>) { os << size.size() << "KB"; },
+            [&](const ::std::type_identity<megabytes::period>) { os << size.size() << "MB"; },
+            [&](const ::std::type_identity<gigabytes::period>) { os << size.size() << "GB"; },
+            [&](const ::std::type_identity<terabytes::period>) { os << size.size() << "TB"; },
+            [&](const ::std::type_identity<petabytes::period>) { os << size.size() << "PB"; },
+            [&](const ::std::type_identity<exabytes::period>) { os << size.size() << "EB"; },
+            [&](const ::std::type_identity<kibibytes::period>) { os << size.size() << "KiB"; },
+            [&](const ::std::type_identity<mebibytes::period>) { os << size.size() << "MiB"; },
+            [&](const ::std::type_identity<gibibytes::period>) { os << size.size() << "GiB"; },
+            [&](const ::std::type_identity<tebibytes::period>) { os << size.size() << "TiB"; },
+            [&](const ::std::type_identity<pebibytes::period>) { os << size.size() << "PiB"; },
+            [&](const ::std::type_identity<exbibytes::period>) { os << size.size() << "EiB"; } //
         );
 
         return os;
@@ -247,33 +302,145 @@ namespace stdsharp::filesystem
 
     inline namespace literals
     {
-        constexpr auto operator""_bit(unsigned long long v) noexcept { return bits{v}; }
+        [[nodiscard]] constexpr auto operator""_bit(unsigned long long v) noexcept
+        {
+            return bits{v};
+        }
 
-        constexpr auto operator""_B(unsigned long long v) noexcept { return bytes{v}; }
+        [[nodiscard]] constexpr auto operator""_B(unsigned long long v) noexcept
+        {
+            return bytes{v};
+        }
 
-        constexpr auto operator""_KB(unsigned long long v) noexcept { return kilobytes{v}; }
+        [[nodiscard]] constexpr auto operator""_KB(unsigned long long v) noexcept
+        {
+            return kilobytes{v};
+        }
 
-        constexpr auto operator""_MB(unsigned long long v) noexcept { return megabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_MB(unsigned long long v) noexcept
+        {
+            return megabytes{v};
+        }
 
-        constexpr auto operator""_GB(unsigned long long v) noexcept { return gigabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_GB(unsigned long long v) noexcept
+        {
+            return gigabytes{v};
+        }
 
-        constexpr auto operator""_TB(unsigned long long v) noexcept { return terabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_TB(unsigned long long v) noexcept
+        {
+            return terabytes{v};
+        }
 
-        constexpr auto operator""_PB(unsigned long long v) noexcept { return petabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_PB(unsigned long long v) noexcept
+        {
+            return petabytes{v};
+        }
 
-        constexpr auto operator""_EB(unsigned long long v) noexcept { return exabytes{v}; }
+        [[nodiscard]] constexpr auto operator""_EB(unsigned long long v) noexcept
+        {
+            return exabytes{v};
+        }
 
-        constexpr auto operator""_KiB(unsigned long long v) noexcept { return kibibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_KiB(unsigned long long v) noexcept
+        {
+            return kibibytes{v};
+        }
 
-        constexpr auto operator""_MiB(unsigned long long v) noexcept { return mebibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_MiB(unsigned long long v) noexcept
+        {
+            return mebibytes{v};
+        }
 
-        constexpr auto operator""_GiB(unsigned long long v) noexcept { return gibibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_GiB(unsigned long long v) noexcept
+        {
+            return gibibytes{v};
+        }
 
-        constexpr auto operator""_TiB(unsigned long long v) noexcept { return tebibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_TiB(unsigned long long v) noexcept
+        {
+            return tebibytes{v};
+        }
 
-        constexpr auto operator""_PiB(unsigned long long v) noexcept { return pebibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_PiB(unsigned long long v) noexcept
+        {
+            return pebibytes{v};
+        }
 
-        constexpr auto operator""_EiB(unsigned long long v) noexcept { return exbibytes{v}; }
+        [[nodiscard]] constexpr auto operator""_EiB(unsigned long long v) noexcept
+        {
+            return exbibytes{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_bit(long double v) noexcept
+        {
+            return space_size<long double, bits::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_B(long double v) noexcept
+        {
+            return space_size<long double, bytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_KB(long double v) noexcept
+        {
+            return space_size<long double, kilobytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_MB(long double v) noexcept
+        {
+            return space_size<long double, megabytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_GB(long double v) noexcept
+        {
+            return space_size<long double, gigabytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_TB(long double v) noexcept
+        {
+            return space_size<long double, terabytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_PB(long double v) noexcept
+        {
+            return space_size<long double, petabytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_EB(long double v) noexcept
+        {
+            return space_size<long double, exabytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_KiB(long double v) noexcept
+        {
+            return space_size<long double, kibibytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_MiB(long double v) noexcept
+        {
+            return space_size<long double, mebibytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_GiB(long double v) noexcept
+        {
+            return space_size<long double, gibibytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_TiB(long double v) noexcept
+        {
+            return space_size<long double, tebibytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_PiB(long double v) noexcept
+        {
+            return space_size<long double, pebibytes::period>{v};
+        }
+
+        [[nodiscard]] constexpr auto operator""_EiB(long double v) noexcept
+        {
+            return space_size<long double, exbibytes::period>{v};
+        }
     }
 }
 
@@ -288,18 +455,18 @@ namespace std
 namespace fmt
 #endif
 {
-    template<typename Period, typename CharT>
+    template<typename Rep, typename Period, typename CharT>
         requires requires(
-            ::stdsharp::filesystem::space_size<Period> s,
+            ::stdsharp::filesystem::space_size<Rep, Period> s,
             ::std::basic_stringstream<CharT> ss //
         )
         {
             ss << s;
         }
-    struct formatter<::stdsharp::filesystem::space_size<Period>, CharT>
+    struct formatter<::stdsharp::filesystem::space_size<Rep, Period>, CharT>
     {
     private:
-        using space_size = ::stdsharp::filesystem::space_size<Period>;
+        using space_size = ::stdsharp::filesystem::space_size<Rep, Period>;
 
 #define FMTSHARP ::stdsharp::fmt
         FMTSHARP::fill_spec<CharT> fill_{};
@@ -395,7 +562,7 @@ namespace fmt
                     from_unit.begin(), //
                     ::std::ranges::find(from_unit, char{}) //
                 };
-                ::std::basic_stringstream<CharT> ss;
+                ::std::basic_ostringstream<CharT> ss;
 
                 const auto do_format = [&current_unit, &ss, &s]
                 {
@@ -547,7 +714,7 @@ namespace fmt
                         do_format();
                     }
 
-                return ss.str();
+                return ::std::move(ss).str();
             }();
 
             if(
