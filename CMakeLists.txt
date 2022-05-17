@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 #
 # Project details
 #
-project("stdsharp" VERSION 0.2.1 LANGUAGES CXX)
+project("stdsharp" VERSION 0.2.2 LANGUAGES CXX)
 
 init_proj()
 
@@ -19,16 +19,7 @@ config_interface_lib(${PROJECT_NAME})
 #
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
-
-message(STATUS "adding ctre")
-include(FetchContent)
-FetchContent_Declare(
-  ctre
-  GIT_REPOSITORY https://github.com/hanickadot/compile-time-regular-expressions.git
-  GIT_TAG 5b914a62c71c6c6b336fd466a4e812db635b9fdc
-)
-FetchContent_MakeAvailable(ctre)
-target_include_as_system(ctre INTERFACE)
+find_package(ctre CONFIG REQUIRED)
 
 target_compile_options(
     ${PROJECT_NAME}
