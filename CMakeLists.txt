@@ -8,11 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 #
 # Project details
 #
-project("stdsharp" VERSION 0.1.0 LANGUAGES CXX)
+project("stdsharp" VERSION 0.2.1 LANGUAGES CXX)
 
 init_proj()
 
-config_interface_lib(${PROJECT_NAME} SYSTEM_INCLUDED ON)
+config_interface_lib(${PROJECT_NAME})
 
 #
 # Model project dependencies
