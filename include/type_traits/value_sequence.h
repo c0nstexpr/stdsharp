@@ -458,33 +458,19 @@ namespace stdsharp::type_traits
         template<::std::size_t... Index>
         struct remove_at
         {
-            static constexpr auto select_indices = []() noexcept
+            static constexpr ::std::array select_indices = []
             {
-                ::std::array<::std::size_t, size()> res{};
-                ::std::array excepted = {Index...};
-                ::std::size_t index = 0;
+                constexpr ::std::pair pair = []
+                {
+                    ::std::array<::std::size_t, size()> res{};
+                    ::std::array excepted = {Index...};
+                    ::std::size_t index = 0;
 
-                ::std::ranges::sort(excepted.begin(), excepted.end());
+                    ::std::ranges::sort(excepted.begin(), excepted.end());
 // TODO replace with ranges views
 #ifdef _MSC_VER
-                ::std::ranges::copy_if( //
-                    ::std::views::iota(::std::size_t{0}, value_sequence::size()),
-                    res.begin(),
-                    [&excepted, &index](const auto v)
-                    {
-                        if(::std::ranges::binary_search(excepted, v)) return false;
-                        ++index;
-                        return true;
-                    } //
-                );
-#else
-                {
-                    ::std::array<::std::size_t, value_sequence::size()> candidates{};
-
-                    ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
-
-                    ::std::ranges::copy_if(
-                        candidates,
+                    ::std::ranges::copy_if( //
+                        ::std::views::iota(::std::size_t{0}, value_sequence::size()),
                         res.begin(),
                         [&excepted, &index](const auto v)
                         {
@@ -493,16 +479,38 @@ namespace stdsharp::type_traits
                             return true;
                         } //
                     );
-                }
+#else
+                    {
+                        ::std::array<::std::size_t, value_sequence::size()> candidates{};
+
+                        ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
+
+                        ::std::ranges::copy_if(
+                            candidates,
+                            res.begin(),
+                            [&excepted, &index](const auto v)
+                            {
+                                if(::std::ranges::binary_search(excepted, v)) return false;
+                                ++index;
+                                return true;
+                            } //
+                        );
+                    }
 #endif
-                return ::std::pair{res, index};
+                    return ::std::pair{res, index};
+                }();
+
+                ::std::array<::std::size_t, pair.second> res{};
+                ::std::ranges::copy_n(pair.first.cbegin(), pair.second, res.begin());
+
+                return res;
             }();
 
             template<::std::size_t... I>
-            static constexpr indexed_t<select_indices.first[I]...>
+            static constexpr indexed_t<select_indices[I]...>
                 get_type(::std::index_sequence<I...>) noexcept;
 
-            using type = decltype(get_type(::std::make_index_sequence<select_indices.second>{}));
+            using type = decltype(get_type(::std::make_index_sequence<select_indices.size()>{}));
         };
 
     public:
