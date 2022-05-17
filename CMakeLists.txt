@@ -33,7 +33,7 @@ target_include_as_system(ctre INTERFACE)
 target_compile_options(
     ${PROJECT_NAME}
     INTERFACE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-logical-op-parentheses -Wno-dangling-else>
-              $<$<CXX_COMPILER_ID:MSVC>:/wd4127>
+              $<$<CXX_COMPILER_ID:MSVC>:/wd4127 /external:anglebrackets>
 )
 
 target_link_libraries(
@@ -58,17 +58,19 @@ install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
-install(
-    FILES ${CPM_DOWNLOAD_LOCATION}
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
-)
 
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(STDSHARP_BUILD_TEST ON)
+get_directory_property(is_subproject PARENT_DIRECTORY)
+
+if(NOT is_subproject)
+    set(is_standalone YES)
 else()
+    set(is_standalone NO)
     target_include_as_system(${PROJECT_NAME} INTERFACE)
 endif()
-option(STDSHARP_BUILD_TEST "Whether to build test")
+
+include(CMakeDependentOption)
+
+CMAKE_DEPENDENT_OPTION(STDSHARP_BUILD_TEST "Whether to build test" ON "${is_standalone}" OFF)
 
 if(STDSHARP_BUILD_TEST)
     #

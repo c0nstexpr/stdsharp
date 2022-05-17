@@ -71,7 +71,7 @@ target_include_as_system(ut INTERFACE)
 target_compile_options(
     ${PROJECT_NAME}_LIB
     PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
-           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /external:anglebrackets /external:templates->
+           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 )
 
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC stdsharp ut)
