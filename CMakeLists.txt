@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 #
 # Project details
 #
-project("stdsharp" VERSION 0.2.4 LANGUAGES CXX)
+project("stdsharp" VERSION 0.2.5 LANGUAGES CXX)
 
 init_proj()
 
@@ -52,12 +52,16 @@ if(NOT is_subproject)
     set(is_standalone YES)
 else()
     set(is_standalone NO)
-    target_include_as_system(${PROJECT_NAME} INTERFACE)
 endif()
 
 include(CMakeDependentOption)
 
 CMAKE_DEPENDENT_OPTION(STDSHARP_BUILD_TEST "Whether to build test" ON "${is_standalone}" OFF)
+CMAKE_DEPENDENT_OPTION(STDSHARP_INCLUDE_AS_SYSTEM "Whether to include stdsharp headers as system headers" OFF "${is_standalone}" ON)
+
+if(STDSHARP_INCLUDE_AS_SYSTEM)
+    target_include_as_system(${PROJECT_NAME} INTERFACE)
+endif()
 
 if(STDSHARP_BUILD_TEST)
     #
