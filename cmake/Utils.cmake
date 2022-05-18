@@ -73,7 +73,7 @@ function(config_interface_lib lib_name)
     target_include_directories(
         ${lib_name}
         INTERFACE
-            $<INSTALL_INTERFACE:include/${PROJECT_NAME}/${PROJECT_VERSION}>
+            $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
 endfunction()
@@ -116,7 +116,7 @@ function(config_lib lib_name includes src lib_type)
     target_include_directories(
         ${lib_name}
         PUBLIC
-            $<INSTALL_INTERFACE:include/${PROJECT_NAME}/${PROJECT_VERSION}>
+            $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
 endfunction()
