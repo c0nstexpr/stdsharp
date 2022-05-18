@@ -14,7 +14,7 @@ jobs:
       NINJA_VER: 1.10.2
       CMAKE_BUILD_DIR: build/
       VCPKG_ROOT: vcpkg
-      VCPKG_ID: "01d6f6ff1e5332b926099f0c23bda996940ad4e8"
+      VCPKG_ID: "2247b397faefc8266e545bd86330d2192d6b6247"
     strategy:
       fail-fast: false
       matrix:
