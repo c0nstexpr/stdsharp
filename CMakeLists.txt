@@ -43,6 +43,7 @@ target_install(
   INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include
   INCLUDE_DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   COMPATIBILITY SameMajorVersion
+  DEPENDENCIES fmt;ctre;range-v3
 )
 
 install(
