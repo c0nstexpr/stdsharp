@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 #
 # Project details
 #
-project("stdsharp" VERSION 0.2.5 LANGUAGES CXX)
+project("stdsharp" VERSION 0.2.6 LANGUAGES CXX)
 
 init_proj()
 

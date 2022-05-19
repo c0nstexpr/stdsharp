@@ -1,9 +1,6 @@
-#
-# Print a message only if the `VERBOSE_OUTPUT` option is on
-#
-include(cmake/StandardSettings.cmake)
-include(cmake/CCache.cmake)
-include(cmake/CPM.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
+
+option(VERBOSE_OUTPUT "Enable verbose output, allowing for a better understanding of each step taken." ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Debug mode.\n")
@@ -19,9 +16,6 @@ function(verbose_message content)
         message(STATUS ${content})
     endif ()
 endfunction()
-
-include(cmake/Conan.cmake)
-conan()
 
 function(init_proj)
     cmake_parse_arguments(ARG "USE_ALT_NAMES" "" "" ${ARGN})
