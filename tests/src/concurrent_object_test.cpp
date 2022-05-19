@@ -1,5 +1,5 @@
 #include "concurrent_object_test.h"
-#include "concurrent_object.h"
+#include "stdsharp/concurrent_object.h"
 
 namespace stdsharp::test
 {

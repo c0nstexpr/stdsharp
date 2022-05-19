@@ -1,5 +1,5 @@
 #include "type_traits/value_sequence_test.h"
-#include "type_traits/value_sequence.h"
+#include "stdsharp/type_traits/value_sequence.h"
 
 namespace stdsharp::test::type_traits
 {

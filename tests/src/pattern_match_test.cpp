@@ -1,9 +1,8 @@
 #include "pattern_match_test.h"
-#include "pattern_match.h"
-#include "functional/operations.h"
-#include "functional/functional.h"
-
-#include "utility/utility.h"
+#include "stdsharp/pattern_match.h"
+#include "stdsharp/functional/operations.h"
+#include "stdsharp/functional/functional.h"
+#include "stdsharp/utility/utility.h"
 
 namespace stdsharp::test
 {

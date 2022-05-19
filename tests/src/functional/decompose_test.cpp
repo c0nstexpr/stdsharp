@@ -1,8 +1,8 @@
-#include "functional/decompose_test.h"
-#include "functional/decompose.h"
-#include "containers/actions.h"
-#include "range/v3/view/subrange.hpp"
+#include <range/v3/view/subrange.hpp>
 
+#include "functional/decompose_test.h"
+#include "stdsharp/functional/decompose.h"
+#include "stdsharp/containers/actions.h"
 namespace stdsharp::test::functional
 {
     using namespace std;

@@ -1,6 +1,6 @@
 #include "functional/symmetric_operations_test.h"
-#include "functional/symmetric_operations.h"
-#include "containers/actions.h"
+#include "stdsharp/functional/symmetric_operations.h"
+#include "stdsharp/containers/actions.h"
 
 namespace stdsharp::test::functional
 {

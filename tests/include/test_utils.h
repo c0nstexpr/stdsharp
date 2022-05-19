@@ -2,7 +2,7 @@
 #include <boost/ut.hpp>
 #include <fmt/ranges.h>
 
-#include "type_traits/core_traits.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp::test
 {

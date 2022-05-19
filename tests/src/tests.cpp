@@ -10,8 +10,8 @@
 #include "functional/symmetric_operations_test.h"
 #include "filesystem/filesystem_test.h"
 
-#include "random/random.h"
-#include "fstream/fstream.h"
+#include "stdsharp/random/random.h"
+#include "stdsharp/fstream/fstream.h"
 
 int main()
 {

@@ -1,5 +1,5 @@
 #include "type_traits/member_test.h"
-#include "type_traits/member.h"
+#include "stdsharp/type_traits/member.h"
 
 namespace stdsharp::test::type_traits
 {

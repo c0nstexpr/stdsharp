@@ -1,5 +1,5 @@
 #include "algorithm_test.h"
-#include "algorithm/algorithm.h"
+#include "stdsharp/algorithm/algorithm.h"
 
 namespace stdsharp::test
 {
