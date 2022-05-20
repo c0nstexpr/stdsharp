@@ -1,5 +1,7 @@
 include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 
+CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
+
 option(VERBOSE_OUTPUT "Enable verbose output, allowing for a better understanding of each step taken." ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -11,9 +13,9 @@ endif()
 
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
-function(verbose_message content)
+function(verbose_message)
     if (VERBOSE_OUTPUT)
-        message(STATUS ${content})
+        message(STATUS ${ARGN})
     endif ()
 endfunction()
 
@@ -153,47 +155,54 @@ endfunction()
 # Create executable, setup header and source files
 #
 function(target_install)
-    CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
     packageProject(${ARGN})
 endfunction()
 
-function(target_enable_coverage target_name)
+function(target_coverage target_name)
     message(STATUS "enable coverage for ${target_name}")
+    find_program(llvm_profdata "llvm-profdata")
+    find_program(llvm_cov "llvm-cov")
+
+    if(NOT EXISTS ${llvm_profdata} OR NOT EXISTS ${llvm_cov})
+        message(STATUS "llvm-profdata or llvm-cov not found.\n")
+        return()
+    endif()
+
+    message(STATUS "found llvm-profdata at: ${llvm_profdata}")
+    message(STATUS "found llvm-cov at: ${llvm_cov}")
+
     cmake_parse_arguments(ARG "" "FORMAT" "" ${ARGN})
 
-    set(options -fprofile-instr-generate -fcoverage-mapping)
-
+    set(options -fprofile-arcs -ftest-coverage)
     target_compile_options(${target_name} PUBLIC ${options})
     target_link_options(${target_name} PUBLIC ${options})
 
-    get_filename_component(llvm_bin ${CMAKE_CXX_COMPILER} DIRECTORY)
-    set(file_profdata_name ${target_name}.profdata)
+    # set(file_profdata_name ${target_name}.profdata)
 
-    add_custom_command(
-        OUTPUT ${file_profdata_name}
-        COMMAND ${llvm_bin}/llvm-profdata
-        ARGS merge -sparse $<TARGET_NAME_IF_EXISTS:${target_name}>.profraw
-    )
+    # add_custom_command(
+    #     OUTPUT ${file_profdata_name}
+    #     COMMAND ${llvm_profdata}
+    #     ARGS merge -sparse $<TARGET_NAME_IF_EXISTS:${target_name}>.profraw
+    # )
 
-    if(${ARG_FORMAT} STREQUAL text)
-        set(coverage_file coverage.json)
-    elseif(${ARG_FORMAT} STREQUAL html)
-        set(coverage_file coverage.html)
-    elseif(${ARG_FORMAT} STREQUAL lcov)
-        set(coverage_file coverage.lcov)
-    else()
-        message(WARNING "unknown format ${ARG_FORMAT}")
-        set(coverage_file coverage.${ARG_FORMAT})
-    endif()
+    # if(${ARG_FORMAT} STREQUAL text)
+    #     set(coverage_file coverage.json)
+    # elseif(${ARG_FORMAT} STREQUAL html)
+    #     set(coverage_file coverage.html)
+    # elseif(${ARG_FORMAT} STREQUAL lcov)
+    #     set(coverage_file coverage.lcov)
+    # else()
+    #     message(FATAL_ERROR "unknown format ${ARG_FORMAT}")
+    # endif()
 
-    add_custom_command(
-        OUTPUT ${coverage_file}
-        DEPENDS ${file_profdata_name}
-        COMMAND ${llvm_bin}/llvm-cov
-        ARGS export --format=text --object=$<TARGET_FILE:${target_name}> --instr-profile=${file_profdata_name} > ${coverage_file}
-        VERBATIM
-        USES_TERMINAL
-    )
+    # add_custom_command(
+    #     OUTPUT ${coverage_file}
+    #     DEPENDS ${file_profdata_name}
+    #     COMMAND ${llvm_cov}
+    #     ARGS export --format=text --object=$<TARGET_FILE:${target_name}> --instr-profile=${file_profdata_name} > ${coverage_file}
+    #     VERBATIM
+    #     USES_TERMINAL
+    # )
 
-    add_custom_target(coverage DEPENDS ${coverage_file})
+    # add_custom_target(coverage DEPENDS ${coverage_file})
 endfunction()

@@ -95,10 +95,11 @@ if((NOT MSVC) AND ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-# TODO enable coverage
-# if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
-#     target_enable_coverage(${PROJECT_NAME} FORMAT lcov)
-# endif()
+if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
+    target_coverage(${PROJECT_NAME}_LIB FORMAT lcov)
+    target_coverage(${PROJECT_NAME} FORMAT lcov)
+endif()
+
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 
 verbose_message("Finished adding unit tests for ${CMAKE_PROJECT_NAME}.")
