@@ -6,8 +6,7 @@
 
 #include <concepts>
 #include <type_traits>
-
-#include <range/v3/functional/arithmetic.hpp>
+#include <utility>
 
 namespace stdsharp::concepts
 {
@@ -301,15 +300,6 @@ namespace stdsharp::concepts
     template<typename T, typename U>
     concept nothrow_inter_convertible =
         nothrow_convertible_to<T, U> && nothrow_convertible_from<T, U>;
-
-    template<typename T>
-    concept coercable = requires(T&& t)
-    {
-        ::ranges::coerce<T>{}(::std::forward<T>(t));
-    };
-
-    template<typename T>
-    concept nothrow_coercable = noexcept(::ranges::coerce<T>{}(::std::declval<T>()));
 
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;

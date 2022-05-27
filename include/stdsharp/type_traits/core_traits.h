@@ -3,12 +3,11 @@
 #pragma once
 
 #include <array>
-#include <type_traits>
 #include <string_view>
 #include <functional>
 
-#include <range/v3/functional/arithmetic.hpp>
 #include <range/v3/utility/static_const.hpp>
+#include <meta/meta.hpp>
 
 using namespace ::std::literals;
 
@@ -83,7 +82,8 @@ namespace stdsharp::type_traits
     inline constexpr type_constant<T> type_constant_v{};
 
     template<typename T>
-    using coerce_t = ::std::invoke_result_t<::ranges::coerce<T>, T&&>;
+    using persist_t =
+        ::std::conditional_t<::std::is_rvalue_reference_v<T>, ::std::remove_reference_t<T>, T&>;
 
     template<auto... V>
     struct regular_value_sequence

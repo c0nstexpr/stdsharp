@@ -1,8 +1,7 @@
 #pragma once
 #include <functional>
 
-#include "../utility/value_wrapper.h"
-#include "../type_traits/core_traits.h"
+#include "../tuple/tuple.h"
 
 namespace stdsharp::functional
 {
@@ -19,40 +18,51 @@ namespace stdsharp::functional
     concept nothrow_std_bindable = noexcept(::std::bind(::std::declval<T>()...));
 
     template<typename Func, typename... T>
-    class bind_t : value_wrapper<Func>, value_wrapper<T>...
+    class bind_t : ::std::tuple<Func, T...>
     {
-    public:
-        template<typename Fn, typename... U>
-            requires ::std::constructible_from<value_wrapper<Func>, Fn> &&
-                (::std::constructible_from<value_wrapper<T>, U>&&...) constexpr bind_t(
-                    Fn&& fn, U&&... u):
-                value_wrapper<Func>(::std::forward<Fn>(fn)),
-                value_wrapper<T>(::std::forward<U>(u))...
-            {
-            }
+        using base = ::std::tuple<Func, T...>;
 
-#define BS_OPERATOR(const_, ref)                                                \
-    template<typename... Args>                                                  \
-        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>    \
-    constexpr decltype(auto) operator()(Args&&... args) const_ ref noexcept(    \
-        concepts::nothrow_invocable<const_ Func ref, const_ T ref..., Args...>) \
-    {                                                                           \
-        return ::std::invoke(                                                   \
-            static_cast<const_ Func ref>(value_wrapper<Func>::value),           \
-            static_cast<const_ T ref>(value_wrapper<T>::value)...,              \
-            ::std::forward<Args>(args)...);                                     \
+    public:
+        template<typename... U>
+            requires ::std::constructible_from<base, U...>
+        constexpr bind_t(U&&... u) noexcept(concepts::nothrow_constructible_from<base, U...>):
+            base(::std::forward<U>(u)...)
+        {
+        }
+
+#define BS_OPERATOR(const_, ref)                                                           \
+private:                                                                                   \
+    template<::std::size_t... N, typename... Args>                                         \
+    constexpr decltype(auto) operator()(const ::std::index_sequence<N...>, Args&&... args) \
+        const_ ref noexcept(                                                               \
+            concepts::nothrow_invocable<const_ Func ref, const_ T ref..., Args...>)        \
+    {                                                                                      \
+        return ::std::invoke(                                                              \
+            static_cast<get_t<N, const_ base ref>>(                                        \
+                ::std::get<N>(static_cast<const_ base ref>(*this)))...,                    \
+            ::std::forward<Args>(args)...);                                                \
+    }                                                                                      \
+                                                                                           \
+public:                                                                                    \
+    template<typename... Args>                                                             \
+        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>               \
+    constexpr decltype(auto) operator()(Args&&... args) const_ ref noexcept(               \
+        concepts::nothrow_invocable<const_ Func ref, const_ T ref..., Args...>)            \
+    {                                                                                      \
+        return static_cast<const_ bind_t ref>(*this)(                                      \
+            ::std::index_sequence_for<Func, T...>{}, ::std::forward<Args>(args)...);       \
     }
 
-            BS_OPERATOR(, &)
-            BS_OPERATOR(const, &)
-            BS_OPERATOR(, &&)
-            BS_OPERATOR(const, &&)
+        BS_OPERATOR(, &)
+        BS_OPERATOR(const, &)
+        BS_OPERATOR(, &&)
+        BS_OPERATOR(const, &&)
 
 #undef BS_OPERATOR
     };
 
     template<typename Func, typename... Args>
-    bind_t(Func&&, Args&&...) -> bind_t<::std::decay_t<Func>, type_traits::coerce_t<Args>...>;
+    bind_t(Func&&, Args&&...) -> bind_t<::std::decay_t<Func>, type_traits::persist_t<Args&&>...>;
 
     inline constexpr struct bind_fn
     {
