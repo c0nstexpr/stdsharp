@@ -288,6 +288,18 @@ namespace stdsharp::concepts
     template<typename T, typename U>
     concept nothrow_convertible_to = ::std::is_nothrow_convertible_v<T, U>;
 
+    template<typename From, typename To>
+    concept explicitly_convertible = requires
+    {
+        static_cast<To>(std::declval<From>());
+    };
+
+    template<typename From, typename To>
+    concept nothrow_explicitly_convertible = requires
+    {
+        requires noexcept(static_cast<To>(std::declval<From>()));
+    };
+
     template<typename T, typename U>
     concept convertible_from = ::std::convertible_to<U, T>;
 
