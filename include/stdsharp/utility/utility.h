@@ -13,21 +13,16 @@ namespace stdsharp
     {
     private:
         template<typename T>
-        struct auto_cast
+        struct auto_cast_operator
         {
             T&& t;
 
             template<typename U>
-                requires requires { static_cast<U>(t); }
-            [[nodiscard]] constexpr operator U() const&& noexcept(noexcept(static_cast<U>(t)))
+                requires concepts::explicitly_convertible<T, U>
+            [[nodiscard]] constexpr operator U() const&& //
+                noexcept(concepts::nothrow_explicitly_convertible<T, U>)
             {
-                return static_cast<U>(t);
-            }
-
-            template<typename U>
-            [[nodiscard]] constexpr U operator()() const&& noexcept(noexcept(static_cast<U>(t)))
-            {
-                return static_cast<U>(*this);
+                return static_cast<U>(::std::forward<T>(t));
             }
         };
 
@@ -35,7 +30,7 @@ namespace stdsharp
         template<typename T>
         [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
         {
-            return auto_cast<T>{::std::forward<T>(t)}; //
+            return auto_cast_operator<T>{::std::forward<T>(t)}; //
         }
     } auto_cast{};
 
@@ -51,11 +46,18 @@ namespace stdsharp
     template<typename T>
     struct forward_like_fn
     {
+    private:
         template<typename U>
-        [[nodiscard]] constexpr type_traits::const_ref_align_t<T&&, ::std::remove_cvref_t<U>>
-            operator()(U&& x) const noexcept
+        using copy_const_t =
+            ::std::conditional_t<concepts::const_<::std::remove_reference_t<T>>, const U, U>;
+
+    public:
+        template<typename U>
+        [[nodiscard]] constexpr type_traits::
+            ref_align_t<T&&, copy_const_t<::std::remove_reference_t<U>>>
+            operator()(U&& u) const noexcept
         {
-            return auto_cast(x);
+            return auto_cast(u);
         }
     };
 
