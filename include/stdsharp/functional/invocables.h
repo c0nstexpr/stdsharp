@@ -8,10 +8,6 @@
 
 namespace stdsharp::functional
 {
-    inline constexpr struct nodiscard_tag_t
-    {
-    } nodiscard_tag;
-
     inline namespace invoke_selector
     {
         template<typename... Func>
@@ -149,18 +145,6 @@ namespace stdsharp::functional
         {
             return trivial_invocables{::std::forward<Invocable>(invocable)...};
         }
-
-        template<typename... Invocable>
-            requires requires
-            {
-                nodiscard_invocable{trivial_invocables{::std::declval<Invocable>()...}};
-            }
-        [[nodiscard]] constexpr auto operator()(nodiscard_tag_t, Invocable&&... invocable) const //
-            noexcept(noexcept(nodiscard_invocable{
-                trivial_invocables{::std::declval<Invocable>()...}}))
-        {
-            return nodiscard_invocable{trivial_invocables{::std::forward<Invocable>(invocable)...}};
-        }
     } make_trivial_invocables{};
 
     inline constexpr struct make_sequenced_invocables_fn
@@ -171,24 +155,6 @@ namespace stdsharp::functional
             noexcept(noexcept(sequenced_invocables{::std::declval<Invocable>()...}))
         {
             return sequenced_invocables{::std::forward<Invocable>(invocable)...};
-        }
-
-        template<typename... Invocable>
-            requires requires
-            {
-                nodiscard_invocable{sequenced_invocables{::std::declval<Invocable>()...}};
-            }
-        [[nodiscard]] constexpr auto operator()(nodiscard_tag_t, Invocable&&... invocable) const //
-            noexcept( //
-                noexcept( //
-                    nodiscard_invocable{sequenced_invocables{::std::declval<Invocable>()...}} //
-                    // clang-format off
-                )
-            ) // clang-format on
-        {
-            return nodiscard_invocable{
-                sequenced_invocables{::std::forward<Invocable>(invocable)...} //
-            };
         }
     } make_sequenced_invocables{};
 }

@@ -45,16 +45,13 @@ namespace stdsharp::functional
         concepts::nothrow_invocable<conditional_invoke_fn<Condition>, T, U>;
 
     template<concepts::not_same_as<void> ReturnT>
-    inline constexpr nodiscard_invocable invoke_r( //
-        []<typename Func, typename... Args> // clang-format off
-        (Func&& func, Args&&... args)
-            noexcept(concepts::nothrow_invocable_r<Func, ReturnT, Args...>)
-            requires concepts::invocable_r<Func, ReturnT, Args...>
+    inline constexpr nodiscard_invocable invoke_r(
+        []<typename Func, typename... Args>(Func&& func, Args&&... args) //
+        noexcept(concepts::nothrow_invocable_r<Func, ReturnT, Args...>) -> ReturnT //
+        requires concepts::invocable_r<Func, ReturnT, Args...> //
         {
-            return static_cast<ReturnT>(
-                ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...)
-            );
-        } // clang-format on
+            return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
+        } //
     );
 
     inline constexpr nodiscard_invocable returnable_invoke(
