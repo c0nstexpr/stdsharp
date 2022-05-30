@@ -59,40 +59,36 @@ namespace stdsharp::functional
     template<typename Proj>
     projector(Proj&&) -> projector<::std::decay_t<Proj>>;
 
-    inline constexpr auto make_projector = make_trivial_invocables(
-        nodiscard_tag,
-        []<typename Func> // clang-format off
+    inline constexpr struct make_projector_fn
+    {
+        template<typename Func>
             requires requires { projector{::std::declval<Func>()}; }
-        (Func&& func)
-            noexcept(noexcept(projector{::std::forward<Func>(func)})) // clang-format on
+        [[nodiscard]] constexpr auto operator()(Func&& func) //
+            noexcept(noexcept(projector{::std::forward<Func>(func)}))
         {
             return projector{::std::forward<Func>(func)}; //
-        } //
-    );
+        }
+    } make_projector{}; //
 
-    using make_projector_fn = decltype(make_projector);
-
-    inline constexpr auto projected = make_trivial_invocables(
-        nodiscard_tag,
-        []< //
+    inline constexpr struct projected_fn
+    {
+        template<
             typename Proj,
             typename Func,
             std_bindable<Func> Projector =
                 ::std::invoke_result_t<make_projector_fn, Proj> // clang-format off
-        >
-        (Proj&& proj, Func&& func) noexcept(
-            concepts::nothrow_invocable<make_projector_fn, Proj> &&
-                nothrow_std_bindable<Projector, Func>
-        ) // clang-format on
+        > // clang-format on
+        constexpr auto operator()(Proj&& proj, Func&& func) noexcept(
+            concepts::nothrow_invocable<make_projector_fn, Proj>&&
+                nothrow_std_bindable<Projector, Func> //
+        )
         {
             return ::std::bind(
                 make_projector(::std::forward<Proj>(proj)),
                 ::std::forward<Func>(func) //
             );
-        } //
-    );
-
-    using projected_fn = decltype(projected);
+        }
+    } projected{};
 
     template<typename... Args>
     concept projectable = ::std::invocable<projected_fn, Args...>;
