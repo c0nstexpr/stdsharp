@@ -4,12 +4,13 @@
 
 namespace stdsharp::functional
 {
-    inline constexpr auto empty_invoke = [](const auto&...) noexcept
+    inline constexpr struct empty_invoke_fn
     {
-        return type_traits::empty; //
-    };
-
-    using empty_invoke_fn = decltype(empty_invoke);
+        constexpr auto operator()(const auto&...) noexcept
+        {
+            return type_traits::empty; //
+        }
+    } empty_invoke{};
 
     inline constexpr sequenced_invocables optional_invoke{::ranges::invoke, empty_invoke};
 
@@ -20,7 +21,8 @@ namespace stdsharp::functional
     struct conditional_invoke_fn
     {
         template<::std::invocable Func>
-        requires Condition constexpr decltype(auto) operator()(Func&& func, const auto&) const
+            requires(Condition)
+        constexpr decltype(auto) operator()(Func&& func, const auto&) const
             noexcept(concepts::nothrow_invocable<Func>)
         {
             return func();
@@ -45,52 +47,11 @@ namespace stdsharp::functional
         concepts::nothrow_invocable<conditional_invoke_fn<Condition>, T, U>;
 
     template<concepts::not_same_as<void> ReturnT>
-    inline constexpr nodiscard_invocable invoke_r(
-        []<typename Func, typename... Args>(Func&& func, Args&&... args) //
+    inline constexpr nodiscard_invocable
+        invoke_r = []<typename Func, typename... Args>(Func&& func, Args&&... args) //
         noexcept(concepts::nothrow_invocable_r<Func, ReturnT, Args...>) -> ReturnT //
-        requires concepts::invocable_r<Func, ReturnT, Args...> //
-        {
-            return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
-        } //
-    );
-
-    inline constexpr nodiscard_invocable returnable_invoke(
-        []<typename Func, typename... Args> // clang-format off
-            requires ::std::invocable<Func, Args...>
-        (Func&& func, Args&&... args)
-            noexcept(concepts::nothrow_invocable<Func, Args...>)
-            ->decltype(auto) // clang-format on
-        {
-            const auto invoker = [&]() -> decltype(auto)
-            {
-                return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
-            };
-            if constexpr(::std::same_as<::std::invoke_result_t<decltype(invoker)>, void>)
-            {
-                invoker();
-                return type_traits::empty;
-            } // clang-format off
-            else return invoker(); // clang-format on
-        } //
-    );
-
-    template<template<typename...> typename Tuple = ::std::tuple>
-    inline constexpr nodiscard_invocable merge_invoke( //
-        []<::std::invocable... Func>(Func&&... func) noexcept( //
-            noexcept( // clang-format off
-                Tuple<::std::invoke_result_t<
-                    decltype(returnable_invoke),
-                    Func>...
-                 >{returnable_invoke(::std::forward<Func>(func))...}
-            )
-        ) -> Tuple<
-            ::std::invoke_result_t<
-                decltype(returnable_invoke),
-                Func
-            >...
-        > // clang-format on
-        {
-            return {returnable_invoke(::std::forward<Func>(func))...}; //
-        } //
-    );
+        requires concepts::invocable_r<Func, ReturnT, Args...>
+    {
+        return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
+    };
 }
