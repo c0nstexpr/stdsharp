@@ -18,10 +18,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2022]
-        include:
-          - os: ubuntu-latest
-            llvm_ver: 14
+        os: [ubuntu-22.04, windows-2022]
+        # include:
+        #   - os: ubuntu-22.04
+        #     llvm_ver: 14
     steps:
       - uses: actions/checkout@v2
         with:
@@ -39,11 +39,11 @@ jobs:
           version: ${{ env.NINJA_VER }}
           destination: ${{ github.workspace }}/.ninja
 
-      - name: Set up Clang
-        if: ${{ runner.os == 'Linux' }}
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: ${{ matrix.llvm_ver }}
+      # - name: Set up Clang
+      #   if: ${{ runner.os == 'Linux' }}
+      #   uses: egor-tensin/setup-clang@v1
+      #   with:
+      #     version: ${{ matrix.llvm_ver }}
 
       - name: Restore artifacts.
         uses: actions/cache@v2
