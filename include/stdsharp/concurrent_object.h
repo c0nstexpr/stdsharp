@@ -144,10 +144,8 @@ namespace stdsharp
         template<::std::invocable<const value_type&> Func>
         void read(Func&& func) const&
         {
-            scope::make_raii_scope(
-                [&object = object_, &func] { ::std::invoke(func, object); },
-                ::std::unique_lock{lockable_} //
-            );
+            ::std::shared_lock lock{lockable_};
+            ::std::invoke(func, object_);
         }
 
         template<::std::invocable<const value_type> Func>
@@ -184,10 +182,8 @@ namespace stdsharp
         template<::std::invocable<value_type&> Func>
         void write(Func&& func) &
         {
-            scope::make_raii_scope(
-                [&object = object_, &func] { ::std::invoke(func, object); },
-                ::std::unique_lock{lockable_} //
-            );
+            ::std::unique_lock lock{lockable_};
+            ::std::invoke(func, object_);
         }
 
         template<::std::invocable<value_type> Func>
