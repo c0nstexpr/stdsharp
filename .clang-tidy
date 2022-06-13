@@ -1,5 +1,6 @@
-Checks: '-*,boost-*,bugprone-*,cert-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*,clang-analyzer-*,-*-logical-op-parentheses,-*-dangling-else,-*-use-trailing-return-type,-*-named-parameter,-*-braces-around-statements,-*-misleading-indentation,-*-macro-usage,-*-non-private-member-variables-in-classes,-*-macro-parentheses,-*-forwarding-reference-overload,-*-pro-type-union-access,-*-identifier-length,-*-explicit-conversions,-*-c-copy-assignment-signature,-*-unconventional-assign-operator,-*-uppercase-literal-suffix, -*-qualified-auto'
-WarningsAsErrors: '*'
-FormatStyle: 'file'
-HeaderFilterRegex: ''
+---
+Checks: "-*,boost-*,bugprone-*,cert-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*,clang-analyzer-*,-*-logical-op-parentheses,-*-dangling-else,-*-use-trailing-return-type,-*-named-parameter,-*-braces-around-statements,-*-misleading-indentation,-*-macro-usage,-*-non-private-member-variables-in-classes,-*-macro-parentheses,-*-forwarding-reference-overload,-*-pro-type-union-access,-*-identifier-length,-*-explicit-conversions,-*-c-copy-assignment-signature,-*-unconventional-assign-operator,-*-uppercase-literal-suffix, -*-qualified-auto"
+WarningsAsErrors: "*"
+FormatStyle: "file"
+HeaderFilterRegex: ""
 User: blurringshadow

@@ -34,15 +34,6 @@ namespace stdsharp
         }
     } auto_cast{};
 
-    inline constexpr struct
-    {
-        template<concepts::enumeration T>
-        [[nodiscard]] constexpr auto operator()(const T v) const noexcept
-        {
-            return static_cast<::std::underlying_type_t<T>>(v);
-        }
-    } to_underlying{};
-
     template<typename T>
     struct forward_like_fn
     {
