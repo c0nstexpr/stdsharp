@@ -49,18 +49,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain)
 #
 option(ENABLE_CLANG_TIDY "Enable clang-tidy" ON)
 
-message(STATUS "clang-tidy is ${ENABLE_CLANG_TIDY}")
-if((NOT MSVC) AND ENABLE_CLANG_TIDY)
-    find_program(CLANG_TIDY clang-tidy)
-    if(CLANG_TIDY)
-        message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-
-        string(REPLACE ";" ";${CMAKE_CURRENT_SOURCE_DIR}/" files "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
-
-        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY "clang-tidy;${files}")
-    else()
-        message(STATUS "clang-tidy not found")
-    endif()
+if(${ENABLE_CLANG_TIDY})
+    message(STATUS "clang-tidy is enabled")
+    target_enable_clang_tidy(${PROJECT_NAME})
 endif()
 
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

@@ -4,8 +4,7 @@
 #include "stdsharp/functional/operations.h"
 #include "stdsharp/functional/functional.h"
 
-// NOLINTNEXTLINE
-SCENARIO("pattern_match")
+SCENARIO("pattern_match", "[pattern_match]") // NOLINT
 {
     enum class my_enum
     {
