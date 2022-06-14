@@ -10,6 +10,7 @@ verbose_message("Adding tests under ${CMAKE_PROJECT_NAME}...")
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src_dir "src")
+set(algorithm_src_dir "${src_dir}/algorithm")
 set(utility_src_dir "${src_dir}/utility")
 set(containers_src_dir "${src_dir}/containers")
 set(traits_src_dir "${src_dir}/type_traits")
@@ -19,9 +20,9 @@ set(filesystem_src_dir "${src_dir}/filesystem")
 set(
     src
     ${src_dir}/tests.cpp
-    ${src_dir}/algorithm_test.cpp
     ${src_dir}/pattern_match_test.cpp
     ${src_dir}/concurrent_object_test.cpp
+    ${algorithm_src_dir}/algorithm_test.cpp
     ${utility_src_dir}/utility_test.cpp
     ${containers_src_dir}/containers_test.cpp
     ${containers_src_dir}/actions_test.cpp
