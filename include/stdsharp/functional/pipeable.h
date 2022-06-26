@@ -5,6 +5,7 @@
 #include "compose.h"
 #include "invocables.h"
 #include "../type_traits/object.h"
+#include "../details/prologue.h"
 
 // comes from range-v3 pipeable.hpp
 // add noexcept feature
@@ -105,3 +106,5 @@ namespace stdsharp::functional
         static constexpr auto pipe_mode = Mode;
     };
 }
+
+#include "../details/epilogue.h"

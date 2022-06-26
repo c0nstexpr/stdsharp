@@ -5,8 +5,7 @@
 using namespace std;
 using namespace stdsharp;
 
-// NOLINTNEXTLINE
-TEMPLATE_TEST_CASE_SIG(
+TEMPLATE_TEST_CASE_SIG( // NOLINT
     "set_if", //
     "[algorithm]",
     ((auto First, auto Second), First, Second),

@@ -3,6 +3,7 @@
 #include <range/v3/functional/overload.hpp>
 
 #include "../type_traits/core_traits.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -39,3 +40,5 @@ namespace stdsharp
     template<::std::size_t N, typename... T>
     using pack_get_t = ::std::invoke_result_t<pack_get_fn<N>, T...>;
 }
+
+#include "../details/epilogue.h"

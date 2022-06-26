@@ -6,6 +6,7 @@
 
 #include "pack_get.h"
 #include "value_wrapper.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -58,3 +59,5 @@ namespace stdsharp
     template<typename T, typename U>
     using forward_like_t = decltype(forward_like<T>(::std::declval<U>()));
 }
+
+#include "../details/epilogue.h"

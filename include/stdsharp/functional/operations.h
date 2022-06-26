@@ -9,6 +9,7 @@
 #include "../iterator/iterator.h"
 #include "invocables.h"
 #include "../cstdint/cstdint.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -259,3 +260,5 @@ namespace stdsharp::functional
     {
     } advance_v{};
 }
+
+#include "../details/epilogue.h"

@@ -1,8 +1,7 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "stdsharp/pattern_match.h"
 #include "stdsharp/functional/operations.h"
 #include "stdsharp/functional/functional.h"
+#include "test.h"
 
 SCENARIO("pattern_match", "[pattern_match]") // NOLINT
 {
@@ -13,9 +12,9 @@ SCENARIO("pattern_match", "[pattern_match]") // NOLINT
         three
     };
 
-    using namespace std;
     using namespace stdsharp;
     using namespace stdsharp::functional;
+    using std::type_identity;
 
     GIVEN(
         R"(enum class has three values: "one", "two", "three" and three cases matches separate value)" //

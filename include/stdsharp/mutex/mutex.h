@@ -3,6 +3,8 @@
 #include <mutex>
 #include <concepts>
 
+#include "../details/prologue.h"
+
 using namespace ::std::literals;
 
 namespace stdsharp::concepts
@@ -64,3 +66,5 @@ namespace stdsharp::concepts
     template<typename T>
     concept shared_timed_mutex = timed_mutex<T> && shared_mutex<T> && shared_timed_lockable<T>;
 }
+
+#include "../details/epilogue.h"

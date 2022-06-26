@@ -8,6 +8,7 @@
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
 #include "scope.h"
+#include "details/prologue.h"
 
 namespace stdsharp
 {
@@ -223,6 +224,8 @@ namespace stdsharp
         mutable Lockable lockable_{};
     };
 
-    template<typename T, typename Lockable = ::std::shared_mutex>
-    concurrent_object(T&&, Lockable&&) -> concurrent_object<T, Lockable>;
+    template<typename T>
+    concurrent_object(T&&) -> concurrent_object<::std::decay_t<T>>;
 }
+
+#include "details/epilogue.h"

@@ -3,11 +3,13 @@
 //
 
 #pragma once
+
 #include <memory>
 #include <iterator>
 
 #include "../concepts/concepts.h"
 #include "../type_traits/core_traits.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -169,3 +171,5 @@ namespace stdsharp
     template<typename T>
     using allocator_of_t = ::meta::_t<allocator_of<T>>;
 }
+
+#include "../details/epilogue.h"

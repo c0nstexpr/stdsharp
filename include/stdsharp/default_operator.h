@@ -2,12 +2,13 @@
 
 #include "concepts/concepts.h"
 #include "type_traits/core_traits.h"
+#include "details/prologue.h"
 
 namespace stdsharp
 {
 
     template<typename T>
-    class default_post_incremention_and_decremention
+    class default_post_increase_and_decrease
     {
         template<::std::same_as<T> U>
         [[nodiscard]] friend constexpr auto operator++(U& t, int) // NOLINT(cert-dcl21-cpp)
@@ -39,7 +40,7 @@ namespace stdsharp
     };
 
     template<typename T, typename Delegate>
-    class default_pre_incremention_and_decremention : default_post_incremention_and_decremention<T>
+    class default_pre_increase_and_decrease : default_post_increase_and_decrease<T>
     {
         static constexpr Delegate delegate{};
 
@@ -68,10 +69,10 @@ namespace stdsharp
 
     template<
         typename T,
-        bool Exchangable = true,
+        bool Interchangable = true,
         ::std::constructible_from Delegate = type_traits::empty_t // clang-format off
     > // clang-format on
-    class default_arithmetic_operation : default_post_incremention_and_decremention<T>
+    class default_arithmetic_operation : default_post_increase_and_decrease<T>
     {
         static constexpr Delegate delegate{};
 
@@ -122,7 +123,7 @@ namespace stdsharp
         noexcept(noexcept(t op u)) /**/                                                   \
         requires requires                                                                 \
     {                                                                                     \
-        requires Exchangable && !::std::same_as<T, U>;                                    \
+        requires Interchangable && !::std::same_as<T, U>;                                 \
         {                                                                                 \
             t op u                                                                        \
             } -> ::std::same_as<T>;                                                       \
@@ -156,8 +157,7 @@ namespace stdsharp
     };
 
     template<typename T, ::std::constructible_from Delegate>
-    class default_arithmetic_assign_operation :
-        default_pre_incremention_and_decremention<T, Delegate>
+    class default_arithmetic_assign_operation : default_pre_increase_and_decrease<T, Delegate>
     {
         static constexpr Delegate delegate{};
 
@@ -218,3 +218,5 @@ namespace stdsharp
     };
 
 }
+
+#include "details/epilogue.h"

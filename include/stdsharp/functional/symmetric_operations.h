@@ -1,7 +1,9 @@
 #pragma once
+
 #include "operations.h"
 #include "bind.h"
 #include "../tuple/tuple.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -97,3 +99,5 @@ namespace stdsharp::functional
         }
     } symmetric_operation{};
 }
+
+#include "../details/epilogue.h"

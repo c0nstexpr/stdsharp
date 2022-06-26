@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <cstdlib>
 #include <cuchar>
@@ -6,6 +8,7 @@
 
 #include "../functional/cpo.h"
 #include "../pattern_match.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -60,3 +63,5 @@ namespace stdsharp
         ::std::string operator()(char character) const { return {character}; }
     };
 }
+
+#include "../details/epilogue.h"

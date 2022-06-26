@@ -1,7 +1,9 @@
 // Created by BlurringShadow at 2021-03-03-下午 4:33
 
 #pragma once
+
 #include "type_sequence.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::type_traits
 {
@@ -48,3 +50,5 @@ namespace stdsharp::type_traits
     {
     };
 }
+
+#include "../details/epilogue.h"

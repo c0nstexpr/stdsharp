@@ -1,8 +1,10 @@
 #pragma once
+
 #include <range/v3/utility/tuple_algorithm.hpp>
 
 #include "../functional/operations.h"
 #include "../functional/cpo.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -214,3 +216,5 @@ namespace stdsharp
         }
     } tuple_cat{};
 }
+
+#include "../details/epilogue.h"

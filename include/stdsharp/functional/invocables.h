@@ -2,9 +2,11 @@
 // Created by BlurringShadow on 2021-10-15.
 //
 #pragma once
+
 #include "../type_traits/core_traits.h"
 #include "../utility/value_wrapper.h"
 #include "../utility/pack_get.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -18,16 +20,14 @@ namespace stdsharp::functional
             {
                 constexpr auto size = sizeof...(Func);
                 ::std::size_t i = 0;
-                ::std::size_t target = sizeof...(Func);
+                ::std::size_t target = size;
+
                 for(const auto v : {::std::invocable<Func, Args...>...})
                 {
                     if(v)
                         if(target == size) target = i;
                         else
-                        {
-                            target = size;
-                            break;
-                        }
+                            return size;
 
                     ++i;
                 }
@@ -158,3 +158,5 @@ namespace stdsharp::functional
         }
     } make_sequenced_invocables{};
 }
+
+#include "../details/epilogue.h"

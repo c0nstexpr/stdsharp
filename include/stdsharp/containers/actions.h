@@ -3,6 +3,7 @@
 //
 
 #pragma once
+
 #include <utility>
 
 #include <range/v3/action.hpp>
@@ -10,6 +11,7 @@
 #include "../functional/invocables.h"
 #include "../tuple/tuple.h"
 #include "containers.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::actions
 {
@@ -481,3 +483,5 @@ namespace stdsharp::actions
     template<typename Container>
     inline constexpr make_container_fn<Container> make_container{};
 }
+
+#include "../details/epilogue.h"

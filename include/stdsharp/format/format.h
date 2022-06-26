@@ -20,6 +20,7 @@
 
 #include "../cstdint/cstdint.h"
 #include "../concepts/concepts.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::fmt
 {
@@ -276,3 +277,5 @@ namespace stdsharp::fmt
 }
 
 #undef FORMAT_NS
+
+#include "../details/epilogue.h"

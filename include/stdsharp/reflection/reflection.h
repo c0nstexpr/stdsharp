@@ -3,10 +3,14 @@
 //
 
 #pragma once
+
 #include <array>
 #include <string_view>
 
 #include "../functional/cpo.h"
+#include "../details/prologue.h"
+
+using namespace ::std::literals;
 
 namespace stdsharp::reflection
 {
@@ -101,3 +105,5 @@ namespace stdsharp::reflection
     template<typename T>
     inline constexpr const auto& data_members = data_members_t<T>::value;
 }
+
+#include "../details/epilogue.h"

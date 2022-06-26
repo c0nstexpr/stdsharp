@@ -1,10 +1,8 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "stdsharp/concurrent_object.h"
+#include "test.h"
 
 SCENARIO("concurrent_object", "[concurrent_object]") // NOLINT
 {
-    using namespace std;
     using namespace stdsharp;
     using namespace stdsharp::concepts;
 

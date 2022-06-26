@@ -6,6 +6,7 @@
 #include "../format/format.h"
 #include "../default_operator.h"
 #include "../pattern_match.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::filesystem
 {
@@ -765,3 +766,5 @@ namespace fmt
         }
     };
 }
+
+#include "../details/epilogue.h"

@@ -1,8 +1,10 @@
 #pragma once
+
 #include <fstream>
 #include <filesystem>
 
 #include "../containers/actions.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -111,3 +113,5 @@ namespace stdsharp
 
     inline constexpr details::read_all_text_fn read_all_text{};
 }
+
+#include "../details/epilogue.h"

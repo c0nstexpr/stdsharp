@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../concepts/concepts.h"
+#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -26,3 +27,5 @@ namespace stdsharp
     template<typename T>
     value_wrapper(T&&) -> value_wrapper<T&&>;
 }
+
+#include "../details/epilogue.h"

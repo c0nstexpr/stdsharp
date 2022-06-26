@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "../concepts/concepts.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::type_traits
 {
@@ -89,3 +90,5 @@ namespace stdsharp::type_traits
 
     inline constexpr make_inherited_fn make_inherited{};
 }
+
+#include "../details/epilogue.h"

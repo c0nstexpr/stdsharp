@@ -3,12 +3,14 @@
 //
 
 #pragma once
+
 #include <ranges>
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
 #include <fmt/ranges.h>
 
 #include "../type_traits/core_traits.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::ranges
 {
@@ -20,3 +22,5 @@ namespace stdsharp::ranges
         type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
 
 }
+
+#include "../details/epilogue.h"

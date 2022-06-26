@@ -9,6 +9,7 @@
 #include "../concepts/concepts.h"
 #include "core_traits.h"
 #include "../utility/pack_get.h"
+#include "../details/prologue.h"
 
 namespace stdsharp::type_traits
 {
@@ -555,3 +556,5 @@ namespace std
     {
     };
 }
+
+#include "../details/epilogue.h"

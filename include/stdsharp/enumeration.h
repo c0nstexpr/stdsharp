@@ -2,6 +2,7 @@
 
 #include "utility/utility.h"
 #include "concepts/concepts.h"
+#include "details/prologue.h"
 
 namespace stdsharp
 {
@@ -58,3 +59,5 @@ namespace stdsharp
     template<typename T>
     flag(T) -> flag<::std::remove_cv_t<T>>;
 }
+
+#include "details/epilogue.h"
