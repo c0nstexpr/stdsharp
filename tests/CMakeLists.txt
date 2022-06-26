@@ -2,48 +2,41 @@
 # Project details
 #
 project(${CMAKE_PROJECT_NAME}Tests LANGUAGES CXX)
-init_proj()
 
 verbose_message("Adding tests under ${CMAKE_PROJECT_NAME}...")
 
 #
 # Set the sources for the unit tests and add the executable(s)
 #
-set(src_dir "src")
-set(algorithm_src_dir "${src_dir}/algorithm")
-set(utility_src_dir "${src_dir}/utility")
-set(containers_src_dir "${src_dir}/containers")
-set(traits_src_dir "${src_dir}/type_traits")
-set(functional_src_dir "${src_dir}/functional")
-set(filesystem_src_dir "${src_dir}/filesystem")
-
 set(
     src
-    ${src_dir}/tests.cpp
-    ${src_dir}/pattern_match_test.cpp
-    ${src_dir}/concurrent_object_test.cpp
-    ${algorithm_src_dir}/algorithm_test.cpp
-    ${utility_src_dir}/utility_test.cpp
-    ${containers_src_dir}/containers_test.cpp
-    ${containers_src_dir}/actions_test.cpp
-    ${traits_src_dir}/value_sequence_test.cpp
-    ${traits_src_dir}/type_sequence_test.cpp
-    ${traits_src_dir}/member_test.cpp
-    ${functional_src_dir}/decompose_test.cpp
-    ${functional_src_dir}/symmetric_operations_test.cpp
-    ${filesystem_src_dir}/filesystem_test.cpp
+    src/tests.cpp
+    src/pattern_match_test.cpp
+    src/concurrent_object_test.cpp
+    src/algorithm/algorithm_test.cpp
+    src/utility/utility_test.cpp
+    src/containers/containers_test.cpp
+    src/containers/actions_test.cpp
+    src/type_traits/value_sequence_test.cpp
+    src/type_traits/type_sequence_test.cpp
+    src/type_traits/member_test.cpp
+    src/functional/decompose_test.cpp
+    src/functional/symmetric_operations_test.cpp
+    src/filesystem/filesystem_test.cpp
 )
 
-config_exe(${PROJECT_NAME} "${src}")
+config_lib(${PROJECT_NAME}Lib INTERFACE)
+config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
 target_compile_options(
     ${PROJECT_NAME}
     PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
-        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 )
 
 find_package(Catch2 CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain)
+include(Catch)
+target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain ${PROJECT_NAME}Lib)
 
 #
 # Configure clang-tidy
@@ -55,6 +48,4 @@ if(${ENABLE_CLANG_TIDY})
     target_enable_clang_tidy(${PROJECT_NAME})
 endif()
 
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
-
-verbose_message("Finished adding unit tests for ${CMAKE_PROJECT_NAME}.")
+catch_discover_tests(${PROJECT_NAME})

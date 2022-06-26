@@ -2,17 +2,12 @@ cmake_minimum_required(VERSION 3.15)
 
 include(cmake/Utils.cmake)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED true)
-
 #
 # Project details
 #
-project("stdsharp" VERSION 0.2.6 LANGUAGES CXX)
+project(stdsharp VERSION 0.2.6 LANGUAGES CXX)
 
-init_proj()
-
-config_interface_lib(${PROJECT_NAME})
+config_lib(${PROJECT_NAME} INTERFACE STD 23)
 
 #
 # Model project dependencies
@@ -23,8 +18,7 @@ find_package(ctre CONFIG REQUIRED)
 
 target_compile_options(
     ${PROJECT_NAME}
-    INTERFACE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-logical-op-parentheses -Wno-dangling-else>
-              $<$<CXX_COMPILER_ID:MSVC>:/wd4127 /external:anglebrackets>
+    INTERFACE $<$<CXX_COMPILER_ID:MSVC>: /external:anglebrackets>
 )
 
 target_link_libraries(
@@ -34,16 +28,16 @@ target_link_libraries(
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
-include(GNUInstallDirs)
 target_install(
-  NAME ${PROJECT_NAME}
-  VERSION ${PROJECT_VERSION}
-  NAMESPACE ${PROJECT_NAME}
-  BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}
-  INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include
-  INCLUDE_DESTINATION include
-  COMPATIBILITY SameMajorVersion
-  DEPENDENCIES fmt;ctre;range-v3
+    ${PROJECT_NAME}
+    NAMESPACE ${PROJECT_NAME}
+    COMPATIBILITY SameMajorVersion
+    DEPENDENCIES fmt;ctre;range-v3
+)
+
+install(
+    FILES "cmake/Utils.cmake" "cmake/Config.cmake.in"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
 
 get_directory_property(is_subproject PARENT_DIRECTORY)
@@ -64,9 +58,6 @@ if(STDSHARP_INCLUDE_AS_SYSTEM)
 endif()
 
 if(STDSHARP_BUILD_TEST)
-    #
-    # Add the unit tests
-    #
     include(CTest)
     add_subdirectory(tests)
 endif()

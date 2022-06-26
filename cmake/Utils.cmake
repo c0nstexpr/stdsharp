@@ -1,7 +1,3 @@
-include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
-
-CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
-
 option(VERBOSE_OUTPUT "Enable verbose output, allowing for a better understanding of each step taken." ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -19,143 +15,186 @@ function(verbose_message)
     endif ()
 endfunction()
 
-function(init_proj)
-    cmake_parse_arguments(ARG "USE_ALT_NAMES" "" "" ${ARGN})
-    message(STATUS "Started CMake for ${PROJECT_NAME} v${PROJECT_VERSION}...\n")
-
-    #
-    # Setup alternative names
-    #
-    if (${ARG_USE_ALT_NAMES})
-        string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWERCASE)
-        string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPERCASE)
-    endif ()
-
-    #
-    # Prevent building in the source directory
-    #
-    if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-        message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there.\n")
-    endif ()
-endfunction()
-
-function(target_include_as_system target_name lib_type)
+function(target_include_as_system target_name)
     get_target_property(included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
-    target_include_directories(${target_name} SYSTEM BEFORE ${lib_type} ${included})
-endfunction()
-
-#
-# Create header only library
-#
-function(config_interface_lib lib_name)
-    cmake_parse_arguments(ARG "" "STD" "" ${ARGN})
-
-    add_library(${lib_name} INTERFACE)
-
-    message(STATUS "Added all header files.\n")
-
-    #
-    # Set the project standard and warnings
-    #
-    set(std ${ARG_STD})
-    if (${std})
-        target_compile_features(${lib_name} INTERFACE cxx_std_${std})
-        message(STATUS "Using c++ ${std}.\n")
-    endif ()
-
-    #
-    # Set the build/user include directories
-    #
-    target_include_directories(
-        ${lib_name}
-        INTERFACE
-            $<INSTALL_INTERFACE:include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    )
+    get_target_property(target_type ${target_name} TYPE)
+    target_include_directories(${target_name} SYSTEM BEFORE ${target_type} ${included})
 endfunction()
 
 #
 # Create static or shared library, setup header and source files
 #
-function(config_lib lib_name includes src lib_type)
-    cmake_parse_arguments(ARG "" "STD" "" ${ARGN})
+function(config_lib lib_name lib_type)
+    cmake_parse_arguments(ARG "" "STD;VER" "INC_DIR;INSTALL_INC_DIR;SRC" ${ARGN})
 
-    # Find all headers and implementation files
-    list(JOIN includes "\n    " includes_str)
-    verbose_message("Found the following header files:\n    ${includes_str}")
+    if(NOT DEFINED ARG_INC_DIR)
+        set(ARG_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    endif ()
 
-    list(JOIN src "\n    " src_str)
+    if(NOT DEFINED INSTALL_INC_DIR)
+        set(INSTALL_INC_DIR include)
+    endif ()
+
+    list(JOIN ARG_INC_DIR "\n    " includes_str)
+    verbose_message("Found the following include dir:\n    ${includes_str}")
+
+    list(JOIN ARG_SRC "\n    " src_str)
     verbose_message("Found the following source files:\n    ${src_str}")
 
-    add_library(${lib_name} ${lib_type} ${src})
+    add_library(${lib_name} ${lib_type} ${ARG_SRC})
+
+    set(inc_tag PUBLIC)
 
     if (lib_type STREQUAL "SHARED")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
-        set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-        set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+        set_target_properties(${lib_name} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS OFF)
+    else(lib_type STREQUAL "INTERFACE")
+        set(inc_tag INTERFACE)
     endif ()
 
-    message(STATUS "Added all header and implementation files.\n")
-
-    #
-    # Set the project standard and warnings
-    #
-    set(std ${ARG_STD})
-    if (${std})
-        target_compile_features(${lib_name} PUBLIC cxx_std_${std})
-        message(STATUS "Using c++ ${std}.\n")
+    if (ARG_STD)
+        target_compile_features(${lib_name} ${inc_tag} cxx_std_${ARG_STD})
+        message(STATUS "Using c++ ${ARG_STD}.\n")
     endif ()
 
-    #
-    # Set the build/user include directories
-    #
     target_include_directories(
         ${lib_name}
-        PUBLIC
-            $<INSTALL_INTERFACE:include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        ${inc_tag}
+            $<INSTALL_INTERFACE:${ARG_INSTALL_INC_DIR}>
+            $<BUILD_INTERFACE:${ARG_INC_DIR}>
     )
+
+    if(NOT DEFINED ARG_VER)
+        set(ARG_VER ${CMAKE_PROJECT_VERSION})
+    endif ()
+
+    set_target_properties(${lib_name} PROPERTIES VERSION ${ARG_VER})
 endfunction()
 
 #
 # Create executable, setup header and source files
 #
-function(config_exe exe_name exe_src)
-    cmake_parse_arguments(ARG "" "STD" "INCLUDES;SOURCES" ${ARGN})
-    set(std ${ARG_STD})
+function(config_exe exe_name)
+    cmake_parse_arguments(ARG "" "STD;VER" "EXE_SRC" ${ARGN})
 
-    list(JOIN exe_src "\n    " exe_src_str)
+    list(JOIN ARG_EXE_SRC "\n    " exe_src_str)
     verbose_message("Found the following executable source files:\n    ${exe_src_str}")
 
-    add_executable(${exe_name} ${exe_src})
+    add_executable(${exe_name} ${ARG_EXE_SRC})
 
-    if (ARG_INCLUDES)
-        verbose_message("Configuring executable library")
+    if(NOT DEFINED ARG_VER)
+        set(ARG_VER ${CMAKE_PROJECT_VERSION})
+    endif ()
 
-       if (ARG_SOURCES)
-            config_lib(
-                ${exe_name}_LIB
-                "${ARG_INCLUDES}"
-                "${ARG_SOURCES}"
-                STATIC
-                STD ${std}
-            )
-        else ()
-            config_interface_lib(
-                ${exe_name}_LIB
-                STD ${std}
-            )
-        endif ()
+    set_target_properties(${exe_name} PROPERTIES VERSION ${ARG_VER})
 
-        target_link_libraries(${exe_name} PUBLIC ${exe_name}_LIB)
+    if (ARG_STD)
+        target_compile_features(${exe_name} PUBLIC cxx_std_${ARG_STD})
+        message(STATUS "Using c++ ${ARG_STD}.\n")
     endif ()
 endfunction()
 
 #
 # Create executable, setup header and source files
 #
-function(target_install)
-    packageProject(${ARGN})
+function(target_install target)
+    include(CMakePackageConfigHelpers)
+    include(GNUInstallDirs)
+
+    cmake_parse_arguments(ARG "ARCH_INDEPENDENT" "BIN_DIR;INC_DST;VER;COMPATIBILITY;NAMESPACE;CONFIG_FILE" "DEPENDENCIES" ${ARGN})
+
+    get_target_property(target_type ${target} TYPE)
+
+    if(NOT DEFINED ARG_BIN_DIR)
+        get_target_property(ARG_BIN_DIR ${target} BINARY_DIR)
+    endif ()
+
+    if(NOT DEFINED ARG_INC_DST)
+        set(ARG_INC_DST include)
+    endif ()
+
+    if(NOT DEFINED ARG_VER)
+        set(ARG_VER ${PROJECT_VERSION})
+    endif ()
+
+    install(
+        TARGETS ${target}
+        EXPORT ${target}Targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${target}
+                COMPONENT "${target}_Runtime"
+                NAMELINK_COMPONENT "${target}_Development"
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/${target}
+                COMPONENT "${target}_Development"
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/${target}
+                COMPONENT "${target}_Runtime"
+        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}/${target}
+               COMPONENT "${target}_Runtime"
+        PUBLIC_HEADER DESTINATION ${ARG_INC_DST} COMPONENT "${target}_Development"
+        INCLUDES DESTINATION "${ARG_INC_DST}"
+    )
+
+    if((NOT DEFINED ARG_ARCH_INDEPENDENT) AND (target_type STREQUAL "INTERFACE_LIBRARY"))
+        set(ARG_ARCH_INDEPENDENT YES)
+    endif()
+
+    set(
+        INSTALL_CMAKEDIR
+        "${CMAKE_INSTALL_LIBDIR}/cmake/${target}"
+        CACHE PATH "CMake package config location relative to the install prefix"
+    )
+
+    install(
+        EXPORT ${target}Targets
+        DESTINATION ${INSTALL_CMAKEDIR}
+        NAMESPACE ${ARG_NAMESPACE}
+        COMPONENT "${target}_Development"
+    )
+
+    if(ARG_ARCH_INDEPENDENT)
+        set(wbpvf_extra_args ARCH_INDEPENDENT)
+    endif()
+
+    set(version_config "${ARG_BIN_DIR}/${target}ConfigVersion.cmake")
+    set(target_config "${ARG_BIN_DIR}/${target}Config.cmake")
+
+    write_basic_package_version_file(
+        "${version_config}"
+        VERSION ${ARG_VER}
+        COMPATIBILITY ${ARG_COMPATIBILITY} ${wbpvf_extra_args}
+    )
+
+    if(ARG_CONFIG_FILE)
+        configure_file("${ARG_CONFIG_FILE}" "${target_config}" @ONLY)
+    else()
+        file(
+            CONFIGURE OUTPUT "${target_config}"
+            CONTENT "
+                include(CMakeFindDependencyMacro)
+
+                string(REGEX MATCHALL \"[^;]+\" SEPARATE_DEPENDENCIES \"@ARG_DEPENDENCIES@\")
+
+                foreach(dependency ${SEPARATE_DEPENDENCIES})
+                    string(REPLACE \" \" \";\" args \"${dependency}\")
+                    find_dependency(${args})
+                endforeach()
+
+                include(\"${CMAKE_CURRENT_LIST_DIR}/@target@Targets.cmake\")
+            "
+        )
+    endif()
+
+    install(
+        FILES "${version_config}" "${target_config}"
+        DESTINATION ${INSTALL_CMAKEDIR}
+        COMPONENT "${target}_Development"
+    )
+
+    get_target_property(target_included ${target} INTERFACE_INCLUDE_DIRECTORIES)
+
+    install(
+        DIRECTORY ${target_included}
+        DESTINATION ${ARG_INC_DST}
+        COMPONENT "${target}_Development"
+    )
 endfunction()
 
 function(target_enable_clang_tidy target)
