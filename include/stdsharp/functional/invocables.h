@@ -6,7 +6,6 @@
 #include "../type_traits/core_traits.h"
 #include "../utility/value_wrapper.h"
 #include "../utility/pack_get.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -25,9 +24,11 @@ namespace stdsharp::functional
                 for(const auto v : {::std::invocable<Func, Args...>...})
                 {
                     if(v)
+                    {
                         if(target == size) target = i;
                         else
                             return size;
+                    }
 
                     ++i;
                 }
@@ -158,5 +159,3 @@ namespace stdsharp::functional
         }
     } make_sequenced_invocables{};
 }
-
-#include "../details/epilogue.h"

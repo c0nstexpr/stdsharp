@@ -8,8 +8,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "../details/prologue.h"
-
 namespace stdsharp::concepts
 {
     template<typename T, typename... U>
@@ -348,5 +346,3 @@ namespace stdsharp::concepts
         ::std::equality_comparable<T> && //
         weakly_equality_comparable_with<T, ::std::nullptr_t>;
 }
-
-#include "../details/epilogue.h"

@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include "../utility/utility.h"
-#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -63,5 +62,3 @@ namespace stdsharp
 #undef BS_INT_LITERALS
     }
 }
-
-#include "../details/epilogue.h"

@@ -6,7 +6,6 @@
 #include "functional/invoke.h"
 #include "type_traits/object.h"
 #include "utility/value_wrapper.h"
-#include "details/prologue.h"
 
 namespace stdsharp::scope
 {
@@ -67,5 +66,3 @@ namespace stdsharp::scope
     template<exit_fn_policy Policy>
     inline constexpr make_scoped_fn<Policy> make_scoped{};
 }
-
-#include "details/epilogue.h"

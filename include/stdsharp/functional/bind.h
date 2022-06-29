@@ -3,7 +3,6 @@
 #include <functional>
 
 #include "../tuple/tuple.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -103,5 +102,3 @@ public:                                                                         
     template<typename... Args>
     concept nothrow_lazy_invocable = concepts::nothrow_invocable<lazy_invoke_fn, Args...>;
 }
-
-#include "../details/epilogue.h"

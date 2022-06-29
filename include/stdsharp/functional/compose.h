@@ -3,7 +3,6 @@
 #include "../utility/value_wrapper.h"
 #include "../type_traits/core_traits.h"
 #include "cpo.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -103,5 +102,3 @@ namespace stdsharp::functional
     template<typename... Fn>
     concept nothrow_composable = concepts::nothrow_invocable<make_composed_fn, Fn...>;
 }
-
-#include "../details/epilogue.h"

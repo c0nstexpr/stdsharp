@@ -9,8 +9,6 @@
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
 
-#include "../details/prologue.h"
-
 using namespace ::std::literals;
 
 namespace stdsharp::type_traits
@@ -163,5 +161,3 @@ namespace stdsharp::inline literals
 {
     using namespace stdsharp::type_traits::literals;
 }
-
-#include "../details/epilogue.h"

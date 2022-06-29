@@ -2,7 +2,6 @@
 
 #include "concepts/concepts.h"
 #include "type_traits/core_traits.h"
-#include "details/prologue.h"
 
 namespace stdsharp
 {
@@ -218,5 +217,3 @@ namespace stdsharp
     };
 
 }
-
-#include "details/epilogue.h"

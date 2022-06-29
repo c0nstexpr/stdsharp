@@ -4,8 +4,6 @@
 
 #include <random>
 
-#include "../details/prologue.h"
-
 namespace stdsharp
 {
     inline constexpr struct
@@ -17,5 +15,3 @@ namespace stdsharp
         }
     } get_random_device{};
 }
-
-#include "../details/epilogue.h"

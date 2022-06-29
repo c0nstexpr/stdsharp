@@ -8,7 +8,6 @@
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
 #include "scope.h"
-#include "details/prologue.h"
 
 namespace stdsharp
 {
@@ -227,5 +226,3 @@ namespace stdsharp
     template<typename T>
     concurrent_object(T&&) -> concurrent_object<::std::decay_t<T>>;
 }
-
-#include "details/epilogue.h"

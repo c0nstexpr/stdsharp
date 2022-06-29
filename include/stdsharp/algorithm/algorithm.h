@@ -11,7 +11,6 @@
 #include "../functional/operations.h"
 #include "../functional/invoke.h"
 #include "../cassert/cassert.h"
-#include "../details/prologue.h"
 
 namespace stdsharp
 {
@@ -97,5 +96,3 @@ namespace stdsharp
         }
     } is_between{};
 }
-
-#include "../details/epilogue.h"

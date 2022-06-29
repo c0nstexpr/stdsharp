@@ -8,7 +8,6 @@
 
 #include "../type_traits/core_traits.h"
 #include "../concepts/concepts.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::iterator
 {
@@ -66,5 +65,3 @@ namespace stdsharp::iterator
         { i-- } -> ::std::same_as<I>; // clang-format on
     };
 }
-
-#include "../details/epilogue.h"

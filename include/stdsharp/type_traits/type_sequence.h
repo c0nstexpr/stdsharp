@@ -3,7 +3,6 @@
 #pragma once
 
 #include "value_sequence.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::type_traits
 {
@@ -162,5 +161,3 @@ namespace std
     {
     };
 }
-
-#include "../details/epilogue.h"

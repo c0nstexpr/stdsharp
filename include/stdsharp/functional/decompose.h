@@ -7,7 +7,6 @@
 #include "bind.h"
 #include "pipeable.h"
 #include "../tuple/tuple.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -59,5 +58,3 @@ namespace stdsharp::functional
         }
     } to_decompose{};
 }
-
-#include "../details/epilogue.h"

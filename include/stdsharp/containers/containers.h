@@ -20,8 +20,6 @@
 #include "../ranges/ranges.h"
 #include "../concepts/concepts.h"
 
-#include "../details/prologue.h"
-
 namespace stdsharp
 {
     namespace containers::details
@@ -713,5 +711,3 @@ namespace stdsharp::containers
     concept container_predicatable =
         ::std::predicate<Predicate, ranges::range_const_reference_t<Container>>;
 }
-
-#include "../details/epilogue.h"

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "function.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::type_traits
 {
@@ -86,5 +85,3 @@ namespace stdsharp::type_traits
 #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK
 #undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK
 }
-
-#include "../details/epilogue.h"

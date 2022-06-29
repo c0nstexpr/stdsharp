@@ -3,7 +3,6 @@
 #include "bind.h"
 #include "invocables.h"
 #include "cpo.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -101,5 +100,3 @@ namespace stdsharp::functional
     template<typename... Args>
     using projected_t = ::std::invoke_result_t<projected_fn, Args...>;
 }
-
-#include "../details/epilogue.h"

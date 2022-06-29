@@ -2,7 +2,6 @@
 
 #include "concepts/concepts.h"
 #include "type_traits/core_traits.h"
-#include "details/prologue.h"
 
 namespace stdsharp
 {
@@ -80,5 +79,3 @@ namespace stdsharp
         inline constexpr from_type_fn<type_traits::constant<Condition>> from_constant{};
     }
 }
-
-#include "details/epilogue.h"

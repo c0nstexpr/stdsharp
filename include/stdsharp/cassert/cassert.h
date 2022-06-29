@@ -2,8 +2,6 @@
 
 #include <cassert>
 
-#include "../details/prologue.h"
-
 namespace stdsharp
 {
     inline constexpr auto is_debug =
@@ -14,5 +12,3 @@ namespace stdsharp
 #endif
         ;
 }
-
-#include "../details/epilogue.h"

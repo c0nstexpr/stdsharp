@@ -6,7 +6,6 @@
 #include <functional>
 
 #include "../concepts/concepts.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -49,5 +48,3 @@ namespace stdsharp::functional
     template<typename... Args>
     concept cpo_nothrow_invocable = concepts::nothrow_invocable<cpo_invoke_fn, Args...>;
 }
-
-#include "../details/epilogue.h"

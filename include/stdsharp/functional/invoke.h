@@ -1,7 +1,6 @@
 #pragma once
 
 #include "invocables.h"
-#include "../details/prologue.h"
 
 namespace stdsharp::functional
 {
@@ -56,5 +55,3 @@ namespace stdsharp::functional
         return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...); //
     };
 }
-
-#include "../details/epilogue.h"
