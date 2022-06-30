@@ -1,7 +1,6 @@
 #include "stdsharp/containers/actions.h"
 #include "test.h"
 
-using namespace std;
 using namespace std::ranges;
 using namespace stdsharp;
 
@@ -75,21 +74,6 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "vector concept", //
-    "[containers]",
-    int,
-    unique_ptr<int> //
-)
-{
-    using vec = std::vector<TestType>;
-
-    CAPTURE(type<vec>());
-    STATIC_REQUIRE(containers::sequence_container<vec>);
-    STATIC_REQUIRE(!containers::associative_container<vec>);
-    STATIC_REQUIRE(!containers::unordered_associative_container<vec>);
-}
-
-TEMPLATE_TEST_CASE( // NOLINT
     "set actions", //
     "[containers][actions]",
     int,
@@ -101,21 +85,6 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "set concept", //
-    "[containers]",
-    int,
-    unique_ptr<int> //
-)
-{
-    using set = std::set<TestType>;
-
-    CAPTURE(type<set>());
-    STATIC_REQUIRE(!containers::sequence_container<set>);
-    STATIC_REQUIRE(containers::associative_container<set>);
-    STATIC_REQUIRE(!containers::unordered_associative_container<set>);
-}
-
-TEMPLATE_TEST_CASE( // NOLINT
     "unordered map actions", //
     "[containers][actions]",
     int,
@@ -124,19 +93,4 @@ TEMPLATE_TEST_CASE( // NOLINT
 {
     CAPTURE(type<TestType>());
     STATIC_REQUIRE(unordered_map_req<TestType>);
-}
-
-TEMPLATE_TEST_CASE( // NOLINT
-    "unordered map concept", //
-    "[containers]",
-    int,
-    unique_ptr<int> //
-)
-{
-    using map = unordered_map<int, TestType>;
-
-    CAPTURE(type<map>());
-    STATIC_REQUIRE(!containers::sequence_container<map>);
-    STATIC_REQUIRE(!containers::associative_container<map>);
-    STATIC_REQUIRE(containers::unordered_associative_container<map>);
 }

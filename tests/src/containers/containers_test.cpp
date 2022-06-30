@@ -1,42 +1,42 @@
-// #include "containers/containers_test.h"
-// #include "stdsharp/containers/containers.h"
+#include "stdsharp/containers/containers.h"
+#include "test.h"
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
-// namespace stdsharp::test::containers
-// {
-//     boost::ut::suite& containers_test()
-//     {
-//         static boost::ut::suite suite = []
-//         {
-//             using namespace std;
-//             using namespace boost::ut;
-//             using namespace bdd;
-//             using namespace stdsharp::containers;
+using namespace stdsharp;
+using namespace containers;
 
-//             feature("container concept") = []<typename T>(const type_identity<T>)
-//             {
-//                 using vec = vector<T>;
+TEMPLATE_TEST_CASE( // NOLINT
+    "container concept", //
+    "[containers]",
+    int,
+    unique_ptr<int> //
+)
+{
+    using vec = std::vector<TestType>;
 
-//                 println(fmt::format("current type {}", reflection::type_name<T>()));
+    GIVEN(format("vector type {}", type<vec>()))
+    {
+        STATIC_REQUIRE(containers::sequence_container<vec>);
+        STATIC_REQUIRE(!containers::associative_container<vec>);
+        STATIC_REQUIRE(!containers::unordered_associative_container<vec>);
+    }
 
-//                 static_expect<contiguous_container<vec>>();
+    using set = std::set<TestType>;
 
-//                 static_expect<unique_associative_container<set<T>>>();
+    GIVEN(format("set type {}", type<set>()))
+    {
+        STATIC_REQUIRE(!containers::sequence_container<set>);
+        STATIC_REQUIRE(containers::associative_container<set>);
+        STATIC_REQUIRE(!containers::unordered_associative_container<set>);
+    }
 
-//                 static_expect<unique_associative_container<map<T, T>>>();
-//                 static_expect<multikey_associative_container<multiset<T>>>();
-//                 static_expect<multikey_associative_container<multimap<T, T>>>();
+    using map = unordered_map<int, TestType>;
 
-//                 constexpr auto associative_vec = !associative_container<vec>;
-
-//                 static_expect<associative_vec>();
-
-//                 static_expect<unique_unordered_associative_container<unordered_set<T>>>();
-//                 static_expect<unique_unordered_associative_container<unordered_map<T, T>>>();
-//                 static_expect<multikey_unordered_associative_container<unordered_multiset<T>>>();
-//                 static_expect<multikey_unordered_associative_container<unordered_multimap<T, T>>>();
-//             } | tuple{type_identity<int>{}, type_identity<unique_ptr<int>>{}};
-//         };
-
-//         return suite;
-//     }
-// }
+    GIVEN(format("map type {}", type<map>()))
+    {
+        STATIC_REQUIRE(!containers::sequence_container<map>);
+        STATIC_REQUIRE(!containers::associative_container<map>);
+        STATIC_REQUIRE(containers::unordered_associative_container<map>);
+    }
+}
