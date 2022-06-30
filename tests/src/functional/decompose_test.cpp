@@ -1,59 +1,46 @@
-// #include <range/v3/view/subrange.hpp>
+#include <range/v3/view/subrange.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
-// #include "functional/decompose_test.h"
-// #include "stdsharp/functional/decompose.h"
-// #include "stdsharp/containers/actions.h"
-// namespace stdsharp::test::functional
-// {
-//     using namespace std;
-//     using namespace std::ranges;
-//     using namespace boost::ut;
-//     using namespace bdd;
-//     using namespace stdsharp::functional;
+#include "stdsharp/functional/decompose.h"
+#include "stdsharp/containers/actions.h"
+#include "test.h"
 
-//     boost::ut::suite& decompose_test()
-//     {
-//         static boost::ut::suite suite = []
-//         {
-//             struct decompose_test_params
-//             {
-//                 vector<int> initial_v_list;
-//                 initializer_list<int> expected_v_list;
-//             }; // clang-format off
+using namespace stdsharp;
+using namespace functional;
 
-//             feature("get and decompose") = [](decompose_test_params params) // clang-format on
-//             {
-//                 auto& v_list = params.initial_v_list;
-//                 const auto& rng = ::ranges::make_subrange(v_list);
+struct decompose_test_params
+{
+    vector<int> initial_v_list;
+    initializer_list<int> expected_v_list;
+};
 
-//                 const auto unique_op = [&v_list, &rng]
-//                 {
-//                     actions::erase(
-//                         v_list,
-//                         rng | to_decompose | ::ranges::unique,
-//                         v_list.cend() //
-//                     );
-//                 };
+SCENARIO("get and decompose") // NOLINT
+{
+    const auto& params =
+        GENERATE(decompose_test_params{{1, 2, 1, 1, 3, 3, 3, 4, 5, 4}, {1, 2, 3, 4, 5}});
+    auto& v_list = params.initial_v_list;
+    const auto& rng = ::ranges::make_subrange(v_list);
 
-//                 println(fmt::format("current value: {}", v_list));
+    const auto unique_op = [&v_list, &rng]
+    {
+        actions::erase(
+            v_list,
+            rng | to_decompose | ::ranges::unique,
+            v_list.cend() //
+        );
+    };
 
-//                 unique_op();
+    INFO(fmt::format("current value: {}", v_list));
 
-//                 println(fmt::format("after first unique operation, values are: {}", v_list));
+    unique_op();
 
-//                 rng | to_decompose | std::ranges::sort;
+    INFO(fmt::format("after first unique operation, values are: {}", v_list));
 
-//                 println(fmt::format("after sort, values are: {}", v_list));
+    rng | to_decompose | std::ranges::sort;
 
-//                 unique_op();
+    INFO(fmt::format("after sort, values are: {}", v_list));
 
-//                 expect(std::ranges::equal(params.expected_v_list, v_list)) << //
-//                     fmt::format("actual values are: {}", v_list); // clang-format off
-//             } | tuple{
-//                 decompose_test_params{{1, 2, 1, 1, 3, 3, 3, 4, 5, 4}, {1, 2, 3, 4, 5}}
-//             }; // clang-format on
-//         };
+    unique_op();
 
-//         return suite;
-//     }
-// }
+    REQUIRE(std::ranges::equal(params.expected_v_list, v_list));
+} // clang-format on
