@@ -1,6 +1,11 @@
-// #include "functional/symmetric_operations_test.h"
-// #include "stdsharp/functional/symmetric_operations.h"
-// #include "stdsharp/containers/actions.h"
+#include "stdsharp/functional/symmetric_operations.h"
+#include "stdsharp/containers/actions.h"
+#include "test.h"
+
+using namespace std;
+using namespace stdsharp;
+using namespace functional;
+using namespace containers;
 
 // namespace stdsharp::test::functional
 // {
@@ -8,11 +13,8 @@
 //     {
 //         static boost::ut::suite suite = []
 //         {
-//             using namespace std;
 //             using namespace boost::ut;
 //             using namespace bdd;
-//             using namespace stdsharp::functional;
-//             using namespace stdsharp::containers;
 
 //             feature("symmetric operation cpo") = []
 //             {
