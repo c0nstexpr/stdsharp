@@ -10,7 +10,7 @@ using namespace stdsharp::filesystem;
     #define FORMAT_NS ::fmt
 #endif
 
-SCENARIO("space size") // NOLINT
+SCENARIO("space size", "[filesystem]") // NOLINT
 {
     using bytes = stdsharp::filesystem::bytes;
 
