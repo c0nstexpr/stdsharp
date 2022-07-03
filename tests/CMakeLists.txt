@@ -20,7 +20,8 @@ set(
     src/type_traits/value_sequence_test.cpp
     src/type_traits/type_sequence_test.cpp
     src/type_traits/member_test.cpp
-    src/functional/decompose_test.cpp
+    src/tuple/tuple_test.cpp
+    src/functional/pipeable_test.cpp
     src/functional/symmetric_operations_test.cpp
     src/filesystem/filesystem_test.cpp
 )

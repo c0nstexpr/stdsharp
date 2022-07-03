@@ -92,7 +92,9 @@ namespace stdsharp::functional
                 {
                     return make_pipeable<Mode>( //
                         make_composed(
-                            ::std::forward<Pipe>(pipe), ::std::forward<Pipes>(pipes)...) //
+                            ::std::forward<Pipe>(pipe),
+                            ::std::forward<Pipes>(pipes)... // clang-format off
+                        ) // clang-format on
                     );
                 };
             }

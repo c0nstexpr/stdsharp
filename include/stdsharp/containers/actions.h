@@ -11,6 +11,7 @@
 #include "../functional/invocables.h"
 #include "../tuple/tuple.h"
 #include "containers.h"
+
 namespace stdsharp::actions
 {
     namespace details
@@ -150,6 +151,7 @@ namespace stdsharp::actions
     inline namespace cpo
     {
         using details::erase_fn;
+
         inline constexpr erase_fn erase{};
     }
 
