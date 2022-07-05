@@ -7,50 +7,43 @@ using namespace stdsharp;
 using namespace functional;
 using namespace containers;
 
-// namespace stdsharp::test::functional
-// {
-//     boost::ut::suite& symmetric_operations_test()
-//     {
-//         static boost::ut::suite suite = []
-//         {
-//             using namespace boost::ut;
-//             using namespace bdd;
+TEMPLATE_TEST_CASE_SIG( // NOLINT
+    "Scenario: symmetric assign operation",
+    "[functional][symmetric operation]",
+    ((int Value), Value),
+    1,
+    2,
+    3 //
+)
+{
+    GIVEN(fmt::format("int value: {}", Value))
+    {
+        THEN("assign to 0 and revert back")
+        {
+            auto v = Value;
+            const auto& revert = symmetric_operation(assign_v, v, 0);
+            assign_v(v, 0);
+            revert();
+            REQUIRE(Value == v);
+        }
+    }
+}
 
-//             feature("symmetric operation cpo") = []
-//             {
-//                 given("given a int") = [](const int int_v)
-//                 {
-//                     print(fmt::format("{}", int_v));
+SCENARIO("symmetric vector operation", "[functional][symmetric operation]") // NOLINT
+{
+    auto list = {0, 1, 2, 3};
+    GIVEN(fmt::format("int list: {}", list))
+    {
+        THEN("use emplace back")
+        {
+            vector vec(list);
+            constexpr auto v = 0;
+            const auto& revert =
+                stdsharp::functional::symmetric_operation(actions::emplace_back, vec, v);
+            actions::emplace_back(vec, v);
+            revert();
 
-//                     then("assign to 0 and revert back") = [](const int origin)
-//                     {
-//                         auto v = origin;
-//                         const auto& revert = symmetric_operation(assign_v, v, 0);
-//                         assign_v(v, 0);
-//                         revert();
-//                         expect(origin == v) << fmt::format("actual value {}", v);
-//                     } | tuple{int_v};
-//                 } | tuple{1, 2, 3};
-
-//                 given("given vector<int> instance") = [](const vector<int>& vec)
-//                 {
-//                     print(fmt::format("{}", vec));
-
-//                     then("use emplace back") = [](const vector<int>& origin)
-//                     {
-//                         auto vec = origin;
-//                         constexpr auto v = 0;
-//                         const auto& revert = stdsharp::functional::symmetric_operation(
-//                             actions::emplace_back, vec, v);
-//                         actions::emplace_back(vec, v);
-//                         revert();
-//                         expect(std::ranges::equal(origin, vec))
-//                             << fmt::format("actual vec content{}", vec);
-//                     } | tuple{vec};
-//                 } | tuple{vector<int>{0, 1, 2, 3}};
-//             };
-//         };
-
-//         return suite;
-//     }
-// }
+            REQUIRE(std::ranges::equal(list, vec));
+        }
+    }
+}
