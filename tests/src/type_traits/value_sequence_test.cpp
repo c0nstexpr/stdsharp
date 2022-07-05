@@ -1,42 +1,9 @@
-// #include "type_traits/value_sequence_test.h"
-// #include "stdsharp/type_traits/value_sequence.h"
+#include "stdsharp/type_traits/value_sequence.h"
+#include "test.h"
 
-// namespace stdsharp::test::type_traits
-// {
-//     namespace
-//     {
-//         template<auto I, size_t Expect>
-//         using get_test_params = stdsharp::type_traits::regular_value_sequence<I, Expect>;
+using namespace stdsharp;
+using namespace type_traits;
 
-//         template<template<auto...> typename T>
-//         struct apply_t_test_params
-//         {
-//         };
-
-//         template<typename, auto...>
-//         struct unique_seq_t_test_params
-//         {
-//         };
-
-//         template<typename Seq, typename Expect>
-//         using remove_t_test_params = std::tuple<Seq, Expect>;
-//     }
-
-//     template<auto... V>
-//     using value_sequence = stdsharp::type_traits::value_sequence<V...>;
-
-//     template<auto... V>
-//     using regular_value_sequence = stdsharp::type_traits::regular_value_sequence<V...>;
-
-//     boost::ut::suite& value_sequence_test()
-//     {
-//         static boost::ut::suite suite = []
-//         {
-//             using namespace std;
-//             using namespace literals;
-//             using namespace boost::ut;
-//             using namespace bdd;
-//             using namespace utility;
 
 //             using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
 
@@ -94,10 +61,12 @@
 //                     {
 //                         constexpr auto count = test_seq::count(V);
 //                         print(fmt::format("expected: {}", Expect));
-//                         static_expect<count == Expect>() << fmt::format("actual count: {}", count);
+//                         static_expect<count == Expect>() << fmt::format("actual count: {}",
+//                         count);
 //                     };
 //                 }; // clang-format off
-//             } | tuple<regular_value_sequence<0, 1>, regular_value_sequence<1, 2>, regular_value_sequence<'?', 0>>{};
+//             } | tuple<regular_value_sequence<0, 1>, regular_value_sequence<1, 2>,
+//             regular_value_sequence<'?', 0>>{};
 
 //             // clang-format on
 //             feature("apply_t") = []<template<auto...> typename T>(const apply_t_test_params<T>)
@@ -113,9 +82,11 @@
 //                 }; // clang-format off
 //             } | tuple<apply_t_test_params<regular_value_sequence>>{}; // clang-format on
 
-//             feature("transform_t") = []<auto... Functor>(const regular_value_sequence<Functor...>)
+//             feature("transform_t") = []<auto... Functor>(const
+//             regular_value_sequence<Functor...>)
 //             {
-//                 static_expect<default_initializable<test_seq::template transform_t<Functor...>>>();
+//                 static_expect<default_initializable<test_seq::template
+//                 transform_t<Functor...>>>();
 //                 // clang-format off
 //             } | tuple<
 //                 regular_value_sequence<::std::identity{}>,
@@ -210,7 +181,8 @@
 //                          "type should be expected") = []
 //                     {
 //                         print(fmt::format("expected type: {}", reflection::type_name<Expect>()));
-//                         using actual_t = stdsharp::type_traits::unique_value_sequence_t<Values...>;
+//                         using actual_t =
+//                         stdsharp::type_traits::unique_value_sequence_t<Values...>;
 //                         static_expect<_b(same_as<actual_t, Expect>)>() << //
 //                             fmt::format("actual type: {}", reflection::type_name<actual_t>());
 //                     };
