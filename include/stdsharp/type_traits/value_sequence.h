@@ -167,31 +167,34 @@ namespace stdsharp::type_traits
 
         using index_seq = typename base::index_seq;
 
-        template<typename ResultType = empty_t>
+        template<typename ResultType = void>
         struct invoke_fn
         {
             template<typename Func>
                 requires requires
                 {
                     requires(::std::invocable<Func, decltype(Values)> && ...);
-                    requires ::std::constructible_from<
+                    requires ::std::same_as<ResultType, void> || ::std::constructible_from<
                         ResultType,
                         ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
                     >; // clang-format on
                 }
             constexpr auto operator()(Func&& func) const noexcept(
                 (concepts::nothrow_invocable<Func, decltype(Values)> && ...) &&
-                concepts::nothrow_constructible_from<
-                    ResultType,
-                    ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
-                > // clang-format on
+                (::std::same_as<ResultType, void> ||
+                 concepts::nothrow_constructible_from<
+                     ResultType,
+                     ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
+                >) // clang-format on
             )
             {
-                return ResultType{::std::invoke(func, Values)...};
+                if constexpr(::std::same_as<ResultType, void>) (::std::invoke(func, Values), ...);
+                else
+                    return ResultType{::std::invoke(func, Values)...};
             };
         };
 
-        template<typename ResultType = empty_t>
+        template<typename ResultType = void>
         static constexpr invoke_fn<ResultType> invoke{};
 
         template<template<auto...> typename T>
