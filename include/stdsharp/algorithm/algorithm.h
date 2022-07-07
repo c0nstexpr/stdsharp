@@ -5,7 +5,7 @@
 #ifndef NDEBUG
     #include <stdexcept>
 
-    #include <fmt/format.h>
+    #include <fmt/core.h>
 #endif
 
 #include "../functional/operations.h"
