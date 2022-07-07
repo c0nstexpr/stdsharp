@@ -1,7 +1,6 @@
 #include "stdsharp/tuple/tuple.h"
 #include "test.h"
 
-using namespace stdsharp;
 using namespace stdsharp::concepts;
 
 SCENARIO("get, [tuple]") // NOLINT

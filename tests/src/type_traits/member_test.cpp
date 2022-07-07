@@ -1,9 +1,6 @@
 #include "stdsharp/type_traits/member.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 SCENARIO("member", "[type traits]") // NOLINT
 {
     struct my_class

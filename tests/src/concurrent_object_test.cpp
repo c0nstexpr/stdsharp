@@ -1,9 +1,8 @@
 #include "stdsharp/concurrent_object.h"
 #include "test.h"
 
-SCENARIO("concurrent_object", "[concurrent_object]") // NOLINT
+SCENARIO("concurrent object", "[concurrent object]") // NOLINT
 {
-    using namespace stdsharp;
     using namespace stdsharp::concepts;
 
     struct my_mutex

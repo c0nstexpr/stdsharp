@@ -2,7 +2,6 @@
 #include "test.h"
 
 using namespace std::ranges;
-using namespace stdsharp;
 
 template<typename T>
 using dummy_predicate_t = bool(const T&);
@@ -63,7 +62,7 @@ concept unordered_map_req = requires(
 };
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "vector actions", //
+    "Scenario: vector actions", //
     "[containers][actions]",
     int,
     float //
@@ -74,7 +73,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "set actions", //
+    "Scenario: set actions", //
     "[containers][actions]",
     int,
     float //
@@ -85,7 +84,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "unordered map actions", //
+    "Scenario: unordered map actions", //
     "[containers][actions]",
     int,
     float //

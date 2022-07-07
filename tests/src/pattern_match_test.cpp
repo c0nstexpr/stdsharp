@@ -3,7 +3,7 @@
 #include "stdsharp/functional/functional.h"
 #include "test.h"
 
-SCENARIO("pattern_match", "[pattern_match]") // NOLINT
+SCENARIO("pattern match", "[pattern match]") // NOLINT
 {
     enum class my_enum
     {
@@ -12,8 +12,8 @@ SCENARIO("pattern_match", "[pattern_match]") // NOLINT
         three
     };
 
-    using namespace stdsharp;
-    using namespace stdsharp::functional;
+    using namespace functional;
+
     using std::type_identity;
 
     GIVEN(

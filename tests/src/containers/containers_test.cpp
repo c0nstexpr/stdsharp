@@ -1,13 +1,10 @@
 #include "stdsharp/containers/containers.h"
 #include "test.h"
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/catch_test_macros.hpp>
 
-using namespace stdsharp;
 using namespace containers;
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "container concept", //
+    "Scenario: container concept", //
     "[containers]",
     int,
     unique_ptr<int> //

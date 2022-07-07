@@ -2,8 +2,6 @@
 #include "stdsharp/containers/actions.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
 using namespace functional;
 using namespace containers;
 

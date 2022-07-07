@@ -1,12 +1,8 @@
-#include <catch2/catch_template_test_macros.hpp>
-
 #include "stdsharp/algorithm/algorithm.h"
-
-using namespace std;
-using namespace stdsharp;
+#include "test.h"
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "set_if", //
+    "Scenario: set if", //
     "[algorithm]",
     ((auto First, auto Second), First, Second),
     (1, 2),
@@ -35,7 +31,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 // NOLINTNEXTLINE
 TEMPLATE_TEST_CASE_SIG(
-    "is_between",
+    "Scenario: is between",
     "[algorithm]",
     ((auto Value, auto Min, auto Max), Value, Min, Max),
     (1, 1, 2),
