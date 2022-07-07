@@ -3,7 +3,6 @@
 #include "stdsharp/type_traits/value_sequence.h"
 #include "test.h"
 
-using namespace stdsharp;
 using namespace type_traits;
 
 using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
@@ -15,8 +14,6 @@ TEMPLATE_TEST_CASE( // NOLINT
     value_sequence<> //
 )
 {
-    GIVEN(type<TestType>())
-    THEN("type is constructible")
     STATIC_REQUIRE(default_initializable<TestType>);
 }
 
@@ -30,8 +27,6 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (3, 1) //
 )
 {
-    GIVEN(type<test_seq>())
-    AND_GIVEN(format("index: {}", Index))
     STATIC_REQUIRE(test_seq::get<Index>() == Expect);
 }
 
@@ -53,8 +48,6 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ('!', test_seq::size()) //
 )
 {
-    GIVEN(format("value: {}", V))
-    THEN("found index should be expected")
     STATIC_REQUIRE(test_seq::find(V) == Expect);
 }
 
@@ -67,16 +60,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ('?', 0) //
 )
 {
-    GIVEN(format("value: {}", V))
-    THEN("count should be expected")
     STATIC_REQUIRE(test_seq::count(V) == Expect);
 }
 
 // clang-format on
 SCENARIO("apply_t", "[type traits]") // NOLINT
 {
-    GIVEN(format("template: {}", type<value_sequence<>>()))
-    THEN("type that is applied sequence values should be constructible")
     STATIC_REQUIRE(default_initializable<test_seq::apply_t<value_sequence>>);
 }
 
@@ -94,8 +83,6 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ) // clang-format on
 )
 {
-    GIVEN(format("Functors: {}", join({type<decltype(Functor)>()...}, ",")))
-    THEN("type that is applied sequence values should be constructible")
     STATIC_REQUIRE(default_initializable<test_seq::template transform_t<Functor...>>);
 }
 
@@ -157,51 +144,38 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::insert_by_seq_t<Index, Seq>, Expect>);
 }
 
-//             // clang-format off
-//             feature("remove_at_by_seq_t") = remove_at_by_seq_t_feat<test_seq>() | tuple<
-//                 indexed_by_seq_t_test_params<
-//                     regular_value_sequence<1, 2>,
-//                     regular_value_sequence<0, 1, to_array("my literal")>
-//                 >,
-//                 indexed_by_seq_t_test_params<
-//                     regular_value_sequence<2, 4>,
-//                     regular_value_sequence<0, 1, 1>
-//                 >
-//             >{}; // clang-format on
+TEMPLATE_TEST_CASE_SIG( // NOLINT
+    "Scenario: value sequence remove at by sequence",
+    "[type traits]",
+    ((auto V, typename Seq, typename Expect), V, Seq, Expect),
+    ( //
+        0,
+        regular_value_sequence<1, 2>,
+        regular_value_sequence<0, 1, to_array("my literal")> // clang-format off
+    ), // clang-format on
+    ( //
+        0,
+        regular_value_sequence<2, 4>,
+        regular_value_sequence<0, 1, 1> // clang-format off
+    ) // clang-format on
+)
+{
+    STATIC_REQUIRE(same_as<test_seq::remove_at_by_seq_t<Seq>, Expect>);
+}
 
-//             // clang-format off
-//             feature("unique_value_sequence_t") = []<typename Expect, auto... Values>(
-//                 const unique_seq_t_test_params<Expect, Values...>
-//             ) // clang-format on
-//             {
-//                 given("given values") = []
-//                 {
-//                     print( //
-//                         format(
-//                             "values: {}", // clang-format off
-//                             fmt::join(std::tuple{Values...}, ", ")
-//                         ) // clang-format on
-//                     );
-
-//                     then("use seq as unique_value_sequence_t template arg, "
-//                          "type should be expected") = []
-//                     {
-//                         print(format("expected type: {}", reflection::type_name<Expect>()));
-//                         using actual_t =
-//                         stdsharp::type_traits::unique_value_sequence_t<Values...>;
-//                         static_expect<_b(same_as<actual_t, Expect>)>() << //
-//                             format("actual type: {}", reflection::type_name<actual_t>());
-//                     };
-//                 }; // clang-format off
-//             } | tuple<
-//                 unique_seq_t_test_params<regular_value_sequence<>>,
-//                 unique_seq_t_test_params<
-//                     regular_value_sequence<0, 10, 1, 5>,
-//                     0, 10, 1, 5, 10, 1
-//                 >
-//             >{}; // clang-format on
-//         };
-
-//         return suite;
-//     }
-// }
+TEMPLATE_TEST_CASE_SIG( // NOLINT
+    "Scenario: unique value sequence",
+    "[type traits]",
+    ((auto V, typename Seq, typename Expect), V, Seq, Expect),
+    (0, regular_value_sequence<>, regular_value_sequence<>),
+    (0, regular_value_sequence<0, 10, 1, 5, 10, 1>, regular_value_sequence<0, 10, 1, 5>) //
+)
+{
+    STATIC_REQUIRE( //
+        same_as<
+            typename as_value_sequence_t<Seq>:: // clang-format off
+                template apply_t<type_traits::unique_value_sequence_t>,
+            Expect
+        > // clang-format on
+    );
+}
