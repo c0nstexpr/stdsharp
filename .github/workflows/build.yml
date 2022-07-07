@@ -11,40 +11,32 @@ jobs:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     env:
-      NINJA_VER: 1.11.0
       CMAKE_BUILD_DIR: build/
       VCPKG_ROOT: vcpkg
-      VCPKG_ID: "2247b397faefc8266e545bd86330d2192d6b6247"
+      VCPKG_ID: "9776b51b557bb2c20d79cf541f124c48d0c2c720"
+
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022]
-        include:
-          - os: ubuntu-22.04
-            llvm_ver: 14.0.2
+        os: [ubuntu-22.04, windows-latest]
+
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
 
-      - uses: seanmiddleditch/gha-setup-ninja@master
-        with:
-          version: ${{ env.NINJA_VER }}
-          destination: ${{ github.workspace }}/.ninja
-
-      - name: Set up Clang
+      - name: Upgrade Linux packages
         if: ${{ runner.os == 'Linux' }}
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: ${{ matrix.llvm_ver }}
+        run: |
+          sudo apt update
+          sudo apt upgrade
+          sudo apt install ninja-build
 
-      - name: Restore artifacts.
-        uses: actions/cache@v2
-        with:
-          path: |
-            ${{ env.CMAKE_BUILD_DIR }}/vcpkg_installed/
-          key: |
-            ${{ env.VCPKG_ID }}-${{ hashFiles( 'vcpkg.json' ) }}
+      - name: Upgrade Windows packages
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          choco upgrade all
+          choco install ninja
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v10
