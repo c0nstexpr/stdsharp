@@ -10,11 +10,7 @@ namespace stdsharp
 
 using namespace std;
 using namespace fmt;
-
-using fmt::format; // NOLINT
-
 using namespace stdsharp;
-
 
 template<typename T>
 constexpr auto type() noexcept
