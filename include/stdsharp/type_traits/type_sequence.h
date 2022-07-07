@@ -85,7 +85,7 @@ namespace stdsharp::type_traits
         template<typename... Others>
         using append_t = regular_type_sequence<Types..., Others...>;
 
-        template<typename T = empty_t>
+        template<typename T = void>
         using invoke_fn = typename base::template invoke_fn<T>;
 
         template<typename T = empty_t>
