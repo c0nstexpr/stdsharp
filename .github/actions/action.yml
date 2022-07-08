@@ -30,10 +30,12 @@ runs:
         CMAKE_BUILD_DIR: build/${{ inputs.build-type }}
       run: |
         cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ runs.steps.vcpkg-setup.env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
+      shell: bash
 
     - name: Build
       run: |
         cmake --build "${{ runs.steps.cmake-config.env.CMAKE_BUILD_DIR }}"
+      shell: bash
 
     - name: Run test
       env:
@@ -41,3 +43,4 @@ runs:
         cd ${{ runs.steps.cmake-config.env.CMAKE_BUILD_DIR }}
         set CTEST_OUTPUT_ON_FAILURE=1
         ctest
+      shell: bash
