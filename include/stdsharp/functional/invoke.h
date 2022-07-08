@@ -22,14 +22,14 @@ namespace stdsharp::functional
     {
         template<::std::invocable Func>
             requires(Condition)
-        constexpr decltype(auto) operator()(Func&& func, const auto&) const
+        constexpr decltype(auto) operator()(Func&& func, const auto& = empty_invoke) const
             noexcept(concepts::nothrow_invocable<Func>)
         {
             return func();
         }
 
-        template<::std::invocable Func>
-        constexpr decltype(auto) operator()(const auto&, Func&& func) const
+        template<::std::invocable Func = empty_invoke_fn>
+        constexpr decltype(auto) operator()(const auto&, Func&& func = empty_invoke) const
             noexcept(concepts::nothrow_invocable<Func>)
         {
             return func();

@@ -4,8 +4,6 @@
 
 #ifndef NDEBUG
     #include <stdexcept>
-
-    #include <fmt/core.h>
 #endif
 
 #include "../functional/operations.h"
@@ -68,28 +66,9 @@ namespace stdsharp
                     !is_debug
             ) // clang-format on
         {
-            functional::make_sequenced_invocables(
-                [&]() requires(is_debug) //
-                {
-                    if(functional::invoke_r<bool>(cmp, max, min))
-                    {
-                        if constexpr(
-                            ::fmt::is_formattable<Min>::value && //
-                            ::fmt::is_formattable<Max>::value // clang-format off
-                        )
-                            throw ::std::invalid_argument{
-                                ::fmt::format(
-                                    "max value {} should not less than min value {}",
-                                    max,
-                                    min
-                                )
-                            };
-                        else throw ::std::invalid_argument{"max value should not less than min value"};
-                        // clang-format on
-                    }
-                },
-                functional::empty_invoke //
-                )();
+            if constexpr(is_debug)
+                if(functional::invoke_r<bool>(cmp, max, min))
+                    throw ::std::invalid_argument{"max value should not less than min value"};
 
             return !functional::invoke_r<bool>(cmp, t, min) &&
                 !functional::invoke_r<bool>(cmp, max, t);

@@ -7,14 +7,11 @@ SCENARIO("concurrent object", "[concurrent object]") // NOLINT
 
     struct my_mutex
     {
-        void lock() {}
-        void unlock() {}
-        void lock_shared() {}
-        bool try_lock_shared() // NOLINT(*-member-functions-to-static)
-        {
-            return true;
-        }
-        void unlock_shared() {}
+        static constexpr void lock() {}
+        static constexpr void unlock() {}
+        static constexpr void lock_shared() {}
+        static constexpr bool try_lock_shared() { return true; }
+        static constexpr void unlock_shared() {}
     };
 
     REQUIRE(default_initializable<concurrent_object<int>>);
