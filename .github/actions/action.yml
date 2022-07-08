@@ -36,7 +36,6 @@ runs:
       shell: bash
 
     - name: Run test
-      env:
       run: |
         cd ${{ steps.cmake-config.env.CMAKE_BUILD_DIR }}
         set CTEST_OUTPUT_ON_FAILURE=1
