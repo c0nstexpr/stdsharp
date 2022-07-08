@@ -24,16 +24,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Upgrade Linux packages
+      - name: Upgrade clang on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo apt update
           sudo apt upgrade clang
-          sudo apt install ninja-build
 
-      - name: Upgrade Windows packages
+      - name: Upgrade clang on Windows
         if: ${{ runner.os == 'Windows' }}
-        run: choco install ninja
+        working-directory: C:\Program Files (x86)\Microsoft Visual Studio\Installer
+        run: .\setup.exe update --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -q --norestart
+        shell: pwsh
 
       - uses: ./.github/actions
         with:

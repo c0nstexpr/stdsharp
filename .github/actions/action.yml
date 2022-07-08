@@ -5,39 +5,47 @@ inputs:
     description: cmake build type
     required: true
     default: debug
+  build-dir:
+    description: cmake build directory
+    required: false
+    default: build/${{ inputs.build-type }}
   config-option:
     description: cmake config option
     required: false
+  vcpkg-root:
+    description: vcpkg position
+    required: false
+    default: ${{ github.workspace }}/.vcpkg
 
 runs:
   using: composite
   steps:
     - name: Setup vcpkg
       id: vcpkg-setup
-      env:
-        VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
       uses: lukka/run-vcpkg@v10
       with:
         vcpkgGitCommitId: 9776b51b557bb2c20d79cf541f124c48d0c2c720
-        vcpkgDirectory: ${{ env.VCPKG_ROOT }}
+        vcpkgDirectory: ${{ inputs.vcpkg-root }}
+
+    - uses: seanmiddleditch/gha-setup-ninja@master
+      with:
+        destination: ${{ github.workspace }}/.ninja
 
     - uses: ilammy/msvc-dev-cmd@v1
       if: ${{ runner.os == 'Windows' }}
 
     - name: Install dependencies and generate project files
       id: cmake-config
-      env:
-        CMAKE_BUILD_DIR: build/${{ inputs.build-type }}
-      run: cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ steps.vcpkg-setup.env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
+      run: cmake -S "${{ github.workspace }}" -B "${{ inputs.build-dir }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ inputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
       shell: bash
 
     - name: Build
-      run: cmake --build "${{ steps.cmake-config.env.CMAKE_BUILD_DIR }}"
+      run: cmake --build "${{ inputs.build-dir }}"
       shell: bash
 
     - name: Run test
       run: |
-        cd ${{ steps.cmake-config.env.CMAKE_BUILD_DIR }}
+        cd ${{ inputs.build-dir }}
         set CTEST_OUTPUT_ON_FAILURE=1
         ctest
       shell: bash
