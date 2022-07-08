@@ -20,6 +20,8 @@ jobs:
         include:
           - os: ubuntu-22.04
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
+          - os: windows-latest
+            cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
 
     steps:
       - uses: actions/checkout@v2
