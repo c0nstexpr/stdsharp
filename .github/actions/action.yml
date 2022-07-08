@@ -8,7 +8,7 @@ inputs:
   build-dir:
     description: cmake build directory
     required: false
-    default: build/${{ inputs.build-type }}
+    default: build/${{ build-type }}
   config-option:
     description: cmake config option
     required: false
