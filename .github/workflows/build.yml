@@ -10,10 +10,10 @@ jobs:
   job:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
+    continue-on-error: false
 
     strategy:
       fail-fast: false
-      continue-on-error: false
       matrix:
         os: [ubuntu-22.04, windows-latest]
         build-type: [Debug, Release]
