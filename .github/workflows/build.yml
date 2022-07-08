@@ -10,23 +10,19 @@ jobs:
   job:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
-    env:
-      CMAKE_BUILD_DIR: build/
-      VCPKG_ROOT: vcpkg
-      VCPKG_ID: "9776b51b557bb2c20d79cf541f124c48d0c2c720"
 
     strategy:
       fail-fast: false
+      continue-on-error: false
       matrix:
         os: [ubuntu-22.04, windows-latest]
+        build-type: [Debug, Release]
         include:
           - os: ubuntu-22.04
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Upgrade Linux packages
         if: ${{ runner.os == 'Linux' }}
@@ -41,24 +37,7 @@ jobs:
           choco upgrade all
           choco install ninja
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v10
+      - uses: ./.github/actions/action.yml
         with:
-          vcpkgGitCommitId: ${{ env.VCPKG_ID }}
-
-      - uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ runner.os == 'Windows' }}
-
-      - name: Install dependencies and generate project files
-        run: |
-          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ${{ matrix.cmakeOptions }}
-
-      - name: Build
-        run: |
-          cmake --build "${{ env.CMAKE_BUILD_DIR }}"
-
-      - name: Run test
-        run: |
-          cd ${{ env.CMAKE_BUILD_DIR }}
-          set CTEST_OUTPUT_ON_FAILURE=1
-          ctest -C Debug
+          build-type: ${{ matrix.build-type }}
+          config-option: ${{ matrix.cmakeOptions }}

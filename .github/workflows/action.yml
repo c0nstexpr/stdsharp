@@ -1,0 +1,43 @@
+name: cmake build and test
+
+inputs:
+  build-type:
+    description: cmake build type
+    required: true
+    default: debug
+  config-option:
+    description: cmake config option
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Setup vcpkg
+      id: vcpkg-setup
+      env:
+        VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgGitCommitId: 9776b51b557bb2c20d79cf541f124c48d0c2c720
+        vcpkgDirectory: ${{ env.VCPKG_ROOT }}
+
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: ${{ runner.os == 'Windows' }}
+
+    - name: Install dependencies and generate project files
+      id: cmake-config
+      env:
+        CMAKE_BUILD_DIR: build/${{ inputs.build-type }}
+      run: |
+        cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ runs.steps.vcpkg-setup.env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
+
+    - name: Build
+      run: |
+        cmake --build "${{ runs.steps.cmake-config.env.CMAKE_BUILD_DIR }}"
+
+    - name: Run test
+      env:
+      run: |
+        cd ${{ runs.steps.cmake-config.env.CMAKE_BUILD_DIR }}
+        set CTEST_OUTPUT_ON_FAILURE=1
+        ctest
