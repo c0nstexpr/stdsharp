@@ -45,7 +45,5 @@ runs:
 
     - name: Run test
       working-directory: ${{ inputs.build-dir }}
-      run: |
-        set CTEST_OUTPUT_ON_FAILURE=1
-        ctest
+      run: ctest --output-on-failure -C ${{ inputs.build-type }} -T test
       shell: bash

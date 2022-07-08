@@ -69,17 +69,29 @@ SCENARIO("apply_t", "[type traits]") // NOLINT
     STATIC_REQUIRE(default_initializable<test_seq::apply_t<value_sequence>>);
 }
 
+namespace // Escape Catch2 special characters like '[' and ']'
+{
+    constexpr auto transform_functor_1 = [](const int v) mutable { return v + 1; };
+    constexpr auto transform_functor_2 = [](const int v) { return v + 42; };
+    constexpr auto transform_functor_3 = [](const size_t v) { return v + 42; };
+    constexpr auto transform_functor_4 = [](const int v) { return v + 6; };
+    constexpr auto transform_functor_5 = []<auto Size>(const array<char, Size>& str)
+    {
+        return str[0];
+    };
+}
+
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence transform",
     "[type traits]",
     ((auto... Functor), Functor...),
     identity{},
     ( //
-        [](const int v) mutable { return v + 1; },
-        [](const int v) { return v + 42; },
-        [](const size_t v) { return v + 42; },
-        [](const int v) { return v + 6; },
-        []<auto Size>(const array<char, Size>& str) { return str[0]; } // clang-format off
+        transform_functor_1,
+        transform_functor_2,
+        transform_functor_3,
+        transform_functor_4,
+        transform_functor_5 // clang-format off
     ) // clang-format on
 )
 {
