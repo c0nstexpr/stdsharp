@@ -19,6 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-latest]
+        include:
+          - os: ubuntu-22.04
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
 
     steps:
       - uses: actions/checkout@v2
@@ -48,7 +51,7 @@ jobs:
 
       - name: Install dependencies and generate project files
         run: |
-          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ${{ matrix.cmakeOptions }}
 
       - name: Build
         run: |
