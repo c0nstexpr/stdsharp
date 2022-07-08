@@ -37,7 +37,7 @@ jobs:
           choco upgrade all
           choco install ninja
 
-      - uses: ${{ github.workspace }}/.github/actions/action.yml
+      - uses: ./.github/actions/action.yml
         with:
           build-type: ${{ matrix.build-type }}
           config-option: ${{ matrix.cmakeOptions }}
