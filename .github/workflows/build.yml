@@ -30,12 +30,14 @@ jobs:
           sudo apt update
           sudo apt upgrade
           sudo apt install ninja-build
+        shell: bash
 
       - name: Upgrade Windows packages
         if: ${{ runner.os == 'Windows' }}
         run: |
           choco upgrade all
           choco install ninja
+        shell: pwsh
 
       - uses: ./.github/actions
         with:
