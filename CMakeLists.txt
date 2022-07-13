@@ -36,7 +36,7 @@ target_install(
 )
 
 install(
-    FILES "cmake/Utils.cmake" "cmake/Config.cmake.in"
+    FILES "cmake/Utils.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
 
