@@ -106,15 +106,19 @@ function(target_install target)
 
     if(NOT DEFINED ARG_BIN_DIR)
         get_target_property(ARG_BIN_DIR ${target} BINARY_DIR)
+        verbose_message("Use default binary dir ${ARG_BIN_DIR}")
     endif ()
 
     if(NOT DEFINED ARG_INC_DST)
-        set(ARG_INC_DST include)
+        set(ARG_INC_DST "./")
     endif ()
 
     if(NOT DEFINED ARG_VER)
         get_target_property(ARG_VER ${target} VERSION)
+        verbose_message("Use default version ${ARG_VER}")
     endif ()
+
+    set(ARG_VER_SUFFIX "-${ARG_VER}")
 
     install(
         TARGETS ${target}
@@ -136,11 +140,17 @@ function(target_install target)
         set(ARG_ARCH_INDEPENDENT YES)
     endif()
 
+    set(ARG_CMAKE_DIR "${target}${ARG_VER_SUFFIX}")
+
+    verbose_message("CMake files directory: ${ARG_CMAKE_DIR}")
+
     set(
         INSTALL_CMAKEDIR
-        "${CMAKE_INSTALL_LIBDIR}/cmake/${target}-${ARG_VER}"
+        "${CMAKE_INSTALL_LIBDIR}/cmake/${ARG_CMAKE_DIR}"
         CACHE PATH "CMake package config location relative to the install prefix"
     )
+
+    verbose_message("CMake files install directory: ${INSTALL_CMAKEDIR}")
 
     install(
         EXPORT ${target}Targets
