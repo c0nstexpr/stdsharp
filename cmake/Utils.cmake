@@ -138,7 +138,7 @@ function(target_install target)
 
     set(
         INSTALL_CMAKEDIR
-        "${CMAKE_INSTALL_LIBDIR}/cmake/${target}"
+        "${CMAKE_INSTALL_LIBDIR}/cmake/${target}-${ARG_VER}"
         CACHE PATH "CMake package config location relative to the install prefix"
     )
 
