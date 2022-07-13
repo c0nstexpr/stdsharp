@@ -113,7 +113,7 @@ function(target_install target)
     endif ()
 
     if(NOT DEFINED ARG_VER)
-        set(ARG_VER ${PROJECT_VERSION})
+        get_target_property(ARG_VER ${target} VERSION)
     endif ()
 
     install(
