@@ -15,7 +15,7 @@ An optimized and supplement library of fundamental features for standard c++. He
 
 - **C++ Compiler** - needs to support at least the **C++20** and **partial C++23** standard, i.e. _MSVC_, _GCC_, _Clang_
 
-- **Vcpkg or Other Suitable Dependencies Manager** - this project uses vcpkg manifest to maintain dependencies. check the
+- **Vcpkg or Other Suitable Dependencies Manager** - this project uses vcpkg manifest to maintain dependencies. Checkout the
   [vcpkg.json](vcpkg.json) for required dependencies
 
 ### Installing
@@ -27,7 +27,7 @@ An optimized and supplement library of fundamental features for standard c++. He
 
 ### Building the project
 
-Use cmake to build the project, check [github work flow](.github/workflows/build.yml) for details.
+Use cmake to build the project, checkout [github work flow](.github/workflows/build.yml) for details.
 
 ## License
 
