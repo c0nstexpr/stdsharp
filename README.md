@@ -4,7 +4,8 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f08b08ddd5e146c69b39ac5001f06c6a)](https://www.codacy.com/gh/BlurringShadow/stdsharp/dashboard?utm_source=github.com&utm_medium=referral&utm_content=BlurringShadow/stdsharp&utm_campaign=Badge_Grade)
 [![wakatime](https://wakatime.com/badge/github/BlurringShadow/stdsharp.svg)](https://wakatime.com/badge/github/BlurringShadow/stdsharp)
 
-Contains commonly used c++ code that not impl or well impl in other libs. This project aim to supplement the c++ standard library with fundamental features. Headers are arranged in accordance with the standard library structure.
+
+An optimized and supplement library of fundamental features for standard c++. Headers are arranged in accordance with the standard library structure.
 
 ## Getting Started
 
@@ -14,13 +15,13 @@ Contains commonly used c++ code that not impl or well impl in other libs. This p
 
 - **C++ Compiler** - needs to support at least the **C++20** and **partial C++23** standard, i.e. _MSVC_, _GCC_, _Clang_
 
-- **Vcpkg or Other Suitable Dependencies Manager** - this project use vcpkg manifest to maintain dependencies. check the
+- **Vcpkg or Other Suitable Dependencies Manager** - this project uses vcpkg manifest to maintain dependencies. check the
   [vcpkg.json](vcpkg.json) for required dependencies
 
 ### Installing
 
-- Clone the project to your source dir and use cmake to install.
-- Or add [my vcpkg registry](https://github.com/BlurringShadow/vcpkg-registry) to your vcpkg-configuration.json.
+- Clone the project and use cmake to install, or
+- Add [my vcpkg registry](https://github.com/BlurringShadow/vcpkg-registry) to your vcpkg-configuration.json.
 
 <br/>
 
