@@ -64,10 +64,10 @@ function(config_lib lib_name lib_type)
     )
 
     if(NOT DEFINED ARG_VER)
-        set(ARG_VER ${CMAKE_PROJECT_VERSION})
+        set(ARG_VER "${CMAKE_PROJECT_VERSION}")
     endif ()
 
-    set_target_properties(${lib_name} PROPERTIES VERSION ${ARG_VER})
+    set_target_properties(${lib_name} PROPERTIES VERSION "${ARG_VER}")
 endfunction()
 
 #
@@ -79,7 +79,7 @@ function(config_exe exe_name)
     list(JOIN ARG_EXE_SRC "\n    " exe_src_str)
     verbose_message("Found the following executable source files:\n    ${exe_src_str}")
 
-    add_executable(${exe_name} ${ARG_EXE_SRC})
+    add_executable(${exe_name} "${ARG_EXE_SRC}")
 
     if(NOT DEFINED ARG_VER)
         set(ARG_VER ${CMAKE_PROJECT_VERSION})
@@ -121,16 +121,16 @@ function(target_install target)
     install(
         TARGETS ${target}
         EXPORT ${target}Targets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${target}
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target}"
                 COMPONENT "${target}_Runtime"
                 NAMELINK_COMPONENT "${target}_Development"
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/${target}
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target}"
                 COMPONENT "${target}_Development"
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/${target}
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${target}"
                 COMPONENT "${target}_Runtime"
-        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}/${target}
+        BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}/${target}"
                COMPONENT "${target}_Runtime"
-        PUBLIC_HEADER DESTINATION ${ARG_INC_DST} COMPONENT "${target}_Development"
+        PUBLIC_HEADER DESTINATION "${ARG_INC_DST}" COMPONENT "${target}_Development"
         INCLUDES DESTINATION "${ARG_INC_DST}"
     )
 
@@ -139,13 +139,13 @@ function(target_install target)
     endif()
 
     set(${target}_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/${target}-${ARG_VER}")
-    set(${target}_INSTALL_CMAKEDIR ${${target}_INSTALL_CMAKEDIR} PARENT_SCOPE)
+    set(${target}_INSTALL_CMAKEDIR "${${target}_INSTALL_CMAKEDIR}" PARENT_SCOPE)
 
     verbose_message("CMake files install directory: ${${target}_INSTALL_CMAKEDIR}")
 
     install(
         EXPORT ${target}Targets
-        DESTINATION ${${target}_INSTALL_CMAKEDIR}
+        DESTINATION "${${target}_INSTALL_CMAKEDIR}"
         NAMESPACE ${ARG_NAMESPACE}
         COMPONENT "${target}_Development"
     )
@@ -159,41 +159,37 @@ function(target_install target)
 
     write_basic_package_version_file(
         "${version_config}"
-        VERSION ${ARG_VER}
-        COMPATIBILITY ${ARG_COMPATIBILITY} ${wbpvf_extra_args}
+        VERSION "${ARG_VER}"
+        COMPATIBILITY ${ARG_COMPATIBILITY}
+        ${wbpvf_extra_args}
     )
 
     if(ARG_CONFIG_FILE)
         configure_file("${ARG_CONFIG_FILE}" "${target_config}" @ONLY)
     else()
-        file(
-            CONFIGURE OUTPUT "${target_config}"
-            CONTENT "
-                include(CMakeFindDependencyMacro)
-
-                string(REGEX MATCHALL \"[^;]+\" SEPARATE_DEPENDENCIES \"@ARG_DEPENDENCIES@\")
-
-                foreach(dependency ${SEPARATE_DEPENDENCIES})
-                    string(REPLACE \" \" \";\" args \"${dependency}\")
-                    find_dependency(${args})
-                endforeach()
-
-                include(\"${CMAKE_CURRENT_LIST_DIR}/@target@Targets.cmake\")
-            "
+        file(CONFIGURE
+            OUTPUT "${target_config}"
+            CONTENT "include(CMakeFindDependencyMacro)
+foreach(dependency ${ARG_DEPENDENCIES})
+    find_dependency(\"$\{dependency}\")
+endforeach()
+include(\"$\{CMAKE_CURRENT_LIST_DIR}/${target}Targets.cmake\")"
+            @ONLY
+            ESCAPE_QUOTES
         )
     endif()
 
     install(
         FILES "${version_config}" "${target_config}"
-        DESTINATION ${${target}_INSTALL_CMAKEDIR}
+        DESTINATION "${${target}_INSTALL_CMAKEDIR}"
         COMPONENT "${target}_Development"
     )
 
     get_target_property(target_included ${target} INTERFACE_INCLUDE_DIRECTORIES)
 
     install(
-        DIRECTORY ${target_included}
-        DESTINATION ${ARG_INC_DST}
+        DIRECTORY "${target_included}"
+        DESTINATION "${ARG_INC_DST}"
         COMPONENT "${target}_Development"
     )
 endfunction()
