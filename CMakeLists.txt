@@ -5,7 +5,7 @@ include(cmake/Utils.cmake)
 #
 # Project details
 #
-project(stdsharp VERSION 0.2.7.4 LANGUAGES CXX)
+project(stdsharp VERSION 0.2.8 LANGUAGES CXX)
 
 config_lib(${PROJECT_NAME} INTERFACE STD 23)
 
@@ -37,7 +37,7 @@ target_install(
 
 install(
     FILES cmake/Utils.cmake
-    DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}
+    DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}/stdsharp
 )
 
 get_directory_property(is_subproject PARENT_DIRECTORY)

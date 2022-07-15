@@ -169,7 +169,9 @@ function(target_install target)
     else()
         file(CONFIGURE
             OUTPUT "${target_config}"
-            CONTENT "include(CMakeFindDependencyMacro)
+            CONTENT
+"include(CMakeFindDependencyMacro)
+list(APPEND CMAKE_MODULE_PATH \"$\{CMAKE_CURRENT_LIST_DIR}\")
 foreach(dependency ${ARG_DEPENDENCIES})
     find_dependency(\"$\{dependency}\")
 endforeach()
