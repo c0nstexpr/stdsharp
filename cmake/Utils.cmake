@@ -118,8 +118,6 @@ function(target_install target)
         verbose_message("Use default version ${ARG_VER}")
     endif ()
 
-    set(ARG_VER_SUFFIX "-${ARG_VER}")
-
     install(
         TARGETS ${target}
         EXPORT ${target}Targets
@@ -140,21 +138,14 @@ function(target_install target)
         set(ARG_ARCH_INDEPENDENT YES)
     endif()
 
-    set(ARG_CMAKE_DIR "${target}${ARG_VER_SUFFIX}")
+    set(${target}_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/${target}-${ARG_VER}")
+    set(${target}_INSTALL_CMAKEDIR ${${target}_INSTALL_CMAKEDIR} PARENT_SCOPE)
 
-    verbose_message("CMake files directory: ${ARG_CMAKE_DIR}")
-
-    set(
-        INSTALL_CMAKEDIR
-        "${CMAKE_INSTALL_LIBDIR}/cmake/${ARG_CMAKE_DIR}"
-        CACHE PATH "CMake package config location relative to the install prefix"
-    )
-
-    verbose_message("CMake files install directory: ${INSTALL_CMAKEDIR}")
+    verbose_message("CMake files install directory: ${${target}_INSTALL_CMAKEDIR}")
 
     install(
         EXPORT ${target}Targets
-        DESTINATION ${INSTALL_CMAKEDIR}
+        DESTINATION ${${target}_INSTALL_CMAKEDIR}
         NAMESPACE ${ARG_NAMESPACE}
         COMPONENT "${target}_Development"
     )
@@ -194,7 +185,7 @@ function(target_install target)
 
     install(
         FILES "${version_config}" "${target_config}"
-        DESTINATION ${INSTALL_CMAKEDIR}
+        DESTINATION ${${target}_INSTALL_CMAKEDIR}
         COMPONENT "${target}_Development"
     )
 

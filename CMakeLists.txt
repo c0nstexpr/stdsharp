@@ -36,8 +36,8 @@ target_install(
 )
 
 install(
-    FILES "cmake/Utils.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    FILES cmake/Utils.cmake
+    DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}
 )
 
 get_directory_property(is_subproject PARENT_DIRECTORY)
