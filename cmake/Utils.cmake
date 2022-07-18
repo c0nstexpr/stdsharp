@@ -204,4 +204,55 @@ function(target_enable_clang_tidy target)
     else()
         message(STATUS "clang-tidy not found")
     endif()
-endfunction(target_enable_clang_tidy)
+endfunction()
+
+function(target_coverage target_name)
+    message(STATUS "enable coverage for ${target_name}")
+    find_program(llvm_profdata "llvm-profdata")
+    find_program(llvm_cov "llvm-cov")
+
+    if(NOT EXISTS ${llvm_profdata} OR NOT EXISTS ${llvm_cov})
+        message(STATUS "llvm-profdata or llvm-cov not found.\n")
+        return()
+    endif()
+
+    message(STATUS "found llvm-profdata at: ${llvm_profdata}")
+    message(STATUS "found llvm-cov at: ${llvm_cov}")
+
+    cmake_parse_arguments(ARG "" "FORMAT" "" ${ARGN})
+
+    set(profraw_file_name ${target_name}.profraw)
+    set(options -fprofile-instr-generate -fcoverage-mapping)
+
+    target_compile_options(${target_name} PUBLIC ${options})
+    target_link_options(${target_name} PUBLIC ${options})
+
+    set(profdata_file_name ${target_name}.profdata)
+
+    add_custom_command(
+        OUTPUT ${profdata_file_name}
+        COMMAND ${llvm_profdata}
+        ARGS merge -sparse ${profraw_file_name}
+    )
+
+    if(${ARG_FORMAT} STREQUAL text)
+        set(coverage_file ${target_name}coverage.json)
+    elseif(${ARG_FORMAT} STREQUAL html)
+        set(coverage_file ${target_name}coverage.html)
+    elseif(${ARG_FORMAT} STREQUAL lcov)
+        set(coverage_file ${target_name}coverage.lcov)
+    else()
+        message(FATAL_ERROR "unknown format ${ARG_FORMAT}")
+    endif()
+
+    add_custom_command(
+        OUTPUT ${coverage_file}
+        DEPENDS ${profdata_file_name}
+        COMMAND ${llvm_cov}
+        ARGS export --format=${ARG_FORMAT} --object=$<TARGET_FILE:${target_name}> --instr-profile=${profdata_file_name} > ${coverage_file}
+        VERBATIM
+        USES_TERMINAL
+    )
+
+    add_custom_target(coverage DEPENDS ${coverage_file})
+endfunction()

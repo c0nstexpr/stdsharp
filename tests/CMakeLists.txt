@@ -50,3 +50,12 @@ if(${ENABLE_CLANG_TIDY})
 endif()
 
 catch_discover_tests(${PROJECT_NAME})
+
+#
+# Configure code coverage
+#
+option(ENABLE_CODE_COVERAGE "Enable code coverage" OFF)
+
+if(${ENABLE_CODE_COVERAGE})
+    target_coverage(${PROJECT_NAME} FORMAT lcov)
+endif()
