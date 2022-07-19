@@ -17,13 +17,13 @@ jobs:
       matrix:
         os: [ubuntu-22.04, windows-latest]
         build-type: [Debug, Release]
+        coverage-file-path: [.build/tests/stdsharpTestsCoverage.lcov]
         include:
           - os: ubuntu-22.04
             build-type: Release
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
           - os: ubuntu-22.04
-            build-type: Debug
-            coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
+            build-type: Debug 
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++ -DENABLE_CODE_COVERAGE=true
           - os: windows-latest
             cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
