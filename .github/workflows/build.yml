@@ -45,6 +45,8 @@ jobs:
           config-option: ${{ matrix.cmakeOptions }}
 
       - name: Upload code coverage report
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
         if: ${{ runner.os == 'Linux' }}
         run: bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ${{ inputs.build-dir }}/tests/stdsharpTestsCoverage.lcov
         shell: bash
