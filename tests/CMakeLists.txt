@@ -49,6 +49,7 @@ if(${ENABLE_CLANG_TIDY})
     target_enable_clang_tidy(${PROJECT_NAME})
 endif()
 
+add_test(${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 catch_discover_tests(${PROJECT_NAME})
 
 #

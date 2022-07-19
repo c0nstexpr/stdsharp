@@ -207,11 +207,16 @@ function(target_enable_clang_tidy target)
 endfunction()
 
 function(target_coverage target_name)
-    message(STATUS "enable coverage for ${target_name}")
+    message(STATUS "enable code coverage for ${target_name}")
     find_program(llvm_profdata "llvm-profdata")
     find_program(llvm_cov "llvm-cov")
 
-    if(NOT EXISTS ${llvm_profdata} OR NOT EXISTS ${llvm_cov})
+    if(NOT (${CMAKE_CXX_COMPILER_ID} MATCHES "(Apple)?[Cc]lang"))
+        message(STATUS "C++ Compiler should be Clang, ${CMAKE_CXX_COMPILER_ID} is not supported.\n")
+        return()
+    endif()
+
+    if(NOT EXISTS "${llvm_profdata}" OR NOT EXISTS "${llvm_cov}")
         message(STATUS "llvm-profdata or llvm-cov not found.\n")
         return()
     endif()
@@ -221,38 +226,32 @@ function(target_coverage target_name)
 
     cmake_parse_arguments(ARG "" "FORMAT" "" ${ARGN})
 
-    set(profraw_file_name ${target_name}.profraw)
     set(options -fprofile-instr-generate -fcoverage-mapping)
 
     target_compile_options(${target_name} PUBLIC ${options})
     target_link_options(${target_name} PUBLIC ${options})
 
-    set(profdata_file_name ${target_name}.profdata)
-
-    add_custom_command(
-        OUTPUT ${profdata_file_name}
-        COMMAND ${llvm_profdata}
-        ARGS merge -sparse ${profraw_file_name}
-    )
+    set(profdata_file_name "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.profdata")
 
     if(${ARG_FORMAT} STREQUAL text)
-        set(coverage_file ${target_name}coverage.json)
+        set(coverage_file json)
     elseif(${ARG_FORMAT} STREQUAL html)
-        set(coverage_file ${target_name}coverage.html)
+        set(coverage_file html)
     elseif(${ARG_FORMAT} STREQUAL lcov)
-        set(coverage_file ${target_name}coverage.lcov)
+        set(coverage_file lcov)
     else()
         message(FATAL_ERROR "unknown format ${ARG_FORMAT}")
     endif()
 
-    add_custom_command(
-        OUTPUT ${coverage_file}
-        DEPENDS ${profdata_file_name}
-        COMMAND ${llvm_cov}
-        ARGS export --format=${ARG_FORMAT} --object=$<TARGET_FILE:${target_name}> --instr-profile=${profdata_file_name} > ${coverage_file}
-        VERBATIM
+    set(coverage_file "${CMAKE_CURRENT_BINARY_DIR}/${target_name}Coverage.${coverage_file}")
+
+    add_custom_target(
+        ${target_name}CoverageReport
+        ALL
+        DEPENDS ${target_name}
+        COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${target_name}.profraw $<TARGET_FILE:${target_name}>
+        COMMAND "${llvm_profdata}" merge --sparse -o="${profdata_file_name}" ${target_name}.profraw
+        COMMAND "${llvm_cov}" export -format=${ARG_FORMAT} -object=$<TARGET_FILE:${target_name}> -instr-profile="${profdata_file_name}" > "${coverage_file}"
         USES_TERMINAL
     )
-
-    add_custom_target(coverage DEPENDS ${coverage_file})
 endfunction()
