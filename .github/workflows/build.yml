@@ -23,6 +23,7 @@ jobs:
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
           - os: ubuntu-22.04
             build-type: Debug
+            coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++ -DENABLE_CODE_COVERAGE=true
           - os: windows-latest
             cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
@@ -51,10 +52,16 @@ jobs:
         with:
           build-type: ${{ matrix.build-type }}
           config-option: ${{ matrix.cmakeOptions }}
+          
+      - name: Check coverage file existence
+        id: check_coverage_file
+        uses: andstor/file-existence-action@v1
+        with:
+          files: ${{ matrix.coverage-file-path }}
 
-      - name: Upload code coverage report
-        env:
-          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Debug' }}
-        run: bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r .build/tests/stdsharpTestsCoverage.lcov
-        shell: bash
+      - name: Codacy Coverage Reporter
+        uses: codacy/codacy-coverage-reporter-action@v1.3.0
+        if: steps.check_coverage_file.outputs.files_exists == 'true'
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: ${{ matrix.coverage-file-path }}
