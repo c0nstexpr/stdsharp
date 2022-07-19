@@ -19,6 +19,7 @@ jobs:
         build-type: [Debug, Release]
         include:
           - os: ubuntu-22.04
+            build-type: Release
             cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
           - os: ubuntu-22.04
             build-type: Debug
@@ -34,7 +35,11 @@ jobs:
         run: |
           sudo apt update
           sudo apt upgrade clang
-
+          
+      - name: Install Complete LLVM on Linux for cmake debug build
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Debug' }}
+        run: sudo apt install LLVM
+          
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}
         working-directory: C:\Program Files (x86)\Microsoft Visual Studio\Installer
