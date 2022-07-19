@@ -19,7 +19,7 @@ jobs:
         build-type: [Debug, Release]
         include:
           - os: ubuntu-22.04
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++ -DENABLE_CODE_COVERAGE=true
           - os: windows-latest
             cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
 
@@ -43,3 +43,8 @@ jobs:
         with:
           build-type: ${{ matrix.build-type }}
           config-option: ${{ matrix.cmakeOptions }}
+
+      - name: Upload code coverage report
+        if: ${{ runner.os == 'Linux' }}
+        run: bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ${{ inputs.build-dir }}/tests/stdsharpTestsCoverage.lcov
+        shell: bash
