@@ -65,3 +65,17 @@ jobs:
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: ${{ matrix.coverage-file-path }}
+          
+      - name: Generate clang-tidy report
+        if: steps.check_coverage_file.outputs.files_exists == 'true'
+        working-directory: .build
+        run: clang-tidy >| clang-tidy-report.txt
+          
+      - name: Codacy Analysis
+        if: steps.check_coverage_file.outputs.files_exists == 'true'
+        uses: codacy/codacy-analysis-cli-action@master
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          upload: true
+          run-docker-tools: false
+          clang-tidy-output: '.build/clang-tidy-report.txt' 
