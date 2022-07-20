@@ -42,7 +42,7 @@ runs:
 
     - name: Build
       run: |
-        cmake --build "${{ inputs.build-dir }}" >| "${{ inputs.build-dir }}/cmake-build.log"
+        cmake --build "${{ inputs.build-dir }}" | tee "${{ inputs.build-dir }}/cmake-build.log"
         cat "${{ inputs.build-dir }}/cmake-build.log"
       shell: bash
 
