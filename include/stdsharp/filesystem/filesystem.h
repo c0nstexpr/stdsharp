@@ -63,7 +63,7 @@ namespace stdsharp::filesystem
         template<auto N, auto D>
         static constexpr auto cast_from(const auto factor, const ::std::ratio<N, D>) noexcept
         {
-            return static_cast<rep>(factor * Denom * N / (Num * D));
+            return static_cast<rep>(factor * Denom * N / (Num * D)); // NOLINT(*-integer-division)
         }
 
     public:

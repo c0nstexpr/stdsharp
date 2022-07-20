@@ -46,6 +46,7 @@ option(ENABLE_CLANG_TIDY "Enable clang-tidy" ON)
 
 if(${ENABLE_CLANG_TIDY})
     message(STATUS "clang-tidy is enabled")
+
     target_enable_clang_tidy(${PROJECT_NAME})
 endif()
 

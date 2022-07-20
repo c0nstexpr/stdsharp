@@ -13,7 +13,7 @@ using namespace fmt;
 using namespace stdsharp;
 
 template<typename T>
-constexpr auto type() noexcept
+constexpr ::std::string_view type() noexcept
 {
     return __func__;
 }
