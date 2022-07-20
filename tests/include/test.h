@@ -15,5 +15,5 @@ using namespace stdsharp;
 template<typename T>
 constexpr ::std::string_view type() noexcept
 {
-    return __func__;
+    return __func__; // NOLINT
 }
