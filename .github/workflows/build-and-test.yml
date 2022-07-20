@@ -1,0 +1,67 @@
+name: Build-and-Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  job:
+    name: ${{ matrix.os }} ${{ matrix.build-type }} build
+    runs-on: ${{ matrix.os }}
+    continue-on-error: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
+        build-type: [Debug, Release]
+        coverage-file-path: [.build/tests/stdsharpTestsCoverage.lcov]
+        include:
+          - os: ubuntu-22.04
+            build-type: Release
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
+          - os: ubuntu-22.04
+            build-type: Debug
+            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++ -DENABLE_CODE_COVERAGE=true
+          - os: windows-latest
+            cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Upgrade Clang on Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get upgrade clang
+
+      - name: Install Complete LLVM on Linux for cmake debug build
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.build-type == 'Debug' }}
+        run: sudo apt-get install llvm
+
+      - name: Upgrade MSVC on Windows
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: C:\Program Files (x86)\Microsoft Visual Studio\Installer
+        run: .\setup.exe update --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -q --norestart --installWhileDownloading
+        shell: pwsh
+
+      - name: CMake build and test
+        uses: ./.github/actions
+        with:
+          build-type: ${{ matrix.build-type }}
+          config-option: ${{ matrix.cmakeOptions }}
+
+      - name: Check coverage file existence
+        id: check_coverage_file
+        uses: andstor/file-existence-action@v1
+        with:
+          files: ${{ matrix.coverage-file-path }}
+
+      - name: Codacy Coverage Reporter
+        uses: codacy/codacy-coverage-reporter-action@v1.3.0
+        if: steps.check_coverage_file.outputs.files_exists == 'true'
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: ${{ matrix.coverage-file-path }}
