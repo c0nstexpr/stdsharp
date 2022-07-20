@@ -41,7 +41,7 @@ runs:
       shell: bash
 
     - name: Build
-      run: cmake --build "${{ inputs.build-dir }}" |> "${{ inputs.build-dir }}/cmake-build.log"
+      run: cmake --build "${{ inputs.build-dir }}" >| "${{ inputs.build-dir }}/cmake-build.log"
       shell: bash
 
     - name: Run test
