@@ -1,4 +1,5 @@
 name: cmake build and test
+description: use cmake to build project and run ctest
 
 inputs:
   build-type:
@@ -40,7 +41,7 @@ runs:
       shell: bash
 
     - name: Build
-      run: cmake --build "${{ inputs.build-dir }}"
+      run: cmake --build "${{ inputs.build-dir }}" |> "${{ inputs.build-dir }}/cmake-build.log"
       shell: bash
 
     - name: Run test
