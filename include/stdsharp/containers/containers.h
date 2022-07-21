@@ -193,6 +193,28 @@ namespace stdsharp::containers
             template<typename V, typename W>
             using type = InsertReturnT<V, W>;
         };
+
+        template<typename ContainerType>
+        concept container_insertable = requires(
+            ContainerType instance,
+            typename ContainerType::value_type value,
+            const decltype(value)& const_value,
+            typename ContainerType::iterator iter,
+            typename ContainerType::const_iterator const_iter //
+        )
+        {
+            requires !container_move_insertable<ContainerType> || requires
+            { // clang-format off
+                { instance.insert(const_iter, ::std::move(value)) } ->
+                    ::std::same_as<decltype(iter)>;
+
+                requires !container_copy_insertable<decltype(instance)> || requires
+                {
+                    { instance.insert(const_iter, const_value) } ->
+                        ::std::same_as<decltype(iter)>; // clang-format on
+                };
+            };
+        };
     }
 
     template<typename Iterator, typename Node>
@@ -495,7 +517,8 @@ namespace stdsharp::containers
 
             requires !container_move_insertable<decltype(instance)> || requires
             { // clang-format off
-                { instance.insert(const_iter, ::std::move(value)) } -> ::std::same_as<decltype(iter)>;
+                { instance.insert(const_iter, ::std::move(value)) } ->
+                    ::std::same_as<decltype(iter)>;
 
                 requires !container_copy_insertable<decltype(instance)> || requires
                 {
