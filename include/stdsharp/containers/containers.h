@@ -378,6 +378,14 @@ namespace stdsharp::containers
 
             { instance.clear() } -> ::std::same_as<void>; // clang-format on
         };
+
+        template<typename Container>
+        concept multikey_associative = requires(
+            ::std::decay_t<Container> instance, typename decltype(instance)::node_type node)
+        { // clang-format off
+            { instance.insert(::std::move(node)) } ->
+                ::std::same_as<typename decltype(instance)::iterator>; // clang-format on
+        };
     }
 
     template<typename Container>
@@ -570,11 +578,8 @@ namespace stdsharp::containers
         associative_container<Container> && details::unique_associative<Container>;
 
     template<typename Container>
-    concept multikey_associative_container = associative_container<Container> &&
-        requires(::std::decay_t<Container> instance, typename decltype(instance)::node_type node)
-    { // clang-format off
-        { instance.insert(::std::move(node)) } ->::std::same_as<typename decltype(instance)::iterator>;
-    }; // clang-format on
+    concept multikey_associative_container =
+        associative_container<Container> && details::multikey_associative<Container>;
 
     template<typename Container>
     concept unordered_associative_container = requires
@@ -702,11 +707,8 @@ namespace stdsharp::containers
         unordered_associative_container<Container> && details::unique_associative<Container>;
 
     template<typename Container>
-    concept multikey_unordered_associative_container = unordered_associative_container<Container> &&
-        requires(::std::decay_t<Container> instance, typename decltype(instance)::node_type node)
-    { // clang-format off
-        { instance.insert(::std::move(node)) } ->::std::same_as<typename decltype(instance)::iterator>;
-    }; // clang-format on
+    concept multikey_unordered_associative_container =
+        unordered_associative_container<Container> && details::multikey_associative<Container>;
 
     template<typename Predicate, typename Container>
     concept container_predicatable =

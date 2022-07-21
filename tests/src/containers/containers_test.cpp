@@ -39,7 +39,7 @@ TEMPLATE_TEST_CASE( // NOLINT
         {
             STATIC_REQUIRE(!containers::sequence_container<set>);
             STATIC_REQUIRE(!containers::unique_associative_container<set>);
-            STATIC_REQUIRE(containers::associative_container<set>);
+            STATIC_REQUIRE(containers::multikey_associative_container<set>);
             STATIC_REQUIRE(!containers::unordered_associative_container<set>);
         }
     }
@@ -63,7 +63,7 @@ TEMPLATE_TEST_CASE( // NOLINT
             STATIC_REQUIRE(!containers::sequence_container<map>);
             STATIC_REQUIRE(!containers::associative_container<map>);
             STATIC_REQUIRE(!containers::unique_unordered_associative_container<map>);
-            STATIC_REQUIRE(containers::unordered_associative_container<map>);
+            STATIC_REQUIRE(containers::multikey_unordered_associative_container<map>);
         }
     }
 }
