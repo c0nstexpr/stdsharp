@@ -324,6 +324,60 @@ namespace stdsharp::containers
                 insert_return_type<typename decltype(instance)::iterator, decltype(node)>
             >; // clang-format on
         };
+
+        template<typename Container>
+        concept associative_like_container = container<Container> && requires(
+            Container instance,
+            const Container& const_instance,
+            typename Container::key_type key,
+            typename Container::const_reference const_ref,
+            typename Container::value_type value,
+            typename Container::node_type node,
+            typename Container::iterator iter,
+            typename Container::const_iterator const_iter,
+            typename Container::size_type size,
+            ::std::initializer_list<decltype(value)> v_list //
+        )
+        {
+            requires details::container_insertable<Container>; // clang-format off
+
+            requires !container_emplace_constructible<Container, decltype(value)> ||
+                    requires
+                    {
+                        { instance.emplace_hint(const_iter, const_ref) } ->
+                            ::std::same_as<decltype(iter)>;
+                        { instance.insert(const_iter, const_iter) } ->
+                            ::std::same_as<void>;
+                        { instance.insert(v_list) } -> ::std::same_as<void>;
+                    };
+
+            { instance.extract(const_iter) } -> ::std::same_as<decltype(node)>;
+            { instance.extract(key) } -> ::std::same_as<decltype(node)>;
+
+            { instance.erase(key) } -> ::std::same_as<decltype(size)>;
+
+            { instance.find(key) } -> ::std::same_as<decltype(iter)>;
+            { const_instance.find(key) } -> ::std::same_as<decltype(const_iter)>;
+
+            { const_instance.count(key) } -> ::std::same_as<decltype(size)>;
+
+            { const_instance.contains(key) } -> ::std::same_as<bool>;
+
+            { instance.equal_range(key) } ->
+                ::std::same_as<::std::pair<decltype(iter), decltype(iter)>>;
+            { const_instance.equal_range(key) } ->
+                ::std::same_as<::std::pair<decltype(const_iter), decltype(const_iter)>>;
+
+            { instance.insert(const_iter, ::std::move(node)) } -> ::std::same_as<decltype(iter)>;
+
+            { instance.erase(const_iter) } -> ::std::same_as<decltype(iter)>;
+            { instance.erase(const_iter, const_iter) } -> ::std::same_as<decltype(iter)>;
+            { instance.erase(iter) } -> ::std::same_as<decltype(iter)>;
+
+            { instance.merge(instance) } -> ::std::same_as<void>;
+
+            { instance.clear() } -> ::std::same_as<void>; // clang-format on
+        };
     }
 
     template<typename Container>
@@ -428,30 +482,22 @@ namespace stdsharp::containers
                 { instance.clear() } -> ::std::same_as<void>; // clang-format on
             };
 
-            requires !container_move_insertable<decltype(instance)> || requires
-            { // clang-format off
-                { instance.insert(const_iter, ::std::move(value)) } ->
-                    ::std::same_as<decltype(iter)>;
+            requires details::container_insertable<decltype(instance)>;
 
-                requires !container_copy_insertable<decltype(instance)> || requires
-                {
-                    { instance.insert(const_iter, const_value) } ->
-                        ::std::same_as<decltype(iter)>; // clang-format on
+            requires !(
+                container_copy_insertable<decltype(instance)> &&
+                concepts::copy_assignable<decltype(value)> // clang-format off
+            ) ||
+                requires(decltype(size) n)
+            {
+                requires ::std::assignable_from<
+                    decltype(instance)&,
+                    ::std::initializer_list<decltype(value)>
+                >;
 
-                    requires !concepts::copy_assignable<decltype(value)> ||
-                        requires(decltype(size) n)
-                    {
-                        requires ::std::assignable_from<
-                            decltype(instance)&,
-                            ::std::initializer_list<decltype(value)> // clang-format off
-                        >;
+                { instance.insert(const_iter, n, const_value) } -> ::std::same_as<decltype(iter)>;
 
-                        { instance.insert(const_iter, n, const_value) } ->
-                             ::std::same_as<decltype(iter)>;
-
-                        { instance.assign(n, const_value) } -> ::std::same_as<void>;
-                    };
-                };
+                { instance.assign(n, const_value) } -> ::std::same_as<void>;
             };
 
             { instance.front() } -> ::std::same_as<typename decltype(instance)::reference>;
@@ -465,7 +511,7 @@ namespace stdsharp::containers
         container<Container> && ::std::ranges::contiguous_range<::std::decay_t<Container>>;
 
     template<typename Container>
-    concept associative_container = container<Container> && requires
+    concept associative_container = requires
     {
         typename ::std::decay_t<Container>;
         requires requires(
@@ -483,6 +529,8 @@ namespace stdsharp::containers
             ::std::initializer_list<decltype(value)> v_list //
         )
         {
+            requires details::associative_like_container<decltype(instance)>;
+
             requires ::std::copyable<decltype(key_cmp)>;
             requires ::std::copyable<decltype(value_cmp)>;
             requires ::std::predicate<decltype(key_cmp), decltype(key), decltype(key)>;
@@ -505,55 +553,15 @@ namespace stdsharp::containers
                         decltype(const_iter),
                         decltype(key_cmp) // clang-format off
                     > &&
-                    ::std::constructible_from<decltype(instance), decltype(v_list), decltype(key_cmp)> &&
-                    requires
-                    {
-                        { instance.insert(v_list) } -> ::std::same_as<void>;
-                        { instance.emplace_hint(const_iter, ::std::as_const(value)) } ->
-                            ::std::same_as<decltype(iter)>;
-
-                        { instance.insert(const_iter, const_iter) } -> ::std::same_as<void>;
-                    }; // clang-format on
-
-            requires !container_move_insertable<decltype(instance)> || requires
-            { // clang-format off
-                { instance.insert(const_iter, ::std::move(value)) } ->
-                    ::std::same_as<decltype(iter)>;
-
-                requires !container_copy_insertable<decltype(instance)> || requires
-                {
-                    { instance.insert(const_iter, ::std::as_const(value)) } ->
-                        ::std::same_as<decltype(iter)>;
-                };
-            };
+                    ::std::constructible_from<decltype(instance), decltype(v_list), decltype(key_cmp)>;
 
             { instance.key_comp() } -> ::std::same_as<decltype(key_cmp)>;
             { instance.value_comp() } -> ::std::same_as<decltype(value_cmp)>;
 
-            { instance.extract(const_iter) } -> ::std::same_as<decltype(node)>;
-            { instance.extract(key) } -> ::std::same_as<decltype(node)>;
-
-            { instance.erase(key) } -> ::std::same_as<decltype(size)>;
-            { instance.find(key) } -> ::std::same_as<decltype(iter)>;
-            { const_instance.find(key) } -> ::std::same_as<decltype(const_iter)>;
-            { const_instance.count(key) } -> ::std::same_as<decltype(size)>;
-            { const_instance.contains(key) } -> ::std::same_as<bool>;
             { instance.lower_bound(key) } -> ::std::same_as<decltype(iter)>;
             { const_instance.lower_bound(key) } -> ::std::same_as<decltype(const_iter)>;
             { instance.upper_bound(key) } -> ::std::same_as<decltype(iter)>;
-            { const_instance.upper_bound(key) } -> ::std::same_as<decltype(const_iter)>;
-            { instance.equal_range(key) } -> ::std::same_as<::std::pair<decltype(iter), decltype(iter)>>;
-            { const_instance.equal_range(key) } ->
-                ::std::same_as<::std::pair<decltype(const_iter), decltype(const_iter)>>;
-
-            { instance.insert(const_iter, ::std::move(node)) } -> ::std::same_as<decltype(iter)>;
-
-            { instance.erase(const_iter) } -> ::std::same_as<decltype(iter)>;
-            { instance.erase(const_iter, const_iter) } -> ::std::same_as<decltype(iter)>;
-            { instance.erase(iter) } -> ::std::same_as<decltype(iter)>;
-
-            { instance.merge(instance) } -> ::std::same_as<void>;
-            { instance.clear() } -> ::std::same_as<void>; // clang-format on
+            { const_instance.upper_bound(key) } -> ::std::same_as<decltype(const_iter)>; // clang-format on
         };
     };
 
@@ -569,7 +577,7 @@ namespace stdsharp::containers
     }; // clang-format on
 
     template<typename Container>
-    concept unordered_associative_container = container<Container> && requires
+    concept unordered_associative_container = requires
     {
         typename ::std::decay_t<Container>;
         requires requires(
@@ -592,21 +600,24 @@ namespace stdsharp::containers
             ::std::initializer_list<decltype(value)> v_list //
         )
         {
-            requires details::iterator_identical<decltype(iter), decltype(local_iter)> &&
-                details::iterator_identical<decltype(const_iter), decltype(const_local_iter)> &&
-                ::std::copyable<decltype(key_equal)> && //
-                ::std::copyable<decltype(hasher)> && //
-                ::std::predicate<decltype(key_equal), decltype(key), decltype(key)> &&
-                concepts::invocable_r<decltype(hasher), ::std::size_t, decltype(key)> &&
-                node_handle<decltype(node)> &&( //
-                    ::std::default_initializable<decltype(key_equal)> ?
-                        (!::std::default_initializable<decltype(hasher)> ||
-                         ::std::constructible_from<decltype(instance), decltype(size)>) :
-                        ::std::constructible_from<
-                            decltype(instance),
-                            decltype(size),
-                            decltype(hasher)> //
-                    ) && //
+            requires details::associative_like_container<decltype(instance)>;
+
+            requires details::iterator_identical<decltype(iter), decltype(local_iter)>;
+            requires details::iterator_identical<decltype(const_iter), decltype(const_local_iter)>;
+            requires ::std::copyable<decltype(key_equal)>;
+            requires ::std::copyable<decltype(hasher)>;
+            requires ::std::predicate<decltype(key_equal), decltype(key), decltype(key)>;
+            requires concepts::invocable_r<decltype(hasher), ::std::size_t, decltype(key)>;
+            requires node_handle<decltype(node)>;
+            requires( //
+                ::std::default_initializable<decltype(key_equal)> ?
+                    (!::std::default_initializable<decltype(hasher)> ||
+                     ::std::constructible_from<decltype(instance), decltype(size)>) :
+                    ::std::constructible_from<
+                        decltype(instance),
+                        decltype(size),
+                        decltype(hasher)> //
+                ) && //
                 ::std::constructible_from<
                     decltype(instance),
                     decltype(size),
@@ -625,18 +636,19 @@ namespace stdsharp::containers
             requires !container_emplace_constructible<decltype(instance), decltype(value)> ||
                 ( //
                     ::std::default_initializable<decltype(key_equal)> ?
-                        (!::std::default_initializable<decltype(hasher)> ||
-                         ::std::constructible_from<decltype(instance), decltype(size)> &&
-                             ::std::constructible_from<
-                                 decltype(instance),
-                                 decltype(const_iter),
-                                 decltype(const_iter),
-                                 decltype(size) // clang-format off
-                          > && // clang-format on
-                             ::std::constructible_from<
-                                 decltype(instance),
-                                 decltype(v_list),
-                                 decltype(size)>) :
+                        !::std::default_initializable<decltype(hasher)> ||
+                            ::std::constructible_from<decltype(instance), decltype(size)> &&
+                                ::std::constructible_from<
+                                    decltype(instance),
+                                    decltype(const_iter),
+                                    decltype(const_iter),
+                                    decltype(size) // clang-format off
+                                > && // clang-format on
+                                ::std::constructible_from<
+                                    decltype(instance),
+                                    decltype(v_list),
+                                    decltype(size) // clang-format off
+                                > : // clang-format on
                         ::std::constructible_from<
                             decltype(instance),
                             decltype(size),
@@ -655,67 +667,33 @@ namespace stdsharp::containers
                                 decltype(size),
                                 decltype(hasher) // clang-format off
                             >
-                    ) &&
-                    requires
-                    {
-                        { instance.emplace_hint(const_iter, const_ref) } ->
-                            ::std::same_as<decltype(iter)>;
-                        { instance.insert(const_iter, const_iter) } ->
-                            ::std::same_as<void>;
-                        { instance.insert(v_list) } -> ::std::same_as<void>;
-                    };
-
-            requires !container_move_insertable<decltype(instance)> || requires
-            {
-                { instance.insert(const_iter, ::std::move(value)) } ->
-                    ::std::same_as<decltype(iter)>;
-
-                requires container_copy_insertable<decltype(instance)> || requires
-                {
-                    { instance.insert(const_iter, ::std::as_const(value)) } ->
-                        ::std::same_as<decltype(iter)>;
-                };
-            }; //
+                );
 
             { instance.key_eq() } -> ::std::same_as<decltype(key_equal)>;
             { instance.hash_function() } -> ::std::same_as<decltype(hasher)>;
 
-            { instance.extract(const_iter) } -> ::std::same_as<decltype(node)>;
-            { instance.extract(key) } -> ::std::same_as<decltype(node)>;
-            { instance.erase(key) } -> ::std::same_as<decltype(size)>;
-            { instance.find(key) } -> ::std::same_as<decltype(iter)>;
-            { const_instance.find(key) } -> ::std::same_as<decltype(const_iter)>;
-            { const_instance.count(key) } -> ::std::same_as<decltype(size)>;
             { const_instance.bucket(key) } -> ::std::same_as<decltype(size)>;
-            { const_instance.contains(key) } -> ::std::same_as<bool>;
-            { instance.equal_range(key) } -> ::std::same_as<::std::pair<decltype(iter), decltype(iter)>>;
-            { const_instance.equal_range(key) } ->
-                ::std::same_as<::std::pair<decltype(const_iter), decltype(const_iter)>>;
-
-            { instance.insert(const_iter, ::std::move(node)) } -> ::std::same_as<decltype(iter)>;
-            { instance.erase(const_iter) } -> ::std::same_as<decltype(iter)>;
-            { instance.erase(const_iter, const_iter) } -> ::std::same_as<decltype(iter)>;
-
-            { instance.erase(iter) } -> ::std::same_as<decltype(iter)>;
-            { instance.merge(instance) } -> ::std::same_as<void>;
-            { instance.clear() } -> ::std::same_as<void>;
-
             { const_instance.bucket_count() } -> ::std::same_as<decltype(size)>;
             { const_instance.max_bucket_count() } -> ::std::same_as<decltype(size)>;
-            { const_instance.load_factor() } -> ::std::same_as<float>;
+
+            { instance.max_load_factor(0.0f) } -> ::std::same_as<void>;
+
+            { const_instance.load_factor()  } -> ::std::same_as<float>;
             { const_instance.max_load_factor() } -> ::std::same_as<float>;
 
             { const_instance.bucket_size(size) } -> ::std::same_as<decltype(size)>;
+
+            { instance.rehash(size) } -> ::std::same_as<void>;
+
+            { instance.reserve(size) } -> ::std::same_as<void>;
+
             { instance.begin(size) } -> ::std::same_as<decltype(local_iter)>;
             { instance.end(size) } -> ::std::same_as<decltype(local_iter)>;
-            { instance.rehash(size) } -> ::std::same_as<void>;
-            { instance.reserve(size) } -> ::std::same_as<void>;
+
             { const_instance.begin(size) } -> ::std::same_as<decltype(const_local_iter)>;
             { const_instance.end(size) } -> ::std::same_as<decltype(const_local_iter)>;
             { const_instance.cbegin(size) } -> ::std::same_as<decltype(const_local_iter)>;
-            { const_instance.cend(size) } -> ::std::same_as<decltype(const_local_iter)>;
-
-            { instance.max_load_factor(float{}) } -> ::std::same_as<void>; // clang-format on
+            { const_instance.cend(size) } -> ::std::same_as<decltype(const_local_iter)>; // clang-format on
         };
     };
 
