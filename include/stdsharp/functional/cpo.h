@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "../concepts/concepts.h"
+#include "../type_traits/core_traits.h"
 
 namespace stdsharp::functional
 {
@@ -47,4 +48,28 @@ namespace stdsharp::functional
 
     template<typename... Args>
     concept cpo_nothrow_invocable = concepts::nothrow_invocable<cpo_invoke_fn, Args...>;
+
+    template<typename CPO, ::std::default_initializable DefaultImpl>
+    struct cpo_fn
+    {
+        template<typename... Args>
+            requires requires
+            {
+                requires !cpo_invocable<CPO, Args...>;
+                requires ::std::invocable<DefaultImpl, Args...>;
+            }
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(concepts::nothrow_invocable<DefaultImpl, Args...>)
+        {
+            return DefaultImpl{}(::std ::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires cpo_invocable<CPO, Args...>
+        constexpr decltype(auto) operator()(Args&&... args) const
+            noexcept(cpo_nothrow_invocable<CPO, Args...>)
+        {
+            return cpo_invoke(static_cast<const CPO&>(*this), ::std ::forward<Args>(args)...);
+        }
+    };
 }

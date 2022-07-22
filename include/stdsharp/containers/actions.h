@@ -25,12 +25,8 @@ namespace stdsharp::actions
         template<typename Container>
         concept associative_like_req =
             associative_container<Container> || unordered_associative_container<Container>;
-    }
 
-    inline constexpr struct emplace_fn
-    {
-    private:
-        struct impl
+        struct emplace_impl
         {
             template<typename... Args>
             constexpr decltype(auto) operator()(
@@ -49,102 +45,71 @@ namespace stdsharp::actions
                 return container.emplace(::std::forward<Args>(args)...);
             }
         };
+    }
 
-    public:
-        template<typename... Args>
-            requires(
-                !functional::cpo_invocable<emplace_fn, Args...> &&
-                ::std::invocable<impl, Args...> //
-            )
-        constexpr decltype(auto) operator()(Args&&... args) const //
-        {
-            return impl{}(::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires functional::cpo_invocable<emplace_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
-        }
-    } emplace{};
+    inline constexpr struct emplace_fn : functional::cpo_fn<emplace_fn, details::emplace_impl>
+    {
+    } emplace;
 
     namespace details
     {
         void erase(auto&&, auto&&) = delete;
 
-        struct erase_fn
+        struct erase_impl
         {
-        private:
-            struct impl
+            template<containers::sequence_container Container>
+                requires containers::container_erasable<Container>
+            constexpr auto operator()(
+                Container& container,
+                const ::std::equality_comparable_with<
+                    typename ::std::decay_t<Container>::value_type> auto& value //
+            ) const requires requires
             {
-                template<containers::sequence_container Container>
-                    requires containers::container_erasable<Container>
-                constexpr auto operator()(
-                    Container& container,
-                    const ::std::equality_comparable_with<
-                        typename ::std::decay_t<Container>::value_type> auto& value //
-                ) const requires requires
-                {
-                    erase(container, value);
-                }
-                {
-                    return erase(container, value);
-                }
+                erase(container, value);
+            }
+            {
+                return erase(container, value);
+            }
 
-                template<details::associative_like_req Container>
-                    requires containers::container_erasable<Container>
-                constexpr auto operator()(
-                    Container& container,
-                    const ::std::equality_comparable_with<
-                        typename ::std::decay_t<Container>::key_type> auto& key //
-                ) const
-                {
-                    return container.erase(key);
-                }
+            template<details::associative_like_req Container>
+                requires containers::container_erasable<Container>
+            constexpr auto operator()(
+                Container& container,
+                const ::std::equality_comparable_with<
+                    typename ::std::decay_t<Container>::key_type> auto& key //
+            ) const
+            {
+                return container.erase(key);
+            }
 
-                template<
-                    typename Container, // clang-format off
-                    ::std::convertible_to<ranges::const_iterator_t<Container>>... ConstIter
-                > // clang-format on
-                    requires details::container_erasable<Container> && requires
-                    {
-                        requires(
-                            containers::sequence_container<Container> || // clang-format off
-                            details::associative_like_req<Container> // clang-format on
-                        );
-                        requires sizeof...(ConstIter) <= 1;
-                    }
-                constexpr auto operator()(
-                    Container& container,
-                    const decltype(container.cbegin()) const_iter_begin,
-                    const ConstIter... const_iter_end //
-                ) const
+            template<
+                typename Container, // clang-format off
+                ::std::convertible_to<ranges::const_iterator_t<Container>>... ConstIter
+            > // clang-format on
+                requires details::container_erasable<Container> && requires
                 {
-                    return container.erase(
-                        const_iter_begin,
-                        static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
+                    requires(
+                        containers::sequence_container<Container> || // clang-format off
+                        details::associative_like_req<Container> // clang-format on
                     );
+                    requires sizeof...(ConstIter) <= 1;
                 }
-            };
-
-        public:
-            template<typename... Args>
-                requires(
-                    ::std::invocable<impl, Args...> &&
-                    !functional::cpo_invocable<erase_fn, Args...> //
-                )
-            constexpr decltype(auto) operator()(Args&&... args) const
+            constexpr auto operator()(
+                Container& container,
+                const decltype(container.cbegin()) const_iter_begin,
+                const ConstIter... const_iter_end //
+            ) const
             {
-                return impl{}(::std::forward<Args>(args)...);
+                return container.erase(
+                    const_iter_begin,
+                    static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
+                );
             }
+        };
 
-            template<typename... Args>
-                requires functional::cpo_invocable<erase_fn, Args...>
-            constexpr decltype(auto) operator()(Args&&... args) const
-            {
-                return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
-            }
+
+        struct erase_fn : functional::cpo_fn<erase_fn, details::erase_impl>
+        {
         };
     }
 
@@ -288,18 +253,8 @@ namespace stdsharp::actions
                 return r;
             }
         };
-    }
-    inline namespace cpo
-    {
-        using erase_if_fn = functional::
-            sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
-        inline constexpr erase_if_fn erase_if{};
-    }
 
-    inline constexpr struct resize_fn
-    {
-    private:
-        struct impl
+        struct resize_impl
         {
             template<typename Container>
             using size_type = ::std::ranges::range_size_t<Container>;
@@ -314,23 +269,17 @@ namespace stdsharp::actions
                 return container.resize(size);
             }
         };
+    }
+    inline namespace cpo
+    {
+        using erase_if_fn = functional::
+            sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
 
-    public:
-        template<typename... Args>
-            requires(
-                ::std::invocable<impl, Args...> && !functional::cpo_invocable<resize_fn, Args...> //
-            )
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return impl{}(::std::forward<Args>(args)...);
-        }
+        inline constexpr erase_if_fn erase_if{};
+    }
 
-        template<typename... Args>
-            requires functional::cpo_invocable<resize_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
-        }
+    inline constexpr struct resize_fn : functional::cpo_fn<resize_fn, details::resize_impl>
+    {
     } resize{};
 
     inline constexpr struct pop_front_fn
