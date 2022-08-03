@@ -74,30 +74,6 @@ namespace stdsharp::functional
             {
                 return ::std::invoke(::std::forward<Pipe>(pipe), ::std::forward<Arg>(arg));
             }
-
-            template<pipe_mode Mode, pipeable<Mode> Pipe>
-            friend constexpr auto operator<<(const make_composed_fn, Pipe&& pipe) noexcept
-            {
-                return [&pipe]<
-                    pipeable<Mode>... Pipes,
-                    typename Composed = ::std::invoke_result_t<make_composed_fn, Pipe, Pipes...>
-                    // clang-format off
-                >
-                requires ::std::invocable<make_pipeable_fn<Mode>, Composed>
-                (Pipes && ... pipes)
-                noexcept(
-                    concepts::nothrow_invocable<make_composed_fn, Pipe, Pipes...> &&
-                    concepts::nothrow_invocable<make_pipeable_fn<Mode>, Composed>
-                ) // clang-format on
-                {
-                    return make_pipeable<Mode>( //
-                        make_composed(
-                            ::std::forward<Pipe>(pipe),
-                            ::std::forward<Pipes>(pipes)... // clang-format off
-                        ) // clang-format on
-                    );
-                };
-            }
         };
     }
 

@@ -2,7 +2,6 @@
 
 #include "../utility/value_wrapper.h"
 #include "../type_traits/core_traits.h"
-#include "cpo.h"
 
 namespace stdsharp::functional
 {
@@ -79,20 +78,11 @@ namespace stdsharp::functional
     inline constexpr struct make_composed_fn
     {
         template<typename... T>
-            requires(requires {
-                composed{::std::declval<T>()...};
-            } && !functional::cpo_invocable<make_composed_fn, T...>)
+            requires requires { composed{::std::declval<T>()...}; }
         constexpr auto operator()(T&&... t) const
             noexcept(noexcept(composed{::std::declval<T>()...}))
         {
             return composed{::std::forward<T>(t)...};
-        }
-
-        template<typename... Args>
-            requires functional::cpo_invocable<make_composed_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     } make_composed{};
 

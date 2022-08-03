@@ -3,7 +3,6 @@
 #include <range/v3/utility/tuple_algorithm.hpp>
 
 #include "../functional/operations.h"
-#include "../functional/cpo.h"
 
 namespace stdsharp
 {
@@ -16,23 +15,11 @@ namespace stdsharp
         struct get_fn
         {
             template<typename T>
-                requires requires
-                {
-                    get<N>(::std::declval<T>());
-                    requires !functional::cpo_invocable<get_fn<N>, T>;
-                }
+                requires requires { get<N>(::std::declval<T>()); }
             [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
                 noexcept(noexcept(get<N>(::std::declval<T>())))
             {
                 return get<N>(::std::forward<T>(t));
-            }
-
-            template<typename T>
-                requires functional::cpo_invocable<get_fn<N>, T>
-            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                noexcept(functional::cpo_nothrow_invocable<get_fn<N>, T>)
-            {
-                return functional::cpo_invoke(*this, ::std::forward<T>(t));
             }
         };
     }

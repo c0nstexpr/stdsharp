@@ -2,7 +2,6 @@
 
 #include "bind.h"
 #include "invocables.h"
-#include "cpo.h"
 
 namespace stdsharp::functional
 {

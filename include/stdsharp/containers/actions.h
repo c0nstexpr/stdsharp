@@ -25,37 +25,33 @@ namespace stdsharp::actions
         template<typename Container>
         concept associative_like_req =
             associative_container<Container> || unordered_associative_container<Container>;
-
-        struct emplace_impl
-        {
-            template<typename... Args>
-            constexpr decltype(auto) operator()(
-                details::seq_emplace_req<Args...> auto& container,
-                const decltype(container.cbegin()) iter,
-                Args&&... args //
-            ) const
-            {
-                return container.emplace(iter, ::std::forward<Args>(args)...);
-            }
-
-            template<details::associative_like_req Container, typename... Args>
-                requires details::container_emplace_constructible<Container, Args...>
-            constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-            {
-                return container.emplace(::std::forward<Args>(args)...);
-            }
-        };
     }
 
-    inline constexpr struct emplace_fn : functional::cpo_fn<emplace_fn, details::emplace_impl>
+    inline constexpr struct emplace_fn
     {
+        template<typename... Args>
+        constexpr decltype(auto) operator()(
+            details::seq_emplace_req<Args...> auto& container,
+            const decltype(container.cbegin()) iter,
+            Args&&... args //
+        ) const
+        {
+            return container.emplace(iter, ::std::forward<Args>(args)...);
+        }
+
+        template<details::associative_like_req Container, typename... Args>
+            requires details::container_emplace_constructible<Container, Args...>
+        constexpr decltype(auto) operator()(Container& container, Args&&... args) const
+        {
+            return container.emplace(::std::forward<Args>(args)...);
+        }
     } emplace;
 
     namespace details
     {
         void erase(auto&&, auto&&) = delete;
 
-        struct erase_impl
+        struct erase_fn
         {
             template<containers::sequence_container Container>
                 requires containers::container_erasable<Container>
@@ -107,10 +103,6 @@ namespace stdsharp::actions
             }
         };
 
-
-        struct erase_fn : functional::cpo_fn<erase_fn, details::erase_impl>
-        {
-        };
     }
 
     inline namespace cpo
@@ -256,18 +248,6 @@ namespace stdsharp::actions
 
         struct resize_impl
         {
-            template<typename Container>
-            using size_type = ::std::ranges::range_size_t<Container>;
-
-            template<containers::sequence_container Container>
-                requires requires(Container container, size_type<Container> size)
-                {
-                    container.resize(size);
-                }
-            constexpr void operator()(Container& container, const size_type<Container> size) const
-            {
-                return container.resize(size);
-            }
         };
     }
     inline namespace cpo
@@ -278,8 +258,20 @@ namespace stdsharp::actions
         inline constexpr erase_if_fn erase_if{};
     }
 
-    inline constexpr struct resize_fn : functional::cpo_fn<resize_fn, details::resize_impl>
+    inline constexpr struct resize_fn : details::resize_impl
     {
+        template<typename Container>
+        using size_type = ::std::ranges::range_size_t<Container>;
+
+        template<containers::sequence_container Container>
+            requires requires(Container container, size_type<Container> size)
+            {
+                container.resize(size);
+            }
+        constexpr void operator()(Container& container, const size_type<Container> size) const
+        {
+            return container.resize(size);
+        }
     } resize{};
 
     inline constexpr struct pop_front_fn

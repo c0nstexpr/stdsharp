@@ -61,40 +61,27 @@ namespace stdsharp::functional
             }
         };
 
-        struct default_operation_fn
+        void symmetric_operation(auto&&...) = delete;
+
+        struct adl_symmetric_operation_fn
         {
-            template<::std::copy_constructible T, typename... Args>
-            [[nodiscard]] constexpr auto operator()(
-                const ::std::invocable<T&, Args...> auto&,
-                T& t,
-                Args&&... //
-            ) const noexcept(concepts::nothrow_copy_constructible<T>)
+            template<typename... Args, ::std::invocable<Args...> Fn>
+                requires requires { symmetric_operation(::std::declval<Args>()...); }
+            [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
+                noexcept(symmetric_operation(::std::declval<Args>()...))
             {
-                return bind(assign_v, t, copy(t));
+                return symmetric_operation(::std::forward<Args>(args)...);
             }
         };
 
-        using operation_fn = sequenced_invocables<specialized_operation_fn, default_operation_fn>;
+        using symmetric_operation_fn =
+            sequenced_invocables<specialized_operation_fn, adl_symmetric_operation_fn>;
     }
 
-    inline constexpr struct symmetric_operation_fn
+    inline namespace cpo
     {
-        template<typename... Args>
-            requires(
-                ::std::invocable<details::operation_fn, Args...> &&
-                !cpo_invocable<symmetric_operation_fn, Args...>)
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(concepts::nothrow_invocable<details::operation_fn, Args...>)
-        {
-            return details::operation_fn{}(::std::forward<Args>(args)...);
-        }
+        using details::symmetric_operation_fn;
 
-        template<typename... Args>
-            requires cpo_invocable<symmetric_operation_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-            noexcept(cpo_nothrow_invocable<symmetric_operation_fn, Args...>)
-        {
-            return cpo_invoke(*this, ::std::forward<Args>(args)...);
-        }
-    } symmetric_operation{};
+        inline constexpr symmetric_operation_fn symmetric_operation{};
+    }
 }
