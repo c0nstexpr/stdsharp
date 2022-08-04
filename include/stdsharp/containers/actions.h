@@ -102,7 +102,6 @@ namespace stdsharp::actions
                 );
             }
         };
-
     }
 
     inline namespace cpo

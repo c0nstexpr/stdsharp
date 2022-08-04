@@ -154,31 +154,6 @@ namespace stdsharp
             ::std::invoke(func, static_cast<const value_type&&>(object_));
         }
 
-        template<auto Name>
-            requires(Name == "read"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) const& noexcept
-        {
-            return [this]<typename... Args>
-                requires requires { this->read(::std::declval<Args>()...); }
-            (Args && ... args) //
-            {
-                return this->read(::std::forward<Args>(args)...);
-            };
-        }
-
-        template<auto Name>
-            requires(Name == "read"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) const&& noexcept
-        {
-            return [this]<typename... Args>
-                requires requires { this->read(::std::declval<Args>()...); }
-            (Args && ... args) //
-            {
-                return static_cast<const concurrent_object&&>(*this) //
-                    .read(::std::forward<Args>(args)...);
-            };
-        }
-
         template<::std::invocable<value_type&> Func>
         void write(Func&& func) &
         {
@@ -192,35 +167,46 @@ namespace stdsharp
             ::std::invoke(func, ::std::move(object_));
         }
 
-        template<auto Name>
-            requires(Name == "write"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) & noexcept
-        {
-            return [this]<typename... Args>
-                requires requires { this->write(::std::declval<Args>()...); }
-            (Args && ... args) //
-            {
-                return this->write(::std::forward<Args>(args)...);
-            };
-        }
-
-        template<auto Name>
-            requires(Name == "write"sv)
-        constexpr auto operator()(const reflection::member_t<Name>) && noexcept
-        {
-            return [this]<typename... Args>
-                requires requires { ::std::move(*this).write(::std::declval<Args>()...); }
-            (Args && ... args) //
-            {
-                return ::std::move(*this).write(::std::forward<Args>(args)...);
-            };
-        }
-
         constexpr const auto& lockable() const noexcept { return lockable_; }
 
     private:
         ::std::optional<T> object_{};
         mutable Lockable lockable_{};
+
+        template<concepts::decay_same_as<concurrent_object> This, auto Name>
+            requires(Name == "write"sv)
+        friend constexpr auto get_member(This&& instance) noexcept
+        {
+            return [instance]<typename... Args>
+                requires requires { ::std::declval<This>()->write(::std::declval<Args>()...); }
+            (Args && ... args) //
+            {
+                return ::std::forward<This>(instance).write(::std::forward<Args>(args)...);
+            };
+        }
+
+        template<concepts::decay_same_as<concurrent_object> This, auto Name>
+            requires(Name == "read"sv)
+        friend constexpr auto get_member(This&& instance) noexcept
+        {
+            return [instance]<typename... Args>
+                requires requires { ::std::declval<This>()->read(::std::declval<Args>()...); }
+            (Args && ... args) //
+            {
+                return ::std::forward<This>(instance).read(::std::forward<Args>(args)...);
+            };
+        }
+
+        template<::std::same_as<concurrent_object>>
+        friend constexpr auto get_members() noexcept
+        {
+            using namespace reflection;
+
+            return ::std::array{
+                member_info{"read", member_category::function},
+                member_info{"write", member_category::function} //
+            };
+        }
     };
 
     template<typename T>

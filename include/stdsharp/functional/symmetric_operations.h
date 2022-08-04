@@ -52,12 +52,12 @@ namespace stdsharp::functional
             template<
                 typename... Args,
                 ::std::invocable<Args...> Operation,
-                auto Op = arithmetic_operation<Operation>{} // clang-format off
+                typename SymOp = typename arithmetic_operation<Operation>::type // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(const Operation, Args&&... args) const
-                noexcept(noexcept(bind(Op, ::std::forward<Args>(args)...)))
+                noexcept(noexcept(bind(SymOp{}, ::std::forward<Args>(args)...)))
             {
-                return bind(Op, ::std::forward<Args>(args)...);
+                return bind(SymOp{}, ::std::forward<Args>(args)...);
             }
         };
 
@@ -75,7 +75,7 @@ namespace stdsharp::functional
         };
 
         using symmetric_operation_fn =
-            sequenced_invocables<specialized_operation_fn, adl_symmetric_operation_fn>;
+            sequenced_invocables<adl_symmetric_operation_fn, specialized_operation_fn>;
     }
 
     inline namespace cpo

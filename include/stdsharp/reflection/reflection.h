@@ -7,10 +7,25 @@
 #include <array>
 #include <string_view>
 
+#include "../type_traits/core_traits.h"
+
 using namespace ::std::literals;
 
 namespace stdsharp::reflection
 {
+
+    enum class member_category
+    {
+        function,
+        data
+    };
+
+    struct member_info
+    {
+        ::std::string_view name{};
+        member_category category{};
+    };
+
     namespace details
     {
         template<typename>
@@ -22,34 +37,25 @@ namespace stdsharp::reflection
         };
 
         template<auto V>
-        void member(auto&&) = delete;
+        void get_member(auto&&) = delete;
 
         template<::std::convertible_to<::std::string_view> auto Literal>
-        struct member_t
+        struct get_member_t
         {
             static constexpr ::std::string_view name = Literal;
 
             template<typename T>
-                requires requires { member<Literal>(::std::declval<T>()); }
+                requires requires { get_member<Literal>(::std::declval<T>()); }
             constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(member<Literal>(::std::declval<T>())))
+                noexcept(noexcept(get_member<Literal>(::std::declval<T>())))
             {
-                return member<Literal>(::std::forward<T>(t));
+                return get_member<Literal>(::std::forward<T>(t));
             }
-        };
-
-        template<auto V>
-        void data_member(auto&&) = delete;
-
-        template<auto Literal>
-        struct data_member_t : member_t<Literal>
-        {
-            constexpr data_member_t(const member_t<Literal> = {}) noexcept {}
 
             template<typename T>
                 requires requires
                 {
-                    requires static_cast<::std::string_view>(Literal) == "first";
+                    requires name == "first";
                     details::is_std_pair<::std::remove_cvref_t<T>>{};
                 }
             constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).first; }
@@ -57,58 +63,46 @@ namespace stdsharp::reflection
             template<typename T>
                 requires requires
                 {
-                    requires static_cast<::std::string_view>(Literal) == "second";
+                    requires name == "second";
                     details::is_std_pair<::std::remove_cvref_t<T>>{};
                 }
             constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).second; }
-
-            template<typename T>
-                requires requires { data_member<Literal>(::std::declval<T>()); }
-            constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(data_member<Literal>(::std::declval<T>())))
-            {
-                return data_member<Literal>(::std::forward<T>(t));
-            }
         };
 
-        template<auto V>
-        void member_function(auto&&) = delete;
+        template<typename T>
+        void get_members() = delete;
 
-        template<auto Literal>
-        struct member_function_t : member_t<Literal>
+        template<typename T>
+            requires requires { details::is_std_pair<::std::remove_cvref_t<T>>{}; }
+        constexpr auto get_members() noexcept
         {
-            constexpr member_function_t(const member_t<Literal> = {}) noexcept {}
+            return ::std::array{
+                member_info{"first", member_category::data},
+                member_info{"second", member_category::data} //
+            };
+        }
 
-            template<typename T>
-                requires requires { member_function<Literal>(::std::declval<T>()); }
-            constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(member_function<Literal>(::std::declval<T>())))
+        template<typename T>
+        struct get_members_t
+        {
+            constexpr ::std::ranges::output_range<member_info> auto operator()() const noexcept
+                requires(noexcept(get_member<T>()))
             {
-                return member_function<Literal>(::std::forward<T>(t));
+                return get_member<T>();
             }
         };
     }
 
     inline namespace cpo
     {
-        using details::member_t;
-        using details::data_member_t;
-        using details::member_function_t;
+        using details::get_member_t;
+        using details::get_members_t;
 
-        template<auto Literal>
-        inline constexpr member_t<Literal> member{};
+        template<::std::convertible_to<::std::string_view> auto Literal>
+        inline constexpr get_member_t<Literal> get_member{};
 
-        template<auto Literal>
-        inline constexpr data_member_t<Literal> data_member{};
+        template<typename T>
+        inline constexpr get_members_t<T> get_members{};
 
-        template<auto Literal>
-        inline constexpr member_function_t<Literal> member_function{};
     }
-
-    template<typename>
-    inline constexpr int data_members = 0;
-
-    template<typename T>
-        requires requires { details::is_std_pair<T>{}; }
-    inline constexpr ::std::array data_members<T> = {"first"sv, "second"sv};
 }
