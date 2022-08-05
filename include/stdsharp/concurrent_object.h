@@ -8,6 +8,7 @@
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
 #include "scope.h"
+#include "functional/bind.h"
 
 namespace stdsharp
 {
@@ -71,6 +72,32 @@ namespace stdsharp
             write([&other](value_type& obj) { assign_value(obj, ::std::forward<Other>(other)); });
             return *this;
         }
+
+        struct read_fn
+        {
+            template<typename This, typename Func>
+            constexpr void operator()(This&& instance, Func&& func) const
+            {
+                ::std::shared_lock lock{instance.lockable_};
+                ::std::invoke(::std::forward<Func>(func), ::std::forward<This>(instance).object_);
+            }
+        };
+
+        struct write_fn
+        {
+            template<typename Func>
+            constexpr void operator()(concurrent_object&& instance, Func&& func) const
+            {
+                ::std::invoke(::std::forward<Func>(func), ::std::move(instance).object_);
+            }
+
+            template<typename Func>
+            constexpr void operator()(concurrent_object& instance, Func&& func) const
+            {
+                ::std::shared_lock lock{instance.lockable_};
+                ::std::invoke(::std::forward<Func>(func), instance.object_);
+            }
+        };
 
     public:
         using lock_type = Lockable;
@@ -144,27 +171,25 @@ namespace stdsharp
         template<::std::invocable<const value_type&> Func>
         void read(Func&& func) const&
         {
-            ::std::shared_lock lock{lockable_};
-            ::std::invoke(func, object_);
+            read_fn{}(*this, ::std::forward<Func>(func));
         }
 
         template<::std::invocable<const value_type> Func>
         void read(Func&& func) const&&
         {
-            ::std::invoke(func, static_cast<const value_type&&>(object_));
+            read_fn{}(static_cast<const concurrent_object&&>(*this), ::std::forward<Func>(func));
         }
 
         template<::std::invocable<value_type&> Func>
         void write(Func&& func) &
         {
-            ::std::unique_lock lock{lockable_};
-            ::std::invoke(func, object_);
+            write_fn{}(*this, ::std::forward<Func>(func));
         }
 
         template<::std::invocable<value_type> Func>
         void write(Func&& func) &&
         {
-            ::std::invoke(func, ::std::move(object_));
+            write_fn{}(::std::move(*this), ::std::forward<Func>(func));
         }
 
         constexpr const auto& lockable() const noexcept { return lockable_; }
@@ -173,41 +198,35 @@ namespace stdsharp
         ::std::optional<T> object_{};
         mutable Lockable lockable_{};
 
-        template<concepts::decay_same_as<concurrent_object> This, auto Name>
-            requires(Name == "write"sv)
-        friend constexpr auto get_member(This&& instance) noexcept
+        template<auto Name, concepts::decay_same_as<concurrent_object> This>
+            requires requires { requires Name == "write"sv; }
+        [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
-            return [instance]<typename... Args>
-                requires requires { ::std::declval<This>()->write(::std::declval<Args>()...); }
-            (Args && ... args) //
-            {
-                return ::std::forward<This>(instance).write(::std::forward<Args>(args)...);
-            };
+            return functional::bind(write_fn{}, ::std::forward<This>(instance));
         }
 
-        template<concepts::decay_same_as<concurrent_object> This, auto Name>
-            requires(Name == "read"sv)
-        friend constexpr auto get_member(This&& instance) noexcept
+        template<auto Name, concepts::decay_same_as<concurrent_object> This>
+            requires requires { requires Name == "read"sv; }
+        [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
-            return [instance]<typename... Args>
-                requires requires { ::std::declval<This>()->read(::std::declval<Args>()...); }
-            (Args && ... args) //
-            {
-                return ::std::forward<This>(instance).read(::std::forward<Args>(args)...);
-            };
-        }
-
-        template<::std::same_as<concurrent_object>>
-        friend constexpr auto get_members() noexcept
-        {
-            using namespace reflection;
-
-            return ::std::array{
-                member_info{"read", member_category::function},
-                member_info{"write", member_category::function} //
-            };
+            return functional::bind(read_fn{}, ::std::forward<This>(instance));
         }
     };
+
+    namespace reflection
+    {
+        template<typename T, typename U>
+        struct get_members_t<concurrent_object<T, U>>
+        {
+            [[nodiscard]] constexpr auto operator()() const noexcept
+            {
+                return ::std::array{
+                    member_info{"read", member_category::function},
+                    member_info{"write", member_category::function} //
+                };
+            }
+        };
+    }
 
     template<typename T>
     concurrent_object(T&&) -> concurrent_object<::std::decay_t<T>>;

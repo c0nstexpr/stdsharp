@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "stdsharp/concurrent_object.h"
 #include "test.h"
 
@@ -14,12 +16,40 @@ SCENARIO("concurrent object", "[concurrent object]") // NOLINT
         static constexpr void unlock_shared() {}
     };
 
-    REQUIRE(default_initializable<concurrent_object<int>>);
     REQUIRE(copyable<concurrent_object<int>>);
     REQUIRE(movable<concurrent_object<int>>);
+
+    REQUIRE(default_initializable<concurrent_object<int>>);
     REQUIRE(constructible_from<concurrent_object<int>, concurrent_object<int, my_mutex>>);
     REQUIRE(constructible_from<concurrent_object<int>, const concurrent_object<int, my_mutex>&>);
 
     REQUIRE(assignable<concurrent_object<int>&, concurrent_object<int, my_mutex>>);
     REQUIRE(assignable<concurrent_object<int>&, const concurrent_object<int, my_mutex>&>);
+}
+
+SCENARIO("concurrent object reflection support", "[concurrent object]") // NOLINT
+{
+    using namespace reflection;
+    using namespace stdsharp::literals;
+
+    using concurrent_object_t = concurrent_object<int>;
+
+    constexpr auto members = get_members<concurrent_object_t>();
+
+    STATIC_REQUIRE( //
+        std::ranges::equal(
+            members,
+            initializer_list<member_info>{
+                {"read", member_category::function}, //
+                {"write", member_category::function} //
+            } // clang-format off
+        ) // clang-format on
+    );
+
+    STATIC_REQUIRE( //
+        invocable<
+            decltype(get_member<"read"_ltr>(concurrent_object_t{})),
+            void(const ::std::optional<int>) // clang-format off
+        >
+    ); // clang-format on
 }

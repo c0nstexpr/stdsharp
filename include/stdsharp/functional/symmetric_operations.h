@@ -65,7 +65,7 @@ namespace stdsharp::functional
 
         struct adl_symmetric_operation_fn
         {
-            template<typename... Args, ::std::invocable<Args...> Fn>
+            template<typename... Args>
                 requires requires { symmetric_operation(::std::declval<Args>()...); }
             [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
                 noexcept(symmetric_operation(::std::declval<Args>()...))

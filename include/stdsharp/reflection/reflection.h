@@ -6,8 +6,9 @@
 
 #include <array>
 #include <string_view>
+#include <ranges>
 
-#include "../type_traits/core_traits.h"
+#include "../functional/invocables.h"
 
 using namespace ::std::literals;
 
@@ -24,6 +25,24 @@ namespace stdsharp::reflection
     {
         ::std::string_view name{};
         member_category category{};
+
+        friend bool operator!=(member_info, member_info) = default;
+        friend auto operator<=>(member_info, member_info) = default;
+    };
+
+    template<typename T>
+    struct get_members_t;
+
+    template<typename T, typename U>
+    struct get_members_t<::std::pair<T, U>>
+    {
+        [[nodiscard]] constexpr auto operator()() const noexcept
+        {
+            return ::std::array{
+                member_info{"first", member_category::data},
+                member_info{"second", member_category::data} //
+            };
+        }
     };
 
     namespace details
@@ -39,14 +58,14 @@ namespace stdsharp::reflection
         template<auto V>
         void get_member(auto&&) = delete;
 
-        template<::std::convertible_to<::std::string_view> auto Literal>
-        struct get_member_t
+        template<auto Literal>
+        struct get_member_fn
         {
             static constexpr ::std::string_view name = Literal;
 
             template<typename T>
                 requires requires { get_member<Literal>(::std::declval<T>()); }
-            constexpr decltype(auto) operator()(T&& t) const
+            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
                 noexcept(noexcept(get_member<Literal>(::std::declval<T>())))
             {
                 return get_member<Literal>(::std::forward<T>(t));
@@ -56,53 +75,59 @@ namespace stdsharp::reflection
                 requires requires
                 {
                     requires name == "first";
-                    details::is_std_pair<::std::remove_cvref_t<T>>{};
+                    is_std_pair<::std::remove_cvref_t<T>>{};
                 }
-            constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).first; }
+            [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
+            {
+                return ::std::forward<T>(p).first;
+            }
 
             template<typename T>
                 requires requires
                 {
                     requires name == "second";
-                    details::is_std_pair<::std::remove_cvref_t<T>>{};
+                    is_std_pair<::std::remove_cvref_t<T>>{};
                 }
-            constexpr auto& operator()(T&& p) const noexcept { return ::std::forward<T>(p).second; }
+            [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
+            {
+                return ::std::forward<T>(p).second;
+            }
         };
 
         template<typename T>
-        void get_members() = delete;
-
-        template<typename T>
-            requires requires { details::is_std_pair<::std::remove_cvref_t<T>>{}; }
-        constexpr auto get_members() noexcept
+        struct get_members_fn
         {
-            return ::std::array{
-                member_info{"first", member_category::data},
-                member_info{"second", member_category::data} //
-            };
-        }
-
-        template<typename T>
-        struct get_members_t
-        {
-            constexpr ::std::ranges::output_range<member_info> auto operator()() const noexcept
-                requires(noexcept(get_member<T>()))
+            [[nodiscard]] constexpr ::std::ranges::output_range<member_info> auto
+                operator()() const noexcept requires(noexcept(reflection::get_members_t<T>{}()))
             {
-                return get_member<T>();
+                return reflection::get_members_t<T>{}();
             }
         };
     }
 
     inline namespace cpo
     {
-        using details::get_member_t;
-        using details::get_members_t;
+        using details::get_member_fn;
+        using details::get_members_fn;
 
-        template<::std::convertible_to<::std::string_view> auto Literal>
-        inline constexpr get_member_t<Literal> get_member{};
+        template<type_traits::ltr Literal>
+        inline constexpr get_member_fn<Literal> get_member{};
 
         template<typename T>
-        inline constexpr get_members_t<T> get_members{};
-
+        inline constexpr get_members_fn<T> get_members{};
     }
+
+    template<typename T>
+    inline constexpr functional::nodiscard_invocable get_data_members{
+        []() noexcept
+        {
+            return get_members<T>() |
+                ::std::views::filter( //
+                       [](const member_info info)
+                       {
+                           return info.category == member_category::data; //
+                       } //
+                );
+        } //
+    };
 }

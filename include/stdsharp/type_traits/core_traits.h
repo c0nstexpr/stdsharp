@@ -141,10 +141,10 @@ namespace stdsharp::type_traits
         template<::std::size_t Size>
         ltr(const char (&)[Size]) -> ltr<Size>; // NOLINT(*-avoid-c-arrays)
 
-        template<ltr ltr>
-        [[nodiscard]] constexpr auto operator"" _ltr() noexcept
+        template<ltr Ltr>
+        [[nodiscard]] constexpr auto operator""_ltr() noexcept
         {
-            return ltr;
+            return Ltr;
         }
     }
 }
