@@ -111,93 +111,49 @@ namespace stdsharp::actions
         inline constexpr erase_fn erase{};
     }
 
-    inline constexpr struct emplace_back_fn
-    {
-    private:
-        struct default_fn
-        {
-            template<typename Container, typename... Args>
-                requires ::std::invocable<
-                    emplace_fn,
-                    Container&,
-                    ranges::const_iterator_t<Container>,
-                    Args... // clang-format off
-                > // clang-format on
-            constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-            {
-                return *emplace(container, container.cend(), ::std::forward<Args>(args)...);
-            }
-        };
+#define STDSHARP_EMPLACE_WHERE_ACTION(where, iter)                                          \
+    namespace details                                                                       \
+    {                                                                                       \
+        struct emplace_##where##_default_fn                                                 \
+        {                                                                                   \
+            template<typename Container, typename... Args>                                  \
+                requires ::std::invocable<                                                  \
+                    emplace_fn,                                                             \
+                    Container&,                                                             \
+                    ranges::const_iterator_t<Container>,                                    \
+                    Args...>                                                                \
+            constexpr decltype(auto) operator()(Container& container, Args&&... args) const \
+            {                                                                               \
+                return *actions::emplace(                                                   \
+                    container, container.c##iter(), ::std::forward<Args>(args)...);         \
+            }                                                                               \
+        };                                                                                  \
+                                                                                            \
+        struct emplace_##where##_mem_fn                                                     \
+        {                                                                                   \
+            template<typename... Args, details::seq_emplace_req<Args...> Container>         \
+                requires requires(Container instance)                                       \
+                {                                                                           \
+                    instance.emplace_##where(::std::declval<Args>()...);                    \
+                }                                                                           \
+            constexpr typename ::std::decay_t<Container>::reference                         \
+                operator()(Container& container, Args&&... args) const                      \
+            {                                                                               \
+                return container.emplace_##where(::std::forward<Args>(args)...);            \
+            }                                                                               \
+        };                                                                                  \
+    }                                                                                       \
+                                                                                            \
+    using emplace_##where##_fn = functional::sequenced_invocables<                          \
+        details::emplace_##where##_mem_fn,                                                  \
+        details::emplace_##where##_default_fn>;                                             \
+                                                                                            \
+    inline constexpr emplace_##where##_fn emplace_##where{};
 
-        struct mem_fn
-        {
-            template<typename... Args, details::seq_emplace_req<Args...> Container>
-                requires requires(Container instance)
-                {
-                    instance.emplace_back(::std::declval<Args>()...);
-                }
-            constexpr typename ::std::decay_t<Container>::reference
-                operator()(Container& container, Args&&... args) const
-            {
-                return container.emplace_back(::std::forward<Args>(args)...);
-            }
-        };
+    STDSHARP_EMPLACE_WHERE_ACTION(back, end)
+    STDSHARP_EMPLACE_WHERE_ACTION(front, begin)
 
-    public:
-        template<
-            typename... Args,
-            ::std::invocable<Args...> Fn = // clang-format off
-                functional::sequenced_invocables<mem_fn, default_fn>
-        > // clang-format on
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            Fn{}(::std::forward<Args>(args)...);
-        }
-    } emplace_back{};
-
-    inline constexpr struct emplace_front_fn
-    {
-    private:
-        struct default_fn
-        {
-            template<typename Container, typename... Args>
-                requires ::std::invocable<
-                    emplace_fn,
-                    Container&,
-                    ranges::const_iterator_t<Container>,
-                    Args... // clang-format off
-                > // clang-format on
-            constexpr decltype(auto) operator()(Container& container, Args&&... args) const
-            {
-                return *emplace(container, container.cend(), ::std::forward<Args>(args)...);
-            }
-        };
-
-        struct mem_fn
-        {
-            template<typename... Args, details::seq_emplace_req<Args...> Container>
-                requires requires(Container instance)
-                {
-                    instance.emplace_front(::std::declval<Args>()...);
-                }
-            constexpr typename ::std::decay_t<Container>::reference
-                operator()(Container& container, Args&&... args) const
-            {
-                return container.emplace_front(::std::forward<Args>(args)...);
-            }
-        };
-
-    public:
-        template<
-            typename... Args,
-            ::std::invocable<Args...> Fn = // clang-format off
-                functional::sequenced_invocables<mem_fn, default_fn>
-        > // clang-format on
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            Fn{}(::std::forward<Args>(args)...);
-        }
-    } emplace_front{};
+#undef STDSHARP_EMPLACE_WHERE_ACTION
 
     namespace details
     {
@@ -273,71 +229,40 @@ namespace stdsharp::actions
         }
     } resize{};
 
-    inline constexpr struct pop_front_fn
-    {
-    private:
-        struct default_fn
-        {
-            template<typename Container>
-                requires ::std::
-                    invocable<actions::erase_fn, Container&, ranges::const_iterator_t<Container>>
-            constexpr void operator()(Container& container) const
-            {
-                erase(container, container.cbegin());
-            }
-        };
+#define STDSHARP_POP_WHERE_ACTION(where, iter)                                                    \
+    namespace details                                                                             \
+    {                                                                                             \
+        struct pop_##where##_default_fn                                                           \
+        {                                                                                         \
+            template<typename Container>                                                          \
+                requires ::std::                                                                  \
+                    invocable<actions::erase_fn, Container&, ranges::const_iterator_t<Container>> \
+            constexpr void operator()(Container& container) const                                 \
+            {                                                                                     \
+                actions::erase(container, container.c##iter());                                   \
+            }                                                                                     \
+        };                                                                                        \
+                                                                                                  \
+        struct pop_##where##_mem_fn                                                               \
+        {                                                                                         \
+            template<containers::sequence_container Container>                                    \
+                requires requires(Container instance) { instance.pop_##where(); }                 \
+            constexpr void operator()(Container& container) const                                 \
+            {                                                                                     \
+                return container.pop_##where();                                                   \
+            }                                                                                     \
+        };                                                                                        \
+    }                                                                                             \
+                                                                                                  \
+    using pop_##where##_fn = functional::                                                         \
+        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>;   \
+                                                                                                  \
+    inline constexpr pop_##where##_fn pop_##where{};
 
-        struct mem_fn
-        {
-            template<containers::sequence_container Container>
-                requires requires(Container instance) { instance.pop_front(); }
-            constexpr void operator()(Container& container) const { return container.pop_front(); }
-        };
+    STDSHARP_POP_WHERE_ACTION(front, begin)
+    STDSHARP_POP_WHERE_ACTION(back, end)
 
-    public:
-        template<
-            typename... Args,
-            ::std::invocable<Args...> Fn = // clang-format off
-                functional::sequenced_invocables<mem_fn, default_fn>
-        > // clang-format on
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            Fn{}(::std::forward<Args>(args)...);
-        }
-    } pop_front{};
-
-    inline constexpr struct pop_back_fn
-    {
-    private:
-        struct default_fn
-        {
-            template<typename Container>
-                requires ::std::
-                    invocable<actions::erase_fn, Container&, ranges::const_iterator_t<Container>>
-            constexpr void operator()(Container& container) const
-            {
-                erase(container, container.cbegin());
-            }
-        };
-
-        struct mem_fn
-        {
-            template<containers::sequence_container Container>
-                requires requires(Container instance) { instance.pop_back(); }
-            constexpr void operator()(Container& container) const { return container.pop_back(); }
-        };
-
-    public:
-        template<
-            typename... Args,
-            ::std::invocable<Args...> Fn = // clang-format off
-                functional::sequenced_invocables<mem_fn, default_fn>
-        > // clang-format on
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            Fn{}(::std::forward<Args>(args)...);
-        }
-    } pop_back{};
+#undef STDSHARP_POP_WHERE_ACTION
 
     namespace details
     {
