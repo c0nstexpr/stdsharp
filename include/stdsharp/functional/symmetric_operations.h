@@ -61,7 +61,8 @@ namespace stdsharp::functional
             }
         };
 
-        void symmetric_operation(auto&&...) = delete;
+        template<typename... T>
+        void symmetric_operation(T&&...) = delete;
 
         struct adl_symmetric_operation_fn
         {
