@@ -18,11 +18,6 @@ concept vec_req = requires(
     stdsharp::actions::emplace_back(v, std::move(value));
     stdsharp::actions::emplace_front(v, std::move(value));
 
-    stdsharp::actions::erase(v, value);
-    stdsharp::actions::erase(v, iter);
-    stdsharp::actions::erase(v, iter, iter);
-    stdsharp::actions::erase_if(v, dummy_predicate);
-
     stdsharp::actions::pop_front(v);
     stdsharp::actions::pop_back(v);
 
@@ -37,12 +32,7 @@ concept set_req = requires(
     dummy_predicate_t<T> dummy_predicate //
 )
 {
-    stdsharp::actions::emplace(v, std::move(value));
-
-    stdsharp::actions::erase(v, value);
-    stdsharp::actions::erase(v, iter);
-    stdsharp::actions::erase(v, iter, iter);
-    stdsharp::actions::erase_if(v, dummy_predicate);
+    actions::emplace(v, std::move(value));
 };
 
 template<typename T>
@@ -50,46 +40,47 @@ concept unordered_map_req = requires(
     unordered_map<T, int> v,
     iterator_t<unordered_map<T, int>> iter,
     T value,
-    dummy_predicate_t<pair<const T, int>> dummy_predicate //
+    dummy_predicate_t<typename decltype(v)::value_type> dummy_predicate //
 )
 {
-    stdsharp::actions::emplace(v, std::move(value), 0);
-
-    stdsharp::actions::erase(v, value);
-    stdsharp::actions::erase(v, iter);
-    stdsharp::actions::erase(v, iter, iter);
-    stdsharp::actions::erase_if(v, dummy_predicate);
+    actions::emplace(v, std::move(value), 0);
 };
 
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: vector actions", //
-    "[containers][actions]",
-    int,
-    float //
-)
+template<typename T>
+struct get_value_type : std::type_identity<typename T::value_type>
 {
-    CAPTURE(type<TestType>());
-    STATIC_REQUIRE(vec_req<TestType>);
-}
+};
+
+template<typename T>
+    requires(containers::associative_container<T> || containers::unordered_associative_container<T>)
+struct get_value_type<T> : std::type_identity<typename T::key_type>
+{
+};
+
+template<typename T>
+using get_value_t = typename get_value_type<T>::type;
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: set actions", //
+    "Scenario: erase actions", //
     "[containers][actions]",
-    int,
-    float //
+    vector<int>,
+    set<int>,
+    (map<int, int>),
+    (unordered_map<int, int>) //
 )
 {
     CAPTURE(type<TestType>());
-    STATIC_REQUIRE(set_req<TestType>);
-}
-
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: unordered map actions", //
-    "[containers][actions]",
-    int,
-    float //
-)
-{
-    CAPTURE(type<TestType>());
-    STATIC_REQUIRE(unordered_map_req<TestType>);
+    STATIC_REQUIRE( //
+        requires(
+            TestType v,
+            typename TestType::const_iterator iter,
+            get_value_t<TestType> value,
+            dummy_predicate_t<decltype(value)> dummy_predicate // clang-format off
+        )
+        { // clang-format on
+            actions::erase(v, value);
+            actions::erase(v, iter);
+            actions::erase(v, iter, iter);
+        } //
+    );
 }
