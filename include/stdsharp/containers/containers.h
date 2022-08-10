@@ -27,11 +27,13 @@ namespace stdsharp
         template<typename ContainerType>
         concept std_array = requires(::std::decay_t<ContainerType> c)
         {
-            ::std::tuple_size<decltype(c)>{};
-            requires ::std::same_as <
-                ::std::array<typename decltype(c)::value_type, ::std::tuple_size_v<decltype(c)>>,
-            decltype(c) // clang-format off
-            >; // clang-format on
+            []<typename T, auto Size>(::std::array<T, Size>&){}(c);
+        };
+
+        template<typename ContainerType>
+        concept std_forward_list = requires(::std::decay_t<ContainerType> c)
+        {
+            []<typename T, typename U>(::std::forward_list<T, U>&) {}(c);
         };
 
         template<typename ContainerType>
@@ -75,7 +77,7 @@ namespace stdsharp::containers
         }; // clang-format on
 
     template<typename Container>
-    concept container_erasable = !details::std_array<Container> && requires
+    concept container_erasable = requires
     {
         requires erasable<
             typename ::std::decay_t<Container>::value_type,
@@ -97,7 +99,7 @@ namespace stdsharp::containers
         }; // clang-format on
 
     template<typename Container>
-    concept container_move_insertable = !details::std_array<Container> && requires
+    concept container_move_insertable = requires
     {
         requires move_insertable<
             typename ::std::decay_t<Container>::value_type, // clang-format off
@@ -135,7 +137,7 @@ namespace stdsharp::containers
         }; // clang-format on
 
     template<typename Container, typename... Args>
-    concept container_emplace_constructible = !details::std_array<Container> && requires
+    concept container_emplace_constructible = requires
     {
         requires emplace_constructible<
             typename ::std::decay_t<Container>::value_type,
@@ -222,7 +224,8 @@ namespace stdsharp::containers
         details::insert_return_type_of<::std::set<int>::insert_return_type>::type<Iterator, Node>;
 
     template<typename Container>
-    concept container = details::std_array<Container> || requires
+    concept container =
+        details::std_array<Container> || details::std_forward_list<Container> || requires
     {
         typename ::std::decay_t<Container>;
         requires requires(
@@ -446,7 +449,9 @@ namespace stdsharp::containers
     };
 
     template<typename Container>
-    concept sequence_container = container<Container> && requires
+    concept sequence_container = details::std_array<Container> || //
+        container<Container> && //
+        requires
     {
         typename ::std::decay_t<Container>;
 

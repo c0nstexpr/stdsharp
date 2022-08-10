@@ -22,6 +22,18 @@ TEMPLATE_TEST_CASE( // NOLINT
     }
 
     {
+        using forward_list = std::forward_list<TestType>;
+
+        GIVEN(fmt::format("forward list type {}", type<forward_list>()))
+        {
+            STATIC_REQUIRE(containers::container<forward_list>);
+            STATIC_REQUIRE(!containers::sequence_container<forward_list>);
+            STATIC_REQUIRE(!containers::associative_container<forward_list>);
+            STATIC_REQUIRE(!containers::unordered_associative_container<forward_list>);
+        }
+    }
+
+    {
         using set = std::set<TestType>;
 
         GIVEN(fmt::format("set type {}", type<set>()))

@@ -29,9 +29,9 @@ namespace stdsharp::actions
 
     inline constexpr struct emplace_fn
     {
-        template<typename... Args>
+        template<typename... Args, details::seq_emplace_req<Args...> Container>
         constexpr decltype(auto) operator()(
-            details::seq_emplace_req<Args...> auto& container,
+            Container& container,
             const decltype(container.cbegin()) iter,
             Args&&... args //
         ) const
@@ -131,9 +131,12 @@ namespace stdsharp::actions
                                                                                             \
         struct emplace_##where##_mem_fn                                                     \
         {                                                                                   \
-            template<typename... Args, details::seq_emplace_req<Args...> Container>         \
+            template<                                                                       \
+                typename... Args,                                                           \
+                containers::container_emplace_constructible<Args...> Container>             \
                 requires requires(Container instance)                                       \
                 {                                                                           \
+                    requires containers::container<Container>;                              \
                     instance.emplace_##where(::std::declval<Args>()...);                    \
                 }                                                                           \
             constexpr typename ::std::decay_t<Container>::reference                         \
