@@ -95,10 +95,21 @@ namespace stdsharp::functional
     inline constexpr ::std ::logical_and<> logical_and_v{};
     inline constexpr ::std ::logical_not<> logical_not_v{};
     inline constexpr ::std ::logical_or<> logical_or_v{};
+
     inline constexpr ::std ::bit_and<> bit_and_v{};
     inline constexpr ::std ::bit_not<> bit_not_v{};
     inline constexpr ::std ::bit_or<> bit_or_v{};
     inline constexpr ::std ::bit_xor<> bit_xor_v{};
+    inline constexpr struct bit_xor
+    {
+        template<typename T, typename U>
+            requires requires { bit_not_v(bit_xor_v(::std::declval<T>(), ::std::declval<U>())); }
+        constexpr decltype(auto) operator()(T&& t, U&& u) const
+            noexcept(noexcept(bit_not_v(bit_xor_v(::std::declval<T>(), ::std::declval<U>()))))
+        {
+            return bit_not_v(bit_xor_v(::std::forward<T>(t), ::std::forward<U>(u)));
+        }
+    } bit_xnor_v{};
 
 
 #define BS_UTIL_SHIFT_OPERATE(direction, operate)                                        \
@@ -168,6 +179,7 @@ namespace stdsharp::functional
     BS_UTIL_ASSIGN_OPERATE(modulus, %)
     BS_UTIL_ASSIGN_OPERATE(bit_and, &)
     BS_UTIL_ASSIGN_OPERATE(bit_or, |)
+    BS_UTIL_ASSIGN_OPERATE(bit_xor, ^)
     BS_UTIL_ASSIGN_OPERATE(left_shift, <<)
     BS_UTIL_ASSIGN_OPERATE(right_shift, >>)
 

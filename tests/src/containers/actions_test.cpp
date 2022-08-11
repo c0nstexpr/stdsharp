@@ -2,6 +2,27 @@
 #include "test.h"
 
 using namespace containers;
+using namespace functional;
+
+template<typename Container>
+concept erase_req = requires(
+    Container container,
+    typename Container::const_iterator iter,
+    bool (&predicate)(typename Container::const_reference) //
+)
+{
+    [](Container container)
+    {
+        if constexpr(associative_container<Container> || unordered_associative_container<Container>)
+            [&](typename Container::key_type value) { actions::erase(container, value); };
+        else if constexpr(sequence_container<Container>)
+            [&](typename Container::value_type value) { actions::erase(container, value); };
+    };
+    actions::erase(container, iter);
+    actions::erase(container, iter, iter);
+    actions::erase_if(container, predicate);
+};
+
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: erase actions", //
@@ -13,46 +34,25 @@ TEMPLATE_TEST_CASE( // NOLINT
 )
 {
     CAPTURE(type<TestType>());
-
-    using get_element_type = typename decltype(
-        []()
-        {
-            if constexpr(
-                associative_container<TestType> || unordered_associative_container<TestType> //
-            )
-                return std::type_identity<typename TestType::key_type>{};
-            else
-                return std::type_identity<typename TestType::value_type>{};
-        }() // clang-format off
-    )::type; // clang-format on
-
-    using dummy_predicate = bool(typename TestType::const_reference);
-
-    STATIC_REQUIRE( //
-        requires(
-            TestType container,
-            typename TestType::const_iterator iter,
-            get_element_type element,
-            dummy_predicate predicate // clang-format off
-        )
-        { // clang-format on
-            actions::erase(container, element);
-            actions::erase(container, iter);
-            actions::erase(container, iter, iter);
-            actions::erase_if(container, predicate);
-        } //
-    );
+    STATIC_REQUIRE(erase_req<TestType>);
 }
 
-constexpr auto foo()
+static_assert(!sequence_container<unordered_map<int, int>>);
+
+template<typename Container>
+concept emplace_req = requires(Container container)
 {
-    using TestType = set<int>;
-
-    using value_t = typename TestType::value_type;
-
-    return container<TestType> || requires(TestType v, value_t value)
+    [](Container container)
     {
-        actions::emplace(v, v.cbegin(), value);
+        if constexpr(associative_container<Container> || unordered_associative_container<Container>)
+            [&] { actions::emplace(container, *container.cbegin()); };
+        // else if constexpr(sequence_container<Container>)
+        //     [&] { actions::emplace(container, container.cbegin(), container.front()); };
+    };
+
+    requires(!sequence_container<Container>) || requires
+    {
+        actions::emplace(container, container.cbegin(), container.front());
     };
 };
 
@@ -60,24 +60,12 @@ TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: emplace actions", //
     "[containers][actions]",
     vector<int>,
-    set<int>,
-    (map<int, int>),
+    set<int>(map<int, int>),
     (unordered_map<int, int>) //
 )
 {
-    using value_t = typename TestType::value_type;
-
     CAPTURE(type<TestType>());
-
-    // STATIC_REQUIRE( //
-    //     (!sequence_container<TestType>) ||
-    //     requires(TestType v, value_t value) { actions::emplace(v, v.cbegin(), value); } //
-    // );
-
-    STATIC_REQUIRE( //
-        !(associative_container<TestType> || unordered_associative_container<TestType>) ||
-        requires(TestType v, value_t value) { actions::emplace(v, value); } //
-    );
+    static_assert(emplace_req<TestType>);
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
