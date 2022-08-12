@@ -270,4 +270,18 @@ namespace stdsharp::functional
     inline constexpr struct advance : sequenced_invocables<plus_assign, details::advance_by_op>
     {
     } advance_v{};
+
+    inline constexpr struct true_only_then_fn
+    {
+        template<::std::predicate Fn>
+        constexpr auto operator()(const bool first_cond, Fn&& second_cond_fn) const noexcept
+        {
+            return first_cond ? ::std::invoke(::std::forward<Fn>(second_cond_fn)) : true;
+        }
+
+        constexpr auto operator()(const bool first_cond, const bool second_cond) const noexcept
+        {
+            return first_cond ? second_cond : true;
+        }
+    } true_only_then;
 }
