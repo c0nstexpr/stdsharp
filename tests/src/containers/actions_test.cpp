@@ -11,13 +11,16 @@ concept erase_req = requires(
     bool (&predicate)(typename Container::const_reference) //
 )
 {
-    [](Container container)
-    {
-        if constexpr(associative_container<Container> || unordered_associative_container<Container>)
-            [&](typename Container::key_type value) { actions::erase(container, value); };
-        else if constexpr(sequence_container<Container>)
-            [&](typename Container::value_type value) { actions::erase(container, value); };
-    };
+    requires true_only_then(
+        associative_container<Container> || unordered_associative_container<Container>,
+        requires { actions::erase(container, declval<typename Container::key_type>()); } //
+    );
+
+    requires true_only_then(
+        sequence_container<Container>,
+        requires { actions::erase(container, declval<typename Container::value_type>()); } //
+    );
+
     actions::erase(container, iter);
     actions::erase(container, iter, iter);
     actions::erase_if(container, predicate);
@@ -37,35 +40,31 @@ TEMPLATE_TEST_CASE( // NOLINT
     STATIC_REQUIRE(erase_req<TestType>);
 }
 
-static_assert(!sequence_container<unordered_map<int, int>>);
-
 template<typename Container>
-concept emplace_req = requires(Container container)
+concept emplace_req = requires(Container container, typename Container::value_type v)
 {
-    [](Container container)
-    {
-        if constexpr(associative_container<Container> || unordered_associative_container<Container>)
-            [&] { actions::emplace(container, *container.cbegin()); };
-        // else if constexpr(sequence_container<Container>)
-        //     [&] { actions::emplace(container, container.cbegin(), container.front()); };
-    };
+    requires true_only_then(
+        associative_container<Container> || unordered_associative_container<Container>,
+        requires { actions::emplace(container, container.cbegin()); } //
+    );
 
-    requires(!sequence_container<Container>) || requires
-    {
-        actions::emplace(container, container.cbegin(), container.front());
-    };
+    requires true_only_then(
+        sequence_container<Container>,
+        requires { actions::emplace(container, container.cbegin(), v); } //
+    );
 };
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: emplace actions", //
     "[containers][actions]",
     vector<int>,
-    set<int>(map<int, int>),
+    set<int>,
+    (map<int, int>),
     (unordered_map<int, int>) //
 )
 {
     CAPTURE(type<TestType>());
-    static_assert(emplace_req<TestType>);
+    STATIC_REQUIRE(emplace_req<TestType>);
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
