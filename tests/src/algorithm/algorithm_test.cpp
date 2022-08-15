@@ -19,12 +19,11 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
             constexpr auto f = [](const auto expect, const auto& func)
             {
                 auto first = First;
-                return !(expect ^ (func(first, Second) == Second));
+                return expect == (func(first, Second) == Second);
             };
 
-            CAPTURE(First, Second, f(greater, set_if_greater));
-
-            CAPTURE(First, Second, f(less, set_if_greater));
+            STATIC_REQUIRE(f(greater, set_if_greater));
+            STATIC_REQUIRE(f(less, set_if_less));
         }
     }
 }
@@ -48,7 +47,7 @@ TEMPLATE_TEST_CASE_SIG(
 
         THEN(fmt::format("value should {}between min-max", is_in_range ? "" : "not "))
         {
-            CAPTURE(Value, Min, Max, is_between(Value, Min, Max) == is_in_range);
+            STATIC_REQUIRE(is_between(Value, Min, Max) == is_in_range);
         }
     }
 }

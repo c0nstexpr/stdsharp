@@ -46,7 +46,7 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
                 return matched;
             }();
 
-            CAPTURE(match, match == my_enum::two);
+            STATIC_REQUIRE(match == my_enum::two);
         }
 
         AND_THEN("same for constexpr pattern match,")
@@ -65,7 +65,7 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
                 return match;
             }();
 
-            CAPTURE(match, match == my_enum::two);
+            STATIC_REQUIRE(match == my_enum::two);
         }
     }
 }

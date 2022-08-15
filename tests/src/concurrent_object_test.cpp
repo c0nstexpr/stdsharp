@@ -16,15 +16,16 @@ SCENARIO("concurrent object", "[concurrent object]") // NOLINT
         static constexpr void unlock_shared() {}
     };
 
-    REQUIRE(copyable<concurrent_object<int>>);
-    REQUIRE(movable<concurrent_object<int>>);
+    STATIC_REQUIRE(copyable<concurrent_object<int>>);
+    STATIC_REQUIRE(movable<concurrent_object<int>>);
 
-    REQUIRE(default_initializable<concurrent_object<int>>);
-    REQUIRE(constructible_from<concurrent_object<int>, concurrent_object<int, my_mutex>>);
-    REQUIRE(constructible_from<concurrent_object<int>, const concurrent_object<int, my_mutex>&>);
+    STATIC_REQUIRE(default_initializable<concurrent_object<int>>);
+    STATIC_REQUIRE(constructible_from<concurrent_object<int>, concurrent_object<int, my_mutex>>);
+    STATIC_REQUIRE(
+        constructible_from<concurrent_object<int>, const concurrent_object<int, my_mutex>&>);
 
-    REQUIRE(assignable<concurrent_object<int>&, concurrent_object<int, my_mutex>>);
-    REQUIRE(assignable<concurrent_object<int>&, const concurrent_object<int, my_mutex>&>);
+    STATIC_REQUIRE(assignable<concurrent_object<int>&, concurrent_object<int, my_mutex>>);
+    STATIC_REQUIRE(assignable<concurrent_object<int>&, const concurrent_object<int, my_mutex>&>);
 }
 
 SCENARIO("concurrent object reflection support", "[concurrent object]") // NOLINT
