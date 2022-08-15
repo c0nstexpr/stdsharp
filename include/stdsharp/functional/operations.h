@@ -79,28 +79,28 @@ namespace stdsharp::functional
     {
     } assign_v{};
 
-    inline constexpr ::std ::ranges::equal_to equal_to_v{};
-    inline constexpr ::std ::ranges::not_equal_to not_equal_to_v{};
-    inline constexpr ::std ::ranges::less less_v{};
-    inline constexpr ::std ::ranges::greater greater_v{};
-    inline constexpr ::std ::ranges::less_equal less_equal_v{};
-    inline constexpr ::std ::ranges::greater_equal greater_equal_v{};
+    inline constexpr ::std::ranges::equal_to equal_to_v{};
+    inline constexpr ::std::ranges::not_equal_to not_equal_to_v{};
+    inline constexpr ::std::ranges::less less_v{};
+    inline constexpr ::std::ranges::greater greater_v{};
+    inline constexpr ::std::ranges::less_equal less_equal_v{};
+    inline constexpr ::std::ranges::greater_equal greater_equal_v{};
     inline constexpr ::std::compare_three_way compare_three_way_v{};
-    inline constexpr ::std ::plus<> plus_v{};
-    inline constexpr ::std ::minus<> minus_v{};
-    inline constexpr ::std ::divides<> divides_v{};
-    inline constexpr ::std ::multiplies<> multiplies_v{};
-    inline constexpr ::std ::modulus<> modulus_v{};
-    inline constexpr ::std ::negate<> negate_v{};
-    inline constexpr ::std ::logical_and<> logical_and_v{};
-    inline constexpr ::std ::logical_not<> logical_not_v{};
-    inline constexpr ::std ::logical_or<> logical_or_v{};
+    inline constexpr ::std::plus<> plus_v{};
+    inline constexpr ::std::minus<> minus_v{};
+    inline constexpr ::std::divides<> divides_v{};
+    inline constexpr ::std::multiplies<> multiplies_v{};
+    inline constexpr ::std::modulus<> modulus_v{};
+    inline constexpr ::std::negate<> negate_v{};
+    inline constexpr ::std::logical_and<> logical_and_v{};
+    inline constexpr ::std::logical_not<> logical_not_v{};
+    inline constexpr ::std::logical_or<> logical_or_v{};
 
-    inline constexpr ::std ::bit_and<> bit_and_v{};
-    inline constexpr ::std ::bit_not<> bit_not_v{};
-    inline constexpr ::std ::bit_or<> bit_or_v{};
-    inline constexpr ::std ::bit_xor<> bit_xor_v{};
-    inline constexpr struct bit_xor
+    inline constexpr ::std::bit_and<> bit_and_v{};
+    inline constexpr ::std::bit_not<> bit_not_v{};
+    inline constexpr ::std::bit_or<> bit_or_v{};
+    inline constexpr ::std::bit_xor<> bit_xor_v{};
+    inline constexpr struct bit_xnor
     {
         template<typename T, typename U>
             requires requires { bit_not_v(bit_xor_v(::std::declval<T>(), ::std::declval<U>())); }
@@ -271,17 +271,11 @@ namespace stdsharp::functional
     {
     } advance_v{};
 
-    inline constexpr struct true_only_then_fn
+    inline constexpr struct logical_imply_fn
     {
-        template<::std::predicate Fn>
-        constexpr auto operator()(const bool first_cond, Fn&& second_cond_fn) const noexcept
-        {
-            return first_cond ? ::std::invoke(::std::forward<Fn>(second_cond_fn)) : true;
-        }
-
         constexpr auto operator()(const bool first_cond, const bool second_cond) const noexcept
         {
             return first_cond ? second_cond : true;
         }
-    } true_only_then;
+    } logical_imply;
 }

@@ -5,22 +5,31 @@ using namespace containers;
 using namespace functional;
 
 template<typename Container>
-concept erase_req = requires(
+    requires associative_container<Container> || unordered_associative_container<Container>
+constexpr auto erase_req_f()
+{
+    return requires(Container container)
+    {
+        actions::erase(container, declval<typename Container::key_type>());
+    };
+}
+
+template<sequence_container Container>
+constexpr auto erase_req_f()
+{
+    return requires(Container container)
+    {
+        actions::erase(container, declval<typename Container::value_type>());
+    };
+}
+
+template<typename Container>
+concept erase_req = erase_req_f<Container>() && requires(
     Container container,
     typename Container::const_iterator iter,
     bool (&predicate)(typename Container::const_reference) //
 )
 {
-    requires true_only_then(
-        associative_container<Container> || unordered_associative_container<Container>,
-        requires { actions::erase(container, declval<typename Container::key_type>()); } //
-    );
-
-    requires true_only_then(
-        sequence_container<Container>,
-        requires { actions::erase(container, declval<typename Container::value_type>()); } //
-    );
-
     actions::erase(container, iter);
     actions::erase(container, iter, iter);
     actions::erase_if(container, predicate);
@@ -41,18 +50,23 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 template<typename Container>
-concept emplace_req = requires(Container container, typename Container::value_type v)
+    requires associative_container<Container> || unordered_associative_container<Container>
+constexpr auto emplace_req_f()
 {
-    requires true_only_then(
-        associative_container<Container> || unordered_associative_container<Container>,
-        requires { actions::emplace(container, container.cbegin()); } //
-    );
+    return requires(Container container) { actions::emplace(container, *container.cbegin()); };
+}
 
-    requires true_only_then(
-        sequence_container<Container>,
-        requires { actions::emplace(container, container.cbegin(), v); } //
-    );
-};
+template<sequence_container Container>
+constexpr auto emplace_req_f()
+{
+    return requires(Container container, typename Container::value_type v)
+    {
+        actions::emplace(container, container.cbegin(), v);
+    };
+}
+
+template<typename Container>
+concept emplace_req = emplace_req_f<Container>();
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: emplace actions", //
