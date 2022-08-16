@@ -37,7 +37,7 @@ concept erase_req = erase_req_f<Container>() && requires(
 
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: erase actions", //
+    "Scenario: erase actions",
     "[containers][actions]",
     vector<int>,
     set<int>,
@@ -69,7 +69,7 @@ template<typename Container>
 concept emplace_req = emplace_req_f<Container>();
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: emplace actions", //
+    "Scenario: emplace actions",
     "[containers][actions]",
     vector<int>,
     set<int>,
@@ -82,7 +82,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: emplace where actions", //
+    "Scenario: emplace where actions",
     "[containers][actions]",
     vector<int>,
     deque<int>,
@@ -104,7 +104,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: pop where actions", //
+    "Scenario: pop where actions",
     "[containers][actions]",
     vector<int>,
     deque<int>,
@@ -123,7 +123,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: resize actions", //
+    "Scenario: resize actions",
     "[containers][actions]",
     vector<int>,
     list<int> //
