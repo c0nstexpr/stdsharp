@@ -11,71 +11,82 @@ TEMPLATE_TEST_CASE( // NOLINT
 )
 {
     {
-        using vec = std::vector<TestType>;
+        using vec = vector<TestType>;
 
-        GIVEN(fmt::format("vector type {}", type<vec>()))
+        GIVEN(format("vector type {}", type<vec>()))
         {
-            STATIC_REQUIRE(containers::sequence_container<vec>);
-            STATIC_REQUIRE(!containers::associative_container<vec>);
-            STATIC_REQUIRE(!containers::unordered_associative_container<vec>);
+            STATIC_REQUIRE(contiguous_container<vec>);
+            STATIC_REQUIRE(!associative_container<vec>);
+            STATIC_REQUIRE(!unordered_associative_container<vec>);
         }
     }
 
     {
-        using forward_list = std::forward_list<TestType>;
+        using arr = array<TestType, 5>;
 
-        GIVEN(fmt::format("forward list type {}", type<forward_list>()))
+        GIVEN(format("vector type {}", type<arr>()))
         {
-            STATIC_REQUIRE(containers::container<forward_list>);
-            STATIC_REQUIRE(!containers::sequence_container<forward_list>);
-            STATIC_REQUIRE(!containers::associative_container<forward_list>);
-            STATIC_REQUIRE(!containers::unordered_associative_container<forward_list>);
+            STATIC_REQUIRE(contiguous_container<arr>);
+            STATIC_REQUIRE(!associative_container<arr>);
+            STATIC_REQUIRE(!unordered_associative_container<arr>);
         }
     }
 
     {
-        using set = std::set<TestType>;
+        using forward_list = forward_list<TestType>;
 
-        GIVEN(fmt::format("set type {}", type<set>()))
+        GIVEN(format("forward list type {}", type<forward_list>()))
         {
-            STATIC_REQUIRE(!containers::sequence_container<set>);
-            STATIC_REQUIRE(containers::unique_associative_container<set>);
-            STATIC_REQUIRE(!containers::unordered_associative_container<set>);
+            STATIC_REQUIRE(container<forward_list>);
+            STATIC_REQUIRE(!sequence_container<forward_list>);
+            STATIC_REQUIRE(!associative_container<forward_list>);
+            STATIC_REQUIRE(!unordered_associative_container<forward_list>);
         }
     }
 
     {
-        using set = std::multiset<TestType>;
+        using set = set<TestType>;
 
-        GIVEN(fmt::format("set type {}", type<set>()))
+        GIVEN(format("set type {}", type<set>()))
         {
-            STATIC_REQUIRE(!containers::sequence_container<set>);
-            STATIC_REQUIRE(!containers::unique_associative_container<set>);
-            STATIC_REQUIRE(containers::multikey_associative_container<set>);
-            STATIC_REQUIRE(!containers::unordered_associative_container<set>);
+            STATIC_REQUIRE(!sequence_container<set>);
+            STATIC_REQUIRE(unique_associative_container<set>);
+            STATIC_REQUIRE(!unordered_associative_container<set>);
+        }
+    }
+
+    {
+        using set = multiset<TestType>;
+
+        GIVEN(format("set type {}", type<set>()))
+        {
+            STATIC_REQUIRE(!sequence_container<set>);
+            STATIC_REQUIRE(!unique_associative_container<set>);
+            STATIC_REQUIRE(multikey_associative_container<set>);
+            STATIC_REQUIRE(!unordered_associative_container<set>);
         }
     }
 
     {
         using map = unordered_map<int, TestType>;
 
-        GIVEN(fmt::format("unordered map type {}", type<map>()))
+        GIVEN(format("unordered map type {}", type<map>()))
         {
-            STATIC_REQUIRE(!containers::sequence_container<map>);
-            STATIC_REQUIRE(!containers::associative_container<map>);
-            STATIC_REQUIRE(containers::unique_unordered_associative_container<map>);
+            STATIC_REQUIRE(!sequence_container<map>);
+            STATIC_REQUIRE(!associative_container<map>);
+            STATIC_REQUIRE(unique_unordered_associative_container<map>);
         }
     }
 
     {
         using map = unordered_multimap<int, TestType>;
 
-        GIVEN(fmt::format("unordered map type {}", type<map>()))
+        GIVEN(format("unordered map type {}", type<map>()))
         {
-            STATIC_REQUIRE(!containers::sequence_container<map>);
-            STATIC_REQUIRE(!containers::associative_container<map>);
-            STATIC_REQUIRE(!containers::unique_unordered_associative_container<map>);
-            STATIC_REQUIRE(containers::multikey_unordered_associative_container<map>);
+            STATIC_REQUIRE(!sequence_container<map>);
+            STATIC_REQUIRE(!associative_container<map>);
+            STATIC_REQUIRE(!unique_unordered_associative_container<map>);
+            STATIC_REQUIRE(multikey_unordered_associative_container<map>);
         }
     }
 }
