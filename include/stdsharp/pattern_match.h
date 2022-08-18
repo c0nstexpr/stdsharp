@@ -7,7 +7,7 @@ namespace stdsharp
 {
     inline constexpr struct
     {
-        template< // TODO: use structured binding trait
+        template<
             typename Condition,
             ::std::predicate<const Condition>... Predicate,
             ::std::invocable<const Condition>... Func // clang-format off
