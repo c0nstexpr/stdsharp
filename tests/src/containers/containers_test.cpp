@@ -24,9 +24,9 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using arr = array<TestType, 5>;
 
-        GIVEN(format("vector type {}", type<arr>()))
+        GIVEN(format("array type {}", type<arr>()))
         {
-            STATIC_REQUIRE(contiguous_container<arr>);
+            STATIC_REQUIRE(container<arr>);
             STATIC_REQUIRE(!associative_container<arr>);
             STATIC_REQUIRE(!unordered_associative_container<arr>);
         }

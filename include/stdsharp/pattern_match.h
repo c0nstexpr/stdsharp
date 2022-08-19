@@ -1,7 +1,6 @@
 #pragma once
 
-#include "concepts/concepts.h"
-#include "type_traits/core_traits.h"
+#include "functional/operations.h"
 
 namespace stdsharp
 {
@@ -45,9 +44,9 @@ namespace stdsharp
             using condition_type_identity = ::std::type_identity<ConditionT>;
 
             template<typename Case>
-            static constexpr bool case_nothrow_invocable_ =
-                !::std::invocable<Case, condition_type_identity> ||
-                concepts::nothrow_invocable<Case, condition_type_identity>;
+            static constexpr bool case_nothrow_invocable_ = functional::logical_imply(
+                ::std::invocable<Case, condition_type_identity>,
+                concepts::nothrow_invocable<Case, condition_type_identity>);
 
         public:
             template<typename... Cases>

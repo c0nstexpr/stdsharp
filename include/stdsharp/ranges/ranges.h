@@ -17,6 +17,9 @@ namespace stdsharp::ranges
     using const_iterator_t = decltype(::std::ranges::cbegin(::std::declval<T&>()));
 
     template<typename T>
+    using const_sentinel_t = decltype(::std::ranges::cend(::std::declval<T&>()));
+
+    template<typename T>
     using range_const_reference_t =
         type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
 

@@ -23,49 +23,39 @@
 
 namespace stdsharp
 {
-    namespace containers::details
-    {
-        template<typename ContainerType>
-        concept std_array = requires(::std::decay_t<ContainerType> c)
-        {
-            []<typename T, auto Size>(::std::array<T, Size>&){}(c);
-        };
-
-        template<typename ContainerType>
-        concept std_forward_list = requires(::std::decay_t<ContainerType> c)
-        {
-            []<typename T, typename U>(::std::forward_list<T, U>&) {}(c);
-        };
-
-        template<typename ContainerType>
-        concept has_allocator_type_alias = requires
+    template<typename ContainerType>
+        requires requires
         {
             typename ContainerType::allocator_type;
             requires allocator_req<typename ContainerType::allocator_type>;
-        };
-    }
-
-    template<containers::details::has_allocator_type_alias ContainerType>
+        }
     struct allocator_of<ContainerType> :
         ::std::type_identity<typename ContainerType::allocator_type>
     {
     };
-
 }
 
 namespace stdsharp::containers
 {
     template<typename ValueType, typename Allocator>
-    concept erasable = allocator_req<Allocator> && // clang-format off
-        ::std::same_as<
+    concept erasable = requires(Allocator allocator_instance, ValueType* ptr)
+    {
+        requires allocator_req<Allocator>;
+        requires ::std::same_as<
             Allocator,
-            typename ::std::allocator_traits<Allocator>::template rebind_alloc<ValueType>
-        > &&
-        ::std::destructible<ValueType> &&
-        requires(Allocator allocator_instance, ValueType* ptr)
-        {
-            ::std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
-        }; // clang-format on
+            typename ::std::allocator_traits<Allocator>:: //
+            template rebind_alloc<ValueType> // clang-format off
+        >; // clang-format on
+        requires ::std::destructible<ValueType>;
+        ::std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
+    };
+
+    template<typename ValueType, typename Allocator>
+    concept nothrow_erasable = requires(Allocator allocator_instance, ValueType* ptr)
+    {
+        requires erasable<ValueType, Allocator>;
+        requires noexcept(::std::allocator_traits<Allocator>::destroy(allocator_instance, ptr));
+    };
 
     template<typename Container>
     concept container_erasable = requires
@@ -76,18 +66,42 @@ namespace stdsharp::containers
         >; // clang-format on
     };
 
+    template<typename Container>
+    concept container_nothrow_erasable = requires
+    {
+        requires nothrow_erasable<
+            typename ::std::decay_t<Container>::value_type,
+            allocator_of_t<::std::decay_t<Container>> // clang-format off
+        >; // clang-format on
+    };
+
     template<typename ValueType, typename Allocator>
-    concept move_insertable = allocator_req<Allocator> && // clang-format off
-        ::std::same_as<
+    concept move_insertable = requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv)
+    {
+        requires allocator_req<Allocator>;
+        requires ::std::same_as<
             Allocator,
-            typename ::std::allocator_traits<Allocator>::template rebind_alloc<ValueType>
-        > &&
-        ::std::move_constructible<ValueType> &&
+            typename ::std::allocator_traits<Allocator>:: //
+            template rebind_alloc<ValueType> // clang-format off
+        >; // clang-format on
+        requires ::std::move_constructible<ValueType>;
+        ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, ::std::move(rv));
+    };
+
+    template<typename ValueType, typename Allocator>
+    concept nothrow_move_insertable =
         requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv)
-        {
-            ::std::allocator_traits<Allocator>::
-                construct(allocator_instance, ptr, ::std::move(rv));
-        }; // clang-format on
+    {
+        requires move_insertable<ValueType, Allocator>;
+        requires concepts::nothrow_move_constructible<ValueType>;
+        requires noexcept( //
+            ::std::allocator_traits<Allocator>::construct(
+                allocator_instance,
+                ptr,
+                ::std::move(rv) // clang-format off
+            ) // clang-format on
+        );
+    };
 
     template<typename Container>
     concept container_move_insertable = requires
@@ -98,13 +112,32 @@ namespace stdsharp::containers
         >; // clang-format on
     };
 
+    template<typename Container>
+    concept container_nothrow_move_insertable = requires
+    {
+        requires nothrow_move_insertable<
+            typename ::std::decay_t<Container>::value_type,
+            allocator_of_t<::std::decay_t<Container>> // clang-format off
+        >; // clang-format on
+    };
+
     template<typename ValueType, typename Allocator>
-    concept copy_insertable = move_insertable<ValueType, Allocator> && // clang-format off
-        ::std::copy_constructible<ValueType> &&
+    concept copy_insertable = requires(Allocator allocator_instance, ValueType* ptr, ValueType v)
+    {
+        requires move_insertable<ValueType, Allocator> && ::std::copy_constructible<ValueType>;
+        ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
+    }; // clang-format on
+
+    template<typename ValueType, typename Allocator>
+    concept nothrow_copy_insertable =
         requires(Allocator allocator_instance, ValueType* ptr, ValueType v)
-        {
-            ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
-        }; // clang-format on
+    {
+        requires nothrow_move_insertable<ValueType, Allocator>;
+        requires concepts::nothrow_copy_constructible<ValueType>;
+        requires noexcept( //
+            ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v) //
+        );
+    };
 
     template<typename Container>
     concept container_copy_insertable = requires
@@ -115,22 +148,58 @@ namespace stdsharp::containers
         >; // clang-format on
     };
 
+    template<typename Container>
+    concept container_nothrow_copy_insertable = requires
+    {
+        requires nothrow_copy_insertable<
+            typename ::std::decay_t<Container>::value_type,
+            allocator_of_t<::std::decay_t<Container>> // clang-format off
+        >; // clang-format on
+    };
+
     template<typename ValueType, typename Allocator, typename... Args>
-    concept emplace_constructible = ::std::same_as<
-        Allocator, // clang-format off
-        typename ::std::allocator_traits<Allocator>::template rebind_alloc<ValueType>
-    > &&
-        ::std::constructible_from<ValueType, Args...> &&
+    concept emplace_constructible =
         requires(Allocator allocator_instance, ValueType* ptr, Args&&... args)
-        {
-            ::std::allocator_traits<Allocator>::
-                construct(allocator_instance, ptr, ::std::forward<Args>(args)...);
-        }; // clang-format on
+    {
+        requires ::std::same_as<
+            Allocator,
+            typename ::std::allocator_traits<Allocator>:: //
+            template rebind_alloc<ValueType> // clang-format off
+        >; // clang-format on
+        requires ::std::constructible_from<ValueType, Args...>;
+        ::std::allocator_traits<Allocator>::construct(
+            allocator_instance, ptr, ::std::forward<Args>(args)... //
+        );
+    };
+
+    template<typename ValueType, typename Allocator, typename... Args>
+    concept nothrow_emplace_constructible =
+        requires(Allocator allocator_instance, ValueType* ptr, Args&&... args)
+    {
+        requires concepts::nothrow_constructible_from<ValueType, Args...>;
+        requires noexcept( //
+            ::std::allocator_traits<Allocator>::construct(
+                allocator_instance,
+                ptr,
+                ::std::forward<Args>(args)... // clang-format off
+            ) // clang-format on
+        );
+    };
 
     template<typename Container, typename... Args>
     concept container_emplace_constructible = requires
     {
         requires emplace_constructible<
+            typename ::std::decay_t<Container>::value_type,
+            allocator_of_t<::std::decay_t<Container>>,
+            Args... // clang-format off
+        >; // clang-format on
+    };
+
+    template<typename Container, typename... Args>
+    concept container_nothrow_emplace_constructible = requires
+    {
+        requires nothrow_emplace_constructible<
             typename ::std::decay_t<Container>::value_type,
             allocator_of_t<::std::decay_t<Container>>,
             Args... // clang-format off
@@ -160,22 +229,6 @@ namespace stdsharp::containers
                 typename decltype(u_traits)::reference // clang-format off
             >; // clang-format on
         };
-
-        template<typename ContainerType, typename... OtherMemberType>
-        concept container_special_member =
-            ( //
-                !(::std::default_initializable<OtherMemberType> && ...) ||
-                ::std::default_initializable<ContainerType> // clang-format off
-            ) && // clang-format on
-            ::std::destructible<ContainerType> &&
-            ( //
-                container_copy_insertable<ContainerType> &&
-                    (::std::copyable<OtherMemberType> && ...) && //
-                    ::std::copyable<ContainerType> ||
-                (::std::movable<OtherMemberType> && ...) && //
-                    ::std::movable<ContainerType> &&
-                    concepts::copy_assignable<ContainerType> // clang-format off
-            ); // clang-format on
 
         template<typename>
         struct insert_return_type_of;
@@ -220,16 +273,15 @@ namespace stdsharp::containers
     using insert_return_type =
         details::insert_return_type_of<::std::set<int>::insert_return_type>::type<Iterator, Node>;
 
-    template<typename Container>
-    concept container =
-        details::std_array<Container> || details::std_forward_list<Container> || requires
+    template<typename Container, typename... Elements>
+    concept container = requires
     {
         typename ::std::decay_t<Container>;
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance) const_instance,
             typename decltype(instance)::value_type value,
-            allocator_of_t<decltype(instance)> alloc,
+
             ::std::ranges::range_reference_t<decltype(instance)> rng_ref,
             typename decltype(instance)::reference ref,
             typename decltype(instance)::const_reference const_ref,
@@ -239,8 +291,6 @@ namespace stdsharp::containers
             typename decltype(instance)::size_type size //
         )
         {
-            requires container_erasable<decltype(instance)>;
-
             requires ::std::ranges::forward_range<decltype(instance)>;
 
             requires functional::logical_imply(
@@ -248,19 +298,63 @@ namespace stdsharp::containers
                 ::std::equality_comparable<decltype(instance)> //
             );
 
-            // TODO: copy constructor and assignment
-            // a and b denote values of type Container
-            // r denotes a non-const value of type Container
-            //
-            // Container{};
-            //
-            // Container{a};
-            // Preconditions: T is Cpp17CopyInsertable into X
-            //
-            // Container{rv};
-            //
-            // r = a
-            // a = rv
+            requires requires
+            {
+                []<typename T, auto Size>(::std::array<T, Size>*){}(&instance);
+            } || requires
+            {
+                requires requires(allocator_of_t<decltype(instance)> alloc)
+                {
+                    requires ::std::destructible<decltype(instance)>;
+
+                    requires container_erasable<decltype(instance)>;
+
+                    requires functional::logical_imply(
+                        (concepts::nothrow_default_initializable<Elements> && ...),
+                        concepts::nothrow_default_initializable<decltype(instance)>) ||
+                        functional::logical_imply(
+                            (::std::default_initializable<Elements> && ...),
+                            ::std::default_initializable<decltype(instance)>);
+
+                    requires functional::logical_imply(
+                        (concepts::nothrow_copy_constructible<Elements> && ...) &&
+                            container_nothrow_copy_insertable<decltype(instance)>,
+                        concepts::nothrow_copy_constructible<decltype(instance)>) ||
+                        functional::logical_imply(
+                            (::std::copy_constructible<Elements> && ...) &&
+                                container_copy_insertable<decltype(instance)>,
+                            ::std::copy_constructible<decltype(instance)>);
+                    requires functional::logical_imply(
+                        (concepts::nothrow_copy_assignable<Elements> && ...) &&
+                            concepts::nothrow_copy_assignable<decltype(value)> &&
+                            container_nothrow_copy_insertable<decltype(instance)>,
+                        concepts::nothrow_copy_assignable<decltype(instance)>) ||
+                        functional::logical_imply(
+                            (concepts::copy_assignable<Elements> && ...) &&
+                                concepts::copy_assignable<decltype(value)> &&
+                                container_copy_insertable<decltype(instance)>,
+                            concepts::copy_assignable<decltype(instance)>);
+
+                    requires functional::logical_imply(
+                        (::std::move_constructible<Elements> && ...),
+                        ::std::move_constructible<decltype(instance)>) ||
+                        functional::logical_imply(
+                            (concepts::nothrow_move_constructible<Elements> && ...),
+                            concepts::nothrow_move_constructible<decltype(instance)>);
+                    requires functional::logical_imply(
+                        ::std::allocator_traits<decltype(alloc)>:: //
+                            propagate_on_container_move_assignment::value ||
+                            container_nothrow_move_insertable<decltype(instance)> &&
+                                (concepts::nothrow_move_assignable<Elements> && ...),
+                        concepts::nothrow_move_assignable<decltype(instance)>) ||
+                        functional::logical_imply(
+                            ::std::allocator_traits<decltype(alloc)>:: //
+                                propagate_on_container_move_assignment::value ||
+                                container_move_insertable<decltype(instance)> &&
+                                    (concepts::move_assignable<Elements> && ...),
+                            concepts::move_assignable<decltype(instance)>);
+                };
+            };
 
             requires ::std::
                 same_as<decltype(value), ::std::ranges::range_value_t<decltype(instance)>>;
@@ -268,8 +362,11 @@ namespace stdsharp::containers
             requires ::std::
                 same_as<decltype(const_ref), type_traits::add_const_lvalue_ref_t<decltype(value)>>;
             requires ::std::same_as<decltype(iter), ::std::ranges::iterator_t<decltype(instance)>>;
+            requires ::std::same_as<decltype(iter), ::std::ranges::sentinel_t<decltype(instance)>>;
             requires ::std::
                 same_as<decltype(const_iter), ranges::const_iterator_t<decltype(instance)>>;
+            requires ::std::
+                same_as<decltype(const_iter), ranges::const_sentinel_t<decltype(instance)>>;
             requires ::std::same_as<decltype(ref), decltype(rng_ref)> ||
                 ::std::same_as<decltype(const_ref), decltype(rng_ref)>;
             requires ::std::same_as<
@@ -280,19 +377,19 @@ namespace stdsharp::containers
             requires ::std::
                 same_as<decltype(diff), ::std::ranges::range_difference_t<decltype(instance)>>;
             requires ::std::unsigned_integral<decltype(size)>;
-            requires ::std::
-                same_as<decltype(size), ::std::ranges::range_size_t<decltype(instance)>>;
+            requires requires
+            {
+                []<typename T, typename U>(::std::forward_list<T, U>*) {}(&instance);
+            } || requires
+            {
+                requires ::std::
+                    same_as<decltype(size), ::std::ranges::range_size_t<decltype(instance)>>;
+            };
             requires(
                 ::std::numeric_limits<decltype(size)>::max() >
                 ::std::numeric_limits<decltype(diff)>::max() //
-            );
+            ); // clang-format off
 
-            // clang-format off
-            { const_instance.cbegin() } -> ::std::same_as<decltype(const_iter)>;
-            { const_instance.cend() } -> ::std::same_as<decltype(const_iter)>;
-            { instance.begin() } -> ::std::same_as<decltype(iter)>;
-            { instance.end() } -> ::std::same_as<decltype(iter)>;
-            { instance.size() } -> ::std::same_as<decltype(size)>;
             { instance.max_size() } -> ::std::same_as<decltype(size)>;
             { instance.empty() } -> ::std::convertible_to<bool>; // clang-format on
         };
@@ -308,8 +405,8 @@ namespace stdsharp::containers
             { ::std::as_const(handle).empty() } -> ::std::same_as<bool>;
     }; // clang-format on
 
-    template<typename Container>
-    concept reversible_container = container<Container> && requires
+    template<typename Container, typename... Elements>
+    concept reversible_container = container<Container, Elements...> && requires
     {
         typename ::std::decay_t<Container>;
         requires requires(
@@ -328,8 +425,8 @@ namespace stdsharp::containers
         };
     };
 
-    template<typename Container>
-    concept allocator_aware_container = container<Container> && requires
+    template<typename Container, typename... Elements>
+    concept allocator_aware_container = requires
     {
         requires requires(
             ::std::decay_t<Container> instance,
@@ -337,38 +434,9 @@ namespace stdsharp::containers
             typename decltype(instance)::allocator_type alloc //
         )
         {
-            requires ::std::constructible_from<decltype(instance), decltype(alloc)>;
             requires allocator_req<decltype(alloc)>;
-
-            // TODO:
-            // - Container denotes an allocator-aware container class with a value_type of T using
-            // an allocator of type A
-            // — a and b denote non-const lvalues of type Container
-            // — c denotes an lvalue of type const Container
-            // — t denotes an lvalue or a const rvalue of type Container
-            // — rv denotes a non-const rvalue of type Container
-            // — m is a value of type A.
-            //
-            // Container u{};
-            // Preconditions: A meets the Cpp17DefaultConstructible requirements
-            //
-            // Container u(rv);
-            //
-            // a = t
-            // Preconditions: T is Cpp17CopyInsertable into Container and Cpp17CopyAssignable.
-            //
-            // a = rv
-            // Preconditions: If
-            // allocator_traits<allocator_type>::propagate_on_container_move_assignment::value is
-            // false, T is Cpp17MoveInsertable into X and Cpp17MoveAssignable
-
-            requires functional::logical_imply(
-                ::std::allocator_traits<decltype(alloc)>:: //
-                    propagate_on_container_move_assignment::value ||
-                    container_move_insertable<decltype(instance)> &&
-                        concepts::move_assignable<decltype(value)>,
-                concepts::move_assignable<decltype(instance)> //
-            );
+            requires container<Container, decltype(alloc), Elements...>;
+            requires ::std::constructible_from<decltype(instance), decltype(alloc)>;
 
             requires functional::logical_imply(
                 container_copy_insertable<decltype(instance)>,
@@ -390,14 +458,10 @@ namespace stdsharp::containers
         };
     };
 
-    template<typename Container>
-    concept sequence_container = details::std_array<Container> || //
-        container<Container> && //
-        requires
+    template<typename Container, typename... Elements>
+    concept sequence_container = container<Container, Elements...> && requires
     {
-        typename ::std::decay_t<Container>;
-
-        requires details::std_array<::std::decay_t<Container>> || requires(
+        requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
             typename decltype(instance)::value_type value,
@@ -480,28 +544,54 @@ namespace stdsharp::containers
                 ::std::same_as<decltype(insert_return_v)>; // clang-format on
             requires ::std::same_as<
                 decltype(insert_return_v), // clang-format off
-                insert_return_type<typename decltype(instance)::iterator, decltype(node)>
+                insert_return_type<decltype(instance.begin()), decltype(node)>
             >; // clang-format on
         };
 
         template<typename Container>
-        concept associative_like_container = allocator_aware_container<Container> && requires(
-            Container instance,
-            const Container& const_instance,
-            typename Container::key_type key,
-            typename Container::const_reference const_ref,
-            typename Container::value_type value,
-            typename Container::node_type node,
-            typename Container::iterator iter,
-            typename Container::const_iterator const_iter,
-            typename Container::size_type size,
+        concept multikey_associative = requires(
+            ::std::decay_t<Container> instance, typename decltype(instance)::node_type node)
+        { // clang-format off
+            { instance.insert(::std::move(node)) } ->
+                ::std::same_as<typename decltype(instance)::iterator>; // clang-format on
+        };
+
+        template<typename Container, typename... Args>
+        struct optional_constructible
+        {
+            template<typename... Optional>
+            static constexpr auto value = requires
+            {
+                requires functional::logical_imply(
+                    (::std::default_initializable<Optional> && ...),
+                    ::std::constructible_from<Container, Args..., Optional...> //
+                );
+                requires ::std::constructible_from<Container, Args...>;
+            };
+        };
+    }
+
+    template<typename Container, typename... Elements>
+    concept associative_like_container =
+        allocator_aware_container<Container, Elements...> && requires
+    {
+        requires requires(
+            ::std::decay_t<Container> instance,
+            const decltype(instance)& const_instance,
+            typename decltype(instance)::key_type key,
+            typename decltype(instance)::const_reference const_ref,
+            typename decltype(instance)::value_type value,
+            typename decltype(instance)::node_type node,
+            typename decltype(instance)::iterator iter,
+            typename decltype(instance)::const_iterator const_iter,
+            typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list //
         )
         {
-            requires details::container_insertable<Container>;
+            requires details::container_insertable<decltype(instance)>;
 
             requires functional::logical_imply(
-                container_emplace_constructible<Container, decltype(value)>,
+                container_emplace_constructible<decltype(instance), decltype(value)>,
                 requires // clang-format off
                 {
                     { instance.emplace_hint(const_iter, const_ref) } ->
@@ -539,40 +629,27 @@ namespace stdsharp::containers
 
             { instance.clear() } -> ::std::same_as<void>; // clang-format on
         };
+    };
 
-        template<typename Container>
-        concept multikey_associative = requires(
-            ::std::decay_t<Container> instance, typename decltype(instance)::node_type node)
-        { // clang-format off
-            { instance.insert(::std::move(node)) } ->
-                ::std::same_as<typename decltype(instance)::iterator>; // clang-format on
-        };
-    }
-
-    template<typename Container>
+    template<typename Container, typename... Elements>
     concept associative_container = requires
     {
-        typename ::std::decay_t<Container>;
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
             typename decltype(instance)::value_type value,
             typename decltype(instance)::key_type key,
+            allocator_of_t<decltype(instance)> alloc,
             typename decltype(instance)::key_compare key_cmp,
             typename decltype(instance)::value_compare value_cmp,
             typename decltype(instance)::node_type node,
-            allocator_of_t<decltype(instance)> alloc,
             typename decltype(instance)::iterator iter,
             typename decltype(instance)::const_iterator const_iter,
             typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list //
         )
         {
-            requires details::associative_like_container<decltype(instance)>;
-
-            // TODO:
-            // Container{};
-            // Preconditions: key_compare meets the Cpp17DefaultConstructible requirements.
+            requires associative_like_container<decltype(instance), decltype(key_cmp)>;
 
             requires ::std::copyable<decltype(key_cmp)>;
             requires ::std::predicate<decltype(key_cmp), decltype(key), decltype(key)>;
@@ -583,23 +660,18 @@ namespace stdsharp::containers
 
             requires node_handle<decltype(node)>;
 
-            requires !container_emplace_constructible<decltype(instance), decltype(value)> ||
-                ( //
-                    !::std::default_initializable<decltype(key_cmp)> ||
-                    ::std::constructible_from<
-                        decltype(instance),
-                        decltype(const_iter),
-                        decltype(const_iter) // clang-format off
-                    > &&
-                    ::std::constructible_from<decltype(instance), decltype(v_list)>
-                ) && // clang-format on
-                    ::std::constructible_from<
-                        decltype(instance),
-                        decltype(const_iter),
-                        decltype(const_iter),
-                        decltype(key_cmp) // clang-format off
-                    > &&
-                    ::std::constructible_from<decltype(instance), decltype(v_list), decltype(key_cmp)>;
+            requires functional::logical_imply(
+                container_emplace_constructible<decltype(instance), decltype(value)>,
+                details::optional_constructible<
+                    decltype(instance),
+                    decltype(const_iter),
+                    decltype(const_iter) // clang-format off
+                >::template value<decltype(key_cmp), decltype(alloc)> &&
+                details::optional_constructible<
+                    decltype(instance),
+                    decltype(v_list)
+                >::template value<decltype(key_cmp), decltype(alloc)>
+            );
 
             { instance.key_comp() } -> ::std::same_as<decltype(key_cmp)>;
             { instance.value_comp() } -> ::std::same_as<decltype(value_cmp)>;
@@ -611,18 +683,17 @@ namespace stdsharp::containers
         };
     };
 
-    template<typename Container>
+    template<typename Container, typename... Elements>
     concept unique_associative_container =
-        associative_container<Container> && details::unique_associative<Container>;
+        associative_container<Container, Elements...> && details::unique_associative<Container>;
 
-    template<typename Container>
+    template<typename Container, typename... Elements>
     concept multikey_associative_container =
-        associative_container<Container> && details::multikey_associative<Container>;
+        associative_container<Container, Elements...> && details::multikey_associative<Container>;
 
-    template<typename Container>
+    template<typename Container, typename... Elements>
     concept unordered_associative_container = requires
     {
-        typename ::std::decay_t<Container>;
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
@@ -631,7 +702,6 @@ namespace stdsharp::containers
             typename decltype(instance)::key_equal key_equal,
             typename decltype(instance)::hasher hasher,
             typename decltype(instance)::node_type node,
-            allocator_of_t<decltype(instance)> alloc,
             typename decltype(instance)::reference ref,
             typename decltype(instance)::const_reference const_ref,
             typename decltype(instance)::iterator iter,
@@ -643,18 +713,7 @@ namespace stdsharp::containers
             ::std::initializer_list<decltype(value)> v_list //
         )
         {
-            requires details::associative_like_container<decltype(instance)>;
-
-            // TODO:
-            // - a denotes a value of type Container
-            // - b denotes a possibly const value of type Container
-            //
-            // Container{};
-            // Preconditions: hasher and key_equal meet the Cpp17DefaultConstructible requirements
-            //
-            // Container(b)
-            //
-            // a = b
+            requires associative_like_container<decltype(instance), decltype(hasher), Elements...>;
 
             requires ::std::copyable<decltype(key_equal)>;
             requires ::std::predicate<decltype(key_equal), decltype(key), decltype(key)>;
@@ -667,65 +726,51 @@ namespace stdsharp::containers
             requires details::iterator_identical<decltype(iter), decltype(local_iter)>;
             requires details::iterator_identical<decltype(const_iter), decltype(const_local_iter)>;
 
-            requires( //
-                ::std::default_initializable<decltype(key_equal)> ?
-                    (!::std::default_initializable<decltype(hasher)> ||
-                     ::std::constructible_from<decltype(instance), decltype(size)>) :
-                    ::std::constructible_from<
-                        decltype(instance),
-                        decltype(size),
-                        decltype(hasher)> //
-                ) && //
+            requires requires(
+                details::optional_constructible<decltype(instance), decltype(size)> req //
+            )
+            {
+                requires decltype(req)::template value<decltype(hasher), decltype(key_equal)>;
+                requires decltype(req)::template value<decltype(hasher)>;
+            };
+
+            requires requires( //
+                details::optional_constructible<
+                    decltype(instance),
+                    decltype(const_iter),
+                    decltype(const_iter) // clang-format off
+                > req // clang-format on
+            )
+            {
+                requires decltype(req)::template value<decltype(hasher), decltype(key_equal)>;
+                requires decltype(req)::template value<decltype(hasher)>;
+            };
+
+            requires functional::logical_imply(
+                ::std::default_initializable<decltype(hasher)> &&
+                    ::std::default_initializable<decltype(key_equal)>,
                 ::std::constructible_from<
                     decltype(instance),
-                    decltype(size),
-                    decltype(hasher),
-                    decltype(key_equal) // clang-format off
-                > &&
-                ::std::constructible_from< // clang-format on
-                    decltype(instance),
                     decltype(const_iter),
-                    decltype(const_iter),
-                    decltype(size),
-                    decltype(hasher),
-                    decltype(key_equal) // clang-format off
-                >; // clang-format on
+                    decltype(const_iter) // clang-format off
+                > // clang-format on
+            );
 
-            requires !container_emplace_constructible<decltype(instance), decltype(value)> ||
-                ( //
-                    ::std::default_initializable<decltype(key_equal)> ?
-                        !::std::default_initializable<decltype(hasher)> ||
-                            ::std::constructible_from<decltype(instance), decltype(size)> &&
-                                ::std::constructible_from<
-                                    decltype(instance),
-                                    decltype(const_iter),
-                                    decltype(const_iter),
-                                    decltype(size) // clang-format off
-                                > && // clang-format on
-                                ::std::constructible_from<
-                                    decltype(instance),
-                                    decltype(v_list),
-                                    decltype(size) // clang-format off
-                                > : // clang-format on
-                        ::std::constructible_from<
-                            decltype(instance),
-                            decltype(size),
-                            decltype(hasher) // clang-format off
-                        > && // clang-format on
-                            ::std::constructible_from<
-                                decltype(instance),
-                                decltype(const_iter),
-                                decltype(const_iter),
-                                decltype(size),
-                                decltype(hasher) // clang-format off
-                            > && // clang-format on
-                            ::std::constructible_from<
-                                decltype(instance),
-                                decltype(v_list),
-                                decltype(size),
-                                decltype(hasher) // clang-format off
-                            >
-                );
+            requires details::optional_constructible<
+                decltype(instance),
+                decltype(v_list),
+                decltype(size)>::template value<decltype(hasher), decltype(key_equal)>;
+
+            requires details::optional_constructible<
+                decltype(instance),
+                decltype(v_list),
+                decltype(size)>::template value<decltype(hasher)>;
+
+            requires functional::logical_imply(
+                ::std::default_initializable<decltype(hasher)> &&
+                    ::std::default_initializable<decltype(key_equal)>,
+                ::std::constructible_from<decltype(instance), decltype(v_list)> // clang-format off
+            );
 
             { instance.key_eq() } -> ::std::same_as<decltype(key_equal)>;
             { instance.hash_function() } -> ::std::same_as<decltype(hasher)>;
@@ -755,13 +800,15 @@ namespace stdsharp::containers
         };
     };
 
-    template<typename Container>
+    template<typename Container, typename... Elements>
     concept unique_unordered_associative_container =
-        unordered_associative_container<Container> && details::unique_associative<Container>;
+        unordered_associative_container<Container, Elements...> &&
+        details::unique_associative<Container>;
 
-    template<typename Container>
+    template<typename Container, typename... Elements>
     concept multikey_unordered_associative_container =
-        unordered_associative_container<Container> && details::multikey_associative<Container>;
+        unordered_associative_container<Container, Elements...> &&
+        details::multikey_associative<Container>;
 
     template<typename Predicate, typename Container>
     concept container_predicatable =

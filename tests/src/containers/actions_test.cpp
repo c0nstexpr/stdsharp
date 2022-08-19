@@ -5,7 +5,7 @@ using namespace containers;
 using namespace functional;
 
 template<typename Container>
-    requires associative_container<Container> || unordered_associative_container<Container>
+    requires associative_like_container<Container>
 constexpr auto erase_req_f()
 {
     return requires(Container container)
