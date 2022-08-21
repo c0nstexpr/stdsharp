@@ -559,15 +559,24 @@ namespace stdsharp::containers
         template<typename Container, typename... Args>
         struct optional_constructible
         {
-            template<typename... Optional>
-            static constexpr auto value = requires
+            template<typename... Optional, typename T>
+            static constexpr auto impl()
             {
-                requires functional::logical_imply(
-                    (::std::default_initializable<Optional> && ...),
-                    ::std::constructible_from<Container, Args..., Optional...> //
-                );
-                requires ::std::constructible_from<Container, Args...>;
-            };
+                constexpr auto res =
+                    ::std::constructible_from<Container, Args..., Optional..., T> &&
+                    impl<Optional...>();
+                if constexpr(::std::default_initializable<T>)
+                    return res && ::std::constructible_from<Container, Args..., Optional...>;
+                else
+                    return res;
+            }
+
+            template<typename... T>
+                requires(sizeof...(T) == 0)
+            static constexpr auto impl() { return ::std::constructible_from<Container, Args...>; }
+
+            template<typename... Optional>
+            static constexpr auto value = impl<Optional...>();
         };
     }
 
@@ -673,6 +682,15 @@ namespace stdsharp::containers
                 >::template value<decltype(key_cmp), decltype(alloc)>
             );
 
+#ifdef __cpp_lib_ranges_to_container
+            requires details::optional_constructible<
+                decltype(instance),
+                ::std::from_range_t,
+                decltype(instance) // clang-format off
+            >::template value<decltype(key_cmp), decltype(alloc)>; // clang-format on
+#endif
+
+            // clang-format off
             { instance.key_comp() } -> ::std::same_as<decltype(key_cmp)>;
             { instance.value_comp() } -> ::std::same_as<decltype(value_cmp)>;
 
@@ -701,6 +719,7 @@ namespace stdsharp::containers
             typename decltype(instance)::key_type key,
             typename decltype(instance)::key_equal key_equal,
             typename decltype(instance)::hasher hasher,
+            allocator_of_t<decltype(instance)> alloc,
             typename decltype(instance)::node_type node,
             typename decltype(instance)::reference ref,
             typename decltype(instance)::const_reference const_ref,
@@ -726,52 +745,81 @@ namespace stdsharp::containers
             requires details::iterator_identical<decltype(iter), decltype(local_iter)>;
             requires details::iterator_identical<decltype(const_iter), decltype(const_local_iter)>;
 
-            requires requires(
-                details::optional_constructible<decltype(instance), decltype(size)> req //
-            )
-            {
-                requires decltype(req)::template value<decltype(hasher), decltype(key_equal)>;
-                requires decltype(req)::template value<decltype(hasher)>;
-            };
-
-            requires requires( //
-                details::optional_constructible<
-                    decltype(instance),
-                    decltype(const_iter),
-                    decltype(const_iter) // clang-format off
-                > req // clang-format on
-            )
-            {
-                requires decltype(req)::template value<decltype(hasher), decltype(key_equal)>;
-                requires decltype(req)::template value<decltype(hasher)>;
-            };
+            requires details::optional_constructible<decltype(instance), decltype(size)>::
+                template value<decltype(hasher), decltype(key_equal), decltype(alloc)>;
 
             requires functional::logical_imply(
-                ::std::default_initializable<decltype(hasher)> &&
-                    ::std::default_initializable<decltype(key_equal)>,
-                ::std::constructible_from<
-                    decltype(instance),
-                    decltype(const_iter),
-                    decltype(const_iter) // clang-format off
-                > // clang-format on
+                container_emplace_constructible<decltype(instance), decltype(value)>,
+                requires //
+                {
+                    requires details::optional_constructible<
+                        decltype(instance),
+                        decltype(const_iter),
+                        decltype(const_iter),
+                        decltype(size) // clang-format off
+                    >::template value<decltype(hasher), decltype(key_equal), decltype(alloc)>; // clang-format on
+
+                    requires functional::logical_imply(
+                        ::std::default_initializable<decltype(hasher)> &&
+                            ::std::default_initializable<decltype(key_equal)> &&
+                            ::std::default_initializable<decltype(alloc)>,
+                        ::std::constructible_from<
+                            decltype(instance),
+                            decltype(const_iter),
+                            decltype(const_iter) // clang-format off
+                        > // clang-format on
+                    );
+
+                    requires details::optional_constructible<
+                        decltype(instance),
+                        decltype(v_list),
+                        decltype(size) // clang-format off
+                    >::template value<decltype(hasher), decltype(key_equal), decltype(alloc)>; // clang-format on
+
+#ifdef __cpp_lib_ranges_to_container
+                    requires details::optional_constructible<
+                        decltype(instance),
+                        ::std::from_range_t,
+                        decltype(instance),
+                        decltype(size) // clang-format off
+                    >::template value<decltype(hasher), decltype(key_equal), decltype(alloc)>; // clang-format on
+
+                    requires functional::logical_imply(
+                        ::std::default_initializable<decltype(hasher)> &&
+                            ::std::default_initializable<decltype(key_equal)> &&
+                            ::std::default_initializable<decltype(alloc)>,
+                        ::std::constructible_from<
+                            decltype(instance),
+                            ::std::from_range_t,
+                            decltype(instance) // clang-format off
+                        > // clang-format on
+                    );
+#endif
+
+                    requires functional::logical_imply(
+                        ::std::default_initializable<decltype(hasher)> &&
+                            ::std::default_initializable<decltype(key_equal)> &&
+                            ::std::default_initializable<decltype(alloc)>,
+                        ::std::constructible_from<decltype(instance), decltype(v_list)> //
+                    );
+
+                    requires functional::logical_imply(
+                        ::std::default_initializable<decltype(hasher)> &&
+                            ::std::default_initializable<decltype(key_equal)> &&
+                            ::std::default_initializable<decltype(alloc)>,
+                        ::std::constructible_from<decltype(instance), decltype(v_list)> //
+                    );
+                } //
             );
-
-            requires details::optional_constructible<
-                decltype(instance),
-                decltype(v_list),
-                decltype(size)>::template value<decltype(hasher), decltype(key_equal)>;
-
-            requires details::optional_constructible<
-                decltype(instance),
-                decltype(v_list),
-                decltype(size)>::template value<decltype(hasher)>;
 
             requires functional::logical_imply(
-                ::std::default_initializable<decltype(hasher)> &&
-                    ::std::default_initializable<decltype(key_equal)>,
-                ::std::constructible_from<decltype(instance), decltype(v_list)> // clang-format off
+                container_copy_insertable<decltype(instance)> &&
+                    concepts::copy_assignable<decltype(value)> &&
+                    ::std::default_initializable<decltype(alloc)>,
+                ::std::constructible_from<decltype(instance), decltype(v_list)> //
             );
 
+            // clang-format off
             { instance.key_eq() } -> ::std::same_as<decltype(key_equal)>;
             { instance.hash_function() } -> ::std::same_as<decltype(hasher)>;
 
