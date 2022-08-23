@@ -20,6 +20,7 @@
 #include "../ranges/ranges.h"
 #include "../concepts/concepts.h"
 #include "../functional/operations.h"
+#include "../utility/pack_get.h"
 
 namespace stdsharp
 {
@@ -559,24 +560,23 @@ namespace stdsharp::containers
         template<typename Container, typename... Args>
         struct optional_constructible
         {
-            template<typename... Optional, typename T>
-            static constexpr auto impl()
+            template<typename... Optional>
+            static constexpr auto value = []<::std::size_t... I>(const ::std::index_sequence<I...>)
             {
-                constexpr auto res =
-                    ::std::constructible_from<Container, Args..., Optional..., T> &&
-                    impl<Optional...>();
-                if constexpr(::std::default_initializable<T>)
-                    return res && ::std::constructible_from<Container, Args..., Optional...>;
+                using last_t = pack_get_t<sizeof...(Optional) - 1, Optional...>;
+
+                constexpr auto res = ::std::
+                    constructible_from<Container, Args..., pack_get_t<I, Optional...>..., last_t>;
+
+                if constexpr(::std::default_initializable<last_t>)
+                    return res && value<pack_get_t<I, Optional...>...>();
                 else
                     return res;
             }
+            (::std::make_index_sequence<sizeof...(Optional) - 1>{});
 
-            template<typename... T>
-                requires(sizeof...(T) == 0)
-            static constexpr auto impl() { return ::std::constructible_from<Container, Args...>; }
-
-            template<typename... Optional>
-            static constexpr auto value = impl<Optional...>();
+            template<>
+            static constexpr auto value<> = ::std::constructible_from<Container, Args...>;
         };
     }
 
