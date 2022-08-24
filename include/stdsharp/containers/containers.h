@@ -576,7 +576,7 @@ namespace stdsharp::containers
             (::std::make_index_sequence<sizeof...(Optional) - 1>{});
 
             template<>
-            static constexpr auto value<> = ::std::constructible_from<Container, Args...>;
+            constexpr auto value<> = ::std::constructible_from<Container, Args...>;
         };
     }
 
