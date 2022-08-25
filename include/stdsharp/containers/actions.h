@@ -162,8 +162,10 @@ namespace stdsharp::actions
             constexpr auto operator()(Container& container, Predicate&& predicate_fn) const //
                 requires requires
             { // clang-format off
-                { erase_if(container, ::std::declval<Predicate>()) } ->
-                    ::std::same_as<::std::ranges::range_size_t<Container>>;
+                requires ::std::same_as<
+                    decltype(erase_if(container, ::std::declval<Predicate>())),
+                    ::std::ranges::range_size_t<Container>
+                >;
             } // clang-format on
             {
                 return erase_if(container, ::std::forward<Predicate>(predicate_fn));
