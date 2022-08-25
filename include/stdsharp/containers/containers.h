@@ -563,20 +563,28 @@ namespace stdsharp::containers
             template<typename... Optional>
             static constexpr auto value = []<::std::size_t... I>(const ::std::index_sequence<I...>)
             {
-                using last_t = pack_get_t<sizeof...(Optional) - 1, Optional...>;
-
-                constexpr auto res = ::std::
-                    constructible_from<Container, Args..., pack_get_t<I, Optional...>..., last_t>;
-
-                if constexpr(::std::default_initializable<last_t>)
-                    return res && value<pack_get_t<I, Optional...>...>();
+                constexpr ::std::size_t count = sizeof...(Optional);
+                if constexpr(count == 0) return ::std::constructible_from<Container, Args...>;
                 else
-                    return res;
-            }
-            (::std::make_index_sequence<sizeof...(Optional) - 1>{});
+                {
+                    using last_t = pack_get_t<count - 1, Optional...>;
 
-            template<>
-            constexpr auto value<> = ::std::constructible_from<Container, Args...>;
+                    constexpr auto res = ::std::constructible_from<
+                        Container,
+                        Args...,
+                        pack_get_t<I, Optional...>...,
+                        last_t // clang-format off
+                    >; // clang-format on
+
+                    if constexpr(::std::default_initializable<last_t>)
+                        return res && value<pack_get_t<I, Optional...>...>();
+                    else
+                        return res;
+                }
+            }
+            (::std:: //
+             make_index_sequence<
+                 sizeof...(Optional) == 0 ? sizeof...(Optional) : sizeof...(Optional) - 1>{});
         };
     }
 
