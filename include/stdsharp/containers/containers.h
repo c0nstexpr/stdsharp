@@ -564,6 +564,7 @@ namespace stdsharp::containers
             static constexpr auto value = []<::std::size_t... I>(const ::std::index_sequence<I...>)
             {
                 constexpr ::std::size_t count = sizeof...(Optional);
+
                 if constexpr(count == 0) return ::std::constructible_from<Container, Args...>;
                 else
                 {
@@ -582,9 +583,12 @@ namespace stdsharp::containers
                         return res;
                 }
             }
-            (::std:: //
-             make_index_sequence<
-                 sizeof...(Optional) == 0 ? sizeof...(Optional) : sizeof...(Optional) - 1>{});
+            ( //
+                ::std::make_index_sequence<
+                    sizeof...(Optional) == 0 ? sizeof...(Optional) :
+                                               sizeof...(Optional) - 1 // clang-format off
+                >{} // clang-format on
+            );
         };
     }
 

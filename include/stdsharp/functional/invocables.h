@@ -4,12 +4,11 @@
 #pragma once
 
 #include "../type_traits/core_traits.h"
-#include "../utility/value_wrapper.h"
-#include "../utility/pack_get.h"
+#include "../utility/utility.h"
 
 namespace stdsharp::functional
 {
-    inline namespace invoke_selector
+    namespace details
     {
         template<typename... Func>
         struct trivial
@@ -51,59 +50,82 @@ namespace stdsharp::functional
                 return i;
             }();
         };
-    }
 
-    template<template<typename...> typename Selector, typename... Func>
-    struct invocables : private value_wrapper<Func>...
-    {
-        invocables() = default;
-
-        template<typename... Args>
-            requires(::std::constructible_from<value_wrapper<Func>, Args>&&...)
-        constexpr invocables(Args&&... args) //
-            noexcept((concepts::nothrow_constructible_from<value_wrapper<Func>, Args> && ...)):
-            value_wrapper<Func>(::std::forward<Args>(args))...
+        template<template<typename...> typename Selector, typename... Func>
+        struct invocables : value_wrapper<Func>...
         {
-        }
+            invocables() = default;
+
+            template<typename... Args>
+                requires(::std::constructible_from<value_wrapper<Func>, Args>&&...)
+            constexpr invocables(Args&&... args) //
+                noexcept((concepts::nothrow_constructible_from<value_wrapper<Func>, Args> && ...)):
+                value_wrapper<Func>(::std::forward<Args>(args))...
+            {
+            }
+
+
+            template<::std::size_t Index, typename... Args, typename This>
+                requires(Index < sizeof...(Func))
+            static constexpr decltype(auto) invoke_impl(This&& this_, Args&&... args) noexcept( //
+                noexcept( //
+                    concepts::nothrow_invocable<
+                        pack_get_t<Index, forward_like_t<This, Func>...>,
+                        Args... // clang-format off
+                    >
+                ) // clang-format on
+            )
+            {
+                return ::std::invoke(
+                    pack_get<Index>(::std::forward<This>(this_).value_wrapper<Func>::value...),
+                    ::std::forward<Args>(args)... //
+                );
+            }
 
 #define BS_OPERATOR(const_, ref)                                                            \
-    template<typename... Args>                                                              \
-    requires ::std::invocable<                                                              \
-        pack_get_t<Selector<Func...>::template value<Args...>, const_ Func ref...>,         \
-        Args...> constexpr decltype(auto)                                                   \
-        operator()(Args&&... args) const_ ref noexcept(                                     \
-            concepts::nothrow_invocable<                                                    \
-                pack_get_t<Selector<Func...>::template value<Args...>, const_ Func ref...>, \
-                Args...>)                                                                   \
+    template<                                                                               \
+        typename... Args,                                                                   \
+        typename This = const_ invocables ref,                                              \
+        auto Index = Selector<const_ Func ref...>::template value<Args...>>                 \
+        requires requires                                                                   \
+        {                                                                                   \
+            invoke_impl<Index>(::std::declval<This>(), ::std::declval<Args>()...);          \
+        }                                                                                   \
+    constexpr decltype(auto) operator()(Args&&... args) const_ ref noexcept(                \
+        noexcept(invoke_impl<Index>(::std::declval<This>(), ::std::declval<Args>()...)))    \
     {                                                                                       \
-        return ::std::invoke(                                                               \
-            pack_get<Selector<Func...>::template value<Args...>>(                           \
-                static_cast<const_ Func ref>(value_wrapper<Func>::value)...),               \
-            ::std::forward<Args>(args)...);                                                 \
+        return invoke_impl<Index>(static_cast<This>(*this), ::std::forward<Args>(args)...); \
     }
 
-        BS_OPERATOR(, &)
-        BS_OPERATOR(const, &)
-        BS_OPERATOR(, &&)
-        BS_OPERATOR(const, &&)
+            BS_OPERATOR(, &)
+            BS_OPERATOR(const, &)
+            BS_OPERATOR(, &&)
+            BS_OPERATOR(const, &&)
 #undef BS_OPERATOR
-    };
+        };
+    }
 
     template<typename... Func>
-    struct trivial_invocables : invocables<invoke_selector::trivial, Func...>
+    class trivial_invocables : details::invocables<details::trivial, Func...>
     {
-        using base = invocables<invoke_selector::trivial, Func...>;
+        using base = details::invocables<details::trivial, Func...>;
+
+    public:
         using base::base;
+        using base::operator();
     };
 
     template<typename... Func>
     trivial_invocables(Func&&...) -> trivial_invocables<::std::decay_t<Func>...>;
 
     template<typename... Func>
-    struct sequenced_invocables : invocables<invoke_selector::sequenced, Func...>
+    class sequenced_invocables : details::invocables<details::sequenced, Func...>
     {
-        using base = invocables<invoke_selector::sequenced, Func...>;
+        using base = details::invocables<details::sequenced, Func...>;
+
+    public:
         using base::base;
+        using base::operator();
     };
 
     template<typename... Func>

@@ -40,6 +40,9 @@ namespace stdsharp::actions
     {
         using namespace containers;
 
+        template<typename Container>
+        using const_iter_t = ranges::const_iterator_t<Container>;
+
         void erase(auto&&, auto&&) = delete;
 
         struct erase_fn
@@ -71,7 +74,7 @@ namespace stdsharp::actions
 
             template<
                 typename Container, // clang-format off
-                ::std::convertible_to<ranges::const_iterator_t<Container>>... ConstIter
+                ::std::convertible_to<const_iter_t<Container>>... ConstIter
             > // clang-format on
                 requires container_erasable<Container> && requires
                 {
@@ -89,7 +92,7 @@ namespace stdsharp::actions
             {
                 return container.erase(
                     const_iter_begin,
-                    static_cast<ranges::const_iterator_t<Container>>(const_iter_end)... //
+                    static_cast<const_iter_t<Container>>(const_iter_end)... //
                 );
             }
         };
@@ -108,11 +111,8 @@ namespace stdsharp::actions
         struct emplace_##where##_default_fn                                                 \
         {                                                                                   \
             template<typename Container, typename... Args>                                  \
-                requires ::std::invocable<                                                  \
-                    emplace_fn,                                                             \
-                    Container&,                                                             \
-                    ranges::const_iterator_t<Container>,                                    \
-                    Args...>                                                                \
+                requires ::std::                                                            \
+                    invocable<emplace_fn, Container&, const_iter_t<Container>, Args...>     \
             constexpr decltype(auto) operator()(Container& container, Args&&... args) const \
             {                                                                               \
                 return *actions::emplace(                                                   \
@@ -142,10 +142,10 @@ namespace stdsharp::actions
         details::emplace_##where##_mem_fn,                                                  \
         details::emplace_##where##_default_fn>;                                             \
                                                                                             \
-    inline constexpr emplace_##where##_fn emplace_##where {}
+    inline constexpr emplace_##where##_fn emplace_##where{};
 
-    STDSHARP_EMPLACE_WHERE_ACTION(back, end);
-    STDSHARP_EMPLACE_WHERE_ACTION(front, begin);
+    STDSHARP_EMPLACE_WHERE_ACTION(back, end)
+    STDSHARP_EMPLACE_WHERE_ACTION(front, begin)
 
 #undef STDSHARP_EMPLACE_WHERE_ACTION
 
@@ -183,12 +183,12 @@ namespace stdsharp::actions
                     requires ::std::permutable<decltype(iter)>;
                     ::std::ranges::distance(
                         iter,
-                        ::std::declval<ranges::const_iterator_t<Container>>() //
+                        ::std::declval<const_iter_t<Container>>() //
                     );
                 }
             constexpr auto operator()(Container& container, Predicate predicate_fn) const
             { // TODO: Replace with range algo
-                const auto& it = static_cast<ranges::const_iterator_t<Container>>(
+                const auto& it = static_cast<const_iter_t<Container>>(
                     ::std::remove_if(container.begin(), container.end(), predicate_fn) //
                 );
                 const auto r = ::std::ranges::distance(it, container.cend());
@@ -231,8 +231,7 @@ namespace stdsharp::actions
         struct pop_##where##_default_fn                                                           \
         {                                                                                         \
             template<typename Container>                                                          \
-                requires ::std::                                                                  \
-                    invocable<actions::erase_fn, Container&, ranges::const_iterator_t<Container>> \
+                requires ::std::invocable<actions::erase_fn, Container&, const_iter_t<Container>> \
             constexpr void operator()(Container& container) const                                 \
             {                                                                                     \
                 actions::erase(container, container.c##iter());                                   \
@@ -242,7 +241,10 @@ namespace stdsharp::actions
         struct pop_##where##_mem_fn                                                               \
         {                                                                                         \
             template<containers::sequence_container Container>                                    \
-                requires requires(Container instance) { instance.pop_##where(); }                 \
+                requires requires(Container instance)                                             \
+                {                                                                                 \
+                    requires ::std::same_as<decltype(instance.pop_##where()), void>;              \
+                }                                                                                 \
             constexpr void operator()(Container& container) const                                 \
             {                                                                                     \
                 return container.pop_##where();                                                   \
@@ -253,10 +255,10 @@ namespace stdsharp::actions
     using pop_##where##_fn = functional::                                                         \
         sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>;   \
                                                                                                   \
-    inline constexpr pop_##where##_fn pop_##where {}
+    inline constexpr pop_##where##_fn pop_##where{};
 
-    STDSHARP_POP_WHERE_ACTION(front, begin);
-    STDSHARP_POP_WHERE_ACTION(back, end);
+    STDSHARP_POP_WHERE_ACTION(front, begin)
+    STDSHARP_POP_WHERE_ACTION(back, end)
 
 #undef STDSHARP_POP_WHERE_ACTION
 
@@ -299,7 +301,8 @@ namespace stdsharp::actions
                     !::std::constructible_from<Container, Args...>)
             constexpr auto operator()(Args&&... args) const noexcept(
                 (concepts::nothrow_invocable<actions::emplace_fn, Container&, Args> && ...) && //
-                noexcept(reserved<Container, sizeof...(Args)>()))
+                noexcept(reserved<Container, sizeof...(Args)>()) //
+            )
             {
                 Container container{};
                 reserved<sizeof...(Args)>(container);
