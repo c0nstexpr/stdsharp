@@ -14,6 +14,14 @@
 
 namespace stdsharp::actions
 {
+    namespace details
+    {
+        using namespace containers;
+
+        template<typename Container>
+        using const_iter_t = typename ::std::decay_t<Container>::const_iterator;
+    }
+
     inline constexpr struct emplace_fn
     {
         template<typename... Args, typename Container>
@@ -21,7 +29,7 @@ namespace stdsharp::actions
                 containers::container_emplace_constructible<Container, Args...>
         constexpr decltype(auto) operator()(
             Container& container,
-            const decltype(container.cbegin()) iter,
+            const details::const_iter_t<Container> iter,
             Args&&... args //
         ) const
         {
@@ -38,11 +46,6 @@ namespace stdsharp::actions
 
     namespace details
     {
-        using namespace containers;
-
-        template<typename Container>
-        using const_iter_t = ranges::const_iterator_t<Container>;
-
         void erase(auto&&, auto&&) = delete;
 
         struct erase_fn
