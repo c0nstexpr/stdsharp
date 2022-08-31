@@ -14,30 +14,21 @@
 
 namespace stdsharp::actions
 {
-    namespace details
-    {
-        using namespace containers;
-
-        template<typename Container>
-        using const_iter_t = typename ::std::decay_t<Container>::const_iterator;
-    }
-
     inline constexpr struct emplace_fn
     {
-        template<typename... Args, typename Container>
-            requires containers::sequence_container<Container> &&
-                containers::container_emplace_constructible<Container, Args...>
+        template<typename... Args, containers::container_emplace_constructible<Args...> Container>
+            requires containers::sequence_container<Container>
         constexpr decltype(auto) operator()(
             Container& container,
-            const details::const_iter_t<Container> iter,
+            const decltype(container.cbegin()) iter,
             Args&&... args //
         ) const
         {
             return container.emplace(iter, ::std::forward<Args>(args)...);
         }
 
-        template<containers::associative_like_container Container, typename... Args>
-            requires containers::container_emplace_constructible<Container, Args...>
+        template<typename... Args, containers::container_emplace_constructible<Args...> Container>
+            requires containers::associative_like_container<Container>
         constexpr decltype(auto) operator()(Container& container, Args&&... args) const
         {
             return container.emplace(::std::forward<Args>(args)...);
@@ -46,26 +37,31 @@ namespace stdsharp::actions
 
     namespace details
     {
+        using namespace containers;
+
+        template<typename Container>
+        using const_iter_t = ranges::const_iterator_t<Container>;
+
         void erase(auto&&, auto&&) = delete;
 
         struct erase_fn
         {
-            template<sequence_container Container>
-                requires container_erasable<Container>
+            template<container_erasable Container>
             constexpr auto operator()(
                 Container& container,
                 const ::std::equality_comparable_with<
                     typename ::std::decay_t<Container>::value_type> auto& value //
             ) const requires requires
             {
+                requires sequence_container<Container>;
                 erase(container, value);
             }
             {
                 return erase(container, value);
             }
 
-            template<associative_like_container Container>
-                requires container_erasable<Container>
+            template<container_erasable Container>
+                requires associative_like_container<Container>
             constexpr auto operator()(
                 Container& container,
                 const ::std::equality_comparable_with<
@@ -76,10 +72,10 @@ namespace stdsharp::actions
             }
 
             template<
-                typename Container, // clang-format off
+                container_erasable Container, // clang-format off
                 ::std::convertible_to<const_iter_t<Container>>... ConstIter
             > // clang-format on
-                requires container_erasable<Container> && requires
+                requires requires
                 {
                     requires(
                         sequence_container<Container> || // clang-format off
@@ -128,13 +124,12 @@ namespace stdsharp::actions
             template<                                                                       \
                 typename... Args,                                                           \
                 containers::container_emplace_constructible<Args...> Container>             \
-                requires requires(Container instance)                                       \
-                {                                                                           \
-                    requires containers::container<Container>;                              \
-                    instance.emplace_##where(::std::declval<Args>()...);                    \
-                }                                                                           \
             constexpr typename ::std::decay_t<Container>::reference                         \
-                operator()(Container& container, Args&&... args) const                      \
+                operator()(Container& container, Args&&... args) const requires requires    \
+            {                                                                               \
+                requires containers::container<Container>;                                  \
+                container.emplace_##where(::std::declval<Args>()...);                       \
+            }                                                                               \
             {                                                                               \
                 return container.emplace_##where(::std::forward<Args>(args)...);            \
             }                                                                               \
@@ -218,11 +213,13 @@ namespace stdsharp::actions
         using size_type = ::std::ranges::range_size_t<Container>;
 
         template<containers::sequence_container Container>
-            requires requires(Container container, size_type<Container> size)
-            {
-                container.resize(size);
-            }
-        constexpr void operator()(Container& container, const size_type<Container> size) const
+        constexpr void operator()(
+            Container& container,
+            const size_type<Container> size //
+        ) const requires requires
+        {
+            container.resize(size);
+        }
         {
             return container.resize(size);
         }
@@ -243,12 +240,12 @@ namespace stdsharp::actions
                                                                                                   \
         struct pop_##where##_mem_fn                                                               \
         {                                                                                         \
-            template<containers::sequence_container Container>                                    \
-                requires requires(Container instance)                                             \
-                {                                                                                 \
-                    requires ::std::same_as<decltype(instance.pop_##where()), void>;              \
-                }                                                                                 \
-            constexpr void operator()(Container& container) const                                 \
+            template<typename Container>                                                          \
+            constexpr void operator()(Container& container) const requires requires               \
+            {                                                                                     \
+                requires sequence_container<Container>;                                           \
+                requires ::std::same_as<decltype(container.pop_##where()), void>;                 \
+            }                                                                                     \
             {                                                                                     \
                 return container.pop_##where();                                                   \
             }                                                                                     \
