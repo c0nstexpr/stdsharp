@@ -6,7 +6,7 @@ using namespace functional;
 
 template<typename Container>
     requires associative_like_container<Container>
-constexpr auto erase_req_f()
+consteval auto erase_req_f()
 {
     return requires(Container container)
     {
@@ -15,7 +15,7 @@ constexpr auto erase_req_f()
 }
 
 template<sequence_container Container>
-constexpr auto erase_req_f()
+consteval auto erase_req_f()
 {
     return requires(Container container)
     {
@@ -50,13 +50,13 @@ TEMPLATE_TEST_CASE( // NOLINT
 
 template<typename Container>
     requires associative_container<Container> || unordered_associative_container<Container>
-constexpr auto emplace_req_f()
+consteval auto emplace_req_f()
 {
     return requires(Container container) { actions::emplace(container, *container.cbegin()); };
 }
 
 template<sequence_container Container>
-constexpr auto emplace_req_f()
+consteval auto emplace_req_f()
 {
     return requires(Container container, typename Container::value_type v)
     {
