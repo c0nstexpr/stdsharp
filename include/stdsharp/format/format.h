@@ -28,7 +28,6 @@ namespace stdsharp::fmt
         template<typename CharT>
         using parse_context = FORMAT_NS::basic_format_parse_context<CharT>;
 
-
         template<typename OutputIt, typename CharT>
         using context = FORMAT_NS::basic_format_context<OutputIt, CharT>;
 

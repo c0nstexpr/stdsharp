@@ -45,7 +45,6 @@ namespace stdsharp::scope
         }
     };
 
-
     template<exit_fn_policy Policy>
     struct make_scoped_fn
     {

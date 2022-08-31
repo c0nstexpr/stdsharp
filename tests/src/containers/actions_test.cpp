@@ -35,7 +35,6 @@ concept erase_req = erase_req_f<Container>() && requires(
     actions::erase_if(container, predicate);
 };
 
-
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: erase actions",
     "[containers][actions]",

@@ -42,7 +42,6 @@ namespace stdsharp::type_traits
         ClassT // clang-format off
     >; // clang-format on
 
-
     template<auto Ptr>
     struct member_function_pointer_traits : member_function_traits<::std::decay_t<decltype(Ptr)>>
     {

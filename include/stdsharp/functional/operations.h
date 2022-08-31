@@ -111,7 +111,6 @@ namespace stdsharp::functional
         }
     } bit_xnor_v{};
 
-
 #define BS_UTIL_SHIFT_OPERATE(direction, operate)                                        \
     inline constexpr struct direction##_shift                                            \
     {                                                                                    \

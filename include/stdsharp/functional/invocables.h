@@ -64,7 +64,6 @@ namespace stdsharp::functional
             {
             }
 
-
             template<::std::size_t Index, typename... Args, typename This>
                 requires(Index < sizeof...(Func))
             static constexpr decltype(auto) invoke_impl(This&& this_, Args&&... args) noexcept( //

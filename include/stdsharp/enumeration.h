@@ -50,7 +50,6 @@ namespace stdsharp
 
         friend constexpr auto operator&(const T v, const flag e) noexcept { return flag{e & v}; }
 
-
         constexpr auto operator&(const flag other) const noexcept { return flag{value & other}; }
         // NOLINTEND(hicpp-signed-bitwise)
     };

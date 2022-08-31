@@ -4,7 +4,6 @@
 
 #pragma once
 
-
 #include <deque>
 #include <forward_list>
 #include <list>
