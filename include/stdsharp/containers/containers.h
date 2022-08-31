@@ -767,66 +767,42 @@ namespace stdsharp::containers
                     requires details::optional_constructible<
                         decltype(instance),
                         decltype(const_iter),
-                        decltype(const_iter),
-                        decltype(size) // clang-format off
-                    >::template value<decltype(hasher), decltype(key_equal), decltype(alloc)>; // clang-format on
+                        decltype(const_iter) // clang-format off
+                    >::template value<
+                        decltype(size),
+                        decltype(hasher),
+                        decltype(key_equal),
+                        decltype(alloc)
+                    >; // clang-format on
 
-                    requires functional::logical_imply(
-                        ::std::default_initializable<decltype(hasher)> &&
-                            ::std::default_initializable<decltype(key_equal)> &&
-                            ::std::default_initializable<decltype(alloc)>,
-                        ::std::constructible_from<
-                            decltype(instance),
-                            decltype(const_iter),
-                            decltype(const_iter) // clang-format off
-                        > // clang-format on
-                    );
-
-                    requires details::optional_constructible<
-                        decltype(instance),
-                        decltype(v_list),
-                        decltype(size) // clang-format off
-                    >::template value<decltype(hasher), decltype(key_equal), decltype(alloc)>; // clang-format on
+                    requires details::optional_constructible<decltype(instance), decltype(v_list)>::
+                        template value< // clang-format off
+                        decltype(size),
+                        decltype(hasher),
+                        decltype(key_equal),
+                        decltype(alloc)
+                    >; // clang-format on
 
 #ifdef __cpp_lib_ranges_to_container
                     requires details::optional_constructible<
                         decltype(instance),
                         ::std::from_range_t,
-                        decltype(instance),
-                        decltype(size) // clang-format off
-                    >::template value<decltype(hasher), decltype(key_equal), decltype(alloc)>; // clang-format on
-
-                    requires functional::logical_imply(
-                        ::std::default_initializable<decltype(hasher)> &&
-                            ::std::default_initializable<decltype(key_equal)> &&
-                            ::std::default_initializable<decltype(alloc)>,
-                        ::std::constructible_from<
-                            decltype(instance),
-                            ::std::from_range_t,
-                            decltype(instance) // clang-format off
-                        > // clang-format on
-                    );
+                        decltype(instance) // clang-format off
+                    >::template value<
+                        decltype(size),
+                        decltype(hasher),
+                        decltype(key_equal),
+                        decltype(alloc)
+                    >; // clang-format on
 #endif
-
-                    requires functional::logical_imply(
-                        ::std::default_initializable<decltype(hasher)> &&
-                            ::std::default_initializable<decltype(key_equal)> &&
-                            ::std::default_initializable<decltype(alloc)>,
-                        ::std::constructible_from<decltype(instance), decltype(v_list)> //
-                    );
-
-                    requires functional::logical_imply(
-                        ::std::default_initializable<decltype(hasher)> &&
-                            ::std::default_initializable<decltype(key_equal)> &&
-                            ::std::default_initializable<decltype(alloc)>,
-                        ::std::constructible_from<decltype(instance), decltype(v_list)> //
-                    );
                 } //
             );
 
             requires functional::logical_imply(
                 container_copy_insertable<decltype(instance)> &&
                     concepts::copy_assignable<decltype(value)> &&
+                    ::std::default_initializable<decltype(hasher)> &&
+                    ::std::default_initializable<decltype(key_equal)> &&
                     ::std::default_initializable<decltype(alloc)>,
                 ::std::constructible_from<decltype(instance), decltype(v_list)> //
             );
