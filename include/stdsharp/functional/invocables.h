@@ -4,7 +4,7 @@
 #pragma once
 
 #include "../type_traits/core_traits.h"
-#include "../utility/utility.h"
+#include "../utility/value_wrapper.h"
 
 namespace stdsharp::functional
 {
@@ -51,16 +51,50 @@ namespace stdsharp::functional
             }();
         };
 
-        template<template<typename...> typename Selector, typename... Func>
-        struct invocables : value_wrapper<Func>...
+        template<::std::size_t I, typename Func>
+        struct indexed_func : value_wrapper<Func>
         {
+            using m_base = value_wrapper<Func>;
+            using m_base::m_base;
+
+#define STDSHARP_GET(const_, ref)                                                          \
+    template<typename... Args>                                                             \
+    constexpr decltype(auto) get(const type_traits::index_constant<I>) const_ ref noexcept \
+    {                                                                                      \
+        return static_cast<const_ Func ref>(static_cast<const_ m_base ref>(*this));        \
+    }
+
+            STDSHARP_GET(, &)
+            STDSHARP_GET(const, &)
+            STDSHARP_GET(, &&)
+            STDSHARP_GET(const, &&)
+
+#undef STDSHARP_GET
+        };
+
+        template<template<typename...> typename, typename, typename...>
+        class invocables;
+
+        template<template<typename...> typename Selector, ::std::size_t... I, typename... Func>
+        class invocables<Selector, ::std::index_sequence<I...>, Func...> : indexed_func<I, Func>...
+        {
+        private:
+            using indexed_func<I, Func>::get...;
+
+            template<::std::size_t Index, concepts::decay_same_as<invocables> This>
+            friend constexpr decltype(auto) get(This&& this_) noexcept
+            {
+                return ::std::forward<This>(this_).get(type_traits::index_constant<Index>{});
+            }
+
+        public:
             invocables() = default;
 
             template<typename... Args>
                 requires(::std::constructible_from<value_wrapper<Func>, Args>&&...)
             constexpr invocables(Args&&... args) //
                 noexcept((concepts::nothrow_constructible_from<value_wrapper<Func>, Args> && ...)):
-                value_wrapper<Func>(::std::forward<Args>(args))...
+                indexed_func<I, Func>(::std::forward<Args>(args))...
             {
             }
 
@@ -69,14 +103,14 @@ namespace stdsharp::functional
             static constexpr decltype(auto) invoke_impl(This&& this_, Args&&... args) noexcept( //
                 noexcept( //
                     concepts::nothrow_invocable<
-                        pack_get_t<Index, forward_like_t<This, Func>...>,
+                        decltype(::std::declval<This>().get(type_traits::index_constant<Index>{})),
                         Args... // clang-format off
                     >
                 ) // clang-format on
             )
             {
                 return ::std::invoke(
-                    pack_get<Index>(::std::forward<This>(this_).value_wrapper<Func>::value...),
+                    ::std::forward<This>(this_).get(type_traits::index_constant<Index>{}),
                     ::std::forward<Args>(args)... //
                 );
             }
@@ -105,9 +139,11 @@ namespace stdsharp::functional
     }
 
     template<typename... Func>
-    class trivial_invocables : details::invocables<details::trivial, Func...>
+    struct trivial_invocables :
+        details::invocables<details::trivial, ::std::index_sequence_for<Func...>, Func...>
     {
-        using base = details::invocables<details::trivial, Func...>;
+        using base =
+            details::invocables<details::trivial, ::std::index_sequence_for<Func...>, Func...>;
 
     public:
         using base::base;
@@ -118,9 +154,11 @@ namespace stdsharp::functional
     trivial_invocables(Func&&...) -> trivial_invocables<::std::decay_t<Func>...>;
 
     template<typename... Func>
-    class sequenced_invocables : details::invocables<details::sequenced, Func...>
+    struct sequenced_invocables :
+        details::invocables<details::sequenced, ::std::index_sequence_for<Func...>, Func...>
     {
-        using base = details::invocables<details::sequenced, Func...>;
+        using base =
+            details::invocables<details::sequenced, ::std::index_sequence_for<Func...>, Func...>;
 
     public:
         using base::base;
