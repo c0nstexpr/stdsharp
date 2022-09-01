@@ -18,9 +18,18 @@ namespace stdsharp
         {
         }
 
-        constexpr operator T&() noexcept { return value; }
+#define STDSHARP_OPERATOR(const_, ref)                    \
+    constexpr operator const_ T ref() const_ ref noexcept \
+    {                                                     \
+        return static_cast<const_ T ref>(value);          \
+    }
 
-        constexpr operator const T&() const noexcept { return value; }
+        STDSHARP_OPERATOR(, &)
+        STDSHARP_OPERATOR(const, &)
+        STDSHARP_OPERATOR(, &&)
+        STDSHARP_OPERATOR(const, &&)
+
+#undef STDSHARP_OPERATOR
     };
 
     template<typename T>
