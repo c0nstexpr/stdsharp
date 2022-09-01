@@ -16,7 +16,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
             constexpr auto order = partial_order(Second, First);
             constexpr auto greater = order > 0; // NOLINT(*-use-nullptr)
             constexpr auto less = order < 0; // NOLINT(*-use-nullptr)
-            constexpr auto f = [](const auto expect, const auto& func)
+            constexpr auto f = [](const auto expect, const auto& func) consteval
             {
                 auto first = First;
                 return expect == (func(first, Second) == Second);

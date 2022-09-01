@@ -36,45 +36,47 @@ namespace stdsharp
 
     namespace constexpr_pattern_match
     {
-
-        template<typename ConditionT>
-        struct from_type_fn
+        namespace details
         {
-        private:
-            using condition_type_identity = ::std::type_identity<ConditionT>;
-
-            template<typename Case>
-            static constexpr bool case_nothrow_invocable_ = functional::logical_imply(
-                ::std::invocable<Case, condition_type_identity>,
-                concepts::nothrow_invocable<Case, condition_type_identity>);
-
-        public:
-            template<typename... Cases>
-            constexpr void operator()(Cases... cases) const
-                noexcept((case_nothrow_invocable_<Cases> && ...))
+            template<typename T>
+            struct impl
             {
-                (
-                    []([[maybe_unused]] Cases&& c) // clang-format off
+            private:
+                template<typename Case>
+                static constexpr bool case_nothrow_invocable_ = functional::logical_imply(
+                    ::std::invocable<Case, T>, concepts::nothrow_invocable<Case, T>);
+
+            public:
+                template<typename... Cases>
+                constexpr void operator()(Cases... cases) const
+                    noexcept((case_nothrow_invocable_<Cases> && ...))
+                {
+                    (
+                        []([[maybe_unused]] Cases&& c) // clang-format off
                             noexcept(case_nothrow_invocable_<Cases>) // clang-format on
-                    {
-                        if constexpr(::std::invocable<Cases, condition_type_identity>)
                         {
-                            ::std::invoke(::std::forward<Cases>(c), condition_type_identity{});
-                            return true;
-                        } // clang-format off
+                            if constexpr(::std::invocable<Cases, T>)
+                            {
+                                ::std::invoke(::std::forward<Cases>(c), T{});
+                                return true;
+                            } // clang-format off
                         else return false;
                     }(::std::move(cases)) || ... // clang-format on
-                );
-            }
-        };
+                    );
+                }
+            };
+        }
+
+        template<typename ConditionT>
+        using from_type_fn = details::impl<::std::type_identity<ConditionT>>;
 
         template<auto Condition>
-        using from_constant_fn = from_type_fn<type_traits::constant<Condition>>;
+        using from_constant_fn = details::impl<type_traits::constant<Condition>>;
 
         template<typename ConditionT>
         inline constexpr from_type_fn<ConditionT> from_type{};
 
         template<auto Condition>
-        inline constexpr from_type_fn<type_traits::constant<Condition>> from_constant{};
+        inline constexpr from_constant_fn<Condition> from_constant{};
     }
 }

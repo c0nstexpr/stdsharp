@@ -14,15 +14,13 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
 
     using namespace functional;
 
-    using std::type_identity;
-
     GIVEN(
         R"(enum class has three values: "one", "two", "three" and three cases matches separate value)" //
     )
     {
         THEN("case 1 match one, case 2 match two, case 3 match three")
         {
-            constexpr auto match = []
+            constexpr auto match = []() consteval
             {
                 my_enum matched{};
                 const auto& matched_assign = functional::bind(assign_v, matched);
@@ -44,28 +42,22 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
                 );
 
                 return matched;
-            }();
+            }
+            ();
 
             STATIC_REQUIRE(match == my_enum::two);
         }
 
-        AND_THEN("same for constexpr pattern match,")
+        AND_THEN("same for constexpr pattern match")
         {
-            constexpr auto match = []() noexcept
-            {
-                my_enum match{};
-
-                constexpr_pattern_match::from_constant<my_enum::two>(
-                    [&match]<my_enum E>(const type_identity<type_traits::constant<E>>) noexcept
-                    {
-                        match = E; //
-                    } //
-                );
-
-                return match;
-            }();
-
-            STATIC_REQUIRE(match == my_enum::two);
+            STATIC_REQUIRE( //
+                requires //
+                {
+                    constexpr_pattern_match::from_constant<my_enum::two>(
+                        [](const type_traits::constant<my_enum::two>) {} //
+                    );
+                } //
+            );
         }
     }
 }
