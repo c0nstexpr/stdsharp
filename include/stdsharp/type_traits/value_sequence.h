@@ -6,8 +6,7 @@
 #include <numeric>
 #include <algorithm>
 
-#include "../concepts/concepts.h"
-#include "core_traits.h"
+#include "../functional/invoke.h"
 #include "../utility/pack_get.h"
 
 namespace stdsharp::type_traits
@@ -119,7 +118,7 @@ namespace stdsharp::type_traits
             constexpr auto operator()(const U& other) const
                 noexcept(concepts::nothrow_predicate<Comp, U, T>)
             {
-                return static_cast<bool>(::std::invoke(comp, other, value));
+                return functional::invoke_r<bool>(comp, other, value);
             }
 
             constexpr auto operator()(const auto&) const noexcept { return false; }
@@ -316,10 +315,8 @@ namespace stdsharp::type_traits
                 noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
-
                 type_traits::empty =
-                    ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
-
+                    ((functional::invoke_r<bool>(func, Values) ? false : (++i, true)) && ...);
                 return i;
             }
         } find_if{};
@@ -341,7 +338,7 @@ namespace stdsharp::type_traits
                         concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
-                        if(static_cast<bool>(::std::invoke(func, v))) ++i;
+                        if(functional::invoke_r<bool>(func, v)) ++i;
                         return true;
                     } //
                 );
@@ -373,7 +370,7 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(Comp& comp) const
                     noexcept(concepts::nothrow_predicate<Comp, bool>)
                 {
-                    return static_cast<bool>(::std::invoke(comp, get<I>(), get<I + 1>()));
+                    return functional::invoke_r<bool>(comp, get<I>(), get<I + 1>());
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
