@@ -300,14 +300,26 @@ namespace stdsharp::concepts
         requires noexcept(static_cast<To>(std::declval<From>()));
     };
 
+    template<typename From, typename To>
+    concept implicitly_convertible = requires
+    {
+        [](const To&) {}(std::declval<From>());
+    };
+
+    template<typename From, typename To>
+    concept nothrow_implicitly_convertible = requires
+    {
+        requires noexcept([](const To&) noexcept {}(std::declval<From>()));
+    };
+
     template<typename T, typename U>
     concept convertible_from = ::std::convertible_to<U, T>;
 
     template<typename T, typename U>
-    concept inter_convertible = ::std::convertible_to<T, U> && convertible_from<T, U>;
+    concept nothrow_convertible_from = ::std::is_nothrow_convertible_v<U, T>;
 
     template<typename T, typename U>
-    concept nothrow_convertible_from = ::std::is_nothrow_convertible_v<U, T>;
+    concept inter_convertible = ::std::convertible_to<T, U> && convertible_from<T, U>;
 
     template<typename T, typename U>
     concept nothrow_inter_convertible =
@@ -323,18 +335,13 @@ namespace stdsharp::concepts
     concept nothrow_invocable_r = ::std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename... Args>
-    concept nothrow_predicate =
-        ::std::predicate<Func, Args...> && nothrow_invocable_r<Func, bool, Args...>;
+    concept nothrow_predicate = nothrow_invocable_r<Func, bool, Args...>;
 
     template<typename T, typename U>
-    concept const_aligned = (::std::is_const_v<T> == ::std::is_const_v<U>);
+    concept const_aligned = (const_<T> == const_<U>);
 
     template<typename T, typename U>
-    concept ref_aligned = ( //
-        ::std::is_lvalue_reference_v<T> ?
-            ::std::is_lvalue_reference_v<U> :
-            (::std::is_rvalue_reference_v<T> == ::std::is_rvalue_reference_v<U>) //
-    );
+    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>)&&(rvalue_ref<T> == rvalue_ref<U>);
 
     template<typename T, typename U>
     concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
