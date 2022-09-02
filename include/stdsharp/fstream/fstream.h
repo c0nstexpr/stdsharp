@@ -30,7 +30,7 @@ namespace stdsharp
     {
         template<typename T>
             requires ::std::invocable<
-                details::get_from_stream_fn<T>,
+                get_from_stream_fn<T>,
                 ::std::ifstream // clang-format off
             > // clang-format on
         struct read_all_to_container_fn
@@ -47,11 +47,7 @@ namespace stdsharp
             }
 
             template<typename Container = ::std::vector<T>>
-                requires ::std::invocable<
-                    decltype(actions::emplace_back),
-                    Container&,
-                    T // clang-format off
-                > // clang-format on
+                requires ::std::invocable<actions::emplace_back_fn, Container&, T>
             [[nodiscard]] constexpr auto& operator()(Container& container, ::std::istream& is) const
             {
                 while(is) actions::emplace_back(container, get_from_stream<T>(is));
@@ -66,12 +62,9 @@ namespace stdsharp
 
     namespace details
     {
-        template<typename T, ::std::constructible_from Container>
-            requires ::std::invocable<
-                details::read_all_to_container_fn<T>,
-                ::std::add_lvalue_reference_t<Container>,
-                ::std::filesystem::path // clang-format off
-            > // clang-format on
+        template<typename T, ::std::default_initializable Container>
+            requires(
+                ::std::invocable<read_all_to_container_fn<T>, Container&, ::std::filesystem::path>)
         struct read_all_fn
         {
             [[nodiscard]] constexpr auto operator()(::std::istream& is) const

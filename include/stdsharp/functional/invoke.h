@@ -8,9 +8,9 @@ namespace stdsharp::functional
 {
     inline constexpr struct empty_invoke_fn
     {
-        constexpr auto operator()(const auto&...) const noexcept
+        constexpr type_traits::empty_t operator()(const auto&...) const noexcept
         {
-            return type_traits::empty; //
+            return {}; //
         }
     } empty_invoke{};
 
@@ -48,16 +48,25 @@ namespace stdsharp::functional
     concept nothrow_conditional_invocable =
         concepts::nothrow_invocable<conditional_invoke_fn<Condition>, T, U>;
 
-    template<concepts::not_same_as<void> ReturnT>
+    template<typename ReturnT>
     struct invoke_r_fn
     {
         template<typename... Args, concepts::invocable_r<ReturnT, Args...> Func>
         [[nodiscard]] constexpr ReturnT operator()(Func&& func, Args&&... args) const
-            noexcept(concepts::nothrow_invocable_r<Func, ReturnT, Args...>) //
+            noexcept(concepts::nothrow_invocable_r<Func, ReturnT, Args...>)
         {
-            return static_cast<ReturnT>(
-                ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...) //
-            );
+            return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...);
+        };
+    };
+
+    template<concepts::decay_same_as<void> ReturnT>
+    struct invoke_r_fn<ReturnT>
+    {
+        template<typename... Args, ::std::invocable<Args...> Func>
+        constexpr void operator()(Func&& func, Args&&... args) const
+            noexcept(concepts::nothrow_invocable<Func, Args...>)
+        {
+            ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...);
         };
     };
 

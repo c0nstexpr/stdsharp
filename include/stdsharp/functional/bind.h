@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "../tuple/tuple.h"
 
 namespace stdsharp::functional
