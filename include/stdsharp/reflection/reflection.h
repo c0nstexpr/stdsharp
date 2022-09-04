@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <array>
-#include <string_view>
 #include <ranges>
 
 #include "../functional/invocables.h"
@@ -14,7 +12,6 @@ using namespace ::std::literals;
 
 namespace stdsharp::reflection
 {
-
     enum class member_category
     {
         function,

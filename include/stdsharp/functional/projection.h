@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bind.h"
-#include "invocables.h"
 
 namespace stdsharp::functional
 {

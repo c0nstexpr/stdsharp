@@ -22,5 +22,4 @@ namespace stdsharp::ranges
     template<typename T>
     using range_const_reference_t =
         type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
-
 }

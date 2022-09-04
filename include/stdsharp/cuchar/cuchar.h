@@ -1,12 +1,9 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdlib>
 #include <cuchar>
-#include <stdexcept>
+#include <cwchar>
 #include <string>
 
-#include "../functional/cpo.h"
 #include "../pattern_match.h"
 
 namespace stdsharp
@@ -14,10 +11,8 @@ namespace stdsharp
     template<typename CharT>
     struct encode_to_string_fn
     {
-        auto operator()(const CharT character) const requires(
-            !functional::cpo_invocable<encode_to_string_fn, CharT> &&
-            concepts::same_as_any<CharT, char8_t, char16_t, char32_t, wchar_t> //
-        )
+        auto operator()(const CharT character) const //
+            requires concepts::same_as_any<CharT, char8_t, char16_t, char32_t, wchar_t>
         {
             ::std::mbstate_t mb = std::mbstate_t();
             ::std::string res(MB_CUR_MAX, '\0');
@@ -46,13 +41,6 @@ namespace stdsharp
             ); // clang-format on
 
             if(errno == EILSEQ) throw ::std::runtime_error("invalid character");
-        }
-
-        template<typename... Args>
-            requires functional::cpo_invocable<encode_to_string_fn, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) const
-        {
-            return functional::cpo_invoke(*this, ::std::forward<Args>(args)...);
         }
     };
 
