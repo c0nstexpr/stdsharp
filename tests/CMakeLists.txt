@@ -60,10 +60,3 @@ option(ENABLE_CODE_COVERAGE "Enable code coverage" OFF)
 if(${ENABLE_CODE_COVERAGE})
     target_coverage(${PROJECT_NAME} FORMAT lcov)
 endif()
-
-find_program(iwyu "include-what-you-use")
-
-if(EXISTS "${iwyu}")
-    message(STATUS "found iwyu at ${iwyu}")
-    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_INCLUDE_WHAT_YOU_USE "${iwyu};-w;-Xiwyu")
-endif()
