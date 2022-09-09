@@ -23,11 +23,8 @@ jobs:
           - os: ubuntu-22.04
             llvm-ver: 15
           - os: ubuntu-22.04
-            build-type: Release
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++
-          - os: ubuntu-22.04
             build-type: Debug
-            cmakeOptions: -DCMAKE_CXX_COMPILER=clang++ -DENABLE_CODE_COVERAGE=true
+            cmakeOptions: -DENABLE_CODE_COVERAGE=true
           - os: windows-latest
             cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
 
@@ -38,9 +35,15 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo apt-get update;
-          sudo apt remove clang llvm clang-tidy;
           curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ matrix.llvm-ver }};
           sudo apt install clang-${{ matrix.llvm-ver }} llvm-${{ matrix.llvm-ver }} clang-tidy-${{ matrix.llvm-ver }};
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/c c /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
 
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}
