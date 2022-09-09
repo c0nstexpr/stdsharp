@@ -1,40 +1,45 @@
 ---
-# Language: Cpp workaround to solve clang-format bug
-Standard: Auto
+Language: Cpp
+Standard: Latest
 BasedOnStyle: LLVM
 
 AccessModifierOffset: -4
-AlignAfterOpenBracket: AlwaysBreak # Align
-AlignEscapedNewlines: Left # Right
-AlignOperands: DontAlign # Align
-AlignTrailingComments: false # true
-AllowShortBlocksOnASingleLine: Always # Never
-AllowShortCaseLabelsOnASingleLine: true # false
-AllowShortIfStatementsOnASingleLine: Always # Never
-AllowShortLoopsOnASingleLine: true # false
-AlwaysBreakTemplateDeclarations: Yes # MultiLine
-BinPackArguments: false # true
-BinPackParameters: false # true
-BreakBeforeBraces: Allman # Attach
-BreakInheritanceList: AfterColon # BeforeColon
-BreakBeforeTernaryOperators: false # true
-BreakConstructorInitializers: AfterColon # BeforeColon
-ColumnLimit: 100 # 80
-ConstructorInitializerAllOnOneLineOrOnePerLine: true # false
-FixNamespaceComments: false # true
-IndentGotoLabels: false # true
-IndentPPDirectives: BeforeHash # None
-IndentRequires: true # false
-IndentWidth: 4 # 2
-IndentWrappedFunctionNames: true # false
-KeepEmptyLinesAtTheStartOfBlocks: false # true
-MaxEmptyLinesToKeep: 2 # 1
-NamespaceIndentation: All # None
-PenaltyBreakFirstLessLess: 3 # 120
-PointerAlignment: Left # Right
-SortIncludes: false # CaseSensitive
-SortUsingDeclarations: false # true
-SpaceAfterTemplateKeyword: false # true
-SpaceBeforeCtorInitializerColon: false # true
-SpaceBeforeParens: Never # ControlStatements
-SpacesInContainerLiterals: false # true
+AlignAfterOpenBracket: AlwaysBreak
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+AlignTrailingComments: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Allman
+BreakInheritanceList: AfterColon
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializers: AfterColon
+ColumnLimit: 100
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+EmptyLineBeforeAccessModifier: Always
+FixNamespaceComments: false
+IndentGotoLabels: false
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+IndentWrappedFunctionNames: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 2
+NamespaceIndentation: All
+PackConstructorInitializers: NextLine
+PenaltyBreakFirstLessLess: 3
+PointerAlignment: Left
+QualifierAlignment: Left
+SeparateDefinitionBlocks: true
+SortIncludes: false
+SortUsingDeclarations: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeParens: Never
+SpacesInContainerLiterals: false
