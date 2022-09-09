@@ -35,9 +35,8 @@ jobs:
       - name: Upgrade Clang on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get update
-          wget https://apt.llvm.org/llvm.sh
-          sudo ./llvm.sh 15 clang llvm clang-tidy
+          sudo apt-get update;
+          curl -s https://apt.llvm.org/llvm.sh | sudo bash -s 15 clang llvm clang-tidy;
 
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}
