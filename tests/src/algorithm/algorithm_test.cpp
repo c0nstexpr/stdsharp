@@ -2,11 +2,11 @@
 #include "test.h"
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: set if", //
+    "Scenario: set if",
     "[algorithm]",
     ((auto First, auto Second), First, Second),
     (1, 2),
-    (2, 1) //
+    (2, 1)
 )
 {
     GIVEN("given two values")
@@ -28,8 +28,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     }
 }
 
-// NOLINTNEXTLINE
-TEMPLATE_TEST_CASE_SIG(
+TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: is between",
     "[algorithm]",
     ((auto Value, auto Min, auto Max), Value, Min, Max),
@@ -38,7 +37,7 @@ TEMPLATE_TEST_CASE_SIG(
     (3, 5, 10),
     (10, -1, 9),
     (100, 50, 900),
-    (3, 2, 3) //
+    (3, 2, 3)
 )
 {
     GIVEN("given three values")

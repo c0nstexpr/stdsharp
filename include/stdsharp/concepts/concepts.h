@@ -56,8 +56,8 @@ namespace stdsharp::concepts
     concept floating_point = ::std::is_floating_point_v<T>;
 
     template<typename T, typename U = T>
-    concept arithmetic_like = ::std::three_way_comparable<T> && requires(T t1, U t2)
-    { // clang-format off
+    concept arithmetic_like =
+        ::std::three_way_comparable<T> && requires(T t1, U t2) { // clang-format off
         { t1 + t2 } -> ::std::same_as<T>;
         { t1 - t2 } -> ::std::same_as<T>;
         { t1 * t2 } -> ::std::same_as<T>;
@@ -137,65 +137,62 @@ namespace stdsharp::concepts
     template<typename T>
     concept copy_assignable = move_assignable<T> && //
         ::std::assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> && //
-        ::std::assignable_from<
+        ::std::assignable_from<//
             ::std::add_lvalue_reference_t<T>,
-            ::std::add_lvalue_reference_t<T> // clang-format off
-        > && // clang-format on
-        ::std::assignable_from<
+            ::std::add_lvalue_reference_t<T>
+        > &&
+        ::std::assignable_from< //
             ::std::add_lvalue_reference_t<T>,
-            ::std::add_lvalue_reference_t<::std::add_const_t<T>> // clang-format off
-        >; // clang-format on
+            ::std::add_lvalue_reference_t<::std::add_const_t<T>>
+        >;
 
-    template<typename B>
+    template<typename B> // clang-format off
     concept boolean_testable = ::std::convertible_to<B, bool> && requires(B&& b)
-    { // clang-format off
-        { !::std::forward<B>(b) } -> ::std::convertible_to<bool>; // clang-format on
-    };
+    {
+        { !::std::forward<B>(b) } -> ::std::convertible_to<bool>;
+    }; // clang-format on
 
     template<typename T, typename U>
-    concept weakly_equality_comparable_with = // clang-format off
-        requires(const ::std::remove_reference_t<T>& t, const ::std::remove_reference_t<U>& u)
-        {
-            { t == u } -> boolean_testable;
-            { t != u } -> boolean_testable;
-            { u == t } -> boolean_testable;
-            { u != t } -> boolean_testable;
-        }; // clang-format on
+    concept weakly_equality_comparable_with = requires(
+        const ::std::remove_reference_t<T>& t,
+        const ::std::remove_reference_t<U>& u
+    ) // clang-format off
+    {
+        { t == u } -> boolean_testable;
+        { t != u } -> boolean_testable;
+        { u == t } -> boolean_testable;
+        { u != t } -> boolean_testable; // clang-format on
+    };
 
     template<typename T>
     concept weakly_equality_comparable = weakly_equality_comparable_with<T, T>;
 
     template<typename T, typename U>
-    concept partial_ordered_with = // clang-format off
-        requires(const ::std::remove_reference_t<T>& t, const ::std::remove_reference_t<U>& u)
-        {
-            { t <  u } -> boolean_testable;
-            { t >  u } -> boolean_testable;
-            { t <= u } -> boolean_testable;
-            { t <= u } -> boolean_testable;
-            { u <  t } -> boolean_testable;
-            { u >  t } -> boolean_testable;
-            { u <= t } -> boolean_testable;
-            { u <= t } -> boolean_testable;
-        }; // clang-format on
-
-    template<typename T, typename... Args>
-    concept list_initializable_from = requires
+    concept partial_ordered_with = requires(
+        const ::std::remove_reference_t<T>& t,
+        const ::std::remove_reference_t<U>& u
+    ) // clang-format off
     {
-        T{::std::declval<Args>()...};
+        { t <  u } -> boolean_testable;
+        { t >  u } -> boolean_testable;
+        { t <= u } -> boolean_testable;
+        { t <= u } -> boolean_testable;
+        { u <  t } -> boolean_testable;
+        { u >  t } -> boolean_testable;
+        { u <= t } -> boolean_testable;
+        { u <= t } -> boolean_testable; // clang-format on
     };
 
     template<typename T, typename... Args>
-    concept nothrow_list_initializable_from = requires
-    {
-        requires noexcept(T{::std::declval<Args>()...});
-    };
+    concept list_initializable_from = requires { T{::std::declval<Args>()...}; };
 
     template<typename T, typename... Args>
-    concept implicitly_constructible_from = ::std::constructible_from<T, Args...> && requires
-    {
-        ::std::declval<void(const T&)>()({::std::declval<Args>()...});
-    };
+    concept nothrow_list_initializable_from =
+        requires { requires noexcept(T{::std::declval<Args>()...}); };
+
+    template<typename T, typename... Args>
+    concept implicitly_constructible_from = ::std::constructible_from<T, Args...> &&
+        requires { ::std::declval<void(const T&)>()({::std::declval<Args>()...}); };
 
     template<typename T>
     concept implicitly_move_constructible =
@@ -273,12 +270,13 @@ namespace stdsharp::concepts
         nothrow_swappable<T>;
 
     template<typename T>
-    concept nothrow_copyable = nothrow_movable<T> && //
+    concept nothrow_copyable =
+        nothrow_movable<T> && //
         nothrow_copy_constructible<T> && //
-        nothrow_assignable_from<
+        nothrow_assignable_from< //
             ::std::add_lvalue_reference_t<T>,
             ::std::add_lvalue_reference_t<T> // clang-format off
-        > /* clang-format on */ &&
+        > && // clang-format on
         nothrow_assignable_from<::std::add_lvalue_reference_t<T>, ::std::add_const_t<T>> &&
         nothrow_assignable_from<
             ::std::add_lvalue_reference_t<T>,
@@ -289,28 +287,18 @@ namespace stdsharp::concepts
     concept nothrow_convertible_to = ::std::is_nothrow_convertible_v<T, U>;
 
     template<typename From, typename To>
-    concept explicitly_convertible = requires
-    {
-        static_cast<To>(std::declval<From>());
-    };
+    concept explicitly_convertible = requires { static_cast<To>(std::declval<From>()); };
 
     template<typename From, typename To>
-    concept nothrow_explicitly_convertible = requires
-    {
-        requires noexcept(static_cast<To>(std::declval<From>()));
-    };
+    concept nothrow_explicitly_convertible =
+        requires { requires noexcept(static_cast<To>(std::declval<From>())); };
 
     template<typename From, typename To>
-    concept implicitly_convertible = requires
-    {
-        [](const To&) {}(std::declval<From>());
-    };
+    concept implicitly_convertible = requires { [](const To&) {}(std::declval<From>()); };
 
     template<typename From, typename To>
-    concept nothrow_implicitly_convertible = requires
-    {
-        requires noexcept([](const To&) noexcept {}(std::declval<From>()));
-    };
+    concept nothrow_implicitly_convertible =
+        requires { requires noexcept([](const To&) noexcept {}(std::declval<From>())); };
 
     template<typename T, typename U>
     concept convertible_from = ::std::convertible_to<U, T>;
@@ -341,7 +329,7 @@ namespace stdsharp::concepts
     concept const_aligned = (const_<T> == const_<U>);
 
     template<typename T, typename U>
-    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>)&&(rvalue_ref<T> == rvalue_ref<U>);
+    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>) && (rvalue_ref<T> == rvalue_ref<U>);
 
     template<typename T, typename U>
     concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
@@ -354,8 +342,5 @@ namespace stdsharp::concepts
         weakly_equality_comparable_with<T, ::std::nullptr_t>;
 
     template<typename T>
-    concept std_cpo = ::std::semiregular<T> && requires
-    {
-        requires(T{} == T{});
-    };
+    concept std_cpo = ::std::semiregular<T> && requires { requires(T{} == T{}); };
 }

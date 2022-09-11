@@ -7,18 +7,17 @@ namespace stdsharp::functional
     inline constexpr struct projected_invoke_fn
     {
         template<typename Fn, typename Projector, typename... Args>
-            requires(
-                (::std::invocable<Projector, Args> && ...) &&
-                ::std::invocable<Fn, ::std::invoke_result_t<Projector, Args>...> //
-            )
+            requires requires //
+        {
+            requires(::std::invocable<Projector, Args> && ...);
+            requires ::std::invocable<Fn, ::std::invoke_result_t<Projector, Args>...>;
+        }
         constexpr decltype(auto) operator()(Fn&& fn, Projector projector, Args&&... args) const
-            noexcept(concepts::nothrow_invocable<Fn, ::std::invoke_result_t<Projector, Args>...> //
-            )
-
+            noexcept(concepts::nothrow_invocable<Fn, ::std::invoke_result_t<Projector, Args>...>)
         {
             return ::std::invoke(
-                ::std::forward<Fn>(fn), //
-                ::std::invoke(projector, ::std::forward<Args>(args))... //
+                ::std::forward<Fn>(fn),
+                ::std::invoke(projector, ::std::forward<Args>(args))...
             );
         }
     } projected_invoke{};
@@ -44,7 +43,8 @@ namespace stdsharp::functional
         return projected_invoke(                                                         \
             ::std::forward<Func>(func),                                                  \
             static_cast<const_ Proj ref>(value_wrapper<Proj>::value),                    \
-            ::std::forward<Args>(args)...);                                              \
+            ::std::forward<Args>(args)...                                                \
+        );                                                                               \
     }
 
         BS_OPERATOR(, &)
@@ -62,12 +62,12 @@ namespace stdsharp::functional
     {
         template<typename Func>
             requires requires { projector{::std::declval<Func>()}; }
-        [[nodiscard]] constexpr auto operator()(Func&& func) //
+        [[nodiscard]] constexpr auto operator()(Func&& func) const
             noexcept(noexcept(projector{::std::forward<Func>(func)}))
         {
-            return projector{::std::forward<Func>(func)}; //
+            return projector{::std::forward<Func>(func)};
         }
-    } make_projector{}; //
+    } make_projector{};
 
     inline constexpr struct projected_fn
     {
@@ -77,14 +77,13 @@ namespace stdsharp::functional
             std_bindable<Func> Projector =
                 ::std::invoke_result_t<make_projector_fn, Proj> // clang-format off
         > // clang-format on
-        constexpr auto operator()(Proj&& proj, Func&& func) noexcept(
-            concepts::nothrow_invocable<make_projector_fn, Proj>&&
-                nothrow_std_bindable<Projector, Func> //
-        )
+        constexpr auto operator()(Proj&& proj, Func&& func) const
+            noexcept(concepts::nothrow_invocable<make_projector_fn, Proj>&&
+                         nothrow_std_bindable<Projector, Func>)
         {
             return ::std::bind(
                 make_projector(::std::forward<Proj>(proj)),
-                ::std::forward<Func>(func) //
+                ::std::forward<Func>(func)
             );
         }
     } projected{};

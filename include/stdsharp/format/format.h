@@ -45,7 +45,7 @@ namespace stdsharp::fmt
                 {
                     constexpr auto base = 10;
                     return v * base + static_cast<char>(c) - '0';
-                } //
+                }
             );
         };
     }
@@ -65,8 +65,9 @@ namespace stdsharp::fmt
 
         template<typename T, typename OutputIt, typename CharT>
             requires requires { true; }
-        [[nodiscard]] constexpr decltype(auto)
-            get_from_context(const details::context<OutputIt, CharT>& fc) const
+        [[nodiscard]] constexpr decltype(auto) get_from_context( //
+            const details::context<OutputIt, CharT>& fc
+        ) const
         {
             return get_from_context(
                 fc,
@@ -74,9 +75,8 @@ namespace stdsharp::fmt
                 {
                     if constexpr(::std::convertible_to<U, T>)
                         return static_cast<T>(::std::forward<U>(u));
-                    else
-                        return ::std::nullopt;
-                } //
+                    else return ::std::nullopt;
+                }
             );
         }
     };
@@ -109,10 +109,9 @@ namespace stdsharp::fmt
                     return ::std::optional<result_t>{::std::forward<U>(u)};
                 else if constexpr(::std::same_as<::std::remove_cvref_t<U>, nested_arg_index>)
                     return ::std::forward<U>(u).template get_from_context<result_t>(fc);
-                else
-                    return ::std::nullopt;
+                else return ::std::nullopt;
             },
-            spec //
+            spec
         );
     }
 
@@ -126,9 +125,9 @@ namespace stdsharp::fmt
                 ::std::basic_string_view{begin, ctx.end()},
                 FORMAT_NS::format(
                     "{}^ Unexpected character here",
-                    ::ranges::views::repeat_n(' ', begin - ctx.begin()) // clang-format off
-                    )
-            ) // clang-format on
+                    ::ranges::views::repeat_n(' ', begin - ctx.begin())
+                )
+            ) //
         };
     }
 
@@ -155,8 +154,8 @@ namespace stdsharp::fmt
         throw FORMAT_NS::format_error{
             FORMAT_NS::format(
                 "invalid format: \"{}\"\nEnd of string expected",
-                ::std::basic_string_view{begin, ctx.end()} // clang-format off
-            ) // clang-format on
+                ::std::basic_string_view{begin, ctx.end()}
+            ) //
         };
     }
 
@@ -217,10 +216,8 @@ namespace stdsharp::fmt
         {
             ctx.advance_to(end);
             return nested_arg_index{
-                ::std::ranges::empty(ref) ? //
-                    ctx.next_arg_id() :
-                    details::parse_integer<::std::size_t>(ref) //
-            };
+                ::std::ranges::empty(ref) ? ctx.next_arg_id() :
+                                            details::parse_integer<::std::size_t>(ref)};
         }
         if(value)
         {

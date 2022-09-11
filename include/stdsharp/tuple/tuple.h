@@ -158,7 +158,7 @@ namespace stdsharp
     struct tuples_each_apply_fn
     {
         template<::std::invocable<T...> Fn, typename... Tuple>
-            requires(tuples_applicable<functional::constructor_fn<T>, Tuple>&&...)
+            requires(tuples_applicable<functional::constructor_fn<T>, Tuple> && ...)
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const noexcept(
             concepts::nothrow_invocable<Fn, T...> &&
             (nothrow_tuples_applicable<functional::constructor_fn<T>, Tuple> && ...) //

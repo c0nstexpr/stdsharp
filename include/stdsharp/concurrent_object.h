@@ -23,10 +23,10 @@ namespace stdsharp
         using empty_t = type_traits::empty_t;
 
         template<typename Other>
-            requires requires(concurrent_object& left)
-            {
-                ::std::declval<concurrent_object&>().swap(::std::declval<Other>());
-            }
+            requires requires(concurrent_object& left) //
+        {
+            ::std::declval<concurrent_object&>().swap(::std::declval<Other>()); //
+        }
         friend void swap(concurrent_object& left, Other&& right)
         {
             left.swap(::std::forward<Other>(right)); //
@@ -50,10 +50,8 @@ namespace stdsharp
         }
 
         template<typename Other>
-        static constexpr bool other_assignable = requires(value_type obj)
-        {
-            assign_value(obj, ::std::declval<Other>());
-        };
+        static constexpr bool other_assignable =
+            requires(value_type obj) { assign_value(obj, ::std::declval<Other>()); };
 
         static constexpr bool copy_assignable = other_assignable<const concurrent_object&>;
         static constexpr bool move_assignable = other_assignable<concurrent_object>;
@@ -106,7 +104,9 @@ namespace stdsharp
 
         template<typename... TArg>
             requires ::std::constructible_from<T, TArg...>
-        explicit concurrent_object(TArg&&... t_arg): object_(::std::forward<TArg>(t_arg)...) {}
+        explicit concurrent_object(TArg&&... t_arg): object_(::std::forward<TArg>(t_arg)...)
+        {
+        }
 
         template<typename Other>
             requires(other_assignable<Other>)
@@ -115,13 +115,15 @@ namespace stdsharp
         {
         }
 
-        concurrent_object(const concurrent_object& other) requires copy_assignable :
-            concurrent_object(type_traits::empty, other)
+        concurrent_object(const concurrent_object& other)
+            requires copy_assignable
+            : concurrent_object(type_traits::empty, other)
         {
         }
 
-        concurrent_object(concurrent_object&& other) noexcept(false) requires move_assignable :
-            concurrent_object(type_traits::empty, ::std::move(other))
+        concurrent_object(concurrent_object&& other) noexcept(false)
+            requires move_assignable
+            : concurrent_object(type_traits::empty, ::std::move(other))
         {
         }
 
@@ -133,14 +135,15 @@ namespace stdsharp
             return *this;
         }
 
-        concurrent_object& operator=(const concurrent_object& other) requires copy_assignable
+        concurrent_object& operator=(const concurrent_object& other)
+            requires copy_assignable
         {
             if(this != &other) assign_impl(other);
             return *this;
         }
 
-        concurrent_object& operator=(concurrent_object&& other) //
-            noexcept(false) requires move_assignable
+        concurrent_object& operator=(concurrent_object&& other) noexcept(false)
+            requires move_assignable
         {
             if(this != &other) assign_impl(::std::move(other));
             return *this;
@@ -156,14 +159,9 @@ namespace stdsharp
             > // clang-format on
         {
             write(
-                [&other](value_type& obj)
+                [&other](value_type& obj) //
                 {
-                    other.write(
-                        [&obj](auto& other_obj)
-                        {
-                            ::std::ranges::swap(obj, other_obj); //
-                        } //
-                    );
+                    other.write([&obj](auto& other_obj) { ::std::ranges::swap(obj, other_obj); });
                 } //
             );
         }

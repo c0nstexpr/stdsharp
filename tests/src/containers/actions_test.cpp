@@ -8,28 +8,29 @@ template<typename Container>
     requires associative_like_container<Container>
 consteval auto erase_req_f()
 {
-    return requires(Container container)
+    return requires(Container container) //
     {
-        actions::erase(container, declval<typename Container::key_type>());
+        actions::erase(container, declval<typename Container::key_type>()); //
     };
 }
 
 template<sequence_container Container>
 consteval auto erase_req_f()
 {
-    return requires(Container container)
+    return requires(Container container) //
     {
-        actions::erase(container, declval<typename Container::value_type>());
+        actions::erase(container, declval<typename Container::value_type>()); //
     };
 }
 
 template<typename Container>
-concept erase_req = erase_req_f<Container>() && requires(
+concept erase_req = requires(
     Container container,
     typename Container::const_iterator iter,
-    bool (&predicate)(typename Container::const_reference) //
-)
+    bool (&predicate)(typename Container::const_reference)
+) //
 {
+    requires erase_req_f<Container>();
     actions::erase(container, iter);
     actions::erase(container, iter, iter);
     actions::erase_if(container, predicate);
@@ -41,7 +42,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     vector<int>,
     set<int>,
     (map<int, int>),
-    (unordered_map<int, int>) //
+    (unordered_map<int, int>)
 )
 {
     CAPTURE(type<TestType>());
@@ -58,9 +59,9 @@ consteval auto emplace_req_f()
 template<sequence_container Container>
 consteval auto emplace_req_f()
 {
-    return requires(Container container, typename Container::value_type v)
+    return requires(Container container, typename Container::value_type v) //
     {
-        actions::emplace(container, container.cbegin(), v);
+        actions::emplace(container, container.cbegin(), v); //
     };
 }
 
@@ -73,7 +74,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     vector<int>,
     set<int>,
     (map<int, int>),
-    (unordered_map<int, int>) //
+    (unordered_map<int, int>)
 )
 {
     CAPTURE(type<TestType>());
@@ -85,20 +86,17 @@ TEMPLATE_TEST_CASE( // NOLINT
     "[containers][actions]",
     vector<int>,
     deque<int>,
-    list<int> //
+    list<int>
 )
 {
     CAPTURE(type<TestType>());
 
     STATIC_REQUIRE( //
-        requires(
-            TestType v,
-            typename TestType::value_type value // clang-format off
-        ) // clang-format on
+        requires(TestType v, typename TestType::value_type value) //
         {
             actions::emplace_back(v, value);
             actions::emplace_front(v, value);
-        } //
+        }
     );
 }
 
@@ -107,7 +105,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     "[containers][actions]",
     vector<int>,
     deque<int>,
-    list<int> //
+    list<int>
 )
 {
     CAPTURE(type<TestType>());
@@ -117,7 +115,7 @@ TEMPLATE_TEST_CASE( // NOLINT
         {
             actions::pop_back(v);
             actions::pop_front(v);
-        } //
+        }
     );
 }
 
@@ -125,7 +123,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: resize actions",
     "[containers][actions]",
     vector<int>,
-    list<int> //
+    list<int>
 )
 {
     CAPTURE(type<TestType>());

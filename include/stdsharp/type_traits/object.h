@@ -14,7 +14,9 @@ namespace stdsharp::type_traits
         unique_object(const unique_object&) = delete;
         constexpr unique_object(unique_object&&) noexcept {};
         unique_object& operator=(const unique_object&) = delete;
+
         constexpr unique_object& operator=(unique_object&&) noexcept { return *this; };
+
         ~unique_object() = default;
     };
 
@@ -38,29 +40,24 @@ namespace stdsharp::type_traits
         inherited() = default;
 
         template<typename... U>
-            requires(
-                ::std::constructible_from<Base, U...> && (::std::constructible_from<T> && ...) //
-            )
-        constexpr explicit inherited(U&&... u) //
-            noexcept(
-                concepts::nothrow_constructible_from<Base, U...> &&
-                (concepts::nothrow_constructible_from<T> && ...) // clang-format off
-            ):
-            Base(::std::forward<U>(u)...) // clang-format on
+            requires ::std::constructible_from<Base, U...> && (::std::constructible_from<T> && ...)
+        constexpr explicit inherited(U&&... u) noexcept(
+            concepts::nothrow_constructible_from<Base, U...> &&
+            (concepts::nothrow_constructible_from<T> && ...) // clang-format off
+        ): Base(::std::forward<U>(u)...) // clang-format on
         {
         }
 
         template<typename BaseT, typename... U>
-            requires(
-                ::std::constructible_from<Base, BaseT> &&
-                (::std::constructible_from<T, U> && ...) //
-            )
-        constexpr explicit inherited(BaseT&& base, U&&... u) //
-            noexcept(
-                concepts::nothrow_constructible_from<Base, BaseT> &&
-                (concepts::nothrow_constructible_from<T, U> && ...) // clang-format off
-                ):
-            Base(::std::forward<BaseT>(base)), T(::std::forward<U>(u))... // clang-format on
+            requires requires //
+        {
+            requires ::std::constructible_from<Base, BaseT>;
+            requires(::std::constructible_from<T, U> && ...);
+        }
+        constexpr explicit inherited(BaseT&& base, U&&... u) noexcept(
+            concepts::nothrow_constructible_from<Base, BaseT> &&
+            (concepts::nothrow_constructible_from<T, U> && ...) // clang-format off
+        ): Base(::std::forward<BaseT>(base)), T(::std::forward<U>(u))... // clang-format on
         {
         }
 
@@ -79,7 +76,10 @@ namespace stdsharp::type_traits
     struct make_inherited_fn
     {
         template<typename Base, typename... U>
-            requires requires { inherited{::std::declval<Base>(), ::std::declval<U>()...}; }
+            requires requires //
+        {
+            inherited{::std::declval<Base>(), ::std::declval<U>()...};
+        }
         [[nodiscard]] constexpr auto operator()(Base&& base, U&&... u) const
             noexcept(noexcept(inherited{::std::declval<Base>(), ::std::declval<U>()...}))
         {

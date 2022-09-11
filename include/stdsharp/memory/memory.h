@@ -21,109 +21,109 @@ namespace stdsharp
     }
 
     template<typename T>
-        requires requires
+        requires requires //
+    {
+        typename T::value_type;
+        ::std::copyable<T>;
+        concepts::nothrow_movable<T>;
+
+        requires requires(
+            T alloc,
+            ::std::allocator_traits<T> t_traits,
+            typename decltype(t_traits)::pointer p,
+            typename decltype(t_traits)::const_pointer const_p,
+            typename decltype(t_traits)::void_pointer void_p,
+            typename decltype(t_traits)::const_void_pointer const_void_p,
+            typename decltype(t_traits)::value_type v,
+            typename decltype(t_traits)::size_type size,
+            typename decltype(t_traits)::template rebind_traits<details::alloc_req_dummy_t>
+                u_traits,
+            typename decltype(t_traits)::is_always_equal aq,
+            typename decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
+            typename decltype(t_traits)::propagate_on_container_move_assignment move_assign,
+            typename decltype(t_traits)::propagate_on_container_swap swap // clang-format off
+        ) // clang-format on
         {
-            typename T::value_type;
-            ::std::copyable<T>;
-            concepts::nothrow_movable<T>;
+            requires !concepts::const_volatile<decltype(v)>;
 
-            requires requires(
-                T alloc,
-                ::std::allocator_traits<T> t_traits,
-                typename decltype(t_traits)::pointer p,
-                typename decltype(t_traits)::const_pointer const_p,
-                typename decltype(t_traits)::void_pointer void_p,
-                typename decltype(t_traits)::const_void_pointer const_void_p,
-                typename decltype(t_traits)::value_type v,
-                typename decltype(t_traits)::size_type size,
-                typename decltype(t_traits)::template rebind_traits<details::alloc_req_dummy_t>
-                    u_traits,
-                typename decltype(t_traits)::is_always_equal aq,
-                typename decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
-                typename decltype(t_traits)::propagate_on_container_move_assignment move_assign,
-                typename decltype(t_traits)::propagate_on_container_swap swap //
-            )
-            {
-                requires !concepts::const_volatile<decltype(v)>;
+            requires concepts::nullable_pointer<decltype(p)> &&
+                ::std::random_access_iterator<decltype(p)> &&
+                ::std::contiguous_iterator<decltype(p)>;
 
-                requires concepts::nullable_pointer<decltype(p)> &&
-                    ::std::random_access_iterator<decltype(p)> &&
-                    ::std::contiguous_iterator<decltype(p)>;
+            requires ::std::convertible_to<decltype(p), decltype(const_p)> &&
+                concepts::nullable_pointer<decltype(const_p)> &&
+                ::std::random_access_iterator<decltype(const_p)> &&
+                ::std::contiguous_iterator<decltype(const_p)>;
 
-                requires ::std::convertible_to<decltype(p), decltype(const_p)> &&
-                    concepts::nullable_pointer<decltype(const_p)> &&
-                    ::std::random_access_iterator<decltype(const_p)> &&
-                    ::std::contiguous_iterator<decltype(const_p)>;
+            requires ::std::convertible_to<decltype(p), decltype(void_p)> &&
+                concepts::nullable_pointer<decltype(void_p)> &&
+                ::std::same_as<decltype(void_p), typename decltype(u_traits)::void_pointer>;
 
-                requires ::std::convertible_to<decltype(p), decltype(void_p)> &&
-                    concepts::nullable_pointer<decltype(void_p)> &&
-                    ::std::same_as<decltype(void_p), typename decltype(u_traits)::void_pointer>;
+            requires ::std::convertible_to<decltype(p), decltype(const_void_p)> &&
+                ::std::convertible_to<decltype(const_p), decltype(const_void_p)> &&
+                ::std::convertible_to<decltype(void_p), decltype(const_void_p)> &&
+                concepts::nullable_pointer<decltype(const_void_p)> &&
+                ::std::same_as< // clang-format off
+                    decltype(const_void_p),
+                    typename decltype(u_traits)::const_void_pointer
+                >; // clang-format on
 
-                requires ::std::convertible_to<decltype(p), decltype(const_void_p)> &&
-                    ::std::convertible_to<decltype(const_p), decltype(const_void_p)> &&
-                    ::std::convertible_to<decltype(void_p), decltype(const_void_p)> &&
-                    concepts::nullable_pointer<decltype(const_void_p)> && //
-                    ::std::same_as<
-                        decltype(const_void_p),
-                        typename decltype(u_traits)::const_void_pointer>;
+            requires ::std::unsigned_integral<decltype(size)>;
 
-                requires ::std::unsigned_integral<decltype(size)>;
+            requires ::std::signed_integral<typename decltype(t_traits)::difference_type>;
 
-                requires ::std::signed_integral<typename decltype(t_traits)::difference_type>;
-
-                requires ::std::
-                    same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, T>;
-                // clang-format off
+            requires ::std::
+                same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, T>;
+            // clang-format off
 
                 { *p } -> ::std::same_as<::std::add_lvalue_reference_t<decltype(v)>>;
                 { *const_p } -> ::std::same_as<type_traits::add_const_lvalue_ref_t<decltype(v)>>;
                 { *const_p } -> ::std::same_as<type_traits::add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
 
-                requires requires(
-                    typename decltype(u_traits)::pointer other_p,
-                    typename decltype(u_traits)::const_pointer other_const_p,
-                    typename decltype(u_traits)::allocator_type u_alloc //
-                )
-                { // clang-format off
-                    { other_p->v } -> ::std::same_as<decltype(((*other_p).v))>;
-                    { other_const_p->v } -> ::std::same_as<decltype(((*other_const_p).v))>;
+            requires requires(
+                typename decltype(u_traits)::pointer other_p,
+                typename decltype(u_traits)::const_pointer other_const_p,
+                typename decltype(u_traits)::allocator_type u_alloc // clang-format off
+            )
+            {
+                { other_p->v } -> ::std::same_as<decltype(((*other_p).v))>;
+                { other_const_p->v } -> ::std::same_as<decltype(((*other_const_p).v))>;
 
-                    { t_traits.construct(alloc, other_p) };
-                    { t_traits.destroy(alloc, other_p) }; // clang-format on
+                { t_traits.construct(alloc, other_p) };
+                { t_traits.destroy(alloc, other_p) };
 
-                    requires noexcept(alloc == u_alloc)&& noexcept(alloc != u_alloc);
-                };
+                requires noexcept(alloc == u_alloc) && noexcept(alloc != u_alloc);
+            }; // clang-format on
 
-                ::std::pointer_traits<decltype(p)>::pointer_to(*p);
+            ::std::pointer_traits<decltype(p)>::pointer_to(*p); // clang-format off
 
-                // clang-format off
-                { t_traits.allocate(alloc, size) } -> ::std::same_as<decltype(p)>;
-                { t_traits.allocate(alloc, size, const_void_p) } -> ::std::same_as<decltype(p)>;
-                // { t_traits.allocate_at_least(alloc, size) } -> ::std::same_as<::std::allocation_result<decltype(p)>>;
-                { t_traits.deallocate(alloc, p, size) };
-                { t_traits.max_size(alloc) } -> ::std::same_as<decltype(size)>;
-                // clang-format on
+            { t_traits.allocate(alloc, size) } -> ::std::same_as<decltype(p)>;
+            { t_traits.allocate(alloc, size, const_void_p) } -> ::std::same_as<decltype(p)>;
+            // { t_traits.allocate_at_least(alloc, size) } -> ::std::same_as<::std::allocation_result<decltype(p)>>;
+            { t_traits.deallocate(alloc, p, size) };
+            { t_traits.max_size(alloc) } -> ::std::same_as<decltype(size)>;
+            // clang-format on
 
-                requires ::std::derived_from<decltype(aq), ::std::true_type> ||
-                    ::std::derived_from<decltype(aq), ::std::false_type>;
+            requires ::std::derived_from<decltype(aq), ::std::true_type> ||
+                ::std::derived_from<decltype(aq), ::std::false_type>;
 
-                // clang-format off
-                { t_traits.select_on_container_copy_construction(alloc) } -> ::std::same_as<T>;
-                // clang-format on
+            // clang-format off
+            { t_traits.select_on_container_copy_construction(alloc) } -> ::std::same_as<T>;
+            // clang-format on
 
-                requires ::std::derived_from<decltype(copy_assign), ::std::true_type> &&
+            requires ::std::derived_from<decltype(copy_assign), ::std::true_type> &&
                     concepts::nothrow_copy_assignable<T> ||
                     ::std::derived_from<decltype(copy_assign), ::std::false_type>;
 
-                requires ::std::derived_from<decltype(move_assign), ::std::true_type> &&
+            requires ::std::derived_from<decltype(move_assign), ::std::true_type> &&
                     concepts::nothrow_move_assignable<T> ||
                     ::std::derived_from<decltype(move_assign), ::std::false_type>;
 
-                requires ::std::derived_from<decltype(swap), ::std::true_type> &&
+            requires ::std::derived_from<decltype(swap), ::std::true_type> &&
                     concepts::nothrow_swappable<T> ||
                     ::std::derived_from<decltype(swap), ::std::false_type>;
-            };
-        }
+        };
+    }
     struct allocator_traits : private ::std::allocator_traits<T>
     {
     private:
@@ -159,10 +159,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    concept allocator_req = requires
-    {
-        typename allocator_traits<T>;
-    };
+    concept allocator_req = requires { typename allocator_traits<T>; };
 
     template<typename>
     struct allocator_of;

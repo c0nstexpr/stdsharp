@@ -23,12 +23,15 @@ namespace stdsharp::functional
     struct make_pipeable_fn
     {
         template<typename Fn>
-            requires ::std::invocable<make_trivial_invocables_fn, Fn> && //
-                ::std::invocable<
-                    type_traits::make_inherited_fn,
-                    pipeable_base<Mode>,
-                    ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
-                > // clang-format on
+            requires requires //
+        {
+            requires ::std::invocable<make_trivial_invocables_fn, Fn>;
+            requires ::std::invocable<
+                type_traits::make_inherited_fn,
+                pipeable_base<Mode>,
+                ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
+            >; // clang-format on
+        }
         constexpr auto operator()(Fn&& fun) const noexcept( //
             concepts::nothrow_invocable<
                 type_traits::make_inherited_fn,
@@ -39,7 +42,7 @@ namespace stdsharp::functional
         {
             return type_traits::make_inherited(
                 pipeable_base<Mode>{},
-                make_trivial_invocables(::std::forward<Fn>(fun)) //
+                make_trivial_invocables(::std::forward<Fn>(fun))
             );
         }
     };
@@ -48,8 +51,8 @@ namespace stdsharp::functional
     inline constexpr make_pipeable_fn<Mode> make_pipeable{};
 
     template<typename T, pipe_mode Mode = pipe_mode::left>
-    concept pipeable = ::std::derived_from<::std::decay_t<T>, pipeable_base<Mode>> ||
-        Mode == pipe_mode::left&& ::ranges::is_pipeable_v<::std::decay_t<T>>;
+    concept pipeable = ::std::derived_from<::std::decay_t<T>, pipeable_base<Mode>> || //
+        (Mode == pipe_mode::left && ::ranges::is_pipeable_v<::std::decay_t<T>>);
 
     template<typename Pipe>
         requires pipeable<Pipe> || pipeable<Pipe, pipe_mode::right>
@@ -60,7 +63,7 @@ namespace stdsharp::functional
         class pipeable_operator
         {
             template<typename Arg, pipeable<pipe_mode::left> Pipe>
-                requires(::std::invocable<Pipe, Arg>)
+                requires ::std::invocable<Pipe, Arg>
             friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe) //
                 noexcept(concepts::nothrow_invocable<Pipe, Arg>)
             {
@@ -68,7 +71,7 @@ namespace stdsharp::functional
             }
 
             template<pipeable<pipe_mode::right> Pipe, typename Arg>
-                requires(::std::invocable<Pipe, Arg>)
+                requires ::std::invocable<Pipe, Arg>
             friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg) //
                 noexcept(concepts::nothrow_invocable<Pipe, Arg>)
             {

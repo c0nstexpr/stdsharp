@@ -15,7 +15,7 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
     using namespace functional;
 
     GIVEN(
-        R"(enum class has three values: "one", "two", "three" and three cases matches separate value)" //
+        R"(enum class has three values: "one", "two", "three" and three cases matches separate value)"
     )
     {
         THEN("case 1 match one, case 2 match two, case 3 match three")
@@ -27,18 +27,9 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
 
                 pattern_match(
                     my_enum::two,
-                    pair{
-                        bind_front(equal_to_v, my_enum::one),
-                        matched_assign,
-                    },
-                    pair{
-                        bind_front(equal_to_v, my_enum::two),
-                        matched_assign,
-                    },
-                    pair{
-                        bind_front(equal_to_v, my_enum::three),
-                        matched_assign //
-                    } //
+                    pair{bind_front(equal_to_v, my_enum::one), matched_assign},
+                    pair{bind_front(equal_to_v, my_enum::two), matched_assign},
+                    pair{bind_front(equal_to_v, my_enum::three), matched_assign}
                 );
 
                 return matched;
@@ -54,9 +45,9 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
                 requires //
                 {
                     constexpr_pattern_match::from_constant<my_enum::two>(
-                        [](const type_traits::constant<my_enum::two>) {} //
+                        [](const type_traits::constant<my_enum::two>) {}
                     );
-                } //
+                }
             );
         }
     }

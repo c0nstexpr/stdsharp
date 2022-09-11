@@ -69,22 +69,22 @@ namespace stdsharp::reflection
             }
 
             template<typename T>
-                requires requires
-                {
-                    requires name == "first";
-                    is_std_pair<::std::remove_cvref_t<T>>{};
-                }
+                requires requires //
+            {
+                requires name == "first";
+                is_std_pair<::std::remove_cvref_t<T>>{};
+            }
             [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
             {
                 return ::std::forward<T>(p).first;
             }
 
             template<typename T>
-                requires requires
-                {
-                    requires name == "second";
-                    is_std_pair<::std::remove_cvref_t<T>>{};
-                }
+                requires requires //
+            {
+                requires name == "second";
+                is_std_pair<::std::remove_cvref_t<T>>{};
+            }
             [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
             {
                 return ::std::forward<T>(p).second;
@@ -95,7 +95,8 @@ namespace stdsharp::reflection
         struct get_members_fn
         {
             [[nodiscard]] constexpr ::std::ranges::output_range<member_info> auto
-                operator()() const noexcept requires(noexcept(reflection::get_members_t<T>{}()))
+                operator()() const noexcept
+                requires(noexcept(reflection::get_members_t<T>{}()))
             {
                 return reflection::get_members_t<T>{}();
             }
@@ -119,12 +120,12 @@ namespace stdsharp::reflection
         []() noexcept
         {
             return get_members<T>() |
-                ::std::views::filter( //
-                       [](const member_info info)
-                       {
-                           return info.category == member_category::data; //
-                       } //
-                );
+                ::std::views::filter( // clang-format off
+                    [](const member_info info)
+                    {
+                        return info.category == member_category::data;
+                    }
+                ); // clang-format on
         } //
     };
 }

@@ -4,10 +4,10 @@
 using namespace containers;
 
 TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: container concept", //
+    "Scenario: container concept",
     "[containers]",
     int,
-    unique_ptr<int> //
+    unique_ptr<int>
 )
 {
     {

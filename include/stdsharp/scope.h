@@ -40,8 +40,7 @@ namespace stdsharp::scope
             if constexpr(policy == exit_fn_policy::on_exit) execute();
             else if(::std::uncaught_exceptions() == 0)
                 functional::conditional_invoke<policy == exit_fn_policy::on_success>(execute);
-            else
-                functional::conditional_invoke<policy == exit_fn_policy::on_exit>(execute);
+            else functional::conditional_invoke<policy == exit_fn_policy::on_exit>(execute);
         }
     };
 

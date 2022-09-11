@@ -86,7 +86,10 @@ namespace stdsharp::type_traits
         {
             template<::std::size_t J>
                 requires(I == J)
-            static constexpr decltype(auto) get() noexcept { return Value; }
+            static constexpr decltype(auto) get() noexcept
+            {
+                return Value;
+            }
         };
 
         template<typename, typename>
@@ -170,14 +173,15 @@ namespace stdsharp::type_traits
         struct invoke_fn
         {
             template<typename Func>
-                requires requires
-                {
-                    requires(::std::invocable<Func, decltype(Values)> && ...);
-                    requires ::std::same_as<ResultType, void> || ::std::constructible_from<
+                requires requires //
+            {
+                requires(::std::invocable<Func, decltype(Values)> && ...);
+                requires ::std::same_as<ResultType, void> ||
+                    ::std::constructible_from< // clang-format off
                         ResultType,
-                        ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
+                        ::std::invoke_result_t<Func, decltype(Values)>...
                     >; // clang-format on
-                }
+            }
             constexpr auto operator()(Func&& func) const noexcept(
                 (concepts::nothrow_invocable<Func, decltype(Values)> && ...) &&
                 (::std::same_as<ResultType, void> ||
@@ -188,8 +192,7 @@ namespace stdsharp::type_traits
             )
             {
                 if constexpr(::std::same_as<ResultType, void>) (::std::invoke(func, Values), ...);
-                else
-                    return ResultType{::std::invoke(func, Values)...};
+                else return ResultType{::std::invoke(func, Values)...};
             };
         };
 
@@ -219,19 +222,17 @@ namespace stdsharp::type_traits
         struct transform_fn
         {
             [[nodiscard]] constexpr auto operator()() const noexcept
-                requires(sizeof...(Func) == 1) &&
-                requires
+                requires requires //
             {
+                requires(sizeof...(Func) == 1);
                 typename value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>;
             }
             {
                 return value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>{};
             };
 
-            [[nodiscard]] constexpr auto operator()() const noexcept requires requires
-            {
-                typename value_sequence<::std::invoke(Func, Values)...>;
-            }
+            [[nodiscard]] constexpr auto operator()() const noexcept
+                requires requires { typename value_sequence<::std::invoke(Func, Values)...>; }
             {
                 return value_sequence<::std::invoke(Func, Values)...>{}; // clang-format on
             };
@@ -274,8 +275,8 @@ namespace stdsharp::type_traits
                 noexcept(concepts::nothrow_invocable<FindFunc, Func>)
             {
                 const auto v = FindFunc::operator()(::std::forward<Func>(func));
-                if constexpr(Equal) return v == size(); // clang-format off
-                else return v != size(); // clang-format on
+                if constexpr(Equal) return v == size();
+                else return v != size();
             }
         };
 
@@ -283,7 +284,7 @@ namespace stdsharp::type_traits
         static constexpr struct
         {
             template<typename Func>
-                requires(::std::invocable<Func, decltype(Values)>&&...)
+                requires(::std::invocable<Func, decltype(Values)> && ...)
             constexpr auto operator()(Func func) const
                 noexcept((concepts::nothrow_invocable<Func, decltype(Values)> && ...))
             {
@@ -295,7 +296,7 @@ namespace stdsharp::type_traits
         static constexpr struct
         {
             template<typename Func>
-                requires(::std::invocable<Func, decltype(Values)>&&...)
+                requires(::std::invocable<Func, decltype(Values)> && ...)
             constexpr auto operator()(auto for_each_n_count, Func func) const
                 noexcept((concepts::nothrow_invocable<Func, decltype(Values)> && ...))
             {
@@ -310,7 +311,7 @@ namespace stdsharp::type_traits
         static constexpr struct
         {
             template<typename Func>
-                requires(::std::predicate<Func, decltype(Values)>&&...)
+                requires(::std::predicate<Func, decltype(Values)> && ...)
             [[nodiscard]] constexpr auto operator()(Func func) const
                 noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
             {
@@ -328,14 +329,14 @@ namespace stdsharp::type_traits
         static constexpr struct
         {
             template<typename Func>
-                requires(::std::predicate<Func, decltype(Values)>&&...)
+                requires(::std::predicate<Func, decltype(Values)> && ...)
             [[nodiscard]] constexpr auto operator()(Func func) const
                 noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
                 for_each(
-                    [&i, &func](const auto& v) noexcept(
-                        concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
+                    [&i, &func](const auto& v
+                    ) noexcept(concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
                         if(functional::invoke_r<bool>(func, v)) ++i;
@@ -537,7 +538,7 @@ namespace stdsharp::type_traits
 namespace std
 {
     template<size_t I, auto... Values>
-    struct tuple_element<I, ::stdsharp::type_traits::value_sequence<Values...>> :
+    struct tuple_element<I, ::stdsharp::type_traits::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
         type_identity< // clang-format off
             decltype(
                 typename ::stdsharp::type_traits::
@@ -548,7 +549,7 @@ namespace std
     };
 
     template<auto... Values>
-    struct tuple_size<::stdsharp::type_traits::value_sequence<Values...>> :
+    struct tuple_size<::stdsharp::type_traits::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
         ::stdsharp::type_traits:: // clang-format off
             index_constant<::stdsharp::type_traits::value_sequence<Values...>::size()>
     // clang-format on

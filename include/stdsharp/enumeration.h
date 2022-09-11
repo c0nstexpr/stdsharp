@@ -14,13 +14,17 @@ namespace stdsharp
         T value{};
 
         explicit constexpr operator underlying_type() const noexcept { return auto_cast(value); }
+
         explicit constexpr operator T&() noexcept { return value; }
+
         explicit constexpr operator T() const noexcept { return value; }
 
         constexpr auto operator==(const T other) const noexcept { return value == other; }
+
         constexpr auto operator!=(const T other) const noexcept { return !(*this == other); }
 
         friend constexpr auto operator==(const T v, const enumeration e) noexcept { return e == v; }
+
         friend constexpr auto operator!=(const T v, const enumeration e) noexcept { return e != v; }
     };
 
@@ -51,6 +55,7 @@ namespace stdsharp
         friend constexpr auto operator&(const T v, const flag e) noexcept { return flag{e & v}; }
 
         constexpr auto operator&(const flag other) const noexcept { return flag{value & other}; }
+
         // NOLINTEND(hicpp-signed-bitwise)
     };
 

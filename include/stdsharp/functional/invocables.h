@@ -25,8 +25,7 @@ namespace stdsharp::functional
                     if(v)
                     {
                         if(target == size) target = i;
-                        else
-                            return size;
+                        else return size;
                     }
 
                     ++i;
@@ -91,7 +90,7 @@ namespace stdsharp::functional
             invocables() = default;
 
             template<typename... Args>
-                requires(::std::constructible_from<value_wrapper<Func>, Args>&&...)
+                requires(::std::constructible_from<value_wrapper<Func>, Args> && ...)
             constexpr invocables(Args&&... args) //
                 noexcept((concepts::nothrow_constructible_from<value_wrapper<Func>, Args> && ...)):
                 indexed_func<I, Func>(::std::forward<Args>(args))...
@@ -105,13 +104,13 @@ namespace stdsharp::functional
                     concepts::nothrow_invocable<
                         decltype(::std::declval<This>().get(type_traits::index_constant<Index>{})),
                         Args... // clang-format off
-                    >
-                ) // clang-format on
+                    > // clang-format on
+                )
             )
             {
                 return ::std::invoke(
                     ::std::forward<This>(this_).get(type_traits::index_constant<Index>{}),
-                    ::std::forward<Args>(args)... //
+                    ::std::forward<Args>(args)...
                 );
             }
 
@@ -120,12 +119,12 @@ namespace stdsharp::functional
         typename... Args,                                                                   \
         typename This = const_ invocables ref,                                              \
         auto Index = Selector<const_ Func ref...>::template value<Args...>>                 \
-        requires requires                                                                   \
-        {                                                                                   \
-            invoke_impl<Index>(::std::declval<This>(), ::std::declval<Args>()...);          \
-        }                                                                                   \
+        requires requires {                                                                 \
+                     invoke_impl<Index>(::std::declval<This>(), ::std::declval<Args>()...); \
+                 }                                                                          \
     constexpr decltype(auto) operator()(Args&&... args) const_ ref noexcept(                \
-        noexcept(invoke_impl<Index>(::std::declval<This>(), ::std::declval<Args>()...)))    \
+        noexcept(invoke_impl<Index>(::std::declval<This>(), ::std::declval<Args>()...))     \
+    )                                                                                       \
     {                                                                                       \
         return invoke_impl<Index>(static_cast<This>(*this), ::std::forward<Args>(args)...); \
     }
@@ -176,14 +175,16 @@ namespace stdsharp::functional
     public:
         using base::base;
 
-#define BS_OPERATOR(const_, ref)                                                       \
-    template<typename... Args>                                                         \
-        requires ::std::invocable<const_ Func ref, Args...>                            \
-    [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args)                  \
-        const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, Args...>)     \
-    {                                                                                  \
-        return ::std::invoke(                                                          \
-            static_cast<const_ Func ref>(base::value), ::std::forward<Args>(args)...); \
+#define BS_OPERATOR(const_, ref)                                                   \
+    template<typename... Args>                                                     \
+        requires ::std::invocable<const_ Func ref, Args...>                        \
+    [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args)              \
+        const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, Args...>) \
+    {                                                                              \
+        return ::std::invoke(                                                      \
+            static_cast<const_ Func ref>(base::value),                             \
+            ::std::forward<Args>(args)...                                          \
+        );                                                                         \
     }
 
         BS_OPERATOR(, &)
@@ -200,7 +201,7 @@ namespace stdsharp::functional
     {
         template<typename... Invocable>
             requires requires { trivial_invocables{::std::declval<Invocable>()...}; }
-        [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const //
+        [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const
             noexcept(noexcept(trivial_invocables{::std::declval<Invocable>()...}))
         {
             return trivial_invocables{::std::forward<Invocable>(invocable)...};
@@ -211,7 +212,7 @@ namespace stdsharp::functional
     {
         template<typename... Invocable>
             requires requires { sequenced_invocables{::std::declval<Invocable>()...}; }
-        [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const //
+        [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const
             noexcept(noexcept(sequenced_invocables{::std::declval<Invocable>()...}))
         {
             return sequenced_invocables{::std::forward<Invocable>(invocable)...};

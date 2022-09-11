@@ -11,7 +11,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ((int Value), Value),
     1,
     2,
-    3 //
+    3
 )
 {
     GIVEN(fmt::format("int value: {}", Value))

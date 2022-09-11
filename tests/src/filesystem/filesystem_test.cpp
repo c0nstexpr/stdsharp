@@ -25,7 +25,7 @@ SCENARIO("space size", "[filesystem]") // NOLINT
             +v;
             -v;
             ~v;
-        } //
+        }
     );
 
     STATIC_REQUIRE(1_bit + 1_bit == 2_bit);

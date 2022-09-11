@@ -9,7 +9,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: type sequence",
     "[type traits]",
     test_seq,
-    type_sequence<> //
+    type_sequence<>
 )
 {
     STATIC_REQUIRE(default_initializable<TestType>);
@@ -22,7 +22,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, int),
     (1, float),
     (2, char),
-    (3, unsigned) //
+    (3, unsigned)
 )
 {
     STATIC_REQUIRE(same_as<test_seq::get_t<Index>, Expect>);
@@ -38,9 +38,9 @@ TEMPLATE_TEST_CASE( // NOLINT
                 type_constant<int>,
                 type_constant<char>,
                 type_constant<unsigned>,
-                type_constant<float>> auto //
-        ) {} // clang-format off
-    ) // clang-format on
+                type_constant<float>> auto
+        ) {}
+    )
 )
 {
     STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
@@ -52,7 +52,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ((typename T, auto Expect), T, Expect),
     (int, 0),
     (float, 1),
-    (void, test_seq::size()) //
+    (void, test_seq::size())
 )
 {
     STATIC_REQUIRE(test_seq::find(type_constant<T>{}) == Expect);
@@ -64,13 +64,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ((typename T, auto Expect), T, Expect),
     (int, 1),
     (float, 2),
-    (void, 0) //
+    (void, 0)
 )
 {
     STATIC_REQUIRE(test_seq::count(type_constant<T>{}) == Expect);
 }
 
-// clang-format on
 SCENARIO("type sequence apply", "[type traits]") // NOLINT
 {
     STATIC_REQUIRE(default_initializable<test_seq::apply_t<type_sequence>>);
@@ -81,7 +80,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "[type traits]",
     ((typename IndexSeq, typename Expect, auto V), IndexSeq, Expect, V),
     (regular_value_sequence<1, 2>, regular_type_sequence<float, char>, 0),
-    (regular_value_sequence<2, 4>, regular_type_sequence<char, float>, 0) //
+    (regular_value_sequence<2, 4>, regular_type_sequence<char, float>, 0)
 )
 {
     STATIC_REQUIRE(same_as<test_seq::indexed_by_seq_t<IndexSeq>, Expect>);
@@ -95,20 +94,20 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         Seq,
         Expect,
         FrontExpect,
-        V // clang-format off
-    ), // clang-format on
+        V
+    ),
     ( //
         regular_type_sequence<void, double>,
         regular_type_sequence<int, float, char, unsigned, float, void, double>,
         (regular_type_sequence<void, double, int, float, char, unsigned, float>),
-        0 // clang-format off
-    ), // clang-format on
+        0
+    ),
     ( //
         regular_type_sequence<long, void*>,
         regular_type_sequence<int, float, char, unsigned, float, long, void*>,
         (regular_type_sequence<long, void*, int, float, char, unsigned, float>),
-        0 // clang-format off
-    ) // clang-format on
+        0
+    )
 )
 {
     STATIC_REQUIRE(same_as<test_seq::append_by_seq_t<Seq>, Expect>);
@@ -122,13 +121,13 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ( //
         3,
         regular_type_sequence<void, double>,
-        regular_type_sequence<int, float, char, void, double, unsigned, float> // clang-format off
-    ), // clang-format on
+        regular_type_sequence<int, float, char, void, double, unsigned, float>
+    ),
     ( //
         5,
         regular_type_sequence<long, void*>,
-        regular_type_sequence<int, float, char, unsigned, float, long, void*> // clang-format off
-    ) // clang-format on
+        regular_type_sequence<int, float, char, unsigned, float, long, void*>
+    )
 )
 {
     STATIC_REQUIRE(same_as<test_seq::insert_by_seq_t<Index, Seq>, Expect>);
@@ -141,13 +140,13 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ( //
         0,
         regular_value_sequence<1, 2>,
-        regular_type_sequence<int, unsigned, float> // clang-format off
-    ), // clang-format on
+        regular_type_sequence<int, unsigned, float>
+    ),
     ( //
         0,
         regular_value_sequence<2, 4>,
-        regular_type_sequence<int, float, unsigned> // clang-format off
-    ) // clang-format on
+        regular_type_sequence<int, float, unsigned>
+    )
 )
 {
     STATIC_REQUIRE(same_as<test_seq::remove_at_by_seq_t<Seq>, Expect>);
@@ -158,7 +157,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "[type traits]",
     ((auto V, typename Seq, typename Expect), V, Seq, Expect),
     (0, type_sequence<>, type_sequence<>),
-    (0, test_seq, type_sequence<int, float, char, unsigned>) //
+    (0, test_seq, type_sequence<int, float, char, unsigned>)
 )
 {
     STATIC_REQUIRE( //

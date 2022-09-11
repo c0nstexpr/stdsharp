@@ -11,7 +11,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: value sequence",
     "[type traits]",
     test_seq,
-    value_sequence<> //
+    value_sequence<>
 )
 {
     STATIC_REQUIRE(default_initializable<TestType>);
@@ -24,7 +24,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, 0),
     (1, 1),
     (2, 7),
-    (3, 1) //
+    (3, 1)
 )
 {
     STATIC_REQUIRE(test_seq::get<Index>() == Expect);
@@ -34,7 +34,8 @@ TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: value sequence invoke",
     "[type traits]",
     identity,
-    decltype([](stdsharp::concepts::same_as_any<int, size_t, array<char, 11>> auto) {}))
+    decltype([](stdsharp::concepts::same_as_any<int, size_t, array<char, 11>> auto) {})
+)
 {
     STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
 }
@@ -45,7 +46,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ((auto V, auto Expect), V, Expect),
     (0, 0),
     (1, 1),
-    ('!', test_seq::size()) //
+    ('!', test_seq::size())
 )
 {
     STATIC_REQUIRE(test_seq::find(V) == Expect);
@@ -57,13 +58,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ((auto V, auto Expect), V, Expect),
     (0, 1),
     (1, 2),
-    ('?', 0) //
+    ('?', 0)
 )
 {
     STATIC_REQUIRE(test_seq::count(V) == Expect);
 }
 
-// clang-format on
 SCENARIO("apply_t", "[type traits]") // NOLINT
 {
     STATIC_REQUIRE(default_initializable<test_seq::apply_t<value_sequence>>);
@@ -91,8 +91,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         transform_functor_2,
         transform_functor_3,
         transform_functor_4,
-        transform_functor_5 // clang-format off
-    ) // clang-format on
+        transform_functor_5
+    )
 )
 {
     STATIC_REQUIRE(default_initializable<test_seq::template transform_t<Functor...>>);
@@ -103,7 +103,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "[type traits]",
     ((typename IndexSeq, typename Expect, auto V), IndexSeq, Expect, V),
     (regular_value_sequence<1, 2>, regular_value_sequence<1, size_t{7}>, 0),
-    (regular_value_sequence<2, 4>, regular_value_sequence<size_t{7}, to_array("my literal")>, 0) //
+    (regular_value_sequence<2, 4>, regular_value_sequence<size_t{7}, to_array("my literal")>, 0)
 )
 {
     STATIC_REQUIRE(same_as<test_seq::indexed_by_seq_t<IndexSeq>, Expect>);
@@ -117,20 +117,20 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         Seq,
         Expect,
         FrontExpect,
-        V // clang-format off
-    ), // clang-format on
+        V
+    ),
     ( //
         regular_value_sequence<1, 2>,
         (regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 1, 2>),
         regular_value_sequence<1, 2, 0, 1, size_t{7}, 1, to_array("my literal")>,
-        0 // clang-format off
-    ), // clang-format on
+        0
+    ),
     ( //
         regular_value_sequence<2, 4>,
         (regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 2, 4>),
         regular_value_sequence<2, 4, 0, 1, size_t{7}, 1, to_array("my literal")>,
-        0 // clang-format off
-    ) // clang-format on
+        0
+    )
 )
 {
     STATIC_REQUIRE(same_as<test_seq::append_by_seq_t<Seq>, Expect>);
@@ -144,13 +144,13 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ( //
         3,
         regular_value_sequence<1, 2>,
-        regular_value_sequence<0, 1, size_t{7}, 1, 2, 1, to_array("my literal")> // clang-format off
-    ), // clang-format on
+        regular_value_sequence<0, 1, size_t{7}, 1, 2, 1, to_array("my literal")>
+    ),
     ( //
         5,
         regular_value_sequence<2, 4>,
-        regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 2, 4> // clang-format off
-    ) // clang-format on
+        regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 2, 4>
+    )
 )
 {
     STATIC_REQUIRE(same_as<test_seq::insert_by_seq_t<Index, Seq>, Expect>);
@@ -163,13 +163,13 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ( //
         0,
         regular_value_sequence<1, 2>,
-        regular_value_sequence<0, 1, to_array("my literal")> // clang-format off
-    ), // clang-format on
+        regular_value_sequence<0, 1, to_array("my literal")>
+    ),
     ( //
         0,
         regular_value_sequence<2, 4>,
-        regular_value_sequence<0, 1, 1> // clang-format off
-    ) // clang-format on
+        regular_value_sequence<0, 1, 1>
+    )
 )
 {
     STATIC_REQUIRE(same_as<test_seq::remove_at_by_seq_t<Seq>, Expect>);
@@ -185,9 +185,9 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            typename as_value_sequence_t<Seq>:: // clang-format off
-                template apply_t<type_traits::unique_value_sequence_t>,
+            typename as_value_sequence_t<Seq>:: //
+            template apply_t<type_traits::unique_value_sequence_t>,
             Expect
-        > // clang-format on
+        >
     );
 }

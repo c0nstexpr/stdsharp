@@ -54,10 +54,8 @@ namespace stdsharp::type_traits
     inline constexpr auto conditional_v<false, Left, Right> = Right;
 
     template<typename T>
-    concept constant_value = requires
-    {
-        ::std::bool_constant<(::std::declval<T>().value, true)>{};
-    };
+    concept constant_value =
+        requires { ::std::bool_constant<(::std::declval<T>().value, true)>{}; };
 
     template<::std::size_t I>
     using index_constant = ::std::integral_constant<::std::size_t, I>;

@@ -70,6 +70,7 @@ namespace stdsharp::filesystem
         using period = ::std::ratio<Num, Denom>;
 
         static constexpr space_size zero() noexcept { return {}; }
+
         static constexpr space_size max() noexcept { return ::std::numeric_limits<rep>::max(); }
 
         space_size() = default;
@@ -83,25 +84,24 @@ namespace stdsharp::filesystem
         }
 
         template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto
-            operator<=>(const space_size<OtherRep, Period> other) const noexcept
+        [[nodiscard]] constexpr auto operator<=>(const space_size<OtherRep, Period> other
+        ) const noexcept
         {
             if constexpr(::std::ratio_greater_equal_v<period, Period>)
                 return value_ <=> cast_from(other.value_, Period{});
-            else
-                return other <=> *this;
+            else return other <=> *this;
         }
 
         template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto
-            operator==(const space_size<OtherRep, Period> other) const noexcept
+        [[nodiscard]] constexpr auto operator==(const space_size<OtherRep, Period> other
+        ) const noexcept
         {
             return (*this <=> other) == ::std::strong_ordering::equal;
         }
 
         template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto
-            operator!=(const space_size<OtherRep, Period> other) const noexcept
+        [[nodiscard]] constexpr auto operator!=(const space_size<OtherRep, Period> other
+        ) const noexcept
         {
             return !(*this == other);
         }
@@ -148,8 +148,8 @@ namespace stdsharp::filesystem
 
     template<typename CharT, typename Traits, typename Rep>
     auto& operator<<(
-        std::basic_ostream<CharT, Traits>& os, //
-        const space_size<Rep, zettabytes::period> size //
+        std::basic_ostream<CharT, Traits>& os,
+        const space_size<Rep, zettabytes::period> size
     )
     {
         return os << size.size() << " ZB";
@@ -173,8 +173,8 @@ namespace stdsharp::filesystem
 
     template<typename CharT, typename Traits, typename Rep>
     auto& operator<<(
-        std::basic_ostream<CharT, Traits>& os, //
-        const space_size<Rep, yottabytes::period> size //
+        std::basic_ostream<CharT, Traits>& os,
+        const space_size<Rep, yottabytes::period> size
     )
     {
         return os << size.size() << " YB";
@@ -220,8 +220,8 @@ namespace stdsharp::filesystem
 
     template<typename CharT, typename Traits, typename Rep>
     auto& operator<<(
-        std::basic_ostream<CharT, Traits>& os, //
-        const space_size<Rep, zebibytes::period> size //
+        std::basic_ostream<CharT, Traits>& os,
+        const space_size<Rep, zebibytes::period> size
     )
     {
         return os << size.size() << " ZiB";
@@ -247,8 +247,8 @@ namespace stdsharp::filesystem
 
     template<typename CharT, typename Traits, typename Rep>
     auto& operator<<(
-        std::basic_ostream<CharT, Traits>& os, //
-        const space_size<Rep, yobibytes::period> size //
+        std::basic_ostream<CharT, Traits>& os,
+        const space_size<Rep, yobibytes::period> size
     )
     {
         return os << size.size() << " YiB";
@@ -257,47 +257,53 @@ namespace stdsharp::filesystem
 #endif
 
     template<typename CharT, typename Traits, typename Rep, typename Period>
-        requires requires(std::basic_ostream<CharT, Traits> os, Rep rep)
-        {
-            requires concepts::same_as_any<
-                Period,
-                bits::period,
-                bytes::period,
-                kilobytes::period,
-                megabytes::period,
-                gigabytes::period,
-                terabytes::period,
-                petabytes::period,
-                exabytes::period,
-                kibibytes::period,
-                mebibytes::period,
-                gibibytes::period,
-                tebibytes::period,
-                pebibytes::period,
-                exbibytes::period // clang-format off
-            >; // clang-format on
-            os << rep;
-        }
+        requires requires(std::basic_ostream<CharT, Traits> os, Rep rep) //
+    {
+        requires concepts::same_as_any<
+            Period,
+            bits::period,
+            bytes::period,
+            kilobytes::period,
+            megabytes::period,
+            gigabytes::period,
+            terabytes::period,
+            petabytes::period,
+            exabytes::period,
+            kibibytes::period,
+            mebibytes::period,
+            gibibytes::period,
+            tebibytes::period,
+            pebibytes::period,
+            exbibytes::period // clang-format off
+        >; // clang-format on
+        os << rep;
+    }
     auto& operator<<(std::basic_ostream<CharT, Traits>& os, const space_size<Rep, Period> size)
     {
-        constexpr_pattern_match::from_type<Period>( //
-            [&](const ::std::type_identity<bits::period>) { os << size.size() << "b"; },
-            [&](const ::std::type_identity<bytes::period>) { os << size.size() << "B"; },
-            [&](const ::std::type_identity<kilobytes::period>) { os << size.size() << "KB"; },
-            [&](const ::std::type_identity<megabytes::period>) { os << size.size() << "MB"; },
-            [&](const ::std::type_identity<gigabytes::period>) { os << size.size() << "GB"; },
-            [&](const ::std::type_identity<terabytes::period>) { os << size.size() << "TB"; },
-            [&](const ::std::type_identity<petabytes::period>) { os << size.size() << "PB"; },
-            [&](const ::std::type_identity<exabytes::period>) { os << size.size() << "EB"; },
-            [&](const ::std::type_identity<kibibytes::period>) { os << size.size() << "KiB"; },
-            [&](const ::std::type_identity<mebibytes::period>) { os << size.size() << "MiB"; },
-            [&](const ::std::type_identity<gibibytes::period>) { os << size.size() << "GiB"; },
-            [&](const ::std::type_identity<tebibytes::period>) { os << size.size() << "TiB"; },
-            [&](const ::std::type_identity<pebibytes::period>) { os << size.size() << "PiB"; },
-            [&](const ::std::type_identity<exbibytes::period>) { os << size.size() << "EiB"; } //
-        );
+        constexpr auto sv = []
+        {
+            ::std::string_view sv;
+            constexpr_pattern_match::from_type<Period>(
+                [&](const ::std::type_identity<bits::period>) { sv = "b"; },
+                [&](const ::std::type_identity<bytes::period>) { sv = "B"; },
+                [&](const ::std::type_identity<kilobytes::period>) { sv = "KB"; },
+                [&](const ::std::type_identity<megabytes::period>) { sv = "MB"; },
+                [&](const ::std::type_identity<gigabytes::period>) { sv = "GB"; },
+                [&](const ::std::type_identity<terabytes::period>) { sv = "TB"; },
+                [&](const ::std::type_identity<petabytes::period>) { sv = "PB"; },
+                [&](const ::std::type_identity<exabytes::period>) { sv = "EB"; },
+                [&](const ::std::type_identity<kibibytes::period>) { sv = "KiB"; },
+                [&](const ::std::type_identity<mebibytes::period>) { sv = "MiB"; },
+                [&](const ::std::type_identity<gibibytes::period>) { sv = "GiB"; },
+                [&](const ::std::type_identity<tebibytes::period>) { sv = "TiB"; },
+                [&](const ::std::type_identity<pebibytes::period>) { sv = "PiB"; },
+                [&](const ::std::type_identity<exbibytes::period>) { sv = "EiB"; }
+            );
 
-        return os;
+            return sv;
+        }();
+
+        return os << size.size() << sv;
     };
 
     inline namespace literals
@@ -458,11 +464,8 @@ namespace fmt
     template<typename Rep, typename Period, typename CharT>
         requires requires(
             ::stdsharp::filesystem::space_size<Rep, Period> s,
-            ::std::basic_stringstream<CharT> ss //
-        )
-        {
-            ss << s;
-        }
+            ::std::basic_stringstream<CharT> ss
+        ) { ss << s; }
     struct formatter<::stdsharp::filesystem::space_size<Rep, Period>, CharT>
     {
     private:
@@ -553,21 +556,20 @@ namespace fmt
                     ::std::ranges::transform(
                         from_unit_,
                         from_unit.begin(),
-                        [](const CharT c) { return static_cast<char>(c); } //
+                        [](const CharT c) { return static_cast<char>(c); }
                     );
                     return from_unit;
                 }();
 
                 ::std::string_view current_unit{
-                    from_unit.begin(), //
+                    from_unit.begin(),
                     ::std::ranges::find(from_unit, char{}) //
                 };
                 ::std::basic_ostringstream<CharT> ss;
 
                 const auto do_format = [&current_unit, &ss, &s]
                 {
-                    const auto format_case =
-                        [&]<typename SpaceSize>( // clang-format off
+                    const auto format_case = [&]<typename SpaceSize>( // clang-format off
                         const identity<SpaceSize>,
                         const ::std::string_view next_unit
                     ) noexcept // clang-format on
@@ -586,108 +588,33 @@ namespace fmt
                     ::stdsharp::pattern_match(
                         current_unit,
                         ::std::pair{
-                            //
                             [](const ::std::string_view unit) noexcept { return unit.empty(); },
                             [](const ::std::string_view)
-                            { throw format_error{"Precision exceeded"}; } //
+                            {
+                                throw format_error{"Precision exceeded"}; //
+                            } //
                         },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "b"; },
-                            format_case(identity<::stdsharp::filesystem::bits>{}, "")
-                            //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "B"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::bytes>{},
-                                "b") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "KiB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::kibibytes>{},
-                                "B") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "KB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::kilobytes>{},
-                                "B") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "MiB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::mebibytes>{},
-                                "KiB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "MB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::megabytes>{},
-                                "KB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "GiB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::gibibytes>{},
-                                "MiB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "GB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::gigabytes>{},
-                                "MB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "TiB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::tebibytes>{},
-                                "GiB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "TB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::terabytes>{},
-                                "GB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "PiB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::pebibytes>{},
-                                "TiB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "PB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::petabytes>{},
-                                "TB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "EiB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::exbibytes>{},
-                                "PiB") //
-                        },
-                        ::std::pair{
-                            //
-                            [](const ::std::string_view unit) noexcept { return unit == "EB"; },
-                            format_case(
-                                identity<::stdsharp::filesystem::exabytes>{},
-                                "PB") //
-                        } //
+#define STDSHARP_MAKE_PAIR(str, type, next_str)                              \
+    ::std::pair{                                                             \
+        [](const ::std::string_view unit) noexcept { return unit == #str; }, \
+        format_case(identity<::stdsharp::filesystem::type>{}, #next_str)}
+
+                        STDSHARP_MAKE_PAIR(b, bits, ),
+                        STDSHARP_MAKE_PAIR(B, bytes, b),
+                        STDSHARP_MAKE_PAIR(KiB, kibibytes, B),
+                        STDSHARP_MAKE_PAIR(KB, kilobytes, B),
+                        STDSHARP_MAKE_PAIR(MiB, mebibytes, KiB),
+                        STDSHARP_MAKE_PAIR(MB, megabytes, KB),
+                        STDSHARP_MAKE_PAIR(GiB, gibibytes, MiB),
+                        STDSHARP_MAKE_PAIR(GB, gigabytes, MB),
+                        STDSHARP_MAKE_PAIR(TiB, tebibytes, GiB),
+                        STDSHARP_MAKE_PAIR(TB, terabytes, GB),
+                        STDSHARP_MAKE_PAIR(PiB, pebibytes, TiB),
+                        STDSHARP_MAKE_PAIR(PB, petabytes, TB),
+                        STDSHARP_MAKE_PAIR(EiB, exbibytes, PiB),
+                        STDSHARP_MAKE_PAIR(EB, exabytes, PB)
+
+#undef STDSHARP_MAKE_PAIR
                     );
                 };
 
@@ -697,8 +624,7 @@ namespace fmt
 #else
                     ss.imbue(fc.locale().template get<::std::locale>());
 #endif
-                else
-                    ss.imbue(::std::locale::classic());
+                else ss.imbue(::std::locale::classic());
 
                 if(const auto precision_v = fmtsharp::get_arg(fc, precision); precision_v)
                     for(auto i = *precision_v; i != 0; --i) do_format();
@@ -758,7 +684,7 @@ namespace fmt
                     }
 
                     return true;
-                }() //
+                }()
             )
                 ::std::ranges::copy(formatted, fc.out());
             return fc.out();

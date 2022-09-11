@@ -4,7 +4,7 @@ Standard: Latest
 BasedOnStyle: LLVM
 
 AccessModifierOffset: -4
-AlignAfterOpenBracket: AlwaysBreak
+AlignAfterOpenBracket: BlockIndent
 AlignEscapedNewlines: Left
 AlignOperands: DontAlign
 AlignTrailingComments: false
@@ -12,7 +12,7 @@ AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
@@ -36,7 +36,7 @@ PackConstructorInitializers: NextLine
 PenaltyBreakFirstLessLess: 3
 PointerAlignment: Left
 QualifierAlignment: Left
-SeparateDefinitionBlocks: true
+SeparateDefinitionBlocks: Always
 SortIncludes: false
 SortUsingDeclarations: false
 SpaceAfterTemplateKeyword: false

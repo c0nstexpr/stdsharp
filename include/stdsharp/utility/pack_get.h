@@ -11,10 +11,8 @@ namespace stdsharp
     {
     private:
         template<::std::size_t... I, typename... Args>
-        static constexpr decltype(auto) impl(
-            const ::std::index_sequence<I...>,
-            Args&&... args // clang-format off
-        ) noexcept // clang-format on
+        static constexpr decltype(auto) impl(const ::std::index_sequence<I...>, Args&&... args) //
+            noexcept
         {
             return ::ranges::overload(
                 [&args](const type_traits::index_constant<I>) -> Args&&

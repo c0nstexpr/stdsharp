@@ -23,8 +23,8 @@ SCENARIO("member", "[type traits]") // NOLINT
             type<my_class::mem_t>(),
             type<decltype(&my_class::mem_f)>(),
             type<my_class::mem_func_r_t>(),
-            type<my_class::mem_func_args_t>() // clang-format off
-        ) // clang-format on
+            type<my_class::mem_func_args_t>()
+        )
     )
     {
         THEN("use member traits to get member type, type should be expected")

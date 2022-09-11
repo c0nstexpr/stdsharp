@@ -11,7 +11,7 @@ namespace stdsharp
     template<typename CharT>
     struct encode_to_string_fn
     {
-        auto operator()(const CharT character) const //
+        auto operator()(const CharT character) const
             requires concepts::same_as_any<CharT, char8_t, char16_t, char32_t, wchar_t>
         {
             ::std::mbstate_t mb = std::mbstate_t();
@@ -37,8 +37,8 @@ namespace stdsharp
                 [&](const ::std::type_identity<char32_t>)
                 {
                     return ::std::c32rtomb(res.data(), character, &mb); //
-                } // clang-format off
-            ); // clang-format on
+                }
+            );
 
             if(errno == EILSEQ) throw ::std::runtime_error("invalid character");
         }

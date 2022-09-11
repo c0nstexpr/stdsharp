@@ -37,10 +37,8 @@ namespace stdsharp
         {
             template<typename Container = ::std::vector<T>>
                 requires ::std::invocable<read_all_to_container_fn, Container&>
-            [[nodiscard]] auto& operator()(
-                Container& container,
-                const ::std::filesystem::path& path //
-            ) const
+            [[nodiscard]] auto&
+                operator()(Container& container, const ::std::filesystem::path& path) const
             {
                 ::std::ifstream fs{path};
                 return (*this)(container, fs);
@@ -63,8 +61,7 @@ namespace stdsharp
     namespace details
     {
         template<typename T, ::std::default_initializable Container>
-            requires(
-                ::std::invocable<read_all_to_container_fn<T>, Container&, ::std::filesystem::path>)
+            requires ::std::invocable<read_all_to_container_fn<T>, Container&, ::std::istream&>
         struct read_all_fn
         {
             [[nodiscard]] constexpr auto operator()(::std::istream& is) const

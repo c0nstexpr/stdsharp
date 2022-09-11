@@ -20,18 +20,15 @@ namespace stdsharp::functional
         [[nodiscard]] constexpr auto operator()(Args&&... args) const
             noexcept(concepts::nothrow_constructible_from<T, Args...>)
         {
-            return T(::std::forward<Args>(args)...); //
+            return T(::std::forward<Args>(args)...);
         }
 
         template<typename... Args>
-            requires(
-                !::std::constructible_from<T, Args...> &&
-                concepts::list_initializable_from<T, Args...> //
-            )
+            requires(!::std::constructible_from<T, Args...> && concepts::list_initializable_from<T, Args...>)
         [[nodiscard]] constexpr auto operator()(Args&&... args) const
             noexcept(concepts::nothrow_list_initializable_from<T, Args...>)
         {
-            return T{::std::forward<Args>(args)...}; //
+            return T{::std::forward<Args>(args)...};
         }
     };
 
@@ -100,6 +97,7 @@ namespace stdsharp::functional
     inline constexpr ::std::bit_not<> bit_not_v{};
     inline constexpr ::std::bit_or<> bit_or_v{};
     inline constexpr ::std::bit_xor<> bit_xor_v{};
+
     inline constexpr struct bit_xnor
     {
         template<typename T, typename U>
@@ -115,10 +113,9 @@ namespace stdsharp::functional
     inline constexpr struct direction##_shift                                            \
     {                                                                                    \
         template<typename T, typename U>                                                 \
-            requires requires(T && left, U&& right)                                      \
-            {                                                                            \
-                ::std::forward<T>(left) operate ::std::forward<U>(right);                \
-            }                                                                            \
+            requires requires(T && left, U&& right) {                                    \
+                         ::std::forward<T>(left) operate ::std::forward<U>(right);       \
+                     }                                                                   \
         [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const     \
             noexcept(noexcept(::std::forward<T>(left) operate ::std::forward<U>(right))) \
         {                                                                                \
@@ -134,18 +131,17 @@ namespace stdsharp::functional
 #define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                                 \
                                                                                                   \
     template<typename T, typename U>                                                              \
-    concept operator_type##_assignable_from = requires(T l, U && u)                               \
-    {                                                                                             \
-        l op## = ::std::forward<U>(u);                                                            \
-    };                                                                                            \
+    concept operator_type##_assignable_from =                                                     \
+        requires(T l, U && u) { l op## = ::std::forward<U>(u); };                                 \
                                                                                                   \
     namespace details                                                                             \
     {                                                                                             \
         struct operator_type##_assign                                                             \
         {                                                                                         \
             template<typename T, typename U>                                                      \
-            requires operator_type##_assignable_from<T, U> constexpr decltype(auto)               \
-                operator()(T& l, U&& u) const noexcept(noexcept((l op## = ::std::forward<U>(u)))) \
+                requires operator_type                                                            \
+            ##_assignable_from<T, U> constexpr decltype(auto) operator()(T& l, U&& u) const       \
+                noexcept(noexcept((l op## = ::std::forward<U>(u))))                               \
             {                                                                                     \
                 return l op## = ::std::forward<U>(u);                                             \
             }                                                                                     \
@@ -237,7 +233,7 @@ namespace stdsharp::functional
         {
             template<typename T, concepts::unsigned_ Distance = ::std::iter_difference_t<T>>
                 requires ::std::invocable<pre_increase, T>
-            constexpr decltype(auto) operator()(T& v, Distance distance) const //
+            constexpr decltype(auto) operator()(T& v, Distance distance) const
                 noexcept(concepts::nothrow_invocable<pre_increase, T>)
             {
                 if(distance == 0) return v;
@@ -246,16 +242,15 @@ namespace stdsharp::functional
             }
 
             template<typename T, concepts::signed_ Distance = ::std::iter_difference_t<T>>
-                requires( //
-                    ::std::invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>>&& //
+                requires(
+                    ::std::invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
                     ::std::invocable<pre_decrease, T> //
                 )
             constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept( //
                 noexcept( //
-                    concepts::
-                        nothrow_invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>>&&
-                            concepts::nothrow_invocable<pre_decrease, T> // clang-format off
-                ) // clang-format on
+                    concepts::nothrow_invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
+                    concepts::nothrow_invocable<pre_decrease, T>
+                )
             )
             {
                 if(distance >= 0) return (*this)(v, make_unsigned(distance));

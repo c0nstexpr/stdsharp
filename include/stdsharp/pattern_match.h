@@ -12,10 +12,13 @@ namespace stdsharp
             ::std::invocable<const Condition>... Func // clang-format off
         > // clang-format on
         constexpr void operator()(
-            const Condition& condition, //
-            ::std::pair<Predicate, Func>... cases // clang-format off
-        ) const noexcept(((concepts::nothrow_predicate<Predicate, Condition> &&
-            concepts::nothrow_invocable<Func, Condition>) && ...)) // clang-format on
+            const Condition& condition,
+            ::std::pair<Predicate, Func>... cases //
+        ) const
+            noexcept(
+                ((concepts::nothrow_predicate<Predicate, Condition> &&
+                  concepts::nothrow_invocable<Func, Condition>)&&...)
+            )
         {
             (
                 [&condition](::std::pair<Predicate, Func>&& pair)
@@ -43,8 +46,8 @@ namespace stdsharp
             {
             private:
                 template<typename Case>
-                static constexpr bool case_nothrow_invocable_ = functional::logical_imply(
-                    ::std::invocable<Case, T>, concepts::nothrow_invocable<Case, T>);
+                static constexpr bool case_nothrow_invocable_ = functional::
+                    logical_imply(::std::invocable<Case, T>, concepts::nothrow_invocable<Case, T>);
 
             public:
                 template<typename... Cases>
@@ -52,16 +55,16 @@ namespace stdsharp
                     noexcept((case_nothrow_invocable_<Cases> && ...))
                 {
                     (
-                        []([[maybe_unused]] Cases&& c) // clang-format off
-                            noexcept(case_nothrow_invocable_<Cases>) // clang-format on
+                        []([[maybe_unused]] Cases&& c) noexcept(case_nothrow_invocable_<Cases>)
                         {
                             if constexpr(::std::invocable<Cases, T>)
                             {
                                 ::std::invoke(::std::forward<Cases>(c), T{});
                                 return true;
-                            } // clang-format off
-                        else return false;
-                    }(::std::move(cases)) || ... // clang-format on
+                            }
+                            else return false;
+                        }(::std::move(cases)) ||
+                        ...
                     );
                 }
             };
