@@ -36,7 +36,7 @@ jobs:
         run: |
           sudo apt-get update;
           curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ matrix.llvm-ver }};
-          sudo apt install clang-${{ matrix.llvm-ver }} llvm-${{ matrix.llvm-ver }} clang-tidy-${{ matrix.llvm-ver }};
+          sudo apt install clang-tidy-${{ matrix.llvm-ver }};
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/c c /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
