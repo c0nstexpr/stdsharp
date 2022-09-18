@@ -400,17 +400,6 @@ namespace stdsharp::containers
         };
     };
 
-    template<typename Handle>
-    concept node_handle = concepts::nothrow_movable<Handle> &&
-        requires(Handle handle) // clang-format off
-    {
-            requires noexcept(static_cast<bool>(handle));
-            { ::std::as_const(handle).get_allocator() } ->
-                ::std::same_as<typename Handle::allocator_type>;
-            requires noexcept(::std::as_const(handle).empty());
-            { ::std::as_const(handle).empty() } -> ::std::same_as<bool>;
-    }; // clang-format on
-
     template<typename Container, typename... Elements>
     concept reversible_container = container<Container, Elements...> &&
         requires //
@@ -622,12 +611,13 @@ namespace stdsharp::containers
             typename decltype(instance)::const_iterator const_iter,
             typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list
-        ) {
-                     requires details::container_insertable<decltype(instance)>;
+        ) //
+        {
+            requires details::container_insertable<decltype(instance)>;
 
-                     requires functional::logical_imply(
-                         container_emplace_constructible<decltype(instance), decltype(value)>,
-                         requires // clang-format off
+            requires functional::logical_imply(
+                container_emplace_constructible<decltype(instance), decltype(value)>,
+                requires // clang-format off
                 {
                     { instance.emplace_hint(const_iter, const_ref) } ->
                         ::std::same_as<decltype(iter)>;
@@ -663,7 +653,7 @@ namespace stdsharp::containers
             { instance.merge(instance) } -> ::std::same_as<void>;
 
             { instance.clear() } -> ::std::same_as<void>; // clang-format on
-                 };
+        };
     };
 
     template<typename Container, typename... Elements>
@@ -677,26 +667,22 @@ namespace stdsharp::containers
             allocator_of_t<decltype(instance)> alloc,
             typename decltype(instance)::key_compare key_cmp,
             typename decltype(instance)::value_compare value_cmp,
-            typename decltype(instance)::node_type node,
             typename decltype(instance)::iterator iter,
             typename decltype(instance)::const_iterator const_iter,
             typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list
-        ) {
-                     requires associative_like_container<decltype(instance), decltype(key_cmp)>;
+        ) //
+        {
+            requires associative_like_container<decltype(instance), decltype(key_cmp)>;
 
-                     requires ::std::copyable<decltype(key_cmp)>;
-                     requires ::std::predicate<decltype(key_cmp), decltype(key), decltype(key)>;
-                     requires ::std::
-                         constructible_from<decltype(instance), const decltype(key_cmp)>;
+            requires ::std::copyable<decltype(key_cmp)>;
+            requires ::std::predicate<decltype(key_cmp), decltype(key), decltype(key)>;
+            requires ::std::constructible_from<decltype(instance), const decltype(key_cmp)>;
 
-                     requires ::std::copyable<decltype(value_cmp)>;
-                     requires ::std::
-                         predicate<decltype(value_cmp), decltype(value), decltype(value)>;
+            requires ::std::copyable<decltype(value_cmp)>;
+            requires ::std::predicate<decltype(value_cmp), decltype(value), decltype(value)>;
 
-                     requires node_handle<decltype(node)>;
-
-                     requires functional::logical_imply(
+            requires functional::logical_imply(
                 container_emplace_constructible<decltype(instance), decltype(value)>,
                 details::optional_constructible<
                     decltype(instance),
@@ -724,7 +710,7 @@ namespace stdsharp::containers
             { const_instance.lower_bound(key) } -> ::std::same_as<decltype(const_iter)>;
             { instance.upper_bound(key) } -> ::std::same_as<decltype(iter)>;
             { const_instance.upper_bound(key) } -> ::std::same_as<decltype(const_iter)>; // clang-format on
-                 };
+        };
     };
 
     template<typename Container, typename... Elements>
@@ -746,7 +732,6 @@ namespace stdsharp::containers
             typename decltype(instance)::key_equal key_equal,
             typename decltype(instance)::hasher hasher,
             allocator_of_t<decltype(instance)> alloc,
-            typename decltype(instance)::node_type node,
             typename decltype(instance)::reference ref,
             typename decltype(instance)::const_reference const_ref,
             typename decltype(instance)::iterator iter,
@@ -765,8 +750,6 @@ namespace stdsharp::containers
 
             requires ::std::copyable<decltype(hasher)>;
             requires concepts::invocable_r<decltype(hasher), ::std::size_t, decltype(key)>;
-
-            requires node_handle<decltype(node)>;
 
             requires details::iterator_identical<decltype(iter), decltype(local_iter)>;
             requires details::iterator_identical<decltype(const_iter), decltype(const_local_iter)>;

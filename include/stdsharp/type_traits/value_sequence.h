@@ -465,40 +465,20 @@ namespace stdsharp::type_traits
                 {
                     ::std::array<::std::size_t, size()> res{};
                     ::std::array excepted = {Index...};
-                    ::std::size_t index = 0;
 
-                    ::std::ranges::sort(excepted.begin(), excepted.end());
-// TODO replace with ranges views
-#ifdef _MSC_VER
-                    ::std::ranges::copy_if( //
-                        ::std::views::iota(::std::size_t{0}, value_sequence::size()),
-                        res.begin(),
-                        [&excepted, &index](const auto v)
-                        {
-                            if(::std::ranges::binary_search(excepted, v)) return false;
-                            ++index;
-                            return true;
-                        } //
+                    ::std::ranges::sort(excepted);
+
+                    const auto size = static_cast<::std::size_t>(
+                        ::std::ranges::set_difference(
+                            ::std::views::iota(::std::size_t{0}, res.size()),
+                            excepted,
+                            res.begin()
+                        )
+                            .out -
+                        res.cbegin()
                     );
-#else
-                    {
-                        ::std::array<::std::size_t, value_sequence::size()> candidates{};
 
-                        ::std::iota(candidates.begin(), candidates.end(), ::std::size_t{0});
-
-                        ::std::ranges::copy_if(
-                            candidates,
-                            res.begin(),
-                            [&excepted, &index](const auto v)
-                            {
-                                if(::std::ranges::binary_search(excepted, v)) return false;
-                                ++index;
-                                return true;
-                            } //
-                        );
-                    }
-#endif
-                    return ::std::pair{res, index};
+                    return ::std::pair{res, size};
                 }();
 
                 ::std::array<::std::size_t, pair.second> res{};

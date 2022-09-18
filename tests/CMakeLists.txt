@@ -8,8 +8,7 @@ verbose_message("Adding tests under ${CMAKE_PROJECT_NAME}...")
 #
 # Set the sources for the unit tests and add the executable(s)
 #
-set(
-    src
+set(src
     src/tests.cpp
     src/pattern_match_test.cpp
     src/concurrent_object_test.cpp
@@ -23,21 +22,20 @@ set(
     src/tuple/tuple_test.cpp
     src/functional/pipeable_test.cpp
     src/functional/symmetric_operations_test.cpp
-    src/filesystem/filesystem_test.cpp
-)
+    src/filesystem/filesystem_test.cpp)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
 target_compile_options(
-    ${PROJECT_NAME}
-    PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
-           $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-)
+  ${PROJECT_NAME}
+  PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
+         $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
 
 find_package(Catch2 CONFIG REQUIRED)
 include(Catch)
-target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain ${PROJECT_NAME}Lib)
+target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain
+                                              ${PROJECT_NAME}Lib)
 
 #
 # Configure clang-tidy
@@ -45,9 +43,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain ${
 option(ENABLE_CLANG_TIDY "Enable clang-tidy" ON)
 
 if(${ENABLE_CLANG_TIDY})
-    message(STATUS "clang-tidy is enabled")
+  message(STATUS "clang-tidy is enabled")
 
-    target_enable_clang_tidy(${PROJECT_NAME})
+  target_enable_clang_tidy(${PROJECT_NAME})
 endif()
 
 catch_discover_tests(${PROJECT_NAME})
@@ -58,5 +56,5 @@ catch_discover_tests(${PROJECT_NAME})
 option(ENABLE_CODE_COVERAGE "Enable code coverage" OFF)
 
 if(${ENABLE_CODE_COVERAGE})
-    target_coverage(${PROJECT_NAME} FORMAT lcov)
+  target_coverage(${PROJECT_NAME} FORMAT lcov)
 endif()

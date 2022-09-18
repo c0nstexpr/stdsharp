@@ -14,7 +14,7 @@ jobs:
     continue-on-error: false
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-22.04, windows-latest]
         build-type: [Debug, Release]
@@ -22,9 +22,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             llvm-ver: 15
+            cmakeOptions: -DVCPKG_TARGET_TRIPLET=x64-libcxx
           - os: ubuntu-22.04
             build-type: Debug
-            cmakeOptions: -DENABLE_CODE_COVERAGE=true
+            cmakeOptions: -DENABLE_CODE_COVERAGE=true -DVCPKG_TARGET_TRIPLET=x64-libcxx
           - os: windows-latest
             cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
 
@@ -36,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update;
           curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ matrix.llvm-ver }};
-          sudo apt install clang-tidy-${{ matrix.llvm-ver }};
+          sudo apt install clang-tidy-${{ matrix.llvm-ver }}  libc++-${{ matrix.llvm-ver }}-dev libc++abi-${{ matrix.llvm-ver }}-dev;
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/c c /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
@@ -44,6 +45,8 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
+          sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-${{ matrix.llvm-ver }} 1000;
+          wget https://gist.githubusercontent.com/BlurringShadow/93b29a43cb19f10c8f162537c721bb66/raw/9e398889ddebdb4822ebf49ed93269bb4809c437/x64-linux-clang.cmake -O ${{ github.workspace }}/.vcpkg/triplets/community/x64-libcxx.cmake
 
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}

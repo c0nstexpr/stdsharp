@@ -23,8 +23,8 @@ namespace stdsharp::reflection
         ::std::string_view name{};
         member_category category{};
 
+        friend bool operator==(member_info, member_info) = default;
         friend bool operator!=(member_info, member_info) = default;
-        friend auto operator<=>(member_info, member_info) = default;
     };
 
     template<typename T>
