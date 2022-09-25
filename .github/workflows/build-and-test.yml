@@ -22,17 +22,14 @@ jobs:
         include:
           - os: ubuntu-22.04
             llvm-ver: 15
-            cmakeOptions: -DVCPKG_TARGET_TRIPLET=x64-libcxx
-          - os: ubuntu-22.04
-            build-type: Debug
-            cmakeOptions: -DENABLE_CODE_COVERAGE=true -DVCPKG_TARGET_TRIPLET=x64-libcxx
-          - os: windows-latest
-            cmakeOptions: -DENABLE_CLANG_TIDY=false # disable clang-tidy on Windows for MSVC
+            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang
+          - build-type: Debug
+            debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Upgrade Clang on Linux
+      - name: Specify Clang toolchain on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo apt-get update;
@@ -46,7 +43,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ matrix.llvm-ver }} 1000;
-          wget https://gist.githubusercontent.com/BlurringShadow/93b29a43cb19f10c8f162537c721bb66/raw/9e398889ddebdb4822ebf49ed93269bb4809c437/x64-linux-clang.cmake -O ${{ github.workspace }}/.vcpkg/triplets/community/x64-libcxx.cmake
+          cp ${{ github.workspace }}/cmake/vcpkg/triplets/x64-linux-clang.cmake .vcpkg/triplets/community/x64-linux-clang.cmake
 
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}

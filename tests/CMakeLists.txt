@@ -40,7 +40,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain
 #
 # Configure clang-tidy
 #
-option(ENABLE_CLANG_TIDY "Enable clang-tidy" ON)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
 
 if(${ENABLE_CLANG_TIDY})
   message(STATUS "clang-tidy is enabled")
