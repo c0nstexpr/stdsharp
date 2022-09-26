@@ -44,7 +44,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ matrix.llvm-ver }} 1000;
-          cp ${{ github.workspace }}/cmake/vcpkg/triplets/x64-linux-clang.cmake .vcpkg/triplets/community/x64-linux-clang.cmake
+          cp ${{ github.workspace }}/cmake/vcpkg/triplets/x64-linux-clang.cmake .vcpkg/triplets/community
 
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}
