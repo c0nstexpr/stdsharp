@@ -13,8 +13,9 @@ else()
   add_compile_definitions("NDEBUG")
 endif()
 
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-add_compile_options("$<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>")
+add_compile_options(
+  "$<$<CXX_COMPILER_ID:MSVC>:/utf-8> $<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>"
+)
 add_link_options("$<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld>")
 
 function(verbose_message)

@@ -22,9 +22,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             llvm-ver: 15
-            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang
-          - build-type: Debug
-            debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
+            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/cmake/vcpkg/toolchains/linux-clang.cmake"
+          - os: ubuntu-22.04
+            build-type: Debug
+            linux-debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
 
     steps:
       - uses: actions/checkout@v2
@@ -55,7 +56,7 @@ jobs:
         uses: ./.github/actions
         with:
           build-type: ${{ matrix.build-type }}
-          config-option: ${{ matrix.cmakeOptions }}
+          config-option: ${{ matrix.linux-cmake-options }} ${{ matrix.linux-debug-cmake-options }}
 
       - name: Check coverage file existence
         id: check_coverage_file
