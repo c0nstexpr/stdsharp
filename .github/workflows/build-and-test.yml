@@ -22,8 +22,8 @@ jobs:
         include:
           - os: ubuntu-22.04
             llvm-ver: 15
-            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="./cmake/vcpkg/toolchains/linux-clang.cmake"
-            linux-before-cmake-build: cp ./cmake/vcpkg/triplets/x64-linux-clang.cmake ./.vcpkg/triplets/community
+            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/cmake/vcpkg/toolchains/linux-clang.cmake"
+            linux-before-cmake-build: cp ${{ github.workspace }}/cmake/vcpkg/triplets/x64-linux-clang.cmake ${{ github.workspace }}/.vcpkg/triplets/community
           - os: ubuntu-22.04
             build-type: Debug
             linux-debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true

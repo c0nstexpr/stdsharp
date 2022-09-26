@@ -76,7 +76,7 @@ namespace stdsharp
             template<typename This, typename Func>
             constexpr void operator()(This&& instance, Func&& func) const
             {
-                ::std::shared_lock lock{instance.lockable_};
+                const ::std::shared_lock lock{instance.lockable_};
                 ::std::invoke(::std::forward<Func>(func), ::std::forward<This>(instance).object_);
             }
         };
@@ -92,7 +92,7 @@ namespace stdsharp
             template<typename Func>
             constexpr void operator()(concurrent_object& instance, Func&& func) const
             {
-                ::std::shared_lock lock{instance.lockable_};
+                const ::std::unique_lock lock{instance.lockable_};
                 ::std::invoke(::std::forward<Func>(func), instance.object_);
             }
         };
