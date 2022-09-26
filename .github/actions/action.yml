@@ -17,6 +17,9 @@ inputs:
     description: vcpkg position
     required: false
     default: ${{ github.workspace }}/.vcpkg
+  before-build:
+    description: run before build
+    required: false
 
 runs:
   using: composite
@@ -34,6 +37,11 @@ runs:
 
     - uses: ilammy/msvc-dev-cmd@v1
       if: ${{ runner.os == 'Windows' }}
+
+    - name: Run before cmake build
+      id: before-cmake-build
+      run: ${{ inputs.before-build }}
+      shell: bash
 
     - name: Install dependencies and generate project files
       id: cmake-config
