@@ -28,7 +28,7 @@ runs:
       id: vcpkg-setup
       uses: lukka/run-vcpkg@v10
       with:
-        vcpkgGitCommitId: 9776b51b557bb2c20d79cf541f124c48d0c2c720
+        vcpkgGitCommitId: 5f82fa45df07a446bab57f65479f3d2df797f408
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
 
     - uses: seanmiddleditch/gha-setup-ninja@master
