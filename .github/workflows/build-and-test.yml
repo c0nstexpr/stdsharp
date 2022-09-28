@@ -22,6 +22,7 @@ jobs:
           - os: ubuntu-22.04
             llvm-ver: 15
             coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
+
           - os: ubuntu-22.04
             build-type: Debug
             linux-debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
@@ -32,8 +33,8 @@ jobs:
       - name: Specify Clang toolchain on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get update;
           curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ matrix.llvm-ver }};
+          sudo apt-get update;
           sudo apt install clang-tidy-${{ matrix.llvm-ver }}  libc++-${{ matrix.llvm-ver }}-dev libc++abi-${{ matrix.llvm-ver }}-dev;
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
@@ -55,7 +56,7 @@ jobs:
         uses: ./.github/actions
         with:
           build-type: ${{ matrix.build-type }}
-          config-option: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/linux-clang.cmake" ${{ matrix.linux-debug-cmake-options }}
+          config-option: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/cmake/vcpkg/toolchains/linux-clang.cmake" ${{ matrix.linux-debug-cmake-options }}
           before-build : cp ./cmake/vcpkg/triplets/x64-linux-clang.cmake ./.vcpkg/triplets/community
 
       - name: CMake build and test
