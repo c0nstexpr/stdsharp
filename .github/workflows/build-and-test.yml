@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [develop]
 
 jobs:
   job:
@@ -18,12 +18,10 @@ jobs:
       matrix:
         os: [ubuntu-22.04, windows-latest]
         build-type: [Debug, Release]
-        coverage-file-path: [.build/tests/stdsharpTestsCoverage.lcov]
         include:
           - os: ubuntu-22.04
             llvm-ver: 15
-            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/cmake/vcpkg/toolchains/linux-clang.cmake"
-            linux-before-cmake-build: cp ${{ github.workspace }}/cmake/vcpkg/triplets/x64-linux-clang.cmake ${{ github.workspace }}/.vcpkg/triplets/community
+            coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
           - os: ubuntu-22.04
             build-type: Debug
             linux-debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
@@ -53,11 +51,18 @@ jobs:
         shell: pwsh
 
       - name: CMake build and test
+        if: ${{ runner.os == 'Linux' }}
         uses: ./.github/actions
         with:
           build-type: ${{ matrix.build-type }}
-          config-option: ${{ matrix.linux-cmake-options }} ${{ matrix.linux-debug-cmake-options }}
-          before-build : ${{ matrix.linux-before-cmake-build }}
+          config-option: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/linux-clang.cmake" ${{ matrix.linux-debug-cmake-options }}
+          before-build : cp ./cmake/vcpkg/triplets/x64-linux-clang.cmake ./.vcpkg/triplets/community
+
+      - name: CMake build and test
+        if: ${{ runner.os == 'Windows' }}
+        uses: ./.github/actions
+        with:
+          build-type: ${{ matrix.build-type }}
 
       - name: Check coverage file existence
         id: check_coverage_file
