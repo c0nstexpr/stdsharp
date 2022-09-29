@@ -5,6 +5,10 @@ option(
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug mode.\n")
+
+  add_compile_options(
+    "SHELL: $<$<CXX_COMPILER_ID:Clang>:-fsanitize=address -fno-omit-frame-pointer>"
+  )
 else()
   message(
     STATUS
