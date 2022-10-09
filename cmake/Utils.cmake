@@ -3,11 +3,19 @@ option(
   "Enable verbose output, allowing for a better understanding of each step taken."
   ON)
 
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+                    $<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>)
+add_link_options(
+  "SHELL: $<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld -stdlib=libc++>")
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug mode.\n")
 
   add_compile_options(
-    "SHELL: $<$<CXX_COMPILER_ID:Clang>:-fsanitize=address -fno-omit-frame-pointer>"
+    "SHELL: $<$<CXX_COMPILER_ID:Clang>:-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+  )
+  add_link_options(
+    "SHELL: $<$<CXX_COMPILER_ID:Clang>:-fsanitize=address -fsanitize=undefined>"
   )
 else()
   message(
@@ -16,10 +24,6 @@ else()
   )
   add_compile_definitions("NDEBUG")
 endif()
-
-add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>
-                    $<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>)
-add_link_options($<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld>)
 
 function(verbose_message)
   if(VERBOSE_OUTPUT)
