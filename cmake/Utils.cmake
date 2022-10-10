@@ -10,13 +10,6 @@ add_link_options(
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug mode.\n")
-
-  add_compile_options(
-    "SHELL: $<$<CXX_COMPILER_ID:Clang>:-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls>"
-  )
-  add_link_options(
-    "SHELL: $<$<CXX_COMPILER_ID:Clang>:-fsanitize=address -fsanitize=undefined>"
-  )
 else()
   message(
     STATUS
@@ -223,6 +216,24 @@ function(target_enable_clang_tidy target)
   else()
     message(STATUS "clang-tidy not found")
   endif()
+endfunction()
+
+function(target_enable_clang_sanitizer target type)
+  cmake_parse_arguments(ARG "" "" "SANITIZER" ${ARGN})
+
+  foreach(sanitizer ${ARG_SANITIZER})
+    set(sanitizer_options "${sanitizer_options} -fsanitize=${sanitizer}")
+  endforeach()
+
+  set(clang_debug_only "$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:DEBUG>>")
+
+  target_compile_options(
+    ${target}
+    ${type}
+    "SHELL: $<${clang_debug_only}: ${sanitizer_options} -fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+  )
+  target_link_options(${target} ${type}
+                      "SHELL: $<${clang_debug_only}:${sanitizer_options}>")
 endfunction()
 
 function(target_coverage target_name)

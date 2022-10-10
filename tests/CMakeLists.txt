@@ -5,11 +5,13 @@ project(${CMAKE_PROJECT_NAME}Tests LANGUAGES CXX)
 
 verbose_message("Adding tests under ${CMAKE_PROJECT_NAME}...")
 
+find_package(Catch2 CONFIG REQUIRED)
+include(Catch)
+
 #
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src
-    src/tests.cpp
     src/pattern_match_test.cpp
     src/concurrent_object_test.cpp
     src/algorithm/algorithm_test.cpp
@@ -24,18 +26,18 @@ set(src
     src/functional/symmetric_operations_test.cpp
     src/filesystem/filesystem_test.cpp)
 
-config_lib(${PROJECT_NAME}Lib INTERFACE)
-config_exe(${PROJECT_NAME} EXE_SRC ${src})
+config_lib(${PROJECT_NAME}Lib SHARED SRC ${src})
+config_exe(${PROJECT_NAME} EXE_SRC src/tests.cpp)
 
 target_compile_options(
   ${PROJECT_NAME}
   PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
          $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
+target_enable_clang_sanitizer(${PROJECT_NAME}Lib PUBLIC SANITIZER address
+                              undefined)
 
-find_package(Catch2 CONFIG REQUIRED)
-include(Catch)
-target_link_libraries(${PROJECT_NAME} PRIVATE stdsharp Catch2::Catch2WithMain
-                                              ${PROJECT_NAME}Lib)
+target_link_libraries(${PROJECT_NAME}Lib PUBLIC stdsharp Catch2::Catch2WithMain)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib)
 
 #
 # Configure clang-tidy
