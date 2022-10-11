@@ -18,8 +18,8 @@ jobs:
       matrix:
         os: [ubuntu-22.04, windows-latest]
         build-type: [Debug, Release]
-        coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
         include:
+          - coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
           - os: ubuntu-22.04
             llvm-ver: 15
 
