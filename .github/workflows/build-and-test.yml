@@ -8,7 +8,7 @@ on:
     branches: [develop]
 
 jobs:
-  job:
+  linux-job:
     name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     continue-on-error: false
@@ -16,17 +16,16 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: ubuntu-22.04
         include:
           - os: ubuntu-22.04
             llvm-ver: 15
-            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang
-            linux-cmake-before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
 
     steps:
       - uses: actions/checkout@v2
 
       - name: Specify Clang toolchain on Linux
+        id: linux-init
         if: ${{ runner.os == 'Linux' }}
         run: |
           curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ matrix.llvm-ver }};
@@ -40,20 +39,15 @@ jobs:
           sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ matrix.llvm-ver }} 1000;
-
-      - name: Upgrade MSVC on Windows
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: C:\Program Files (x86)\Microsoft Visual Studio\Installer
-        run: .\setup.exe update --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -q --norestart --installWhileDownloading
-        shell: pwsh
+          echo "cmake-options=-DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\"${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake\"" >> $GITHUB_OUTPUT
 
       - name: CMake build and test (Linux Debug)
         if: ${{ runner.os == 'Linux' }}
         uses: ./.github/actions
         with:
           build-type: Debug
-          config-option: ${{ matrix.linux-cmake-options }}  -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake" -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
-          before-build: ${{ matrix.linux-cmake-before-build }}
+          config-option: ${{ steps.linux-init.outputs.cmake-options }} -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
+          before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
           build-dir: .build/Debug
 
       - name: CMake build and test (Linux Release)
@@ -61,22 +55,7 @@ jobs:
         uses: ./.github/actions
         with:
           build-type: Release
-          config-option: ${{ matrix.linux-cmake-options }} -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake"
-          before-build: ${{ matrix.linux-cmake-before-build }}
-          build-dir: .build/Release
-
-      - name: CMake build and test (Windows Debug)
-        if: ${{ runner.os == 'Windows' }}
-        uses: ./.github/actions
-        with:
-          build-type: Debug
-          build-dir: .build/Debug
-
-      - name: CMake build and test (Windows Release)
-        if: ${{ runner.os == 'Windows' }}
-        uses: ./.github/actions
-        with:
-          build-type: Release
+          config-option: ${{ steps.linux-init.outputs.cmake-options }}
           build-dir: .build/Release
 
       - name: Codacy Coverage Reporter
@@ -94,3 +73,36 @@ jobs:
           upload: true
           run-docker-tools: false
           clang-tidy-output: ".build/Debug/cmake-build.log"
+
+  windows-job:
+    name: ${{ matrix.os }} build
+    runs-on: ${{ matrix.os }}
+    continue-on-error: false
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Upgrade MSVC on Windows
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: C:\Program Files (x86)\Microsoft Visual Studio\Installer
+        run: .\setup.exe update --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -q --norestart --installWhileDownloading
+        shell: pwsh
+
+      - name: CMake build and test (Windows Debug)
+        if: ${{ runner.os == 'Windows' }}
+        uses: ./.github/actions
+        with:
+          build-type: Debug
+          build-dir: .build/Debug
+
+      - name: CMake build and test (Windows Release)
+        if: ${{ runner.os == 'Windows' }}
+        uses: ./.github/actions
+        with:
+          build-type: Release
+          build-dir: .build/Release
