@@ -9,7 +9,7 @@ on:
 
 jobs:
   job:
-    name: ${{ matrix.os }} ${{ matrix.build-type }} build
+    name: ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     continue-on-error: false
 
@@ -22,10 +22,6 @@ jobs:
             llvm-ver: 15
             linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake"
             linux-cmake-before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
-
-          - os: ubuntu-22.04
-            build-type: Debug
-            linux-debug-cmake-options: -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
 
     steps:
       - uses: actions/checkout@v2
@@ -56,7 +52,7 @@ jobs:
         uses: ./.github/actions
         with:
           build-type: Debug
-          config-option: ${{ matrix.linux-cmake-options }} ${{ matrix.linux-debug-cmake-options }}
+          config-option: ${{ matrix.linux-cmake-options }} -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
           before-build: ${{ matrix.linux-cmake-before-build }}
           build-dir: .build/Debug
 
