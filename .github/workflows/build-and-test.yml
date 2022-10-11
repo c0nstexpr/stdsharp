@@ -30,6 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Setup vcpkg
+        id: vcpkg-setup
+        uses: lukka/run-vcpkg@v10
+        with:
+          vcpkgGitCommitId: 5f82fa45df07a446bab57f65479f3d2df797f408
+          vcpkgDirectory: ${{ inputs.vcpkg-root }}
+
       - name: Specify Clang toolchain on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |
@@ -44,7 +51,6 @@ jobs:
           sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ matrix.llvm-ver }} 1000;
-          mkdir ./.vcpkg;
           cp -R ./cmake/vcpkg ./.vcpkg;
 
       - name: Upgrade MSVC on Windows
