@@ -17,11 +17,11 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-22.04, windows-latest]
-        build-type: [Debug, Release]
         include:
-          - coverage-file-path: .build/tests/stdsharpTestsCoverage.lcov
           - os: ubuntu-22.04
             llvm-ver: 15
+            linux-cmake-options: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake"
+            linux-cmake-before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
 
           - os: ubuntu-22.04
             build-type: Debug
@@ -55,34 +55,46 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         uses: ./.github/actions
         with:
-          build-type: ${{ matrix.build-type }}
-          config-option: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake" ${{ matrix.linux-debug-cmake-options }}
-          before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
+          build-type: Debug
+          config-option: ${{ matrix.linux-cmake-options }} ${{ matrix.linux-debug-cmake-options }}
+          before-build: ${{ matrix.linux-cmake-before-build }}
+          build-dir: .build/Debug
+
+      - name: CMake build and test
+        if: ${{ runner.os == 'Linux' }}
+        uses: ./.github/actions
+        with:
+          build-type: Release
+          config-option: ${{ matrix.linux-cmake-options }}
+          before-build: ${{ matrix.linux-cmake-before-build }}
+          build-dir: .build/Release
 
       - name: CMake build and test
         if: ${{ runner.os == 'Windows' }}
         uses: ./.github/actions
         with:
-          build-type: ${{ matrix.build-type }}
+          build-type: Debug
+          build-dir: .build/Debug
 
-      - name: Check coverage file existence
-        id: check_coverage_file
-        uses: andstor/file-existence-action@v1
+      - name: CMake build and test
+        if: ${{ runner.os == 'Windows' }}
+        uses: ./.github/actions
         with:
-          files: ${{ matrix.coverage-file-path }}
+          build-type: Release
+          build-dir: .build/Release
 
       - name: Codacy Coverage Reporter
-        if: steps.check_coverage_file.outputs.files_exists == 'true'
+        if: ${{ runner.os == 'Linux' }}
         uses: codacy/codacy-coverage-reporter-action@v1.3.0
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: ${{ matrix.coverage-file-path }}
+          coverage-reports: .build/Debug/tests/stdsharpTestsCoverage.lcov
 
       - name: Codacy Analysis
-        if: steps.check_coverage_file.outputs.files_exists == 'true'
+        if: ${{ runner.os == 'Linux' }}
         uses: codacy/codacy-analysis-cli-action@master
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           upload: true
           run-docker-tools: false
-          clang-tidy-output: ".build/cmake-build.log"
+          clang-tidy-output: ".build/Debug/cmake-build.log"
