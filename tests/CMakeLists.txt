@@ -26,7 +26,7 @@ set(src
     src/functional/symmetric_operations_test.cpp
     src/filesystem/filesystem_test.cpp)
 
-config_lib(${PROJECT_NAME}Lib SHARED SRC ${src})
+config_lib(${PROJECT_NAME}Lib STATIC SRC ${src})
 config_exe(${PROJECT_NAME} EXE_SRC src/tests.cpp)
 
 target_compile_options(

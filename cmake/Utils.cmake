@@ -35,6 +35,8 @@ endfunction()
 # Create static or shared library, setup header and source files
 #
 function(config_lib lib_name lib_type)
+  message("Configuring target library ${lib_name}")
+
   cmake_parse_arguments(ARG "" "STD;VER" "INC_DIR;INSTALL_INC_DIR;SRC" ${ARGN})
 
   if(NOT DEFINED ARG_INC_DIR)
@@ -57,7 +59,21 @@ function(config_lib lib_name lib_type)
 
   if(lib_type STREQUAL "SHARED")
     set_target_properties(${lib_name} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS OFF)
-  else(lib_type STREQUAL "INTERFACE")
+
+    string(TOUPPER "${lib_name}_WIN_DLL" ${lib_name}_WIN_DLL)
+    message(
+      STATUS
+        "Detected shared library, setting ${lib_name}_WIN_DLL to ${${lib_name}_WIN_DLL}"
+    )
+    target_compile_definitions(
+      ${lib_name}
+      PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:${${lib_name}_WIN_DLL}=__declspec\(dllexport\)>
+    )
+    message(
+      STATUS
+        "Added ${lib_name}_WIN_DLL to target ${lib_name} compile definitions")
+  elseif(lib_type STREQUAL "INTERFACE")
     set(inc_tag INTERFACE)
   endif()
 
