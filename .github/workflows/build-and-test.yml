@@ -30,13 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup vcpkg
-        id: vcpkg-setup
-        uses: lukka/run-vcpkg@v10
-        with:
-          vcpkgGitCommitId: 5f82fa45df07a446bab57f65479f3d2df797f408
-          vcpkgDirectory: ${{ inputs.vcpkg-root }}
-
       - name: Specify Clang toolchain on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |

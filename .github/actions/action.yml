@@ -25,6 +25,13 @@ runs:
       with:
         destination: ${{ github.workspace }}/.ninja
 
+    - name: Setup vcpkg
+      id: vcpkg-setup
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgGitCommitId: 5f82fa45df07a446bab57f65479f3d2df797f408
+        vcpkgDirectory: ${{ inputs.vcpkg-root }}
+
     - uses: ilammy/msvc-dev-cmd@v1
       if: ${{ runner.os == 'Windows' }}
 
