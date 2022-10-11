@@ -44,6 +44,8 @@ jobs:
           sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
           sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ matrix.llvm-ver }} 1000;
+          mkdir ./.vcpkg;
+          cp -R ./cmake/vcpkg ./.vcpkg;
 
       - name: Upgrade MSVC on Windows
         if: ${{ runner.os == 'Windows' }}
@@ -57,9 +59,6 @@ jobs:
         with:
           build-type: ${{ matrix.build-type }}
           config-option: -DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${{ github.workspace }}/.vcpkg/toolchains/linux-clang.cmake" ${{ matrix.linux-debug-cmake-options }}
-          before-build : \
-            mkdir ./.vcpkg;
-            cp -R ./cmake/vcpkg ./.vcpkg;
 
       - name: CMake build and test
         if: ${{ runner.os == 'Windows' }}
