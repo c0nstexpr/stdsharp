@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Fetch Clang
-        uses: ${{ github.workspace }}/.github/actions/apt-fetch-clang
+        uses: ./.github/actions/apt-fetch-clang
         with:
           llvm-ver: ${{ matrix.llvm-ver }}
 
@@ -34,14 +34,14 @@ jobs:
         run: echo "cmake-options=-DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\"${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake\"" >> $GITHUB_OUTPUT
 
       - name: CMake build and test (Debug)
-        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
+        uses: ./.github/actions/cmake-build-and-test
         with:
           config-option: ${{ steps.cmake-option.outputs.cmake-options }} -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
           before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
           build-dir: .build/Debug
 
       - name: CMake build and test (Release)
-        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
+        uses: ./.github/actions/cmake-build-and-test
         with:
           build-type: Release
           config-option: ${{ steps.cmake-option.outputs.cmake-options }}
@@ -75,17 +75,17 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Update MSVC
-        uses: ${{ github.workspace }}/.github/actions/update-msvc
+        uses: ./.github/actions/update-msvc
         with:
           llvm-ver: ${{ matrix.llvm-ver }}
 
       - name: CMake build and test (Debug)
-        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
+        uses: ./.github/actions/cmake-build-and-test
         with:
           build-dir: .build/Debug
 
       - name: CMake build and test (Release)
-        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
+        uses: ./.github/actions/cmake-build-and-test
         with:
           build-type: Release
           build-dir: .build/Release
