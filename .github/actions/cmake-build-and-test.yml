@@ -5,7 +5,8 @@ inputs:
   build-type:
     description: cmake build type
     required: true
-    default: debug
+    default: Debug
+
   build-dir:
     description: cmake build directory
     required: false
@@ -13,29 +14,27 @@ inputs:
   config-option:
     description: cmake config option
     required: false
+
   vcpkg-root:
     description: vcpkg position
     required: false
     default: ${{ github.workspace }}/.vcpkg
+
   before-build:
     description: run before build
     required: false
+
 runs:
   using: composite
   steps:
-    - uses: seanmiddleditch/gha-setup-ninja@master
-      with:
-        destination: ${{ github.workspace }}/.ninja
+    - name: Get latest CMake and ninja
+      uses: lukka/get-cmake@latest
 
     - name: Setup vcpkg
-      id: vcpkg-setup
       uses: lukka/run-vcpkg@v10
       with:
         vcpkgGitCommitId: 5f82fa45df07a446bab57f65479f3d2df797f408
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
-
-    - uses: ilammy/msvc-dev-cmd@v1
-      if: ${{ runner.os == 'Windows' }}
 
     - name: Run before cmake build
       id: before-cmake-build

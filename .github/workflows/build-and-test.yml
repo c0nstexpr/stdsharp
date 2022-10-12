@@ -24,49 +24,36 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Specify Clang toolchain on Linux
-        id: linux-init
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ matrix.llvm-ver }};
-          sudo apt-get update;
-          sudo apt install clang-tidy-${{ matrix.llvm-ver }}  libc++-${{ matrix.llvm-ver }}-dev libc++abi-${{ matrix.llvm-ver }}-dev;
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/c c /usr/bin/clang-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ matrix.llvm-ver }} 1000;
-          sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ matrix.llvm-ver }} 1000;
-          echo "cmake-options=-DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\"${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake\"" >> $GITHUB_OUTPUT
-
-      - name: CMake build and test (Linux Debug)
-        if: ${{ runner.os == 'Linux' }}
-        uses: ./.github/actions
+      - name: Fetch Clang
+        uses: ${{ github.workspace }}/.github/actions/apt-fetch-clang
         with:
-          build-type: Debug
-          config-option: ${{ steps.linux-init.outputs.cmake-options }} -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
+          llvm-ver: ${{ matrix.llvm-ver }}
+
+      - name: Get cmake option
+        id: cmake-option
+        run: echo "cmake-options=-DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\"${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake\"" >> $GITHUB_OUTPUT
+
+      - name: CMake build and test (Debug)
+        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
+        with:
+          config-option: ${{ steps.cmake-option.outputs.cmake-options }} -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
           before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
           build-dir: .build/Debug
 
-      - name: CMake build and test (Linux Release)
-        if: ${{ runner.os == 'Linux' }}
-        uses: ./.github/actions
+      - name: CMake build and test (Release)
+        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
         with:
           build-type: Release
-          config-option: ${{ steps.linux-init.outputs.cmake-options }}
+          config-option: ${{ steps.cmake-option.outputs.cmake-options }}
           build-dir: .build/Release
 
       - name: Codacy Coverage Reporter
-        if: ${{ runner.os == 'Linux' }}
         uses: codacy/codacy-coverage-reporter-action@v1.3.0
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: .build/Debug/tests/stdsharpTestsCoverage.lcov
 
       - name: Codacy Analysis
-        if: ${{ runner.os == 'Linux' }}
         uses: codacy/codacy-analysis-cli-action@master
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
@@ -87,22 +74,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Upgrade MSVC on Windows
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: C:\Program Files (x86)\Microsoft Visual Studio\Installer
-        run: .\setup.exe update --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -q --norestart --installWhileDownloading
-        shell: pwsh
-
-      - name: CMake build and test (Windows Debug)
-        if: ${{ runner.os == 'Windows' }}
-        uses: ./.github/actions
+      - name: Update MSVC
+        uses: ${{ github.workspace }}/.github/actions/update-msvc
         with:
-          build-type: Debug
+          llvm-ver: ${{ matrix.llvm-ver }}
+
+      - name: CMake build and test (Debug)
+        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
+        with:
           build-dir: .build/Debug
 
-      - name: CMake build and test (Windows Release)
-        if: ${{ runner.os == 'Windows' }}
-        uses: ./.github/actions
+      - name: CMake build and test (Release)
+        uses: ${{ github.workspace }}/.github/actions/cmake-build-and-test
         with:
           build-type: Release
           build-dir: .build/Release
