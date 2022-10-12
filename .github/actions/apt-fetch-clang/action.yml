@@ -17,3 +17,4 @@ runs:
         sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ inputs.llvm-ver }} 1000;
+      shell: bash
