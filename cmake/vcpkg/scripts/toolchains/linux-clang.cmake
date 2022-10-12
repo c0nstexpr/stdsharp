@@ -1,10 +1,8 @@
-set($ENV{CC} "clang")
-set($ENV{CXX} "clang++")
+set($ENV{CC} "clang -stdlib=libc++")
+set($ENV{CXX} "clang++ -stdlib=libc++")
 
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_C_COMPILER "clang")
-set(VCPKG_CXX_FLAGS "${VCPKG_CXX_FLAGS} -stdlib=libc++")
-set(VCPKG_C_FLAGS "${VCPKG_C_FLAGS}")
+set(CMAKE_CXX_COMPILER "clang++;-stdlib=libc++")
+set(CMAKE_C_COMPILER "clang;-stdlib=libc++")
 
 set(VCPKG_LINKER_FLAGS "${VCPKG_LINKER_FLAGS} --ld-path=ld.lld")
 

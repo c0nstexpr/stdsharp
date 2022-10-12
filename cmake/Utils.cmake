@@ -3,10 +3,9 @@ option(
   "Enable verbose output, allowing for a better understanding of each step taken."
   ON)
 
-add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>
-                    $<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>)
-add_link_options(
-  "SHELL: $<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld -stdlib=libc++>")
+add_compile_options(
+  $<$<CXX_COMPILER_ID:MSVC>:/utf-8>$<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>)
+add_link_options("SHELL: $<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld>")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug mode.\n")
