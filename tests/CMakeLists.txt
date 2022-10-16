@@ -12,6 +12,7 @@ include(Catch)
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src
+    src/tests.cpp
     src/pattern_match_test.cpp
     src/concurrent_object_test.cpp
     src/algorithm/algorithm_test.cpp
@@ -26,17 +27,19 @@ set(src
     src/functional/symmetric_operations_test.cpp
     src/filesystem/filesystem_test.cpp)
 
-config_lib(${PROJECT_NAME}Lib STATIC SRC ${src})
-config_exe(${PROJECT_NAME} EXE_SRC src/tests.cpp)
+config_lib(${PROJECT_NAME}Lib INTERFACE)
+
+target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp
+                                                   Catch2::Catch2WithMain)
+
+config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
 target_compile_options(
   ${PROJECT_NAME}
   PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
          $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
-target_enable_clang_sanitizer(${PROJECT_NAME}Lib PUBLIC SANITIZER address
+target_enable_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address
                               undefined)
-
-target_link_libraries(${PROJECT_NAME}Lib PUBLIC stdsharp Catch2::Catch2WithMain)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib)
 
 #

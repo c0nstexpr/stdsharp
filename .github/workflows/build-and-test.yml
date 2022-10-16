@@ -31,7 +31,7 @@ jobs:
 
       - name: Get cmake option
         id: cmake-option
-        run: echo "cmake-option=-DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\"${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake\"" >> $GITHUB_OUTPUT
+        run: echo "cmake-option=-DVCPKG_TARGET_TRIPLET=x64-linux-clang -DVCPKG_HOST_TRIPLET=x64-linux-clang-dynamic -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\"${{ github.workspace }}/.vcpkg/scripts/toolchains/linux-clang.cmake\"" >> $GITHUB_OUTPUT
 
       - name: CMake build and test (Debug)
         uses: ./.github/actions/cmake-build-and-test
