@@ -202,3 +202,13 @@ namespace stdsharp
         }
     } tuple_cat{};
 }
+
+namespace std
+{
+    template<size_t I, typename TupleLike>
+        requires requires { typename ::stdsharp::get_t<I, TupleLike>; }
+    struct tuple_element<I, TupleLike> : // NOLINT(cert-dcl58-cpp)
+        type_identity<::stdsharp::get_t<I, TupleLike>>
+    {
+    };
+}

@@ -1,6 +1,5 @@
 #include "stdsharp/pattern_match.h"
-#include "stdsharp/functional/operations.h"
-#include "stdsharp/functional/functional.h"
+#include "stdsharp/functional/bind.h"
 #include "test.h"
 
 SCENARIO("pattern match", "[pattern match]") // NOLINT

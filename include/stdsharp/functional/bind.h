@@ -19,28 +19,19 @@ namespace stdsharp::functional
         using base = ::std::tuple<Func, T...>;
 
     public:
-        template<typename... U>
-            requires ::std::constructible_from<base, U...>
-        constexpr bind_t(U&&... u) noexcept(concepts::nothrow_constructible_from<base, U...>):
-            base(::std::forward<U>(u)...)
-        {
-        }
+        using base::base;
 
-#define BS_OPERATOR(const_, ref)                                                                  \
+#define STDSHARP_OPERATOR(const_, ref)                                                            \
                                                                                                   \
 private:                                                                                          \
-    template<::std::size_t... N, typename... Args>                                                \
+    template<::std::size_t... I, typename... Args>                                                \
     constexpr decltype(auto) operator()(                                                          \
-        const ::std::index_sequence<N...>,                                                        \
+        const ::std::index_sequence<I...>,                                                        \
         Args&&... args                                                                            \
     ) const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, const_ T ref..., Args...>) \
     {                                                                                             \
-        return ::std::invoke(                                                                     \
-            static_cast<get_t<N, const_ base ref>>(                                               \
-                ::std::get<N>(static_cast<const_ base ref>(*this))                                \
-            )...,                                                                                 \
-            ::std::forward<Args>(args)...                                                         \
-        );                                                                                        \
+        decltype(auto) tuple = static_cast<const_ base ref>(*this);                               \
+        return ::std::invoke(::std::get<I>(tuple)..., ::std::forward<Args>(args)...);             \
     }                                                                                             \
                                                                                                   \
 public:                                                                                           \
@@ -53,12 +44,12 @@ public:                                                                         
         )(::std::index_sequence_for<Func, T...>{}, ::std::forward<Args>(args)...);                \
     }
 
-        BS_OPERATOR(, &)
-        BS_OPERATOR(const, &)
-        BS_OPERATOR(, &&)
-        BS_OPERATOR(const, &&)
+        STDSHARP_OPERATOR(, &)
+        STDSHARP_OPERATOR(const, &)
+        STDSHARP_OPERATOR(, &&)
+        STDSHARP_OPERATOR(const, &&)
 
-#undef BS_OPERATOR
+#undef STDSHARP_OPERATOR
     };
 
     template<typename Func, typename... Args>

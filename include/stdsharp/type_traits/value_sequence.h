@@ -517,17 +517,6 @@ namespace stdsharp::type_traits
 
 namespace std
 {
-    template<size_t I, auto... Values>
-    struct tuple_element<I, ::stdsharp::type_traits::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
-        type_identity< // clang-format off
-            decltype(
-                typename ::stdsharp::type_traits::
-                    value_sequence<Values...>::template get<I>()
-            )
-        > // clang-format on
-    {
-    };
-
     template<auto... Values>
     struct tuple_size<::stdsharp::type_traits::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
         ::stdsharp::type_traits:: // clang-format off

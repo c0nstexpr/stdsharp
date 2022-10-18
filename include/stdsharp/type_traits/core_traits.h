@@ -9,6 +9,8 @@
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
 
+#include "stdsharp/utility/value_wrapper.h"
+
 using namespace ::std::literals;
 
 namespace stdsharp::type_traits
@@ -108,6 +110,30 @@ namespace stdsharp::type_traits
 
     template<typename... T>
     using regular_type_sequence = ::meta::list<T...>;
+
+    template<typename T, ::std::size_t Index>
+    class indexed_type : value_wrapper<T>
+    {
+        using base = value_wrapper<T>;
+
+    public:
+        using base::base;
+
+#define STDSHARP_OPERATOR(const_, ref_)                 \
+    template<::std::size_t I>                           \
+        requires(I == Index)                            \
+    constexpr decltype(auto) get() const_ ref_ noexcept \
+    {                                                   \
+        return static_cast<const_ T ref_>(base::value); \
+    }
+
+        STDSHARP_OPERATOR(, &)
+        STDSHARP_OPERATOR(const, &)
+        STDSHARP_OPERATOR(, &&)
+        STDSHARP_OPERATOR(const, &&)
+
+#undef STDSHARP_OPERATOR
+    };
 
     inline namespace literals
     {

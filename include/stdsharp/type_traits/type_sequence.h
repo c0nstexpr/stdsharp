@@ -147,12 +147,6 @@ namespace stdsharp::type_traits
 
 namespace std
 {
-    template<size_t I, typename... Types>
-    struct tuple_element<I, ::stdsharp::type_traits::type_sequence<Types...>> : // NOLINT(cert-dcl58-cpp)
-        type_identity<typename ::stdsharp::type_traits::type_sequence<Types...>::template get_t<I>>
-    {
-    };
-
     template<typename... Types>
     struct tuple_size<::stdsharp::type_traits::type_sequence<Types...>> :// NOLINT(cert-dcl58-cpp)
         ::stdsharp::type_traits:: // clang-format off
