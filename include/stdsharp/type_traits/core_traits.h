@@ -116,6 +116,13 @@ namespace stdsharp::type_traits
     {
         using base = value_wrapper<T>;
 
+        template<::std::size_t I, concepts::decay_same_as<indexed_type> This>
+            requires(I == Index)
+        friend constexpr decltype(auto) get(This&& this_) noexcept
+        {
+            return ::std::forward<This>(this_).template get<Index>();
+        }
+
     public:
         using base::base;
 

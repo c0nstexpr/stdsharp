@@ -116,13 +116,6 @@ namespace stdsharp::functional
             details::invocables<details::trivial, ::std::index_sequence_for<Func...>, Func...>;
 
         using base::operator();
-
-    private:
-        template<::std::size_t Index, concepts::decay_same_as<trivial_invocables> This>
-        friend constexpr decltype(auto) get(This&& this_) noexcept
-        {
-            return ::std::forward<This>(this_).template get<Index>();
-        }
     };
 
     template<typename... Func>
@@ -134,12 +127,6 @@ namespace stdsharp::functional
     {
         using details::invocables<details::sequenced, ::std::index_sequence_for<Func...>, Func...>::
             operator();
-
-        template<::std::size_t Index, concepts::decay_same_as<sequenced_invocables> This>
-        friend constexpr decltype(auto) get(This&& this_) noexcept
-        {
-            return ::std::forward<This>(this_).template get<Index>();
-        }
     };
 
     template<typename... Func>

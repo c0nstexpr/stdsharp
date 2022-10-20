@@ -1,5 +1,4 @@
 #include "stdsharp/concurrent_object.h"
-#include "stdsharp/functional/invoke.h"
 #include "test.h"
 
 SCENARIO("concurrent object", "[concurrent object]") // NOLINT
@@ -58,5 +57,3 @@ SCENARIO("concurrent object reflection support", "[concurrent object]") // NOLIN
         >
     );
 }
-
-constexpr auto func = ::get<0>(functional::optional_invoke);
