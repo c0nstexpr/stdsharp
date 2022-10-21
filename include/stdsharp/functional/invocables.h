@@ -85,19 +85,17 @@ namespace stdsharp::functional
         struct invocables<Selector, ::std::index_sequence<I...>, Func...> :
             type_traits::indexed_type<invocable<Func>, I>...
         {
-            using type_traits::indexed_type<invocable<Func>, I>::get...;
-
-#define STDSHARP_OPERATOR(const_, ref)                                                        \
-    template<                                                                                 \
-        typename... Args,                                                                     \
-        typename This = const_ invocables ref,                                                \
-        auto Index = Selector<const_ Func ref...>::template value<Args...>,                   \
-        typename Invocable = decltype(::std::declval<This>().template get<Index>())>          \
-        requires ::std::invocable<Invocable, Args...>                                         \
-    constexpr decltype(auto) operator()(Args&&... args)                                       \
-        const_ ref noexcept(concepts::nothrow_invocable<Invocable, Args...>)                  \
-    {                                                                                         \
-        return static_cast<This>(*this).template get<Index>()(::std::forward<Args>(args)...); \
+#define STDSHARP_OPERATOR(const_, ref)                                              \
+    template<                                                                       \
+        typename... Args,                                                           \
+        typename This = const_ invocables ref,                                      \
+        auto Index = Selector<const_ Func ref...>::template value<Args...>,         \
+        typename Invocable = decltype(get<Index>(::std::declval<This>()))>          \
+        requires ::std::invocable<Invocable, Args...>                               \
+    constexpr decltype(auto) operator()(Args&&... args)                             \
+        const_ ref noexcept(concepts::nothrow_invocable<Invocable, Args...>)        \
+    {                                                                               \
+        return get<Index>(static_cast<This>(*this))(::std::forward<Args>(args)...); \
     }
 
             STDSHARP_OPERATOR(, &)

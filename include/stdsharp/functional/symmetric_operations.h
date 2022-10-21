@@ -77,7 +77,7 @@ namespace stdsharp::functional
             sequenced_invocables<adl_symmetric_operation_fn, specialized_operation_fn>;
     }
 
-    inline namespace cpo
+    namespace cpo::inline cpo_impl
     {
         using details::symmetric_operation_fn;
 

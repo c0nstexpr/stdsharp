@@ -10,7 +10,7 @@ consteval auto erase_req_f()
 {
     return requires(Container container) //
     {
-        actions::erase(container, declval<typename Container::key_type>()); //
+        actions::cpo::erase(container, declval<typename Container::key_type>()); //
     };
 }
 
@@ -19,7 +19,7 @@ consteval auto erase_req_f()
 {
     return requires(Container container) //
     {
-        actions::erase(container, declval<typename Container::value_type>()); //
+        actions::cpo::erase(container, declval<typename Container::value_type>()); //
     };
 }
 
@@ -31,9 +31,9 @@ concept erase_req = requires(
 ) //
 {
     requires erase_req_f<Container>();
-    actions::erase(container, iter);
-    actions::erase(container, iter, iter);
-    actions::erase_if(container, predicate);
+    actions::cpo::erase(container, iter);
+    actions::cpo::erase(container, iter, iter);
+    actions::cpo::erase_if(container, predicate);
 };
 
 TEMPLATE_TEST_CASE( // NOLINT

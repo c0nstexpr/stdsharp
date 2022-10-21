@@ -38,7 +38,7 @@ SCENARIO("concurrent object reflection support", "[concurrent object]") // NOLIN
 
     using concurrent_object_t = concurrent_object<int>;
 
-    constexpr auto members = get_members<concurrent_object_t>();
+    constexpr auto members = reflection::cpo::get_members<concurrent_object_t>();
 
     STATIC_REQUIRE( //
         std::ranges::equal(

@@ -36,66 +36,79 @@ namespace stdsharp::actions
 
         template<typename Container>
         using const_iter_t = ranges::const_iterator_t<Container>;
-
-        void erase(auto&&, auto&&) = delete;
-
-        struct erase_fn
-        {
-            template<container_erasable Container>
-            constexpr auto operator()(
-                Container& container,
-                const ::std::equality_comparable_with< //
-                    typename ::std::decay_t<Container>::value_type // clang-format off
-                > auto& value
-            ) const requires requires // clang-format on
-            {
-                requires sequence_container<Container>;
-                erase(container, value);
-            }
-            {
-                return erase(container, value);
-            }
-
-            template<container_erasable Container>
-                requires associative_like_container<Container>
-            constexpr auto operator()(
-                Container& container,
-                const ::std::equality_comparable_with<
-                    typename ::std::decay_t<Container>::key_type // clang-format off
-                > auto& key // clang-format on
-            ) const
-            {
-                return container.erase(key);
-            }
-
-            template<
-                container_erasable Container, // clang-format off
-                ::std::convertible_to<const_iter_t<Container>>... ConstIter
-            > // clang-format on
-                requires requires //
-            {
-                requires(sequence_container<Container> || associative_like_container<Container>);
-                requires sizeof...(ConstIter) <= 1;
-            }
-            constexpr auto operator()(
-                Container& container,
-                const decltype(container.cbegin()) const_iter_begin,
-                const ConstIter... const_iter_end
-            ) const
-            {
-                return container.erase(
-                    const_iter_begin,
-                    static_cast<const_iter_t<Container>>(const_iter_end)...
-                );
-            }
-        };
     }
 
-    inline namespace cpo
+    namespace cpo
     {
-        using details::erase_fn;
+        namespace details
+        {
+            using namespace actions::details;
 
-        inline constexpr erase_fn erase{};
+            template<typename Container>
+            using const_iter_t = ranges::const_iterator_t<Container>;
+
+            void erase(auto&&, auto&&) = delete;
+
+            struct erase_fn
+            {
+                template<container_erasable Container>
+                constexpr auto operator()(
+                    Container& container,
+                    const ::std::equality_comparable_with< // clang-format off
+                        typename ::std::decay_t<Container>::value_type
+                    > auto& value // clang-format on
+                ) const
+                    requires requires // clang-format off
+                    {
+                        requires sequence_container<Container>;
+                        erase(container, value);
+                    } // clang-format on
+                {
+                    return erase(container, value);
+                }
+
+                template<container_erasable Container>
+                    requires associative_like_container<Container>
+                constexpr auto operator()(
+                    Container& container,
+                    const ::std::equality_comparable_with<
+                        typename ::std::decay_t<Container>::key_type // clang-format off
+                    > auto& key // clang-format on
+                ) const
+                {
+                    return container.erase(key);
+                }
+
+                template<
+                    container_erasable Container,
+                    ::std::convertible_to<const_iter_t<Container>>... ConstIter // clang-format off
+                > // clang-format on
+                    requires requires // clang-format off
+                    {
+                        requires(sequence_container<Container> || associative_like_container<Container>);
+                        requires sizeof...(ConstIter) <= 1;
+                    } // clang-format on
+                constexpr auto operator()(
+                    Container& container,
+                    const decltype(container.cbegin()) const_iter_begin,
+                    const ConstIter... const_iter_end
+                ) const
+                {
+                    return container.erase(
+                        const_iter_begin,
+                        static_cast<const_iter_t<Container>>(const_iter_end)...
+                    );
+                }
+            };
+
+        }
+
+        inline namespace cpo_impl
+        {
+            using details::erase_fn;
+
+            inline constexpr erase_fn erase{};
+        }
     }
 
 #define STDSHARP_EMPLACE_WHERE_ACTION(where, iter)                                              \
@@ -188,13 +201,13 @@ namespace stdsharp::actions
                     ::ranges::remove_if(container, predicate_fn)
                 );
                 const auto r = ::std::ranges::distance(it, container.cend());
-                actions::erase(container, it, container.cend());
+                actions::cpo::erase(container, it, container.cend());
                 return r;
             }
         };
     }
 
-    inline namespace cpo
+    namespace cpo::inline cpo_impl
     {
         using erase_if_fn = functional::
             sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
@@ -215,36 +228,37 @@ namespace stdsharp::actions
         }
     } resize{};
 
-#define STDSHARP_POP_WHERE_ACTION(where, iter)                                                    \
-    namespace details                                                                             \
-    {                                                                                             \
-        struct pop_##where##_default_fn                                                           \
-        {                                                                                         \
-            template<typename Container>                                                          \
-                requires ::std::invocable<actions::erase_fn, Container&, const_iter_t<Container>> \
-            constexpr void operator()(Container& container) const                                 \
-            {                                                                                     \
-                actions::erase(container, container.c##iter());                                   \
-            }                                                                                     \
-        };                                                                                        \
-                                                                                                  \
-        struct pop_##where##_mem_fn                                                               \
-        {                                                                                         \
-            template<typename Container>                                                          \
-            constexpr void operator()(Container& container) const                                 \
-                requires requires {                                                               \
-                             requires sequence_container<Container>;                              \
-                             requires ::std::same_as<decltype(container.pop_##where()), void>;    \
-                         }                                                                        \
-            {                                                                                     \
-                return container.pop_##where();                                                   \
-            }                                                                                     \
-        };                                                                                        \
-    }                                                                                             \
-                                                                                                  \
-    using pop_##where##_fn = functional::                                                         \
-        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>;   \
-                                                                                                  \
+#define STDSHARP_POP_WHERE_ACTION(where, iter)                                                  \
+    namespace details                                                                           \
+    {                                                                                           \
+        struct pop_##where##_default_fn                                                         \
+        {                                                                                       \
+            template<typename Container>                                                        \
+                requires ::std::                                                                \
+                    invocable<actions::cpo::erase_fn, Container&, const_iter_t<Container>>      \
+                constexpr void operator()(Container& container) const                           \
+            {                                                                                   \
+                actions::cpo::erase(container, container.c##iter());                            \
+            }                                                                                   \
+        };                                                                                      \
+                                                                                                \
+        struct pop_##where##_mem_fn                                                             \
+        {                                                                                       \
+            template<typename Container>                                                        \
+            constexpr void operator()(Container& container) const                               \
+                requires requires {                                                             \
+                             requires sequence_container<Container>;                            \
+                             requires ::std::same_as<decltype(container.pop_##where()), void>;  \
+                         }                                                                      \
+            {                                                                                   \
+                return container.pop_##where();                                                 \
+            }                                                                                   \
+        };                                                                                      \
+    }                                                                                           \
+                                                                                                \
+    using pop_##where##_fn = functional::                                                       \
+        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>; \
+                                                                                                \
     inline constexpr pop_##where##_fn pop_##where{};
 
     STDSHARP_POP_WHERE_ACTION(front, begin)

@@ -111,36 +111,49 @@ namespace stdsharp::type_traits
     template<typename... T>
     using regular_type_sequence = ::meta::list<T...>;
 
+    template<typename, ::std::size_t>
+    class indexed_type;
+
+    namespace details
+    {
+        template<::std::size_t I>
+        struct indexed_type_accessor
+        {
+#define STDSHARP_GET(const_, ref)                                                     \
+    template<typename T>                                                              \
+    constexpr decltype(auto) operator()(const_ indexed_type<T, I> ref value) noexcept \
+    {                                                                                 \
+        return static_cast<const_ T ref>(value.value);                                \
+    }
+
+            STDSHARP_GET(, &)
+            STDSHARP_GET(const, &)
+            STDSHARP_GET(, &&)
+            STDSHARP_GET(const, &&)
+#undef STDSHARP_GET
+        };
+    }
+
     template<typename T, ::std::size_t Index>
     class indexed_type : value_wrapper<T>
     {
+        template<::std::size_t>
+        friend struct details::indexed_type_accessor;
+
         using base = value_wrapper<T>;
 
-        template<::std::size_t I, concepts::decay_same_as<indexed_type> This>
-            requires(I == Index)
-        friend constexpr decltype(auto) get(This&& this_) noexcept
-        {
-            return ::std::forward<This>(this_).template get<Index>();
-        }
+        using base::value;
 
     public:
         using base::base;
-
-#define STDSHARP_OPERATOR(const_, ref_)                 \
-    template<::std::size_t I>                           \
-        requires(I == Index)                            \
-    constexpr decltype(auto) get() const_ ref_ noexcept \
-    {                                                   \
-        return static_cast<const_ T ref_>(base::value); \
-    }
-
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-
-#undef STDSHARP_OPERATOR
     };
+
+    template<::std::size_t I, typename This>
+        requires ::std::invocable<details::indexed_type_accessor<I>, This>
+    constexpr decltype(auto) get(This&& this_) noexcept
+    {
+        return details::indexed_type_accessor<I>{}(::std::forward<This>(this_));
+    }
 
     inline namespace literals
     {

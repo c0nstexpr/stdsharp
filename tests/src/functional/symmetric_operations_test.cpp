@@ -20,7 +20,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         {
             auto v = Value;
 
-            const auto& revert = symmetric_operation(plus_assign_v, v, 1);
+            const auto& revert = functional::cpo::symmetric_operation(plus_assign_v, v, 1);
             plus_assign_v(v, 1);
             REQUIRE(Value + 1 == v);
             revert();

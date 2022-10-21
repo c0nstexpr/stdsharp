@@ -103,7 +103,7 @@ namespace stdsharp::reflection
         };
     }
 
-    inline namespace cpo
+    namespace cpo::inline cpo_impl
     {
         using details::get_member_fn;
         using details::get_members_fn;

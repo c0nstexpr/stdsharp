@@ -6,34 +6,37 @@
 
 namespace stdsharp
 {
-    namespace details
+    namespace cpo
     {
-        template<::std::size_t>
-        void get(auto) = delete;
-
-        template<::std::size_t N>
-        struct get_fn
+        namespace details
         {
-            template<typename T>
-                requires requires { get<N>(::std::declval<T>()); }
-            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(get<N>(::std::declval<T>())))
+            template<::std::size_t>
+            void get(auto) = delete;
+
+            template<::std::size_t N>
+            struct get_fn
             {
-                return get<N>(::std::forward<T>(t));
-            }
-        };
-    }
+                template<typename T>
+                    requires requires { get<N>(::std::declval<T>()); }
+                [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+                    noexcept(noexcept(get<N>(::std::declval<T>())))
+                {
+                    return get<N>(::std::forward<T>(t));
+                }
+            };
+        }
 
-    inline namespace cpo
-    {
-        using details::get_fn;
+        inline namespace cpo_impl
+        {
+            using details::get_fn;
 
-        template<::std::size_t N>
-        inline constexpr get_fn<N> get{};
+            template<::std::size_t N>
+            inline constexpr get_fn<N> get{};
+        }
     }
 
     template<::std::size_t N, typename T>
-    using get_t = ::std::invoke_result_t<get_fn<N>, T>;
+    using get_t = ::std::invoke_result_t<cpo::get_fn<N>, T>;
 
     template<typename T>
     using type_size_seq_t = ::std::make_index_sequence<::std::tuple_size_v<::std::decay_t<T>>>;
