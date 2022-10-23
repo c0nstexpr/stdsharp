@@ -1,6 +1,10 @@
 #include "stdsharp/containers/actions.h"
 #include "test.h"
 
+using namespace std;
+using namespace fmt;
+using namespace stdsharp;
+
 using namespace containers;
 using namespace functional;
 

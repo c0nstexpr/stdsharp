@@ -1,5 +1,9 @@
-#include "stdsharp/concurrent_object.h"
 #include "test.h"
+#include "stdsharp/concurrent_object.h"
+
+using namespace std;
+using namespace fmt;
+using namespace stdsharp;
 
 SCENARIO("concurrent object", "[concurrent object]") // NOLINT
 {

@@ -1,6 +1,10 @@
 #include "stdsharp/filesystem/filesystem.h"
 #include "test.h"
 
+using namespace std;
+using namespace fmt;
+using namespace stdsharp;
+
 using namespace stdsharp::filesystem;
 
 #if __cpp_lib_format >= 201907L

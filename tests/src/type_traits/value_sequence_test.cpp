@@ -3,6 +3,10 @@
 #include "stdsharp/type_traits/value_sequence.h"
 #include "test.h"
 
+using namespace std;
+using namespace fmt;
+using namespace stdsharp;
+
 using namespace type_traits;
 
 using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;

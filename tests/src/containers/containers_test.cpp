@@ -1,6 +1,10 @@
 #include "stdsharp/containers/containers.h"
 #include "test.h"
 
+using namespace std;
+using namespace fmt;
+using namespace stdsharp;
+
 using namespace containers;
 
 TEMPLATE_TEST_CASE( // NOLINT

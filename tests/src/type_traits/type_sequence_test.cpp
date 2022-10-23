@@ -1,6 +1,10 @@
 #include "stdsharp/type_traits/type_sequence.h"
 #include "test.h"
 
+using namespace std;
+using namespace fmt;
+using namespace stdsharp;
+
 using namespace type_traits;
 
 using test_seq = type_sequence<int, float, char, unsigned, float>;
