@@ -18,6 +18,7 @@ namespace stdsharp
             {
                 template<typename T>
                     requires requires { get<N>(::std::declval<T>()); }
+
                 [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
                     noexcept(noexcept(get<N>(::std::declval<T>())))
                 {
@@ -54,6 +55,7 @@ namespace stdsharp
                 typename... Tuple // clang-format off
             > // clang-format on
                 requires ::std::invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>
+
             constexpr decltype(auto) operator()(
                 const type_traits::constant<Coords>,
                 const ::std::index_sequence<First...>,
@@ -81,6 +83,7 @@ namespace stdsharp
                 typename SecondSeq = ::std::index_sequence<Coords[I].second...> // clang-format off
             > // clang-format on
                 requires ::std::invocable<apply_coord, ConstantT, FirstSeq, SecondSeq, Fn, Tuple...>
+
             constexpr decltype(auto) operator()(
                 const ConstantT,
                 const ::std::index_sequence<I...>,
@@ -129,6 +132,7 @@ namespace stdsharp
                 typename Seq = ::std::index_sequence<Coords.size()> // clang-format off
             > // clang-format on
                 requires ::std::invocable<construct_coords_seq, Constant, Seq, Fn, Tuple...>
+
             constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const
                 noexcept(concepts::nothrow_invocable<construct_coords_seq, Seq, Fn, Tuple...>)
             {
@@ -144,6 +148,7 @@ namespace stdsharp
     public:
         template<typename Fn, typename... Tuple>
             requires ::std::invocable<impl, Fn, Tuple...>
+
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const
             noexcept(concepts::nothrow_invocable<impl, Fn, Tuple...>)
         {
@@ -161,6 +166,7 @@ namespace stdsharp
     struct tuples_each_apply_fn
     {
         template<::std::invocable<T...> Fn, typename... Tuple>
+
             requires(tuples_applicable<functional::constructor_fn<T>, Tuple> && ...)
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const noexcept(
             concepts::nothrow_invocable<Fn, T...> &&
@@ -182,6 +188,7 @@ namespace stdsharp
     {
         template<typename... Tuple>
             requires tuples_applicable<functional::constructor_fn<T>, Tuple...>
+
         constexpr T make_from_tuple(Tuple&&... t) const
             noexcept(nothrow_tuples_applicable<functional::constructor_fn<T>, Tuple...>)
         {
@@ -204,14 +211,4 @@ namespace stdsharp
             );
         }
     } tuple_cat{};
-}
-
-namespace std
-{
-    template<size_t I, typename TupleLike>
-        requires requires { typename ::stdsharp::get_t<I, TupleLike>; }
-    struct tuple_element<I, TupleLike> : // NOLINT(cert-dcl58-cpp)
-        type_identity<::stdsharp::get_t<I, TupleLike>>
-    {
-    };
 }
