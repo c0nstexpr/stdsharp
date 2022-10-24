@@ -55,7 +55,6 @@ namespace stdsharp
                 typename... Tuple // clang-format off
             > // clang-format on
                 requires ::std::invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>
-
             constexpr decltype(auto) operator()(
                 const type_traits::constant<Coords>,
                 const ::std::index_sequence<First...>,
@@ -83,7 +82,6 @@ namespace stdsharp
                 typename SecondSeq = ::std::index_sequence<Coords[I].second...> // clang-format off
             > // clang-format on
                 requires ::std::invocable<apply_coord, ConstantT, FirstSeq, SecondSeq, Fn, Tuple...>
-
             constexpr decltype(auto) operator()(
                 const ConstantT,
                 const ::std::index_sequence<I...>,
@@ -166,7 +164,6 @@ namespace stdsharp
     struct tuples_each_apply_fn
     {
         template<::std::invocable<T...> Fn, typename... Tuple>
-
             requires(tuples_applicable<functional::constructor_fn<T>, Tuple> && ...)
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const noexcept(
             concepts::nothrow_invocable<Fn, T...> &&
@@ -188,7 +185,6 @@ namespace stdsharp
     {
         template<typename... Tuple>
             requires tuples_applicable<functional::constructor_fn<T>, Tuple...>
-
         constexpr T make_from_tuple(Tuple&&... t) const
             noexcept(nothrow_tuples_applicable<functional::constructor_fn<T>, Tuple...>)
         {
