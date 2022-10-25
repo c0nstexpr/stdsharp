@@ -4,8 +4,6 @@
 #pragma once
 
 #include "../type_traits/core_traits.h"
-#include "../utility/value_wrapper.h"
-#include "stdsharp/concepts/concepts.h"
 
 namespace stdsharp::functional
 {
