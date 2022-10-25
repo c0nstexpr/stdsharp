@@ -133,6 +133,7 @@ namespace stdsharp::type_traits
         STDSHARP_GET(const, &)
         STDSHARP_GET(, &&)
         STDSHARP_GET(const, &&)
+
 #undef STDSHARP_GET
 
     public:

@@ -100,6 +100,7 @@ namespace stdsharp::functional
             STDSHARP_OPERATOR(const, &)
             STDSHARP_OPERATOR(, &&)
             STDSHARP_OPERATOR(const, &&)
+
 #undef STDSHARP_OPERATOR
         };
     }
@@ -152,6 +153,7 @@ namespace stdsharp::functional
         STDSHARP_OPERATOR(const, &)
         STDSHARP_OPERATOR(, &&)
         STDSHARP_OPERATOR(const, &&)
+
 #undef STDSHARP_OPERATOR
     };
 
