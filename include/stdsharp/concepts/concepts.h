@@ -340,7 +340,4 @@ namespace stdsharp::concepts
         copy_assignable<T> && //
         ::std::equality_comparable<T> && //
         weakly_equality_comparable_with<T, ::std::nullptr_t>;
-
-    template<typename T>
-    concept std_cpo = ::std::semiregular<T> && requires { requires(T{} == T{}); };
 }

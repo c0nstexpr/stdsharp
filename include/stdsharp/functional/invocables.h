@@ -14,6 +14,7 @@ namespace stdsharp::functional
 
     public:
         using base::base;
+
 #define STDSHARP_OPERATOR(const_, ref)                                             \
     template<typename... Args>                                                     \
         requires ::std::invocable<const_ Func ref, Args...>                        \
