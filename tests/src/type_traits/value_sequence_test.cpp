@@ -1,7 +1,7 @@
 #include <fmt/ranges.h>
 
-#include "stdsharp/type_traits/value_sequence.h"
 #include "test.h"
+#include "stdsharp/type_traits/value_sequence.h"
 
 using namespace std;
 using namespace fmt;
@@ -31,7 +31,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (3, 1)
 )
 {
-    STATIC_REQUIRE(test_seq::get<Index>() == Expect);
+    STATIC_REQUIRE(get<Index>(test_seq{}) == Expect);
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
@@ -103,80 +103,81 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: value sequence indexed by sequence",
+    "Scenario: value sequence indexed",
     "[type traits]",
-    ((typename IndexSeq, typename Expect, auto V), IndexSeq, Expect, V),
-    (regular_value_sequence<1, 2>, regular_value_sequence<1, size_t{7}>, 0),
-    (regular_value_sequence<2, 4>, regular_value_sequence<size_t{7}, to_array("my literal")>, 0)
+    ((typename Expect, auto... V), Expect, V...),
+    (regular_value_sequence<1, size_t{7}>, 1, 2),
+    (regular_value_sequence<size_t{7}, to_array("my literal")>, 2, 4)
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::indexed_by_seq_t<IndexSeq>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::indexed_t<V...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: value sequence append by sequence",
+    "Scenario: value sequence append",
     "[type traits]",
     ( //
-        (typename Seq, typename Expect, typename FrontExpect, auto V),
-        Seq,
+        (typename Expect, typename FrontExpect, auto... V),
         Expect,
         FrontExpect,
-        V
+        V...
     ),
     ( //
-        regular_value_sequence<1, 2>,
         (regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 1, 2>),
         regular_value_sequence<1, 2, 0, 1, size_t{7}, 1, to_array("my literal")>,
-        0
+        1,
+        2
     ),
     ( //
-        regular_value_sequence<2, 4>,
         (regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 2, 4>),
         regular_value_sequence<2, 4, 0, 1, size_t{7}, 1, to_array("my literal")>,
-        0
+        2,
+        4
     )
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::append_by_seq_t<Seq>, Expect>);
-    STATIC_REQUIRE(same_as<test_seq::append_front_by_seq_t<Seq>, FrontExpect>);
+    STATIC_REQUIRE(same_as<test_seq::append_t<V...>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::append_front_t<V...>, FrontExpect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: value sequence insert by sequence",
+    "Scenario: value sequence insert",
     "[type traits]",
-    ((auto Index, typename Seq, typename Expect), Index, Seq, Expect),
+    ((auto Index, typename Expect, auto... Element), Index, Expect, Element...),
     ( //
         3,
-        regular_value_sequence<1, 2>,
-        regular_value_sequence<0, 1, size_t{7}, 1, 2, 1, to_array("my literal")>
+        regular_value_sequence<0, 1, size_t{7}, 1, 2, 1, to_array("my literal")>,
+        1,
+        2
     ),
     ( //
         5,
-        regular_value_sequence<2, 4>,
-        regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 2, 4>
+        regular_value_sequence<0, 1, size_t{7}, 1, to_array("my literal"), 2, 4>,
+        2,
+        4
     )
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::insert_by_seq_t<Index, Seq>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::insert_t<Index, Element...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: value sequence remove at by sequence",
+    "Scenario: value sequence remove at",
     "[type traits]",
-    ((auto V, typename Seq, typename Expect), V, Seq, Expect),
+    ((typename Expect, auto... I), Expect, I...),
     ( //
-        0,
-        regular_value_sequence<1, 2>,
-        regular_value_sequence<0, 1, to_array("my literal")>
+        regular_value_sequence<0, 1, to_array("my literal")>,
+        1,
+        2
     ),
     ( //
-        0,
-        regular_value_sequence<2, 4>,
-        regular_value_sequence<0, 1, 1>
+        regular_value_sequence<0, 1, 1>,
+        2,
+        4
     )
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::remove_at_by_seq_t<Seq>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::remove_at_t<I...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

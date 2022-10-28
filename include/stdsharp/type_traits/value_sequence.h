@@ -7,7 +7,6 @@
 #include <algorithm>
 
 #include "../functional/invoke.h"
-#include "../utility/pack_get.h"
 
 namespace stdsharp::type_traits
 {
@@ -71,9 +70,8 @@ namespace stdsharp::type_traits
             }();
 
             template<::std::size_t... I>
-            using filtered_seq = regular_value_sequence<
-                unique_value_sequence::seq::template get<filtered_indices.first[I]>()...
-                // clang-format off
+            using filtered_seq = regular_value_sequence< //
+                get<filtered_indices.first[I]>(unique_value_sequence::seq{})... // clang-format off
             >; // clang-format on
 
             using type = typename as_value_sequence_t< //
@@ -90,20 +88,6 @@ namespace stdsharp::type_traits
             {
                 return Value;
             }
-        };
-
-        template<typename, typename>
-        struct value_sequence;
-
-        template<auto... Values, size_t... I>
-        struct value_sequence<type_traits::value_sequence<Values...>, ::std::index_sequence<I...>> :
-            regular_value_sequence<Values...>,
-            details::indexed_value<I, Values>...
-        {
-            using indexed_value<I, Values>::get...;
-            using regular_value_sequence<Values...>::size;
-
-            using index_seq = ::std::index_sequence<I...>;
         };
 
         template<typename T, typename Comp>
@@ -141,34 +125,29 @@ namespace stdsharp::type_traits
     using unique_value_sequence_t = typename details::unique_value_sequence<Values...>::type;
 
     template<auto... Values> // clang-format off
-    struct value_sequence : private details::value_sequence<
-        value_sequence<Values...>,
-        ::std::make_index_sequence<sizeof...(Values)>
-    > // clang-format on
+    struct value_sequence : regular_value_sequence<Values...>
     {
+    public:
+        using regular_value_sequence<Values...>::size;
+
     private:
-        using base = details::value_sequence<
-            value_sequence<Values...>,
-            ::std::make_index_sequence<sizeof...(Values)> // clang-format off
-        >; // clang-format on
+        struct tag{};
 
         template<::std::size_t I>
-        struct get_fn
+            requires (I < size())
+        [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence)noexcept
         {
-            [[nodiscard]] constexpr decltype(auto) operator()() const noexcept
-            {
-                return base::template get<I>();
-            }
-        };
+            return get_impl<I>(tag{});
+        }
+
+        template<::std::size_t I>
+            requires (I < size())
+        friend constexpr decltype(auto) get_impl(const tag) noexcept
+        {
+            return ::std::decay_t<decltype(get<I>(indexed_types<constant<Values>...>{}))>::value;
+        }
 
     public:
-        using base::size;
-
-        template<::std::size_t I>
-        static constexpr value_sequence::get_fn<I> get{};
-
-        using index_seq = typename base::index_seq;
-
         template<typename ResultType = void>
         struct invoke_fn
         {
@@ -203,19 +182,7 @@ namespace stdsharp::type_traits
         using apply_t = T<Values...>;
 
         template<::std::size_t... OtherInts>
-        using indexed_t = regular_value_sequence<get<OtherInts>()...>;
-
-    private:
-        template<template<auto...> typename T>
-        struct invoker
-        {
-            template<typename... Constant>
-            using invoke = T<Constant::value...>;
-        };
-
-    public:
-        template<typename Seq>
-        using indexed_by_seq_t = ::meta::apply<invoker<indexed_t>, Seq>;
+        using indexed_t = regular_value_sequence<get_impl<OtherInts>(tag{})...>;
 
     private:
         template<auto... Func>
@@ -225,10 +192,10 @@ namespace stdsharp::type_traits
                 requires requires //
             {
                 requires(sizeof...(Func) == 1);
-                typename value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>;
+                typename value_sequence<::std::invoke(Func..., Values)...>;
             }
             {
-                return value_sequence<::std::invoke(pack_get<0>(Func...), Values)...>{};
+                return value_sequence<::std::invoke(Func..., Values)...>{};
             };
 
             [[nodiscard]] constexpr auto operator()() const noexcept
@@ -371,7 +338,7 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(Comp& comp) const
                     noexcept(concepts::nothrow_predicate<Comp, bool>)
                 {
-                    return functional::invoke_r<bool>(comp, get<I>(), get<I + 1>());
+                    return functional::invoke_r<bool>(comp, get_impl<I>(), get_impl<I + 1>());
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
@@ -436,24 +403,24 @@ namespace stdsharp::type_traits
         template<auto... Others>
         using append_t = regular_value_sequence<Values..., Others...>;
 
-        template<typename Seq>
-        using append_by_seq_t = ::meta::apply<invoker<append_t>, Seq>;
-
         template<auto... Others>
         using append_front_t = regular_value_sequence<Others..., Values...>;
-
-        template<typename Seq>
-        using append_front_by_seq_t = ::meta::apply<invoker<append_front_t>, Seq>;
 
     private:
         template<::std::size_t Index>
         struct insert
         {
+            template<auto... Others, auto... Front, auto... Back>
+            static constexpr regular_value_sequence<Front..., Others..., Back...> impl(
+                const regular_value_sequence<Front...>,
+                const regular_value_sequence<Back...> //
+            )
+            {
+                return {};
+            }
+
             template<auto... Others>
-            using type = typename as_value_sequence_t<
-                typename as_value_sequence_t<front_t<Index>>:: //
-                template append_t<Others...> // clang-format off
-            >::template append_by_seq_t<back_t<size() - Index>>; // clang-format on
+            using type = decltype(impl<Others...>(front_t<Index>{}, back_t<size() - Index>{}));
         };
 
         template<::std::size_t... Index>
@@ -498,14 +465,8 @@ namespace stdsharp::type_traits
         template<::std::size_t Index, auto... Other>
         using insert_t = typename insert<Index>::template type<Other...>;
 
-        template<::std::size_t Index, typename Seq>
-        using insert_by_seq_t = ::meta::apply<invoker<insert<Index>::template type>, Seq>;
-
         template<::std::size_t... Index>
         using remove_at_t = typename remove_at<Index...>::type;
-
-        template<typename Seq>
-        using remove_at_by_seq_t = ::meta::apply<invoker<remove_at_t>, Seq>;
 
         template<::std::size_t Index, auto Other>
         using replace_t = typename as_value_sequence_t<

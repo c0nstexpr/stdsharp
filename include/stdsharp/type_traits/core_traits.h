@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <__utility/integer_sequence.h>
 #include <array>
 #include <string_view>
 #include <functional>
@@ -138,7 +139,32 @@ namespace stdsharp::type_traits
 
     public:
         using base::base;
+
+        template<::std::size_t I>
+            requires(I == Index)
+        using type = T;
     };
+
+    namespace details
+    {
+        template<typename... T>
+        struct indexed_types
+        {
+            static constexpr auto value =
+                []<::std::size_t... I>(const ::std::index_sequence<I...>) noexcept
+            {
+                struct local : indexed_type<T, I>...
+                {
+                };
+
+                return local{};
+            }
+            (::std::index_sequence_for<T...>{});
+        };
+    }
+
+    template<typename... T>
+    using indexed_types = decltype(details::indexed_types<T...>::value);
 
     inline namespace literals
     {

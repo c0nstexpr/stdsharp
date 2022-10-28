@@ -80,80 +80,81 @@ SCENARIO("type sequence apply", "[type traits]") // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: type sequence indexed by sequence",
+    "Scenario: type sequence indexed",
     "[type traits]",
-    ((typename IndexSeq, typename Expect, auto V), IndexSeq, Expect, V),
-    (regular_value_sequence<1, 2>, regular_type_sequence<float, char>, 0),
-    (regular_value_sequence<2, 4>, regular_type_sequence<char, float>, 0)
+    ((typename Expect, auto... V), Expect, V...),
+    (regular_type_sequence<float, char>, 1, 2),
+    (regular_type_sequence<char, float>, 2, 4)
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::indexed_by_seq_t<IndexSeq>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::indexed_t<V...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: type sequence append by sequence",
+    "Scenario: type sequence append",
     "[type traits]",
     ( //
-        (typename Seq, typename Expect, typename FrontExpect, auto V),
-        Seq,
+
+        (auto V,typename Expect, typename FrontExpect, typename... T),
+        V,
         Expect,
         FrontExpect,
-        V
+        T...
     ),
     ( //
-        regular_type_sequence<void, double>,
+        0,
         regular_type_sequence<int, float, char, unsigned, float, void, double>,
         (regular_type_sequence<void, double, int, float, char, unsigned, float>),
-        0
+        void, double
     ),
     ( //
-        regular_type_sequence<long, void*>,
+        0,
         regular_type_sequence<int, float, char, unsigned, float, long, void*>,
         (regular_type_sequence<long, void*, int, float, char, unsigned, float>),
-        0
+        long, void*
     )
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::append_by_seq_t<Seq>, Expect>);
-    STATIC_REQUIRE(same_as<test_seq::append_front_by_seq_t<Seq>, FrontExpect>);
+    STATIC_REQUIRE(same_as<test_seq::append_t<T...>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::append_front_t<T...>, FrontExpect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: type sequence insert by sequence",
+    "Scenario: type sequence insert",
     "[type traits]",
-    ((auto Index, typename Seq, typename Expect), Index, Seq, Expect),
+    ((auto Index, typename Expect, typename... T), Index, Expect, T...),
     ( //
         3,
-        regular_type_sequence<void, double>,
-        regular_type_sequence<int, float, char, void, double, unsigned, float>
+        regular_type_sequence<int, float, char, void, double, unsigned, float>,
+        void, double
     ),
     ( //
         5,
-        regular_type_sequence<long, void*>,
-        regular_type_sequence<int, float, char, unsigned, float, long, void*>
+        regular_type_sequence<int, float, char, unsigned, float, long, void*>,
+        long, void*
     )
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::insert_by_seq_t<Index, Seq>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::insert_t<Index, T...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: type sequence remove at by sequence",
+    "Scenario: type sequence remove at",
     "[type traits]",
-    ((auto V, typename Seq, typename Expect), V, Seq, Expect),
+    ((typename Expect, auto... I), Expect, I...),
     ( //
-        0,
-        regular_value_sequence<1, 2>,
-        regular_type_sequence<int, unsigned, float>
+        regular_type_sequence<int, unsigned, float>,
+        1,
+        2
     ),
     ( //
-        0,
-        regular_value_sequence<2, 4>,
-        regular_type_sequence<int, float, unsigned>
+        regular_type_sequence<int, float, unsigned>,
+        2,
+        4
     )
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::remove_at_by_seq_t<Seq>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::remove_at_t<I...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

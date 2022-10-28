@@ -77,12 +77,8 @@ namespace stdsharp::functional
             }();
         };
 
-        template<template<typename...> typename, typename, typename...>
-        struct invocables;
-
-        template<template<typename...> typename Selector, ::std::size_t... I, typename... Func>
-        struct invocables<Selector, ::std::index_sequence<I...>, Func...> :
-            type_traits::indexed_type<invocable<Func>, I>...
+        template<template<typename...> typename Selector, typename... Func>
+        struct invocables : type_traits::indexed_types<invocable<Func>...>
         {
 #define STDSHARP_OPERATOR(const_, ref)                                              \
     template<                                                                       \
@@ -107,11 +103,9 @@ namespace stdsharp::functional
     }
 
     template<typename... Func>
-    struct trivial_invocables :
-        details::invocables<details::trivial, ::std::index_sequence_for<Func...>, Func...>
+    struct trivial_invocables : details::invocables<details::trivial, Func...>
     {
-        using base =
-            details::invocables<details::trivial, ::std::index_sequence_for<Func...>, Func...>;
+        using base = details::invocables<details::trivial, Func...>;
 
         using base::operator();
     };
@@ -120,11 +114,9 @@ namespace stdsharp::functional
     trivial_invocables(Func&&...) -> trivial_invocables<::std::decay_t<Func>...>;
 
     template<typename... Func>
-    struct sequenced_invocables :
-        details::invocables<details::sequenced, ::std::index_sequence_for<Func...>, Func...>
+    struct sequenced_invocables : details::invocables<details::sequenced, Func...>
     {
-        using details::invocables<details::sequenced, ::std::index_sequence_for<Func...>, Func...>::
-            operator();
+        using details::invocables<details::sequenced, Func...>::operator();
     };
 
     template<typename... Func>

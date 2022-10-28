@@ -48,7 +48,6 @@ namespace stdsharp::type_traits
         using type_seq::to_value_seq_t;
 
     public:
-        using typename base::index_seq;
         using base::size;
         using base::for_each;
         using base::for_each_n;
@@ -68,13 +67,10 @@ namespace stdsharp::type_traits
         using apply_t = T<Types...>;
 
         template<::std::size_t I>
-        using get_t = typename decltype(base::template get<I>())::type;
+        using get_t = typename decltype(get<I>(base{}))::type;
 
         template<::std::size_t... OtherInts>
         using indexed_t = regular_type_sequence<get_t<OtherInts>...>;
-
-        template<typename Seq>
-        using indexed_by_seq_t = from_value_seq_t<typename base::template indexed_by_seq_t<Seq>>;
 
         template<::std::size_t Size>
         using back_t = from_value_seq_t<typename base::template back_t<Size>>;
@@ -91,16 +87,8 @@ namespace stdsharp::type_traits
         template<typename T = empty_t>
         static constexpr invoke_fn<T> invoke{};
 
-        template<typename Seq>
-        using append_by_seq_t =
-            from_value_seq_t<typename base::template append_by_seq_t<to_value_seq_t<Seq>>>;
-
         template<typename... Others>
         using append_front_t = regular_type_sequence<Others..., Types...>;
-
-        template<typename Seq>
-        using append_front_by_seq_t =
-            from_value_seq_t<typename base::template append_front_by_seq_t<to_value_seq_t<Seq>>>;
 
         template<::std::size_t Index, typename... Other>
         using insert_t = from_value_seq_t< //
@@ -110,16 +98,8 @@ namespace stdsharp::type_traits
             >
         >; // clang-format on
 
-        template<::std::size_t Index, typename Seq>
-        using insert_by_seq_t =
-            from_value_seq_t<typename base::template insert_by_seq_t<Index, to_value_seq_t<Seq>>>;
-
         template<::std::size_t... Index>
         using remove_at_t = from_value_seq_t<typename base::template remove_at_t<Index...>>;
-
-        template<typename Seq>
-        using remove_at_by_seq_t =
-            from_value_seq_t<typename base::template remove_at_by_seq_t<Seq>>;
 
         template<::std::size_t Index, typename Other>
         using replace_t =
