@@ -5,8 +5,9 @@
 #include <ranges>
 #include <numeric>
 #include <algorithm>
+#include <functional>
 
-#include "../functional/invoke.h"
+#include "core_traits.h"
 
 namespace stdsharp::type_traits
 {
@@ -34,7 +35,7 @@ namespace stdsharp::type_traits
 
     template<auto From, ::std::size_t Size, auto PlusF = ::std::plus{}>
     using make_value_sequence_t = decltype( //
-        details::make_value_sequence<From, PlusF>(::std::make_index_sequence<Size>{}) //
+        details::make_value_sequence<From, PlusF>(::std::make_index_sequence<Size>{})
     );
 
     namespace details
@@ -43,13 +44,12 @@ namespace stdsharp::type_traits
         struct reverse_value_sequence
         {
             using seq = value_sequence<Values...>;
-            using type = typename seq:: //
-                template indexed_by_seq_t< //
-                    make_value_sequence_t<
-                        seq::size() - 1,
-                        seq::size(),
-                        ::std::minus{} // clang-format off
-                    >
+            using type = typename seq::template indexed_by_seq_t< //
+                make_value_sequence_t<
+                    seq::size() - 1,
+                    seq::size(),
+                    ::std::minus{} // clang-format off
+                >
             >; // clang-format on
         };
 
@@ -79,17 +79,6 @@ namespace stdsharp::type_traits
             >::template apply_t<filtered_seq>; // clang-format on
         };
 
-        template<::std::size_t I, auto Value>
-        struct indexed_value : constant<Value>
-        {
-            template<::std::size_t J>
-                requires(I == J)
-            static constexpr decltype(auto) get() noexcept
-            {
-                return Value;
-            }
-        };
-
         template<typename T, typename Comp>
         struct value_comparer
         {
@@ -105,17 +94,11 @@ namespace stdsharp::type_traits
             constexpr auto operator()(const U& other) const
                 noexcept(concepts::nothrow_predicate<Comp, U, T>)
             {
-                return functional::invoke_r<bool>(comp, other, value);
+                return static_cast<bool>(::std::invoke(comp, other, value));
             }
 
             constexpr auto operator()(const auto&) const noexcept { return false; }
         };
-
-        template<typename T, typename Comp>
-        constexpr auto make_value_comparer(const T& value, Comp& comp = {}) noexcept
-        {
-            return value_comparer<T, Comp>(value, comp);
-        }
     } // clang-format on
 
     template<auto... Values>
@@ -210,45 +193,45 @@ namespace stdsharp::type_traits
             select_range_indexed(::std::index_sequence<I...>) noexcept;
 
         template<typename IfFunc>
-        struct if_not_fn : private IfFunc
+        struct if_not_fn
         {
             template<typename Func>
                 requires ::std::invocable<IfFunc, Func>
-            [[nodiscard]] constexpr auto operator()(Func func) const
+            [[nodiscard]] constexpr auto operator()(Func&& func) const
                 noexcept(concepts::nothrow_invocable<IfFunc, Func>)
             {
-                return IfFunc::operator()(func);
+                return IfFunc{}(::std::not_fn(::std::forward<Func>(func)));
             }
         };
 
         template<typename IfFunc>
-        struct do_fn : private IfFunc
+        struct from_value_fn
         {
             template<typename T, typename Comp = ::std::ranges::equal_to>
                 requires ::std::invocable<IfFunc, details::value_comparer<T, Comp>>
             [[nodiscard]] constexpr auto operator()(const T& v, Comp comp = {}) const
                 noexcept(concepts::nothrow_invocable<IfFunc, details::value_comparer<T, Comp>>)
             {
-                return IfFunc::operator()(details::make_value_comparer(v, comp));
+                return IfFunc{}(details::value_comparer<T, Comp>{v, comp});
             }
         };
 
         template<typename FindFunc, bool Equal = true>
-        struct algo_fn : private FindFunc
+        struct result_compare_to_size
         {
             template<typename Func>
                 requires ::std::invocable<FindFunc, Func>
             [[nodiscard]] constexpr auto operator()(Func func) const
                 noexcept(concepts::nothrow_invocable<FindFunc, Func>)
             {
-                const auto v = FindFunc::operator()(::std::forward<Func>(func));
+                const auto v = FindFunc{}(::std::forward<Func>(func));
                 if constexpr(Equal) return v == size();
                 else return v != size();
             }
         };
 
     public:
-        static constexpr struct
+        static constexpr struct for_each_fn
         {
             template<typename Func>
                 requires(::std::invocable<Func, decltype(Values)> && ...)
@@ -260,7 +243,7 @@ namespace stdsharp::type_traits
             }
         } for_each{};
 
-        static constexpr struct
+        static constexpr struct for_each_n_fn
         {
             template<typename Func>
                 requires(::std::invocable<Func, decltype(Values)> && ...)
@@ -275,7 +258,7 @@ namespace stdsharp::type_traits
             }
         } for_each_n{};
 
-        static constexpr struct
+        static constexpr struct find_if_fn
         {
             template<typename Func>
                 requires(::std::predicate<Func, decltype(Values)> && ...)
@@ -284,16 +267,20 @@ namespace stdsharp::type_traits
             {
                 ::std::size_t i = 0;
                 type_traits::empty =
-                    ((functional::invoke_r<bool>(func, Values) ? false : (++i, true)) && ...);
+                    ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
                 return i;
             }
         } find_if{};
 
-        static constexpr value_sequence::if_not_fn<decltype(find_if)> find_if_not{};
+        using find_if_not_fn = if_not_fn<find_if_fn>;
 
-        static constexpr value_sequence::do_fn<decltype(find_if)> find{};
+        static constexpr find_if_not_fn find_if_not{};
 
-        static constexpr struct
+        using find_fn = from_value_fn<find_if_fn>;
+
+        static constexpr find_fn find{};
+
+        static constexpr struct count_if_fn
         {
             template<typename Func>
                 requires(::std::predicate<Func, decltype(Values)> && ...)
@@ -306,7 +293,7 @@ namespace stdsharp::type_traits
                     ) noexcept(concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
-                        if(functional::invoke_r<bool>(func, v)) ++i;
+                        if(static_cast<bool>(::std::invoke(func, v))) ++i;
                         return true;
                     } //
                 );
@@ -315,19 +302,23 @@ namespace stdsharp::type_traits
             }
         } count_if{};
 
-        static constexpr value_sequence::if_not_fn<decltype(count_if)> count_if_not{};
+        using count_if_not_fn = if_not_fn<count_if_fn>;
 
-        static constexpr value_sequence::do_fn<decltype(count_if)> count{};
+        static constexpr count_if_not_fn count_if_not{};
 
-        static constexpr value_sequence::algo_fn<decltype(find_if_not)> all_of{};
+        using count_fn = from_value_fn<count_if_fn>;
 
-        static constexpr value_sequence::algo_fn<decltype(find_if), false> any_of{};
+        static constexpr count_fn count{};
 
-        static constexpr value_sequence::algo_fn<decltype(find_if)> none_of{};
+        static constexpr result_compare_to_size<find_if_not_fn> all_of{};
 
-        static constexpr value_sequence::algo_fn<decltype(find), false> contains{};
+        static constexpr result_compare_to_size<find_if_fn> none_of{};
 
-        static constexpr struct
+        static constexpr result_compare_to_size<find_if_fn, false> any_of{};
+
+        static constexpr result_compare_to_size<find_fn, false> contains{};
+
+        static constexpr struct adjacent_find_fn
         {
         private:
             template<::std::size_t I>
@@ -338,7 +329,7 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(Comp& comp) const
                     noexcept(concepts::nothrow_predicate<Comp, bool>)
                 {
-                    return functional::invoke_r<bool>(comp, get_impl<I>(), get_impl<I + 1>());
+                    return static_cast<bool>(::std::invoke(comp, get_impl<I>(), get_impl<I + 1>()));
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
@@ -389,7 +380,7 @@ namespace stdsharp::type_traits
 
         template<::std::size_t From, ::std::size_t Size>
         using select_range_indexed_t = decltype( //
-            value_sequence::select_range_indexed<From>( //
+            select_range_indexed<From>( //
                 ::std::make_index_sequence<Size>{} // clang-format off
             ) // clang-format on
         );
@@ -411,7 +402,7 @@ namespace stdsharp::type_traits
         struct insert
         {
             template<auto... Others, auto... Front, auto... Back>
-            static constexpr regular_value_sequence<Front..., Others..., Back...> impl(
+            static consteval regular_value_sequence<Front..., Others..., Back...> impl(
                 const regular_value_sequence<Front...>,
                 const regular_value_sequence<Back...> //
             )

@@ -57,6 +57,25 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
+    "Scenario: value sequence find if",
+    "[type traits]",
+    ((auto Fn, auto Expect), Fn, Expect),
+    ([](const auto&) { return true; }, 0),
+    ([](const auto&) { return false; }, test_seq::size()),
+    (
+        []<typename T>(const T v)
+        {
+            if constexpr(same_as<T, size_t>) return v == 7;
+            else return false;
+        },
+        2
+    )
+)
+{
+    STATIC_REQUIRE(test_seq::find_if(Fn) == Expect);
+}
+
+TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence count",
     "[type traits]",
     ((auto V, auto Expect), V, Expect),
@@ -66,6 +85,18 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 )
 {
     STATIC_REQUIRE(test_seq::count(V) == Expect);
+}
+
+TEMPLATE_TEST_CASE_SIG( // NOLINT
+    "Scenario: value sequence count if",
+    "[type traits]",
+    ((auto Fn, auto Expect), Fn, Expect),
+    ([](const auto&) { return true; }, test_seq::size()),
+    ([](const auto&) { return false; }, 0),
+    ([]<typename T>(const T) { return integral<T>; }, 4)
+)
+{
+    STATIC_REQUIRE(test_seq::count_if(Fn) == Expect);
 }
 
 SCENARIO("apply_t", "[type traits]") // NOLINT
