@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <__utility/integer_sequence.h>
 #include <array>
 #include <string_view>
 #include <functional>
