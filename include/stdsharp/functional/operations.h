@@ -46,6 +46,9 @@ namespace stdsharp::functional
         }
     } copy{};
 
+    template<typename Func>
+    using not_fn_t = decltype(::std::not_fn(::std::declval<Func>()));
+
     namespace details
     {
         struct assign
