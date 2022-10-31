@@ -56,10 +56,7 @@ namespace stdsharp::type_traits
     inline constexpr auto conditional_v<false, Left, Right> = Right;
 
     template<typename T>
-    concept nttp_able = requires { ::std::integral_constant<T, ::std::declval<T>()>{}; };
-
-    template<typename T>
-    concept constant_value = requires { constant<T::value>{}; };
+    concept constant_value = requires { constant<(T::value, true)>{}; };
 
     template<::std::size_t I>
     using index_constant = ::std::integral_constant<::std::size_t, I>;
@@ -160,12 +157,24 @@ namespace stdsharp::type_traits
 
             return local{};
         };
+
+        template<typename T>
+        struct nttp_check
+        {
+            template<T...>
+            struct nested
+            {
+            };
+        };
     }
 
     template<typename... T>
     using indexed_types = decltype( //
         details::indexed_types(::std::index_sequence_for<T...>{}, regular_type_sequence<T...>{})
     );
+
+    template<typename T>
+    concept nttp_able = requires { typename details::nttp_check<T>::template nested<>; };
 
     inline namespace literals
     {
