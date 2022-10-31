@@ -28,6 +28,48 @@ namespace stdsharp::type_traits
             template<typename... Constant>
             using invoke = value_sequence<Constant::value...>;
         };
+
+        template<::std::array Array, ::std::size_t... Index>
+            requires nttp_able<typename decltype(Array)::value_type>
+        consteval auto array_to_sequence(const ::std::index_sequence<Index...>)
+        {
+            return regular_value_sequence<Array[Index]...>{};
+        }
+
+        template<
+            constant_value T,
+            typename Range = decltype(T::value),
+            nttp_able ValueType = ::std::ranges::range_value_t<Range> // clang-format off
+        > // clang-format on
+            requires requires //
+        {
+            type_traits::index_constant<::std::ranges::size(T::value)>{};
+            ::std::array<ValueType, 1>{};
+            requires ::std::copyable<ValueType>;
+        }
+        struct rng_to_sequence
+        {
+            static constexpr auto rng = T::value;
+            static constexpr auto size = ::std::ranges::size(rng);
+
+            static constexpr auto array = [] consteval
+            {
+                if constexpr( //
+                    requires { array_to_sequence<rng>(::std::make_index_sequence<size>{}); } //
+                )
+                    return rng;
+                else
+                {
+                    ::std::array<ValueType, size> array{};
+                    ::std::ranges::copy(rng, array.begin());
+                    return array;
+                }
+            }
+            ();
+
+            using type =
+                decltype(array_to_sequence<array>(::std::make_index_sequence<array.size()>{}));
+        };
     }
 
     template<typename T>
@@ -37,6 +79,12 @@ namespace stdsharp::type_traits
     using make_value_sequence_t = decltype( //
         details::make_value_sequence<From, PlusF>(::std::make_index_sequence<Size>{})
     );
+
+    template<typename Rng>
+    using rng_to_sequence = typename details::rng_to_sequence<Rng>::type;
+
+    template<auto Rng>
+    using rng_v_to_sequence = rng_to_sequence<type_traits::constant<Rng>>;
 
     namespace details
     {
@@ -58,25 +106,31 @@ namespace stdsharp::type_traits
         {
             using seq = value_sequence<Values...>;
 
-            static constexpr auto filtered_indices = []
+            static constexpr auto unique_indices = []
             {
-                ::std::array<::std::size_t, unique_value_sequence::seq::size()> res{
-                    unique_value_sequence::seq::find(Values)... //
-                };
-                ::std::ranges::sort(res);
+                ::std::array<::std::size_t, seq::size()> indices{seq::find(Values)...};
 
-                // TODO: replace with ranges algorithm
-                return ::std::pair{res, ::std::unique(res.begin(), res.end()) - res.cbegin()};
+                ::std::ranges::sort(indices);
+
+                const auto res = ::std::ranges::unique(indices);
+
+                if(res) res.front() = seq::size();
+
+                return indices;
             }();
 
-            template<::std::size_t... I>
-            using filtered_seq = regular_value_sequence< //
-                get<filtered_indices.first[I]>(unique_value_sequence::seq{})... // clang-format off
-            >; // clang-format on
+            struct unique_indices_value
+            {
+                static constexpr auto value =
+                    unique_indices |
+                    std::ranges::views::take( //
+                        ::std::ranges::find(unique_indices, seq::size()) - unique_indices.cbegin()
+                    );
+            };
 
-            using type = typename as_value_sequence_t< //
-                make_value_sequence_t<::std::size_t{}, filtered_indices.second> // clang-format off
-            >::template apply_t<filtered_seq>; // clang-format on
+            using type = typename seq::template indexed_by_seq_t<
+                type_traits::rng_to_sequence<unique_indices_value> // clang-format off
+            >; // clang-format on
         };
 
         template<typename T, typename Comp>
