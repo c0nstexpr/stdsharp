@@ -227,3 +227,22 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         >
     );
 }
+
+TEMPLATE_TEST_CASE_SIG( // NOLINT
+    "Scenario: reverse value sequence",
+    "[type traits]",
+    ((auto V, typename Seq, typename Expect), V, Seq, Expect),
+    (0, regular_value_sequence<>, regular_value_sequence<>),
+    (0, regular_value_sequence<1>, regular_value_sequence<1>),
+    (0, regular_value_sequence<1, 2, 3, 4>, regular_value_sequence<4, 3, 2, 1>),
+    (0, regular_value_sequence<1, 2>, regular_value_sequence<2, 1>) //
+)
+{
+    STATIC_REQUIRE( //
+        same_as<
+            typename as_value_sequence_t<Seq>:: //
+            template apply_t<type_traits::reverse_value_sequence_t>,
+            Expect
+        >
+    );
+}

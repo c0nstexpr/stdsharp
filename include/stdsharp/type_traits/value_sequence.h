@@ -81,10 +81,10 @@ namespace stdsharp::type_traits
     );
 
     template<typename Rng>
-    using rng_to_sequence = typename details::rng_to_sequence<Rng>::type;
+    using rng_to_sequence_t = typename details::rng_to_sequence<Rng>::type;
 
     template<auto Rng>
-    using rng_v_to_sequence = rng_to_sequence<type_traits::constant<Rng>>;
+    using rng_v_to_sequence_t = rng_to_sequence_t<type_traits::constant<Rng>>;
 
     namespace details
     {
@@ -92,13 +92,14 @@ namespace stdsharp::type_traits
         struct reverse_value_sequence
         {
             using seq = value_sequence<Values...>;
-            using type = typename seq::template indexed_by_seq_t< //
+
+            using type = typename as_value_sequence_t< //
                 make_value_sequence_t<
                     seq::size() - 1,
                     seq::size(),
                     ::std::minus{} // clang-format off
                 >
-            >; // clang-format on
+            >::template apply_t<seq::template indexed_t>; // clang-format on
         };
 
         template<auto... Values>
@@ -128,9 +129,9 @@ namespace stdsharp::type_traits
                     );
             };
 
-            using type = typename seq::template indexed_by_seq_t<
-                type_traits::rng_to_sequence<unique_indices_value> // clang-format off
-            >; // clang-format on
+            using type =
+                typename as_value_sequence_t<type_traits::rng_to_sequence_t<unique_indices_value>>::
+                    template apply_t<seq::template indexed_t>;
         };
 
         template<typename T, typename Comp>
