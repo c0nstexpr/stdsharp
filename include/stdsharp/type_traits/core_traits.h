@@ -87,7 +87,7 @@ namespace stdsharp::type_traits
     template<auto... V>
     struct regular_value_sequence
     {
-        static constexpr auto size() noexcept { return sizeof...(V); }
+        static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
     };
 
     template<typename T, typename U>
