@@ -119,18 +119,21 @@ namespace stdsharp::type_traits
                 return indices;
             }();
 
-            struct unique_indices_value
-            {
-                static constexpr auto value =
-                    unique_indices |
-                    std::ranges::views::take( //
-                        ::std::ranges::find(unique_indices, seq::size()) - unique_indices.cbegin()
-                    );
-            };
+            static constexpr auto unique_indices_size =
+                ::std::ranges::find(unique_indices, seq::size()) - unique_indices.cbegin();
 
-            using type =
-                typename as_value_sequence_t<type_traits::rng_to_sequence_t<unique_indices_value>>::
-                    template apply_t<seq::template at_t>;
+            static constexpr auto unique_indices_value = []
+            {
+                ::std::array<::std::size_t, unique_indices_size> value{};
+
+                ::std::ranges::copy_n(unique_indices.cbegin(), value.size(), value.begin());
+
+                return value;
+            }();
+
+            using type = typename as_value_sequence_t<
+                type_traits::rng_v_to_sequence_t<unique_indices_value> // clang-format off
+            >::template apply_t<seq::template at_t>; // clang-format on
         };
 
         template<typename T, typename Comp>

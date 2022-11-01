@@ -25,8 +25,7 @@ set(src
     src/tuple/tuple_test.cpp
     src/functional/pipeable_test.cpp
     src/functional/symmetric_operations_test.cpp
-    src/filesystem/filesystem_test.cpp
-    )
+    src/filesystem/filesystem_test.cpp)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
