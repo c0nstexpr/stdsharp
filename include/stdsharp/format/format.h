@@ -13,7 +13,6 @@
     #include <format>
     #define FORMAT_NS ::std
 #else
-    #include <fmt/format.h>
     #include <fmt/xchar.h>
     #define FORMAT_NS ::fmt
 #endif

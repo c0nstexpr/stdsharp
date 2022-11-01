@@ -14,18 +14,17 @@ include(Catch)
 set(src
     src/tests.cpp
     src/pattern_match_test.cpp
-    src/concurrent_object_test.cpp
+    # src/concurrent_object_test.cpp
     src/algorithm/algorithm_test.cpp
     src/utility/utility_test.cpp
-    src/containers/containers_test.cpp
-    src/containers/actions_test.cpp
-    src/type_traits/value_sequence_test.cpp
-    src/type_traits/type_sequence_test.cpp
-    src/type_traits/member_test.cpp
+    src/containers/containers_test.cpp # src/containers/actions_test.cpp
+    # src/type_traits/value_sequence_test.cpp
+    # src/type_traits/type_sequence_test.cpp src/type_traits/member_test.cpp
     src/tuple/tuple_test.cpp
     src/functional/pipeable_test.cpp
-    src/functional/symmetric_operations_test.cpp
-    src/filesystem/filesystem_test.cpp)
+    # src/functional/symmetric_operations_test.cpp
+    # src/filesystem/filesystem_test.cpp
+)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 

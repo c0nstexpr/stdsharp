@@ -137,26 +137,32 @@ namespace stdsharp::type_traits
 
     public:
         using base::base;
-
-        template<::std::size_t I>
-            requires(I == Index)
-        using type = T;
     };
 
     namespace details
     {
-        template<typename... T, ::std::size_t... Index>
-        consteval auto indexed_types(
-            const ::std::index_sequence<Index...>,
-            const regular_type_sequence<T...> //
-        )
+        template<typename... T>
+        struct indexed_types
         {
-            struct local : indexed_type<T, Index>...
+            template<::std::size_t... Index>
+            struct inherited : indexed_type<T, Index>...
             {
             };
 
-            return local{};
+            template<::std::size_t... Index>
+            struct invoke : inherited<Index...>
+            {
+                template<::std::size_t InputIndex>
+                using type = ::std::remove_cvref_t<
+                    decltype(get<InputIndex>(::std::declval<inherited<Index...>>()))>;
+            };
         };
+
+        template<typename... T, ::std::size_t... Index>
+        consteval typename indexed_types<T...>::template invoke<Index...> get_indexed_types(
+            ::std::index_sequence<Index...>,
+            regular_type_sequence<T...> //
+        );
 
         template<typename T>
         struct nttp_check
@@ -170,7 +176,7 @@ namespace stdsharp::type_traits
 
     template<typename... T>
     using indexed_types = decltype( //
-        details::indexed_types(::std::index_sequence_for<T...>{}, regular_type_sequence<T...>{})
+        details::get_indexed_types(::std::index_sequence_for<T...>{}, regular_type_sequence<T...>{})
     );
 
     template<typename T>

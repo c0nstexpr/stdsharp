@@ -80,17 +80,18 @@ namespace stdsharp::functional
         template<template<typename...> typename Selector, typename... Func>
         struct invocables : type_traits::indexed_types<invocable<Func>...>
         {
-#define STDSHARP_OPERATOR(const_, ref)                                              \
-    template<                                                                       \
-        typename... Args,                                                           \
-        typename This = const_ invocables ref,                                      \
-        auto Index = Selector<const_ Func ref...>::template value<Args...>,         \
-        typename Invocable = decltype(get<Index>(::std::declval<This>()))>          \
-        requires ::std::invocable<Invocable, Args...>                               \
-    constexpr decltype(auto) operator()(Args&&... args)                             \
-        const_ ref noexcept(concepts::nothrow_invocable<Invocable, Args...>)        \
-    {                                                                               \
-        return get<Index>(static_cast<This>(*this))(::std::forward<Args>(args)...); \
+#define STDSHARP_OPERATOR(const_, ref)                                                             \
+    template<                                                                                      \
+        typename... Args,                                                                          \
+        typename This = const_ invocables ref,                                                     \
+        auto Index = Selector<const_ Func ref...>::template value<Args...>,                        \
+        typename Invocable = const_ typename invocables::template type<Index> ref>                 \
+        requires ::std::invocable<Invocable, Args...>                                              \
+    constexpr decltype(auto) operator()(Args&&... args)                                            \
+        const_ ref noexcept(concepts::nothrow_invocable<Invocable, Args...>)                       \
+    {                                                                                              \
+        return get<Index>(static_cast<const_ invocables ref>(*this))(::std::forward<Args>(args)... \
+        );                                                                                         \
     }
 
             STDSHARP_OPERATOR(, &)
