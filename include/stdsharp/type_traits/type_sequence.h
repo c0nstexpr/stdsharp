@@ -62,6 +62,7 @@ namespace stdsharp::type_traits
         using base::none_of;
         using base::contains;
         using base::adjacent_find;
+        using base::at_v;
 
         template<template<typename...> typename T>
         using apply_t = T<Types...>;
@@ -69,8 +70,8 @@ namespace stdsharp::type_traits
         template<::std::size_t I>
         using get_t = typename decltype(get<I>(base{}))::type;
 
-        template<::std::size_t... OtherInts>
-        using indexed_t = regular_type_sequence<get_t<OtherInts>...>;
+        template<::std::size_t... I>
+        using at_t = regular_type_sequence<get_t<I>...>;
 
         template<::std::size_t Size>
         using back_t = from_value_seq_t<typename base::template back_t<Size>>;
@@ -106,8 +107,7 @@ namespace stdsharp::type_traits
             from_value_seq_t<typename base::template replace_t<Index, type_constant<Other>{}>>;
 
         template<::std::size_t From, ::std::size_t Size>
-        using select_range_indexed_t =
-            from_value_seq_t<typename base::template select_range_indexed_t<From, Size>>;
+        using select_range_t = from_value_seq_t<typename base::template select_range_t<From, Size>>;
     };
 
     template<typename... T>

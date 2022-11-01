@@ -134,14 +134,14 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: value sequence indexed",
+    "Scenario: value sequence at",
     "[type traits]",
     ((typename Expect, auto... V), Expect, V...),
     (regular_value_sequence<1, size_t{7}>, 1, 2),
     (regular_value_sequence<size_t{7}, to_array("my literal")>, 2, 4)
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::indexed_t<V...>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::at_t<V...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

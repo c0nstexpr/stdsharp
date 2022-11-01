@@ -80,14 +80,14 @@ SCENARIO("type sequence apply", "[type traits]") // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: type sequence indexed",
+    "Scenario: type sequence at",
     "[type traits]",
     ((typename Expect, auto... V), Expect, V...),
     (regular_type_sequence<float, char>, 1, 2),
     (regular_type_sequence<char, float>, 2, 4)
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::indexed_t<V...>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::at_t<V...>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

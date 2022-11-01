@@ -98,7 +98,7 @@ namespace stdsharp::type_traits
                     seq::size(),
                     ::std::minus{} // clang-format off
                 >
-            >::template apply_t<seq::template indexed_t>; // clang-format on
+            >::template apply_t<seq::template at_t>; // clang-format on
         };
 
         template<auto... Values>
@@ -130,7 +130,7 @@ namespace stdsharp::type_traits
 
             using type =
                 typename as_value_sequence_t<type_traits::rng_to_sequence_t<unique_indices_value>>::
-                    template apply_t<seq::template indexed_t>;
+                    template apply_t<seq::template at_t>;
         };
 
         template<typename T, typename Comp>
@@ -170,13 +170,9 @@ namespace stdsharp::type_traits
     private:
         template<::std::size_t I>
             requires (I < size())
-        static constexpr decltype(auto) get_impl = ::std::decay_t<decltype(get<I>(indexed_types<constant<Values>...>{}))>::value;
-
-        template<::std::size_t I>
-            requires (I < size())
         [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence)noexcept
         {
-            return get_impl<I>;
+            return at_v<I>;
         }
 
     public:
@@ -213,8 +209,12 @@ namespace stdsharp::type_traits
         template<template<auto...> typename T>
         using apply_t = T<Values...>;
 
-        template<::std::size_t... OtherInts>
-        using indexed_t = regular_value_sequence<get_impl<OtherInts>...>;
+        template<::std::size_t I>
+        static constexpr decltype(auto) at_v =
+            ::std::decay_t<decltype(get<I>(indexed_types<constant<Values>...>{}))>::value;
+
+        template<::std::size_t... I>
+        using at_t = regular_value_sequence<at_v<I>...>;
 
     private:
         template<auto... Func>
@@ -238,8 +238,7 @@ namespace stdsharp::type_traits
         };
 
         template<::std::size_t From, ::std::size_t... I>
-        static consteval indexed_t<(From + I)...>
-            select_range_indexed(::std::index_sequence<I...>) noexcept;
+        static consteval at_t<(From + I)...> select_range(::std::index_sequence<I...>) noexcept;
 
         template<typename IfFunc>
         struct if_not_fn
@@ -378,7 +377,7 @@ namespace stdsharp::type_traits
                 constexpr auto operator()(Comp& comp) const
                     noexcept(concepts::nothrow_predicate<Comp, bool>)
                 {
-                    return static_cast<bool>(::std::invoke(comp, get_impl<I>, get_impl<I + 1>));
+                    return static_cast<bool>(::std::invoke(comp, at_v<I>, at_v<I + 1>));
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
@@ -428,15 +427,14 @@ namespace stdsharp::type_traits
         using transform_t = decltype(transform<Func...>());
 
         template<::std::size_t From, ::std::size_t Size>
-        using select_range_indexed_t =
-            typename as_value_sequence_t<make_value_sequence_t<From, Size>>:: //
-            template apply_t<indexed_t>;
+        using select_range_t = typename as_value_sequence_t<make_value_sequence_t<From, Size>>:: //
+            template apply_t<at_t>;
 
         template<::std::size_t Size>
-        using back_t = select_range_indexed_t<size() - Size, Size>;
+        using back_t = select_range_t<size() - Size, Size>;
 
         template<::std::size_t Size>
-        using front_t = select_range_indexed_t<0, Size>;
+        using front_t = select_range_t<0, Size>;
 
         template<auto... Others>
         using append_t = regular_value_sequence<Values..., Others...>;
@@ -493,7 +491,7 @@ namespace stdsharp::type_traits
             }();
 
             template<::std::size_t... I>
-            static constexpr indexed_t<select_indices[I]...>
+            static constexpr at_t<select_indices[I]...>
                 get_type(::std::index_sequence<I...>) noexcept;
 
             using type = decltype(get_type(::std::make_index_sequence<select_indices.size()>{}));
