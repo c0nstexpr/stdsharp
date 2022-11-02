@@ -152,9 +152,9 @@ namespace stdsharp::type_traits
             template<::std::size_t... Index>
             struct invoke : inherited<Index...>
             {
-                template<::std::size_t InputIndex>
-                using type = ::std::remove_cvref_t<
-                    decltype(get<InputIndex>(::std::declval<inherited<Index...>>()))>;
+                template<::std::size_t I>
+                using type =
+                    ::std::remove_cvref_t<decltype(get<I>(::std::declval<inherited<Index...>>()))>;
             };
         };
 
