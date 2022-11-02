@@ -22,15 +22,16 @@
 
 namespace stdsharp
 {
-    template<typename ContainerType>
-        requires requires //
+    template<typename Container>
+        requires requires { typename Container::allocator_type; }
+    struct allocator_of<Container> : ::std::type_identity<typename Container::allocator_type>
     {
-        typename ContainerType::allocator_type;
-        requires allocator_req<typename ContainerType::allocator_type>;
-    }
-    struct allocator_of<ContainerType> :
-        ::std::type_identity<typename ContainerType::allocator_type>
+    };
+
+    template<typename T, auto Size>
+    struct allocator_of<::std::array<T, Size>>
     {
+        using type = ::std::allocator<T>;
     };
 }
 
@@ -288,76 +289,74 @@ namespace stdsharp::containers
         {
             requires ::std::ranges::forward_range<decltype(instance)>;
 
+            requires ::std::destructible<decltype(instance)>;
+
+            requires functional::logical_imply(
+                         (concepts::nothrow_default_initializable<Elements> && ...),
+                         concepts::nothrow_default_initializable<decltype(instance)> //
+                     ) ||
+                functional::logical_imply(
+                         (::std::default_initializable<Elements> && ...),
+                         ::std::default_initializable<decltype(instance)> //
+                );
+
+            requires functional::logical_imply(
+                         (concepts::nothrow_copy_constructible<Elements> && ...) &&
+                             container_nothrow_copy_insertable<decltype(instance)>,
+                         concepts::nothrow_copy_constructible<decltype(instance)> //
+                     ) ||
+                functional::logical_imply(
+                         (::std::copy_constructible<Elements> && ...) &&
+                             container_copy_insertable<decltype(instance)>,
+                         ::std::copy_constructible<decltype(instance)> //
+                );
+            requires functional::logical_imply(
+                         (concepts::nothrow_copy_assignable<Elements> && ...) &&
+                             concepts::nothrow_copy_assignable<decltype(value)> &&
+                             container_nothrow_copy_insertable<decltype(instance)>,
+                         concepts::nothrow_copy_assignable<decltype(instance)> //
+                     ) ||
+                functional::logical_imply(
+                         (concepts::copy_assignable<Elements> && ...) &&
+                             concepts::copy_assignable<decltype(value)> &&
+                             container_copy_insertable<decltype(instance)>,
+                         concepts::copy_assignable<decltype(instance)> //
+                );
+
+            requires functional::logical_imply(
+                         (::std::move_constructible<Elements> && ...),
+                         ::std::move_constructible<decltype(instance)> //
+                     ) ||
+                functional::logical_imply(
+                         (concepts::nothrow_move_constructible<Elements> && ...),
+                         concepts::nothrow_move_constructible<decltype(instance)> //
+                );
+
             requires functional::logical_imply(
                 ::std::equality_comparable<decltype(value)>,
                 ::std::equality_comparable<decltype(instance)> //
             );
 
-            requires requires { []<typename T, auto Size>(::std::array<T, Size>*){}(&instance); } ||
-                requires //
+            requires requires(allocator_of_t<decltype(instance)> alloc) //
             {
-                requires requires(allocator_of_t<decltype(instance)> alloc) //
-                {
-                    requires ::std::destructible<decltype(instance)>;
+                requires allocator_req<decltype(alloc)>;
 
-                    requires container_erasable<decltype(instance)>;
+                requires container_erasable<decltype(instance)>;
 
-                    requires functional::logical_imply(
-                                 (concepts::nothrow_default_initializable<Elements> && ...),
-                                 concepts::nothrow_default_initializable<decltype(instance)> //
-                             ) ||
-                        functional::logical_imply(
-                                 (::std::default_initializable<Elements> && ...),
-                                 ::std::default_initializable<decltype(instance)> //
-                        );
-
-                    requires functional::logical_imply(
-                                 (concepts::nothrow_copy_constructible<Elements> && ...) &&
-                                     container_nothrow_copy_insertable<decltype(instance)>,
-                                 concepts::nothrow_copy_constructible<decltype(instance)> //
-                             ) ||
-                        functional::logical_imply(
-                                 (::std::copy_constructible<Elements> && ...) &&
-                                     container_copy_insertable<decltype(instance)>,
-                                 ::std::copy_constructible<decltype(instance)> //
-                        );
-                    requires functional::logical_imply(
-                                 (concepts::nothrow_copy_assignable<Elements> && ...) &&
-                                     concepts::nothrow_copy_assignable<decltype(value)> &&
-                                     container_nothrow_copy_insertable<decltype(instance)>,
-                                 concepts::nothrow_copy_assignable<decltype(instance)> //
-                             ) ||
-                        functional::logical_imply(
-                                 (concepts::copy_assignable<Elements> && ...) &&
-                                     concepts::copy_assignable<decltype(value)> &&
-                                     container_copy_insertable<decltype(instance)>,
-                                 concepts::copy_assignable<decltype(instance)> //
-                        );
-
-                    requires functional::logical_imply(
-                                 (::std::move_constructible<Elements> && ...),
-                                 ::std::move_constructible<decltype(instance)> //
-                             ) ||
-                        functional::logical_imply(
-                                 (concepts::nothrow_move_constructible<Elements> && ...),
-                                 concepts::nothrow_move_constructible<decltype(instance)> //
-                        );
-
-                    requires functional::logical_imply(
-                                 ::std::allocator_traits<decltype(alloc
-                                     )>::propagate_on_container_move_assignment::value ||
-                                     container_nothrow_move_insertable<decltype(instance)> &&
-                                         (concepts::nothrow_move_assignable<Elements> && ...),
-                                 concepts::nothrow_move_assignable<decltype(instance)> //
-                             ) ||
-                        functional::logical_imply(
-                                 ::std::allocator_traits<decltype(alloc
-                                     )>::propagate_on_container_move_assignment::value ||
-                                     container_move_insertable<decltype(instance)> &&
-                                         (concepts::move_assignable<Elements> && ...),
-                                 concepts::move_assignable<decltype(instance)> //
-                        );
-                };
+                requires functional::logical_imply(
+                             ::std::allocator_traits<decltype(alloc
+                                 )>::propagate_on_container_move_assignment::value ||
+                                 container_nothrow_move_insertable<decltype(instance)> &&
+                                     (concepts::nothrow_move_assignable<Elements> && ...),
+                             concepts::nothrow_move_assignable<decltype(instance)> //
+                         ) ||
+                    functional::logical_imply(
+                             ::std::allocator_traits<decltype(alloc
+                                 )>::propagate_on_container_move_assignment::value ||
+                                 container_move_insertable<decltype(instance)> &&
+                                     (concepts::move_assignable<Elements> && ...),
+                             concepts::move_assignable<decltype(instance)> //
+                    );
             };
 
             requires ::std::

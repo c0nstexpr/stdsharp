@@ -227,7 +227,10 @@ function(target_enable_clang_tidy target)
   find_program(CLANG_TIDY clang-tidy)
   if(CLANG_TIDY)
     message(STATUS "found clang-tidy: ${CLANG_TIDY}")
-    set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+    set_target_properties(
+      ${target}
+      PROPERTIES CXX_CLANG_TIDY
+                 "${CLANG_TIDY};--enable-check-profile;--store-check-profile=clang-tidy-report")
   else()
     message(STATUS "clang-tidy not found")
   endif()
