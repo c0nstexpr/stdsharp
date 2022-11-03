@@ -32,7 +32,7 @@ runs:
       uses: lukka/get-cmake@latest
 
     - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v10.5
+      uses: lukka/run-vcpkg@v10
       with:
         vcpkgGitCommitId: a2261f65ea979eebf56074f604776160f0074b09
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
