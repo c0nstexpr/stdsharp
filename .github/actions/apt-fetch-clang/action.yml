@@ -10,7 +10,17 @@ runs:
   steps:
     - run: |
         curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
-        sudo apt install clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev;
+        sudo apt-get update;
+        sudo apt-get upgrade;
+      shell: bash
+
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev
+        version: ${{ inputs.llvm-ver }}
+
+    - run: |
+        curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${{ inputs.llvm-ver }} 1000;
@@ -19,6 +29,4 @@ runs:
         sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${{ inputs.llvm-ver }} 1000;
-        sudo apt-get update;
-        sudo apt-get upgrade;
       shell: bash
