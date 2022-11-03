@@ -310,7 +310,7 @@ namespace stdsharp::actions
 
         template<typename Container>
         using regular_make_container_fn = functional::sequenced_invocables<
-            functional::constructor_fn<Container>,
+            functional::construct_fn<Container>,
             details::emplace_make_container_fn<Container> // clang-format off
         >; // clang-format on
 
@@ -340,7 +340,7 @@ namespace stdsharp::actions
 
     template<typename Container>
     using make_container_fn = functional::sequenced_invocables<
-        functional::constructor_fn<Container>,
+        functional::construct_fn<Container>,
         details::emplace_make_container_fn<Container>,
         details::make_container_from_tuple_fn<Container> // clang-format off
     >; // clang-format on

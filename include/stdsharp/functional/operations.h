@@ -12,29 +12,6 @@
 
 namespace stdsharp::functional
 {
-    template<typename T>
-    struct constructor_fn
-    {
-        template<typename... Args>
-            requires ::std::constructible_from<T, Args...>
-        [[nodiscard]] constexpr auto operator()(Args&&... args) const
-            noexcept(concepts::nothrow_constructible_from<T, Args...>)
-        {
-            return T(::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires(!::std::constructible_from<T, Args...> && concepts::list_initializable_from<T, Args...>)
-        [[nodiscard]] constexpr auto operator()(Args&&... args) const
-            noexcept(concepts::nothrow_list_initializable_from<T, Args...>)
-        {
-            return T{::std::forward<Args>(args)...};
-        }
-    };
-
-    template<typename T>
-    inline constexpr constructor_fn<T> constructor{};
-
     inline constexpr struct copy_fn
     {
         template<typename T>

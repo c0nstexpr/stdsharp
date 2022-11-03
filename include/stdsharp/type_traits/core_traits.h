@@ -175,9 +175,41 @@ namespace stdsharp::type_traits
     }
 
     template<typename... T>
-    using indexed_types = decltype( //
-        details::get_indexed_types(::std::index_sequence_for<T...>{}, regular_type_sequence<T...>{})
-    );
+    struct indexed_types :
+        decltype( //
+            details::get_indexed_types(
+                ::std::index_sequence_for<T...>{},
+                regular_type_sequence<T...>{}
+            )
+        )
+    {
+    };
+
+    template<typename... T>
+    indexed_types(T&&...) -> indexed_types<::std::decay_t<T>...>;
+
+    template<typename T>
+    struct construct_fn
+    {
+        template<typename... Args>
+            requires ::std::constructible_from<T, Args...>
+        [[nodiscard]] constexpr auto operator()(Args&&... args) const
+            noexcept(concepts::nothrow_constructible_from<T, Args...>)
+        {
+            return T(::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires(!::std::constructible_from<T, Args...> && concepts::list_initializable_from<T, Args...>)
+        [[nodiscard]] constexpr auto operator()(Args&&... args) const
+            noexcept(concepts::nothrow_list_initializable_from<T, Args...>)
+        {
+            return T{::std::forward<Args>(args)...};
+        }
+    };
+
+    template<typename T>
+    inline constexpr construct_fn<T> construct{};
 
     template<typename T>
     concept nttp_able = requires { typename details::nttp_check<T>::template nested<>; };

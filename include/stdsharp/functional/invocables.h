@@ -109,7 +109,7 @@ namespace stdsharp::functional
         trivial_invocables() = default;
 
         template<typename... F>
-            requires ::std::constructible_from<base, F...>
+            requires ::std::invocable<type_traits::construct_fn<base>, F...>
         constexpr trivial_invocables(F&&... f) //
             noexcept(concepts::nothrow_constructible_from<base, F...>):
             base(::std::forward<F>(f)...)

@@ -25,5 +25,9 @@ SCENARIO("pipeable, [functional]") // NOLINT
     // STATIC_REQUIRE(!std::invocable<bit_or<>, int, right_pipeable_t>);
     // STATIC_REQUIRE(std::invocable<bit_or<>, right_pipeable_t, int>);
 
-    trivial_invocables f{v, v, v};
+    // trivial_invocables f{v, v, v};
+
+    const sequenced_invocables f{v};
+
+    static_assert(::std::constructible_from<sequenced_invocables<m>, const m&>);
 }
