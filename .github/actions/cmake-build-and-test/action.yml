@@ -47,13 +47,16 @@ runs:
       run: cmake -S "${{ github.workspace }}" -B "${{ inputs.build-dir }}" -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ inputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
       shell: bash
 
+    - uses: SimenB/github-actions-cpu-cores@v1
+      id: cpu-cores
+
     - name: Build
       run: |
-        cmake --build "${{ inputs.build-dir }}" | tee "${{ inputs.build-dir }}/cmake-build.log"
+        cmake --build "${{ inputs.build-dir }}" -j ${{ steps.cpu-cores.outputs.count }} | tee "${{ inputs.build-dir }}/cmake-build.log"
         cat "${{ inputs.build-dir }}/cmake-build.log"
       shell: bash
 
     - name: Run test
       working-directory: ${{ inputs.build-dir }}
-      run: ctest --output-on-failure -C ${{ inputs.build-type }} -T test
+      run: ctest --output-on-failure -C ${{ inputs.build-type }} -j ${{ steps.cpu-cores.outputs.count }}
       shell: bash
