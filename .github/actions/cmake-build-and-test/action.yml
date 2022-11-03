@@ -48,9 +48,9 @@ runs:
       with:
         path: |
           ${{ inputs.build-dir }}
-          !${{ inputs.build-dir }/CMakeCache.txt
-          !${{ inputs.build-dir }/CMakeFiles
-          !${{ inputs.build-dir }/clang-tidy-report
+          !${{ inputs.build-dir }}/CMakeCache.txt
+          !${{ inputs.build-dir }}/CMakeFiles
+          !${{ inputs.build-dir }}/clang-tidy-report
         key: ${{ runner.os }}-${{ inputs.build-type }}
 
     - name: Install dependencies and generate project files
