@@ -8,15 +8,14 @@ runs:
   using: composite
 
   steps:
+    - run: curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
+
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
         packages: clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev
         version: ${{ inputs.llvm-ver }}
 
     - run: |
-        curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
-        sudo apt-get update;
-        sudo apt-get upgrade;
         sudo apt-get install clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev;
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ inputs.llvm-ver }} 1000;
