@@ -56,20 +56,24 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(test_seq::find(V) == Expect);
 }
 
+namespace // Escape Catch2 special characters like '[' and ']'
+{
+    constexpr auto find_if_functor_1 = [](const auto&) { return true; };
+    constexpr auto find_if_functor_2 = [](const auto&) { return false; };
+    constexpr auto find_if_functor_3 = []<typename T>(const T v)
+    {
+        if constexpr(same_as<T, size_t>) return v == 7;
+        else return false;
+    };
+}
+
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence find if",
     "[type traits]",
     ((auto Fn, auto Expect), Fn, Expect),
-    ([](const auto&) { return true; }, 0),
-    ([](const auto&) { return false; }, test_seq::size()),
-    (
-        []<typename T>(const T v)
-        {
-            if constexpr(same_as<T, size_t>) return v == 7;
-            else return false;
-        },
-        2
-    )
+    (find_if_functor_1, 0),
+    (find_if_functor_2, test_seq::size()),
+    (find_if_functor_3, 2)
 )
 {
     STATIC_REQUIRE(test_seq::find_if(Fn) == Expect);
@@ -87,13 +91,20 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(test_seq::count(V) == Expect);
 }
 
+namespace // Escape Catch2 special characters like '[' and ']'
+{
+    constexpr auto count_if_functor_1 = [](const auto&) { return true; };
+    constexpr auto count_if_functor_2 = [](const auto&) { return false; };
+    constexpr auto count_if_functor_3 = []<typename T>(const T) { return integral<T>; };
+}
+
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence count if",
     "[type traits]",
     ((auto Fn, auto Expect), Fn, Expect),
-    ([](const auto&) { return true; }, test_seq::size()),
-    ([](const auto&) { return false; }, 0),
-    ([]<typename T>(const T) { return integral<T>; }, 4)
+    (count_if_functor_1, test_seq::size()),
+    (count_if_functor_2, 0),
+    (count_if_functor_3, 4)
 )
 {
     STATIC_REQUIRE(test_seq::count_if(Fn) == Expect);
