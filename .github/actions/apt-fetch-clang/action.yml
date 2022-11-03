@@ -9,6 +9,7 @@ runs:
 
   steps:
     - run: curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
+      shell: bash
 
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
