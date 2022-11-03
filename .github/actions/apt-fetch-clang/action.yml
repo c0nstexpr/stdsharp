@@ -13,7 +13,7 @@ runs:
 
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev clang-${{ inputs.llvm-ver }} llvm-${{ inputs.llvm-ver }} llvm-cov-${{ inputs.llvm-ver }} llvm-profdata-${{ inputs.llvm-ver }} lld-${{ inputs.llvm-ver }}
+        packages: clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev clang-${{ inputs.llvm-ver }} llvm-${{ inputs.llvm-ver }} lld-${{ inputs.llvm-ver }}
         version: ${{ inputs.llvm-ver }}
 
     - run: |
