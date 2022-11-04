@@ -312,11 +312,10 @@ function(target_coverage target_name)
   add_custom_target(
     ${target_name}CoverageReport ALL
     DEPENDS ${target_name}
-    COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${target_name}.profraw
-            $<TARGET_FILE:${target_name}>
     COMMAND "${llvm_profdata}" merge --sparse -o="${profdata_file_name}"
             ${target_name}.profraw
     COMMAND
+      "${CMAKE_COMMAND}" -E env LLVM_PROFILE_FILE=${target_name}.profraw
       "${llvm_cov}" export -format=${ARG_FORMAT}
       -object=$<TARGET_FILE:${target_name}>
       -instr-profile="${profdata_file_name}" > "${coverage_file}"
