@@ -58,8 +58,8 @@ catch_discover_tests(${PROJECT_NAME})
 #
 # Configure code coverage
 #
-option(ENABLE_CODE_COVERAGE "Enable code coverage" OFF)
+set(CODE_COVERAGE_EXT CACHE STRING "Enable code coverage")
 
-if(${ENABLE_CODE_COVERAGE})
-  target_coverage(${PROJECT_NAME} FORMAT lcov)
+if(CODE_COVERAGE_EXT)
+  target_coverage(${PROJECT_NAME} FORMAT ${CODE_COVERAGE_EXT})
 endif()

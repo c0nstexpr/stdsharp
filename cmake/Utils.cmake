@@ -227,10 +227,24 @@ function(target_enable_clang_tidy target)
   find_program(CLANG_TIDY clang-tidy)
   if(CLANG_TIDY)
     message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+
+    get_target_property(bin_dir ${target} BINARY_DIR)
+    set(report_folder "${bin_dir}/clang-tidy-report")
+
     set_target_properties(
       ${target}
-      PROPERTIES CXX_CLANG_TIDY
-                 "${CLANG_TIDY};--enable-check-profile;--store-check-profile=clang-tidy-report")
+      PROPERTIES
+        CXX_CLANG_TIDY
+        "${CLANG_TIDY};--enable-check-profile;--store-check-profile=${report_folder}"
+    )
+
+    if(EXISTS ${report_folder})
+      add_custom_target(
+        ${target}ClangTidyClean ALL
+        COMMAND ${CMAKE_COMMAND} -E rm -r ${report_folder}/
+        USES_TERMINAL)
+      add_dependencies(${target} ${target}ClangTidyClean)
+    endif()
   else()
     message(STATUS "clang-tidy not found")
   endif()
@@ -286,8 +300,6 @@ function(target_coverage target_name)
 
   if(${ARG_FORMAT} STREQUAL text)
     set(coverage_file json)
-  elseif(${ARG_FORMAT} STREQUAL html)
-    set(coverage_file html)
   elseif(${ARG_FORMAT} STREQUAL lcov)
     set(coverage_file lcov)
   else()

@@ -36,7 +36,7 @@ jobs:
       - name: CMake build and test (Debug)
         uses: ./.github/actions/cmake-build-and-test
         with:
-          config-option: ${{ steps.cmake-option.outputs.cmake-option }} -DENABLE_CODE_COVERAGE=true -DENABLE_CLANG_TIDY=true
+          config-option: ${{ steps.cmake-option.outputs.cmake-option }} -DCODE_COVERAGE_EXT="lcov" -DENABLE_CLANG_TIDY=true
           before-build: \cp -rf ./cmake/vcpkg/* ./.vcpkg/
           build-dir: .build/Debug
 
