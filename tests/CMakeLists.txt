@@ -34,13 +34,12 @@ target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp
 
 config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
-target_compile_options(
-  ${PROJECT_NAME}
-  PUBLIC $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Werror>
-         $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
+target_compile_options(${PROJECT_NAME} PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4>)
 target_enable_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address
                               undefined)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 
 #
 # Configure clang-tidy
