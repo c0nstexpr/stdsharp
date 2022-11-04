@@ -37,40 +37,47 @@ namespace stdsharp::functional
 #undef STDSHARP_OPERATOR
     };
 
-    template<auto Index>
-    struct invoke_at_fn
-    {
-#define STDSHARP_OPERATOR(const_, ref)                                                    \
-    template<                                                                             \
-        typename... Args,                                                                 \
-        typename... Func,                                                                 \
-        typename Invocables = type_traits::indexed_types<invocable<Func>...>,             \
-        typename Invocable = const_ typename Invocables::template type<Index> ref>        \
-        requires ::std::invocable<Invocable, Args...>                                     \
-    constexpr decltype(auto) operator()(const_ Invocables ref invocables, Args&&... args) \
-        const noexcept(concepts::nothrow_invocable<Invocable, Args...>)                   \
-    {                                                                                     \
-        return get<Index>(static_cast<const_ Invocables ref>(invocables)                  \
-        )(::std::forward<Args>(args)...);                                                 \
-    }
-
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-
-#undef STDSHARP_OPERATOR
-    };
-
-    template<auto Index>
-    static constexpr invoke_at_fn<Index> invoke_at{};
-
     template<typename... Func>
     struct invocables : type_traits::indexed_types<invocable<Func>...>
     {
         template<typename... Args>
         static constexpr ::std::array invoke_result{::std::invocable<Func, Args...>...};
     };
+
+    namespace details
+    {
+#define LIKE_INVOCABLES(const_, ref)                                                         \
+    template<auto Index, typename... Func>                                                   \
+    consteval const_ typename invocables<Func...>::template type<Index> ref like_invocables( \
+        const_ invocables<Func...> ref                                                       \
+    );
+
+        LIKE_INVOCABLES(, &)
+        LIKE_INVOCABLES(const, &)
+        LIKE_INVOCABLES(, &&)
+        LIKE_INVOCABLES(const, &&)
+
+#undef LIKE_INVOCABLES
+    }
+
+    template<auto Index>
+    struct invoke_at_fn
+    {
+        template<
+            typename T,
+            typename... Args,
+            ::std::invocable<Args...> Invocable =
+                decltype(details::like_invocables<Index>(::std::declval<T>())) // clang-format off
+        > // clang-format on
+        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
+            noexcept(concepts::nothrow_invocable<Invocable, Args...>)
+        {
+            return get<Index>(::std::forward<T>(t))(::std ::forward<Args>(args)...);
+        }
+    };
+
+    template<auto Index>
+    static constexpr invoke_at_fn<Index> invoke_at{};
 
     template<typename... Func>
     struct sequenced_invocables : invocables<Func...>
@@ -101,37 +108,39 @@ namespace stdsharp::functional
     sequenced_invocables(Func&&...) -> sequenced_invocables<::std::decay_t<Func>...>;
 
     template<typename... Func>
-    class trivial_invocables : sequenced_invocables<Func...>
+    class trivial_invocables
     {
-        using base = sequenced_invocables<Func...>;
+        using invocables_t = sequenced_invocables<Func...>;
+
+        invocables_t fn_;
 
     public:
         trivial_invocables() = default;
 
         template<typename... F>
-            requires concepts::list_initializable_from<base, F...>
+            requires concepts::list_initializable_from<invocables_t, F...>
         constexpr trivial_invocables(F&&... f) //
-            noexcept(concepts::nothrow_list_initializable_from<base, F...>):
-            base{::std::forward<F>(f)...}
+            noexcept(concepts::nothrow_list_initializable_from<invocables_t, F...>):
+            fn_{::std::forward<F>(f)...}
         {
         }
 
         template<typename... Args>
-        static constexpr auto invoke_result = base::template invoke_result<Args...>;
+        static constexpr auto invoke_result = invocables_t::template invoke_result<Args...>;
 
-#define STDSHARP_OPERATOR(const_, ref)                                  \
-    template<typename... Args, typename This = const_ base ref>         \
-        requires ::std::invocable<This, Args...> &&                     \
-        (::std::ranges::count(invoke_result<Args...>, true) == 1)       \
-    constexpr decltype(auto) operator()(Args&&... args)                 \
-        const_ ref noexcept(concepts::nothrow_invocable<This, Args...>) \
-    {                                                                   \
-        return static_cast<This>(*this)(::std::forward<Args>(args)...); \
-    }                                                                   \
-                                                                        \
-    constexpr operator const_ invocables<Func...> ref() const_ ref      \
-    {                                                                   \
-        return static_cast<const_ invocables<Func...> ref>(*this);      \
+#define STDSHARP_OPERATOR(const_, ref)                                        \
+    template<typename... Args, typename Invocables = const_ invocables_t ref> \
+        requires ::std::invocable<Invocables, Args...> &&                     \
+        (::std::ranges::count(invoke_result<Args...>, true) == 1)             \
+    constexpr decltype(auto) operator()(Args&&... args)                       \
+        const_ ref noexcept(concepts::nothrow_invocable<Invocables, Args...>) \
+    {                                                                         \
+        return static_cast<Invocables>(fn_)(::std::forward<Args>(args)...);   \
+    }                                                                         \
+                                                                              \
+    constexpr operator const_ invocables<Func...> ref() const_ ref            \
+    {                                                                         \
+        return static_cast<const_ invocables<Func...> ref>(fn_);              \
     }
 
         STDSHARP_OPERATOR(, &)
