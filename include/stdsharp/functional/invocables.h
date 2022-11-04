@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include <range/v3/numeric/accumulate.hpp>
+#include <algorithm>
 
 #include "../type_traits/core_traits.h"
 
@@ -109,10 +109,10 @@ namespace stdsharp::functional
         trivial_invocables() = default;
 
         template<typename... F>
-            requires ::std::invocable<type_traits::construct_fn<base>, F...>
+            requires concepts::list_initializable_from<base, F...>
         constexpr trivial_invocables(F&&... f) //
-            noexcept(concepts::nothrow_constructible_from<base, F...>):
-            base(::std::forward<F>(f)...)
+            noexcept(concepts::nothrow_list_initializable_from<base, F...>):
+            base{::std::forward<F>(f)...}
         {
         }
 
@@ -122,11 +122,16 @@ namespace stdsharp::functional
 #define STDSHARP_OPERATOR(const_, ref)                                  \
     template<typename... Args, typename This = const_ base ref>         \
         requires ::std::invocable<This, Args...> &&                     \
-        (::ranges::accumulate(invoke_result<Args...>) <= 1)             \
+        (::std::ranges::count(invoke_result<Args...>, true) == 1)       \
     constexpr decltype(auto) operator()(Args&&... args)                 \
         const_ ref noexcept(concepts::nothrow_invocable<This, Args...>) \
     {                                                                   \
         return static_cast<This>(*this)(::std::forward<Args>(args)...); \
+    }                                                                   \
+                                                                        \
+    constexpr operator const_ invocables<Func...> ref() const_ ref      \
+    {                                                                   \
+        return static_cast<const_ invocables<Func...> ref>(*this);      \
     }
 
         STDSHARP_OPERATOR(, &)
