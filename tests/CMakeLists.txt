@@ -12,7 +12,7 @@ include(Catch)
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src
-    src/tests.cpp
+    src/main.cpp
     src/pattern_match_test.cpp
     src/concurrent_object_test.cpp
     src/algorithm/algorithm_test.cpp
@@ -29,8 +29,7 @@ set(src
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
-target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp
-                                                   Catch2::Catch2WithMain)
+target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp Catch2::Catch2)
 
 config_exe(${PROJECT_NAME} EXE_SRC ${src})
 

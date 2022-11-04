@@ -10,23 +10,17 @@
 namespace stdsharp::functional
 {
     template<typename Func>
-    class invocable : value_wrapper<Func>
+    struct invocable : value_wrapper<Func>
     {
-        using base = value_wrapper<Func>;
+        using value_wrapper<Func>::value;
 
-    public:
-        using base::base;
-
-#define STDSHARP_OPERATOR(const_, ref)                                             \
-    template<typename... Args>                                                     \
-        requires ::std::invocable<const_ Func ref, Args...>                        \
-    constexpr decltype(auto) operator()(Args&&... args)                            \
-        const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, Args...>) \
-    {                                                                              \
-        return ::std::invoke(                                                      \
-            static_cast<const_ Func ref>(base::value),                             \
-            ::std::forward<Args>(args)...                                          \
-        );                                                                         \
+#define STDSHARP_OPERATOR(const_, ref)                                                            \
+    template<typename... Args>                                                                    \
+        requires ::std::invocable<const_ Func ref, Args...>                                       \
+    constexpr decltype(auto) operator()(Args&&... args)                                           \
+        const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, Args...>)                \
+    {                                                                                             \
+        return ::std::invoke(static_cast<const_ Func ref>(value), ::std::forward<Args>(args)...); \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -108,39 +102,21 @@ namespace stdsharp::functional
     sequenced_invocables(Func&&...) -> sequenced_invocables<::std::decay_t<Func>...>;
 
     template<typename... Func>
-    class trivial_invocables
+    struct trivial_invocables : invocables<Func...>
     {
-        using invocables_t = sequenced_invocables<Func...>;
-
-        invocables_t fn_;
-
-    public:
-        trivial_invocables() = default;
-
-        template<typename... F>
-            requires concepts::list_initializable_from<invocables_t, F...>
-        constexpr trivial_invocables(F&&... f) //
-            noexcept(concepts::nothrow_list_initializable_from<invocables_t, F...>):
-            fn_{::std::forward<F>(f)...}
-        {
-        }
-
-        template<typename... Args>
-        static constexpr auto invoke_result = invocables_t::template invoke_result<Args...>;
-
-#define STDSHARP_OPERATOR(const_, ref)                                        \
-    template<typename... Args, typename Invocables = const_ invocables_t ref> \
-        requires ::std::invocable<Invocables, Args...> &&                     \
-        (::std::ranges::count(invoke_result<Args...>, true) == 1)             \
-    constexpr decltype(auto) operator()(Args&&... args)                       \
-        const_ ref noexcept(concepts::nothrow_invocable<Invocables, Args...>) \
-    {                                                                         \
-        return static_cast<Invocables>(fn_)(::std::forward<Args>(args)...);   \
-    }                                                                         \
-                                                                              \
-    constexpr operator const_ invocables<Func...> ref() const_ ref            \
-    {                                                                         \
-        return static_cast<const_ invocables<Func...> ref>(fn_);              \
+#define STDSHARP_OPERATOR(const_, ref)                                                         \
+    template<                                                                                  \
+        typename... Args,                                                                      \
+        auto InvokeResult = trivial_invocables::template invoke_result<Args...>,               \
+        typename InvokeAt =                                                                    \
+            invoke_at_fn<::std::ranges::find(InvokeResult, true) - InvokeResult.cbegin()>,     \
+        typename This = const_ trivial_invocables ref>                                         \
+        requires ::std::invocable<InvokeAt, This, Args...> &&                                  \
+        (::std::ranges::count(trivial_invocables::template invoke_result<Args...>, true) == 1) \
+    constexpr decltype(auto) operator()(Args&&... args)                                        \
+        const_ ref noexcept(concepts::nothrow_invocable<InvokeAt, This, Args...>)              \
+    {                                                                                          \
+        return InvokeAt{}(static_cast<This>(*this), ::std::forward<Args>(args)...);            \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -155,12 +131,9 @@ namespace stdsharp::functional
     trivial_invocables(Func&&...) -> trivial_invocables<::std::decay_t<Func>...>;
 
     template<typename Func>
-    class nodiscard_invocable : invocable<Func>
+    struct nodiscard_invocable : invocable<Func>
     {
         using base = invocable<Func>;
-
-    public:
-        using base::base;
 
 #define STDSHARP_OPERATOR(const_, ref)                                             \
     template<typename... Args>                                                     \

@@ -11,13 +11,6 @@ namespace stdsharp
 
         T value;
 
-        template<typename... U>
-            requires ::std::constructible_from<T, U...>
-        constexpr value_wrapper(U&&... u) noexcept(concepts::nothrow_constructible_from<T, U...>):
-            value(::std::forward<U>(u)...)
-        {
-        }
-
 #define STDSHARP_OPERATOR(const_, ref)                    \
     constexpr operator const_ T ref() const_ ref noexcept \
     {                                                     \

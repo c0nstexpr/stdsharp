@@ -1,7 +1,7 @@
-#include <fmt/ranges.h>
+#include "stdsharp/functional/invocables.h"
+#include "stdsharp/type_traits/value_sequence.h"
 
 #include "test.h"
-#include "stdsharp/type_traits/value_sequence.h"
 
 using namespace std;
 using namespace fmt;
@@ -58,12 +58,9 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    constexpr auto find_if_functor_1 = [](const auto&) { return true; };
-    constexpr auto find_if_functor_2 = [](const auto&) { return false; };
-    constexpr auto find_if_functor_3 = []<typename T>(const T v)
-    {
-        if constexpr(same_as<T, size_t>) return v == 7;
-        else return false;
+    constexpr functional::sequenced_invocables find_if_functor_3{
+        [](const size_t v) { return v == 7; },
+        only_false //
     };
 }
 
@@ -71,8 +68,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence find if",
     "[type traits]",
     ((auto Fn, auto Expect), Fn, Expect),
-    (find_if_functor_1, 0),
-    (find_if_functor_2, test_seq::size()),
+    (only_true, 0),
+    (only_false, test_seq::size()),
     (find_if_functor_3, 2)
 )
 {
@@ -93,17 +90,18 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    constexpr auto count_if_functor_1 = [](const auto&) { return true; };
-    constexpr auto count_if_functor_2 = [](const auto&) { return false; };
-    constexpr auto count_if_functor_3 = []<typename T>(const T) { return integral<T>; };
+    constexpr functional::sequenced_invocables count_if_functor_3{
+        [](const size_t) { return true; },
+        only_false //
+    };
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence count if",
     "[type traits]",
     ((auto Fn, auto Expect), Fn, Expect),
-    (count_if_functor_1, test_seq::size()),
-    (count_if_functor_2, 0),
+    (only_true, test_seq::size()),
+    (only_false, 0),
     (count_if_functor_3, 4)
 )
 {
@@ -121,10 +119,7 @@ namespace // Escape Catch2 special characters like '[' and ']'
     constexpr auto transform_functor_2 = [](const int v) { return v + 42; };
     constexpr auto transform_functor_3 = [](const size_t v) { return v + 42; };
     constexpr auto transform_functor_4 = [](const int v) { return v + 6; };
-    constexpr auto transform_functor_5 = []<auto Size>(const array<char, Size>& str)
-    {
-        return str[0];
-    };
+    constexpr auto transform_functor_5 = [](const array<char, 11>& str) { return str[0]; };
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

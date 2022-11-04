@@ -9,3 +9,6 @@ constexpr ::std::string_view type() noexcept
 {
     return __func__; // NOLINT
 }
+
+constexpr auto only_true = [](const auto&) { return true; };
+constexpr auto only_false = [](const auto&) { return false; };

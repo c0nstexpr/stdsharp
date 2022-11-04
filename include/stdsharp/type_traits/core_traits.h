@@ -114,11 +114,9 @@ namespace stdsharp::type_traits
     class indexed_type;
 
     template<typename T, ::std::size_t Index>
-    class indexed_type : value_wrapper<T>
+    struct indexed_type : value_wrapper<T>
     {
-        using base = value_wrapper<T>;
-
-        using base::value;
+        using value_wrapper<T>::value;
 
 #define STDSHARP_GET(const_, ref)                                               \
     template<::std::size_t I>                                                   \
@@ -134,9 +132,6 @@ namespace stdsharp::type_traits
         STDSHARP_GET(const, &&)
 
 #undef STDSHARP_GET
-
-    public:
-        using base::base;
     };
 
     namespace details
