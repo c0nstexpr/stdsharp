@@ -20,7 +20,7 @@
 #include "../cstdint/cstdint.h"
 #include "../concepts/concepts.h"
 
-namespace stdsharp::fmt
+namespace stdsharp
 {
     namespace details
     {

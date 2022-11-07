@@ -471,15 +471,13 @@ namespace fmt
     private:
         using space_size = ::stdsharp::filesystem::space_size<Rep, Period>;
 
-#define FMTSHARP ::stdsharp::fmt
-        FMTSHARP::fill_spec<CharT> fill_{};
-        FMTSHARP::align_t align_{};
-        FMTSHARP::nested_spec<::std::size_t> width_{};
+        ::stdsharp::fill_spec<CharT> fill_{};
+        ::stdsharp::align_t align_{};
+        ::stdsharp::nested_spec<::std::size_t> width_{};
 
-        FMTSHARP::precision_spec precision_{};
+        ::stdsharp::precision_spec precision_{};
 
-        FMTSHARP::locale_spec locale_{};
-#undef FMTSHARP
+        ::stdsharp::locale_spec locale_{};
 
         ::std::basic_string_view<CharT> from_unit_;
 
@@ -489,8 +487,6 @@ namespace fmt
     public:
         constexpr auto parse(basic_format_parse_context<CharT>& ctx)
         {
-            namespace fmtsharp = ::stdsharp::fmt;
-
             {
                 basic_format_parse_context<CharT> copied_ctx{
                     ::std::basic_string_view{ctx.begin(), ctx.end()} //
@@ -498,16 +494,16 @@ namespace fmt
 
                 const auto size = ::std::ranges::size(copied_ctx);
 
-                const auto fill = fmtsharp::parse_fill_spec(copied_ctx);
+                const auto fill = ::stdsharp::parse_fill_spec(copied_ctx);
 
                 if(fill.fill)
                 {
-                    const auto align = fmtsharp::parse_align_spec(copied_ctx);
+                    const auto align = ::stdsharp::parse_align_spec(copied_ctx);
 
-                    if(align != fmtsharp::align_t::none)
+                    if(align != ::stdsharp::align_t::none)
                     {
                         const auto width =
-                            fmtsharp::parse_nested_integer_spec<::std::size_t>(copied_ctx);
+                            ::stdsharp::parse_nested_integer_spec<::std::size_t>(copied_ctx);
 
                         if(!width.valueless_by_exception())
                         {
@@ -521,8 +517,8 @@ namespace fmt
                 }
             }
 
-            precision_ = fmtsharp::parse_precision_spec(ctx);
-            locale_ = fmtsharp::parse_locale_spec(ctx);
+            precision_ = ::stdsharp::parse_precision_spec(ctx);
+            locale_ = ::stdsharp::parse_locale_spec(ctx);
 
             {
                 const auto [from_unit] = ::ctre::starts_with<R"((?:[KMGTPE]i?)?B|b)">(ctx);
@@ -534,7 +530,7 @@ namespace fmt
                 }
             }
 
-            fmtsharp::parse_end_assert(ctx);
+            ::stdsharp::parse_end_assert(ctx);
 
             return ctx.begin();
         }
@@ -542,10 +538,8 @@ namespace fmt
         template<typename OutputIt>
         auto format(const space_size s, basic_format_context<OutputIt, CharT>& fc) const
         {
-            namespace fmtsharp = ::stdsharp::fmt;
-
             const auto& fill = fill_.fill;
-            const auto width = fmtsharp::get_arg(fc, width_);
+            const auto width = ::stdsharp::get_arg(fc, width_);
             const auto& formatted = [this, s = s, &fc]() mutable
             {
                 const auto& precision = precision_.precision;
@@ -626,7 +620,7 @@ namespace fmt
 #endif
                 else ss.imbue(::std::locale::classic());
 
-                if(const auto precision_v = fmtsharp::get_arg(fc, precision); precision_v)
+                if(const auto precision_v = ::stdsharp::get_arg(fc, precision); precision_v)
                     for(auto i = *precision_v; i != 0; --i) do_format();
                 else
                     while(s.size() > 0)
@@ -646,7 +640,7 @@ namespace fmt
             if(
                 [=, &formatted, &fc, align = align_]
                 {
-                    if(fill && width && align != fmtsharp::align_t::none)
+                    if(fill && width && align != ::stdsharp::align_t::none)
                     {
                         const auto width_v = *width;
 
@@ -657,17 +651,17 @@ namespace fmt
 
                             switch(align)
                             {
-                            case fmtsharp::align_t::left:
+                            case ::stdsharp::align_t::left:
                                 ::std::ranges::copy(formatted, fc.out());
                                 ::std::ranges::fill_n(fc.out(), fill_size, fill_c);
                                 break;
 
-                            case fmtsharp::align_t::right:
+                            case ::stdsharp::align_t::right:
                                 ::std::ranges::fill_n(fc.out(), fill_size, fill_c);
                                 ::std::ranges::copy(formatted, fc.out());
                                 break;
 
-                            case fmtsharp::align_t::center:
+                            case ::stdsharp::align_t::center:
                             {
                                 const auto half_fill_s = fill_size / 2;
                                 ::std::ranges::fill_n(fc.out(), half_fill_s, fill_c);
