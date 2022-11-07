@@ -362,15 +362,13 @@ namespace stdsharp
                 same_as<decltype(const_ref), type_traits::add_const_lvalue_ref_t<decltype(value)>>;
             requires ::std::same_as<decltype(iter), ::std::ranges::iterator_t<decltype(instance)>>;
             requires ::std::same_as<decltype(iter), ::std::ranges::sentinel_t<decltype(instance)>>;
-            requires ::std::
-                same_as<decltype(const_iter), ranges::const_iterator_t<decltype(instance)>>;
-            requires ::std::
-                same_as<decltype(const_iter), ranges::const_sentinel_t<decltype(instance)>>;
+            requires ::std::same_as<decltype(const_iter), const_iterator_t<decltype(instance)>>;
+            requires ::std::same_as<decltype(const_iter), const_sentinel_t<decltype(instance)>>;
             requires ::std::same_as<decltype(ref), decltype(rng_ref)> ||
                 ::std::same_as<decltype(const_ref), decltype(rng_ref)>;
             requires ::std::same_as<
                 decltype(const_ref),
-                ranges::range_const_reference_t<decltype(instance)> // clang-format off
+                range_const_reference_t<decltype(instance)> // clang-format off
             >; // clang-format on
             requires ::std::signed_integral<decltype(diff)>;
             requires ::std::
@@ -839,5 +837,5 @@ namespace stdsharp
 
     template<typename Predicate, typename Container>
     concept container_predicatable =
-        ::std::predicate<Predicate, ranges::range_const_reference_t<Container>>;
+        ::std::predicate<Predicate, range_const_reference_t<Container>>;
 }

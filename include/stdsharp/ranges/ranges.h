@@ -11,7 +11,7 @@
 
 #include "../type_traits/core_traits.h"
 
-namespace stdsharp::ranges
+namespace stdsharp
 {
     template<typename T>
     using const_iterator_t = decltype(::std::ranges::cbegin(::std::declval<T&>()));
