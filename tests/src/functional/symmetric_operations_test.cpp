@@ -5,9 +5,7 @@
 using namespace std;
 using namespace fmt;
 using namespace stdsharp;
-
 using namespace functional;
-using namespace containers;
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: symmetric assign operation",

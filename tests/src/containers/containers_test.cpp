@@ -5,8 +5,6 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-using namespace containers;
-
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: container concept",
     "[containers]",

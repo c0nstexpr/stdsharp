@@ -33,10 +33,7 @@ namespace stdsharp
     {
         using type = ::std::allocator<T>;
     };
-}
 
-namespace stdsharp::containers
-{
     template<typename ValueType, typename Allocator>
     concept erasable = requires(Allocator allocator_instance, ValueType* ptr) //
     {
