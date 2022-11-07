@@ -194,7 +194,7 @@ namespace stdsharp::functional
                                                                                                    \
     inline constexpr struct post_##operator_prefix##crease                                         \
     {                                                                                              \
-        template<iterator::weakly_decrementable T>                                                 \
+        template<weakly_decrementable T>                                                           \
             requires requires(T t) { t op##op; }                                                   \
         [[nodiscard]] constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(v op##op)) \
         {                                                                                          \

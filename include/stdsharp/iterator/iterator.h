@@ -7,16 +7,9 @@
 #include <iterator>
 
 #include "../type_traits/core_traits.h"
-#include "../concepts/concepts.h"
 
-namespace stdsharp::iterator
+namespace stdsharp
 {
-    template<typename T>
-    concept referenceable = requires { typename ::std::add_lvalue_reference<T>; };
-
-    template<typename T> // clang-format off
-    concept dereferenceable = requires(T& t) { { *t } -> referenceable; }; // clang-format on
-
     namespace details
     {
         template<typename T>
