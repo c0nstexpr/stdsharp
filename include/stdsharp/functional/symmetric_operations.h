@@ -2,7 +2,7 @@
 
 #include "bind.h"
 
-namespace stdsharp
+namespace stdsharp::cpo::inline cpo_impl
 {
     namespace details
     {
@@ -71,10 +71,7 @@ namespace stdsharp
             sequenced_invocables<adl_symmetric_operation_fn, specialized_operation_fn>;
     }
 
-    namespace cpo::inline cpo_impl
-    {
-        using details::symmetric_operation_fn;
+    using details::symmetric_operation_fn;
 
-        inline constexpr symmetric_operation_fn symmetric_operation{};
-    }
+    inline constexpr symmetric_operation_fn symmetric_operation{};
 }

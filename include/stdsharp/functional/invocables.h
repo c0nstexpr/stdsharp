@@ -10,7 +10,7 @@
 namespace stdsharp
 {
     template<typename Func>
-    struct invocable : value_wrapper<Func>
+    struct invocable_t : value_wrapper<Func>
     {
         using value_wrapper<Func>::value;
 
@@ -32,7 +32,7 @@ namespace stdsharp
     };
 
     template<typename... Func>
-    struct invocables : type_traits::indexed_types<invocable<Func>...>
+    struct invocables : type_traits::indexed_types<invocable_t<Func>...>
     {
         template<typename... Args>
         static constexpr ::std::array invoke_result{::std::invocable<Func, Args...>...};
@@ -131,9 +131,9 @@ namespace stdsharp
     trivial_invocables(Func&&...) -> trivial_invocables<::std::decay_t<Func>...>;
 
     template<typename Func>
-    struct nodiscard_invocable : invocable<Func>
+    struct nodiscard_invocable : invocable_t<Func>
     {
-        using base = invocable<Func>;
+        using base = invocable_t<Func>;
 
 #define STDSHARP_OPERATOR(const_, ref)                                             \
     template<typename... Args>                                                     \
