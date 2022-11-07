@@ -12,7 +12,6 @@ include(Catch)
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src
-    src/main.cpp
     src/pattern_match_test.cpp
     src/concurrent_object_test.cpp
     src/algorithm/algorithm_test.cpp
@@ -29,7 +28,8 @@ set(src
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
-target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp Catch2::Catch2)
+target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp
+                                                   Catch2::Catch2WithMain)
 
 config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
@@ -59,5 +59,22 @@ catch_discover_tests(${PROJECT_NAME})
 set(CODE_COVERAGE_EXT CACHE STRING "Enable code coverage")
 
 if(CODE_COVERAGE_EXT)
-  target_coverage(${PROJECT_NAME} FORMAT ${CODE_COVERAGE_EXT})
+  set(PROFILE_FILE "${PROJECT_NAME}.profraw")
+
+  add_custom_command(
+    OUTPUT ${PROFILE_FILE}
+    DEPENDS ${PROJECT_NAME}
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${PROFILE_FILE}
+    COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${PROFILE_FILE}
+            $<TARGET_FILE:${PROJECT_NAME}> # Run first to generate profraw file
+  )
+
+  target_coverage(
+    ${PROJECT_NAME}
+    FORMAT
+    ${CODE_COVERAGE_EXT}
+    DEPENDS
+    ${PROFILE_FILE}
+    PROFILE_FILE
+    ${PROFILE_FILE})
 endif()

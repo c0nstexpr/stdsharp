@@ -1,7 +1,7 @@
 option(
   VERBOSE_OUTPUT
   "Enable verbose output, allowing for a better understanding of each step taken."
-  ON)
+  OFF)
 
 add_compile_options(
   $<$<CXX_COMPILER_ID:MSVC>:/utf-8>$<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>)
@@ -16,6 +16,10 @@ else()
   )
   add_compile_definitions("NDEBUG")
 endif()
+
+include(ProcessorCount)
+
+ProcessorCount(PROCESSOR_COUNT)
 
 function(verbose_message)
   if(VERBOSE_OUTPUT)
@@ -201,11 +205,11 @@ function(target_install target)
       "${target_config}"
       CONTENT
       "include(CMakeFindDependencyMacro)
-list(APPEND CMAKE_MODULE_PATH \"$\{CMAKE_CURRENT_LIST_DIR}\")
+list(APPEND CMAKE_MODULE_PATH $\{CMAKE_CURRENT_LIST_DIR})
 foreach(dependency ${ARG_DEPENDENCIES})
-    find_dependency(\"$\{dependency}\")
+    find_dependency($\{dependency})
 endforeach()
-include(\"$\{CMAKE_CURRENT_LIST_DIR}/${target}Targets.cmake\")"
+include($\{CMAKE_CURRENT_LIST_DIR}/${target}Targets.cmake)"
       @ONLY
       ESCAPE_QUOTES)
   endif()
@@ -289,14 +293,14 @@ function(target_coverage target_name)
   message(STATUS "found llvm-profdata at: ${llvm_profdata}")
   message(STATUS "found llvm-cov at: ${llvm_cov}")
 
-  cmake_parse_arguments(ARG "" "FORMAT" "" ${ARGN})
+  cmake_parse_arguments(ARG "" "FORMAT;PROFILE_FILE" "DEPENDS" ${ARGN})
 
   set(options -fprofile-instr-generate -fcoverage-mapping)
 
   target_compile_options(${target_name} PUBLIC ${options})
   target_link_options(${target_name} PUBLIC ${options})
 
-  set(profdata_file_name "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.profdata")
+  set(profdata_file_name "${target_name}.profdata")
 
   if(${ARG_FORMAT} STREQUAL text)
     set(coverage_file json)
@@ -306,16 +310,21 @@ function(target_coverage target_name)
     message(FATAL_ERROR "unknown format ${ARG_FORMAT}")
   endif()
 
-  set(coverage_file
-      "${CMAKE_CURRENT_BINARY_DIR}/${target_name}Coverage.${coverage_file}")
+  if(NOT DEFINED ARG_PROFILE_FILE)
+    set(ARG_PROFILE_FILE "$ENV{LLVM_PROFILE_FILE}")
+  endif()
+
+  set(coverage_file "${target_name}Coverage.${coverage_file}")
+
   add_custom_target(
     ${target_name}CoverageReport ALL
-    DEPENDS ${target_name}
+    DEPENDS ${target_name} ${ARG_DEPENDS}
+    COMMAND ${CMAKE_COMMAND} -E rm -f "${profdata_file_name}" "${coverage_file}"
     COMMAND "${llvm_profdata}" merge --sparse -o="${profdata_file_name}"
-            $ENV{LLVM_PROFILE_FILE}
+            "${ARG_PROFILE_FILE}"
     COMMAND
       "${llvm_cov}" export -format=${ARG_FORMAT}
-      -object=$<TARGET_FILE:${target_name}>
+      -object="$<TARGET_FILE:${target_name}>"
       -instr-profile="${profdata_file_name}" > "${coverage_file}"
     USES_TERMINAL)
 endfunction()
