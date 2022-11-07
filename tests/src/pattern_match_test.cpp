@@ -15,8 +15,6 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
         three
     };
 
-    using namespace functional;
-
     GIVEN(
         R"(enum class has three values: "one", "two", "three" and three cases matches separate value)"
     )
@@ -26,7 +24,7 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
             constexpr auto match = []() consteval
             {
                 my_enum matched{};
-                const auto& matched_assign = functional::bind(assign_v, matched);
+                const auto& matched_assign = stdsharp::bind(assign_v, matched);
 
                 pattern_match(
                     my_enum::two,

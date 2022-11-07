@@ -4,7 +4,6 @@
 using namespace std;
 using namespace fmt;
 using namespace stdsharp;
-using namespace functional;
 
 template<typename Container>
     requires associative_like_container<Container>

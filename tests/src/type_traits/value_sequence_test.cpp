@@ -58,7 +58,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    constexpr functional::sequenced_invocables find_if_functor_3{
+    constexpr sequenced_invocables find_if_functor_3{
         [](const size_t v) { return v == 7; },
         only_false //
     };
@@ -90,7 +90,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    constexpr functional::sequenced_invocables count_if_functor_3{
+    constexpr sequenced_invocables count_if_functor_3{
         [](const size_t) { return true; },
         only_false //
     };

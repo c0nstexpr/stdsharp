@@ -116,7 +116,7 @@ namespace stdsharp::reflection
     }
 
     template<typename T>
-    inline constexpr functional::nodiscard_invocable get_data_members{
+    inline constexpr nodiscard_invocable get_data_members{
         []() noexcept
         {
             return get_members<T>() |

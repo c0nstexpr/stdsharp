@@ -8,7 +8,7 @@
 
 // comes from range-v3 pipeable.hpp
 // add noexcept feature
-namespace stdsharp::functional
+namespace stdsharp
 {
     enum class pipe_mode
     {

@@ -137,7 +137,7 @@ namespace stdsharp::actions
         };                                                                                  \
     }                                                                                       \
                                                                                             \
-    using emplace_##where##_fn = functional::sequenced_invocables<                          \
+    using emplace_##where##_fn = sequenced_invocables<                                      \
         details::emplace_##where##_mem_fn,                                                  \
         details::emplace_##where##_default_fn>;                                             \
                                                                                             \
@@ -200,7 +200,7 @@ namespace stdsharp::actions
             };
         }
 
-        using erase_if_fn = functional::
+        using erase_if_fn =
             sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
 
         inline constexpr erase_if_fn erase_if{};
@@ -249,7 +249,7 @@ namespace stdsharp::actions
         };                                                                                      \
     }                                                                                           \
                                                                                                 \
-    using pop_##where##_fn = functional::                                                       \
+    using pop_##where##_fn =                                                                    \
         sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>; \
                                                                                                 \
     inline constexpr pop_##where##_fn pop_##where{};
@@ -302,7 +302,7 @@ namespace stdsharp::actions
         };
 
         template<typename Container>
-        using regular_make_container_fn = functional::sequenced_invocables<
+        using regular_make_container_fn = sequenced_invocables<
             type_traits::construct_fn<Container>,
             details::emplace_make_container_fn<Container> // clang-format off
         >; // clang-format on
@@ -332,7 +332,7 @@ namespace stdsharp::actions
     }
 
     template<typename Container>
-    using make_container_fn = functional::sequenced_invocables<
+    using make_container_fn = sequenced_invocables<
         type_traits::construct_fn<Container>,
         details::emplace_make_container_fn<Container>,
         details::make_container_from_tuple_fn<Container> // clang-format off

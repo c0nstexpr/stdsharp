@@ -2,7 +2,7 @@
 
 #include "bind.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     namespace details
     {
@@ -10,38 +10,32 @@ namespace stdsharp::functional
         struct arithmetic_operation;
 
         template<>
-        struct arithmetic_operation<functional::plus_assign> :
-            ::std::type_identity<functional::minus_assign>
+        struct arithmetic_operation<plus_assign> : ::std::type_identity<minus_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<functional::minus_assign> :
-            ::std::type_identity<functional::plus_assign>
+        struct arithmetic_operation<minus_assign> : ::std::type_identity<plus_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<functional::multiplies_assign> :
-            ::std::type_identity<functional::divides_assign>
+        struct arithmetic_operation<multiplies_assign> : ::std::type_identity<divides_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<functional::divides_assign> :
-            ::std::type_identity<functional::multiplies_assign>
+        struct arithmetic_operation<divides_assign> : ::std::type_identity<multiplies_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<functional::negate_assign> :
-            ::std::type_identity<functional::negate_assign>
+        struct arithmetic_operation<negate_assign> : ::std::type_identity<negate_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<functional::logical_not_assign> :
-            ::std::type_identity<functional::logical_not_assign>
+        struct arithmetic_operation<logical_not_assign> : ::std::type_identity<logical_not_assign>
         {
         };
 

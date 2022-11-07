@@ -2,7 +2,7 @@
 
 #include "../tuple/tuple.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     template<typename... T>
     using std_bind_t = decltype(::std::bind(::std::declval<T>()...));

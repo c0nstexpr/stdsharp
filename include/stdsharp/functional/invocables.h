@@ -7,7 +7,7 @@
 
 #include "../type_traits/core_traits.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     template<typename Func>
     struct invocable : value_wrapper<Func>

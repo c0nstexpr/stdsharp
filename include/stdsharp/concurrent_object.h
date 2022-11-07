@@ -200,14 +200,14 @@ namespace stdsharp
             requires requires { requires Name == "write"sv; }
         [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
-            return functional::bind(write_fn{}, ::std::forward<This>(instance));
+            return bind(write_fn{}, ::std::forward<This>(instance));
         }
 
         template<auto Name, decay_same_as<concurrent_object> This>
             requires requires { requires Name == "read"sv; }
         [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
-            return functional::bind(read_fn{}, ::std::forward<This>(instance));
+            return bind(read_fn{}, ::std::forward<This>(instance));
         }
     };
 

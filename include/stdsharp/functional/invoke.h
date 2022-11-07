@@ -4,7 +4,7 @@
 
 #include "invocables.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     inline constexpr struct empty_invoke_fn
     {

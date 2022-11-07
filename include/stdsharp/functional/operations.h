@@ -10,7 +10,7 @@
 #include "invocables.h"
 #include "../cstdint/cstdint.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     inline constexpr struct copy_fn
     {

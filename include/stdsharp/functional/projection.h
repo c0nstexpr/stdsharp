@@ -2,7 +2,7 @@
 
 #include "bind.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     inline constexpr struct projected_invoke_fn
     {

@@ -3,7 +3,7 @@
 #include "../utility/value_wrapper.h"
 #include "../type_traits/core_traits.h"
 
-namespace stdsharp::functional
+namespace stdsharp
 {
     namespace details
     {

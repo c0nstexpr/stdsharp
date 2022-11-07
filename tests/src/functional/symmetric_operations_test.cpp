@@ -5,7 +5,6 @@
 using namespace std;
 using namespace fmt;
 using namespace stdsharp;
-using namespace functional;
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: symmetric assign operation",
@@ -22,7 +21,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         {
             auto v = Value;
 
-            const auto& revert = functional::cpo::symmetric_operation(plus_assign_v, v, 1);
+            const auto& revert = cpo::symmetric_operation(plus_assign_v, v, 1);
             plus_assign_v(v, 1);
             REQUIRE(Value + 1 == v);
             revert();

@@ -18,8 +18,7 @@ namespace stdsharp
         noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
         -> T& // clang-format on
     {
-        if(functional::invoke_r<bool>(::std::move(comp), right, left))
-            left = ::std::forward<U>(right);
+        if(invoke_r<bool>(::std::move(comp), right, left)) left = ::std::forward<U>(right);
         return left;
     };
 
@@ -30,7 +29,7 @@ namespace stdsharp
         (T & left, U && right)
         noexcept(nothrow_invocable<set_if_fn, T&, U, ::std::ranges::greater>) -> T& // clang-format on
     {
-        return set_if(left, ::std::forward<U>(right), functional::greater_v);
+        return set_if(left, ::std::forward<U>(right), greater_v);
     };
 
     using set_if_greater_fn = decltype(set_if_greater);
@@ -40,7 +39,7 @@ namespace stdsharp
         (T& left, U&& right)
         noexcept(nothrow_invocable<set_if_fn, T&, U, ::std::ranges::less>) -> T& // clang-format on
     {
-        return set_if(left, ::std::forward<U>(right), functional::less_v);
+        return set_if(left, ::std::forward<U>(right), less_v);
     };
 
     using set_if_less_fn = decltype(set_if_less);
@@ -59,11 +58,10 @@ namespace stdsharp
             )
         {
             if constexpr(is_debug)
-                if(functional::invoke_r<bool>(cmp, max, min))
+                if(invoke_r<bool>(cmp, max, min))
                     throw ::std::invalid_argument{"max value should not less than min value"};
 
-            return !functional::invoke_r<bool>(cmp, t, min) &&
-                !functional::invoke_r<bool>(cmp, max, t);
+            return !invoke_r<bool>(cmp, t, min) && !invoke_r<bool>(cmp, max, t);
         }
     } is_between{};
 }

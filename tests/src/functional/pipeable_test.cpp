@@ -6,8 +6,6 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-using namespace functional;
-
 SCENARIO("pipeable, [functional]") // NOLINT
 {
     using left_pipeable_t = decltype(make_pipeable<>(identity_v));

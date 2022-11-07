@@ -45,7 +45,7 @@ namespace stdsharp
             {
             private:
                 template<typename Case>
-                static constexpr bool case_nothrow_invocable_ = functional::
+                static constexpr bool case_nothrow_invocable_ =
                     logical_imply(::std::invocable<Case, T>, nothrow_invocable<Case, T>);
 
             public:
