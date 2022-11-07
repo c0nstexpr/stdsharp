@@ -33,7 +33,7 @@ namespace stdsharp::functional
             >; // clang-format on
         }
         constexpr auto operator()(Fn&& fun) const noexcept( //
-            concepts::nothrow_invocable<
+            nothrow_invocable<
                 type_traits::make_inherited_fn,
                 pipeable_base<Mode>,
                 ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
@@ -65,7 +65,7 @@ namespace stdsharp::functional
             template<typename Arg, pipeable<pipe_mode::left> Pipe>
                 requires ::std::invocable<Pipe, Arg>
             friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe) //
-                noexcept(concepts::nothrow_invocable<Pipe, Arg>)
+                noexcept(nothrow_invocable<Pipe, Arg>)
             {
                 return ::std::invoke(::std::forward<Pipe>(pipe), ::std::forward<Arg>(arg));
             }
@@ -73,7 +73,7 @@ namespace stdsharp::functional
             template<pipeable<pipe_mode::right> Pipe, typename Arg>
                 requires ::std::invocable<Pipe, Arg>
             friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg) //
-                noexcept(concepts::nothrow_invocable<Pipe, Arg>)
+                noexcept(nothrow_invocable<Pipe, Arg>)
             {
                 return ::std::invoke(::std::forward<Pipe>(pipe), ::std::forward<Arg>(arg));
             }

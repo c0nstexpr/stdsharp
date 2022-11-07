@@ -148,8 +148,7 @@ namespace stdsharp::type_traits
 
             template<typename U>
                 requires ::std::predicate<Comp, U, T>
-            constexpr auto operator()(const U& other) const
-                noexcept(concepts::nothrow_predicate<Comp, U, T>)
+            constexpr auto operator()(const U& other) const noexcept(nothrow_predicate<Comp, U, T>)
             {
                 return static_cast<bool>(::std::invoke(comp, other, value));
             }
@@ -193,9 +192,9 @@ namespace stdsharp::type_traits
                     >; // clang-format on
             }
             constexpr auto operator()(Func&& func) const noexcept(
-                (concepts::nothrow_invocable<Func, decltype(Values)> && ...) &&
+                (nothrow_invocable<Func, decltype(Values)> && ...) &&
                 (::std::same_as<ResultType, void> ||
-                 concepts::nothrow_constructible_from<
+                 nothrow_constructible_from<
                      ResultType,
                      ::std::invoke_result_t<Func, decltype(Values)>... // clang-format off
                 >) // clang-format on
@@ -249,7 +248,7 @@ namespace stdsharp::type_traits
             template<typename Func>
                 requires ::std::invocable<IfFunc, Func>
             [[nodiscard]] constexpr auto operator()(Func&& func) const
-                noexcept(concepts::nothrow_invocable<IfFunc, Func>)
+                noexcept(nothrow_invocable<IfFunc, Func>)
             {
                 return IfFunc{}(::std::not_fn(::std::forward<Func>(func)));
             }
@@ -261,7 +260,7 @@ namespace stdsharp::type_traits
             template<typename T, typename Comp = ::std::ranges::equal_to>
                 requires ::std::invocable<IfFunc, details::value_comparer<T, Comp>>
             [[nodiscard]] constexpr auto operator()(const T& v, Comp comp = {}) const
-                noexcept(concepts::nothrow_invocable<IfFunc, details::value_comparer<T, Comp>>)
+                noexcept(nothrow_invocable<IfFunc, details::value_comparer<T, Comp>>)
             {
                 return IfFunc{}(details::value_comparer<T, Comp>{v, comp});
             }
@@ -273,7 +272,7 @@ namespace stdsharp::type_traits
             template<typename Func>
                 requires ::std::invocable<FindFunc, Func>
             [[nodiscard]] constexpr auto operator()(Func func) const
-                noexcept(concepts::nothrow_invocable<FindFunc, Func>)
+                noexcept(nothrow_invocable<FindFunc, Func>)
             {
                 const auto v = FindFunc{}(::std::forward<Func>(func));
                 if constexpr(Equal) return v == size();
@@ -287,7 +286,7 @@ namespace stdsharp::type_traits
             template<typename Func>
                 requires(::std::invocable<Func, decltype(Values)> && ...)
             constexpr auto operator()(Func func) const
-                noexcept((concepts::nothrow_invocable<Func, decltype(Values)> && ...))
+                noexcept((nothrow_invocable<Func, decltype(Values)> && ...))
             {
                 (::std::invoke(func, Values), ...);
                 return func;
@@ -299,7 +298,7 @@ namespace stdsharp::type_traits
             template<typename Func>
                 requires(::std::invocable<Func, decltype(Values)> && ...)
             constexpr auto operator()(auto for_each_n_count, Func func) const
-                noexcept((concepts::nothrow_invocable<Func, decltype(Values)> && ...))
+                noexcept((nothrow_invocable<Func, decltype(Values)> && ...))
             {
                 ((for_each_n_count == 0 ?
                       false :
@@ -314,7 +313,7 @@ namespace stdsharp::type_traits
             template<typename Func>
                 requires(::std::predicate<Func, decltype(Values)> && ...)
             [[nodiscard]] constexpr auto operator()(Func func) const
-                noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
+                noexcept((nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
                 type_traits::empty =
@@ -336,12 +335,12 @@ namespace stdsharp::type_traits
             template<typename Func>
                 requires(::std::predicate<Func, decltype(Values)> && ...)
             [[nodiscard]] constexpr auto operator()(Func func) const
-                noexcept((concepts::nothrow_predicate<Func, decltype(Values)> && ...))
+                noexcept((nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
                 for_each(
-                    [&i, &func](const auto& v
-                    ) noexcept(concepts::nothrow_invocable_r<Func, bool, decltype(v)> //
+                    [&i,
+                     &func](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
                         if(static_cast<bool>(::std::invoke(func, v))) ++i;
@@ -377,8 +376,7 @@ namespace stdsharp::type_traits
             {
                 template<typename Comp>
                     requires ::std::predicate<Comp>
-                constexpr auto operator()(Comp& comp) const
-                    noexcept(concepts::nothrow_predicate<Comp, bool>)
+                constexpr auto operator()(Comp& comp) const noexcept(nothrow_predicate<Comp, bool>)
                 {
                     return static_cast<bool>(::std::invoke(comp, at_v<I>, at_v<I + 1>));
                 }
@@ -390,7 +388,7 @@ namespace stdsharp::type_traits
             {
                 template<typename Comp, ::std::size_t... I>
                 constexpr auto operator()(Comp& comp, const ::std::index_sequence<I...>) const
-                    noexcept((concepts::nothrow_invocable<by_index<I>, Comp> && ...))
+                    noexcept((nothrow_invocable<by_index<I>, Comp> && ...))
                 {
                     ::std::size_t res{};
                     ( //
@@ -401,7 +399,7 @@ namespace stdsharp::type_traits
 
                 template<typename Comp, typename Seq = ::std::make_index_sequence<size() - 2>>
                 constexpr auto operator()(Comp& comp) const
-                    noexcept(concepts::nothrow_invocable<impl, Comp&, Seq>)
+                    noexcept(nothrow_invocable<impl, Comp&, Seq>)
                 {
                     return (*this)(comp, Seq{});
                 }
@@ -411,7 +409,7 @@ namespace stdsharp::type_traits
             template<typename Comp = ::std::ranges::equal_to>
                 requires((::std::invocable<decltype(Values)> && ...) && size() >= 2)
             [[nodiscard]] constexpr auto operator()(Comp comp = {}) const
-                noexcept(concepts::nothrow_invocable<impl, Comp>)
+                noexcept(nothrow_invocable<impl, Comp>)
             {
                 return impl{}(comp);
             }

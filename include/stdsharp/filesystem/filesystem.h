@@ -259,7 +259,7 @@ namespace stdsharp::filesystem
     template<typename CharT, typename Traits, typename Rep, typename Period>
         requires requires(std::basic_ostream<CharT, Traits> os, Rep rep) //
     {
-        requires concepts::same_as_any<
+        requires same_as_any<
             Period,
             bits::period,
             bytes::period,

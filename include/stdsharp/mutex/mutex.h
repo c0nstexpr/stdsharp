@@ -5,7 +5,7 @@
 
 using namespace ::std::literals;
 
-namespace stdsharp::concepts
+namespace stdsharp
 {
     template<typename T>
     concept basic_lockable = requires(T t) //

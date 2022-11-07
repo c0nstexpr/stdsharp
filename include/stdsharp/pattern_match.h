@@ -15,10 +15,9 @@ namespace stdsharp
             const Condition& condition,
             ::std::pair<Predicate, Func>... cases //
         ) const
-            noexcept(
-                ((concepts::nothrow_predicate<Predicate, Condition> &&
-                  concepts::nothrow_invocable<Func, Condition>)&&...)
-            )
+            noexcept((
+                (nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func, Condition>)&&...
+            ))
         {
             (
                 [&condition](::std::pair<Predicate, Func>&& pair)
@@ -47,7 +46,7 @@ namespace stdsharp
             private:
                 template<typename Case>
                 static constexpr bool case_nothrow_invocable_ = functional::
-                    logical_imply(::std::invocable<Case, T>, concepts::nothrow_invocable<Case, T>);
+                    logical_imply(::std::invocable<Case, T>, nothrow_invocable<Case, T>);
 
             public:
                 template<typename... Cases>

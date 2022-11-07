@@ -15,7 +15,7 @@ namespace stdsharp
     inline constexpr auto set_if = []<typename T, typename U, ::std::predicate<U, T> Comp>
         requires ::std::assignable_from<T&, U> // clang-format off
         (T& left, U&& right, Comp comp = {})
-        noexcept(concepts::nothrow_predicate<Comp, U, T> && concepts::nothrow_assignable_from<T&, U>)
+        noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
         -> T& // clang-format on
     {
         if(functional::invoke_r<bool>(::std::move(comp), right, left))
@@ -28,7 +28,7 @@ namespace stdsharp
     inline constexpr auto set_if_greater = []<typename T, typename U>
         requires ::std::invocable<set_if_fn, T&, U, ::std::ranges::greater> // clang-format off
         (T & left, U && right)
-        noexcept(concepts::nothrow_invocable<set_if_fn, T&, U, ::std::ranges::greater>) -> T& // clang-format on
+        noexcept(nothrow_invocable<set_if_fn, T&, U, ::std::ranges::greater>) -> T& // clang-format on
     {
         return set_if(left, ::std::forward<U>(right), functional::greater_v);
     };
@@ -38,7 +38,7 @@ namespace stdsharp
     inline constexpr auto set_if_less = []<typename T, typename U>
         requires ::std::invocable<set_if_fn, T&, U, ::std::ranges::less> // clang-format off
         (T& left, U&& right)
-        noexcept(concepts::nothrow_invocable<set_if_fn, T&, U, ::std::ranges::less>) -> T& // clang-format on
+        noexcept(nothrow_invocable<set_if_fn, T&, U, ::std::ranges::less>) -> T& // clang-format on
     {
         return set_if(left, ::std::forward<U>(right), functional::less_v);
     };
@@ -53,8 +53,8 @@ namespace stdsharp
             ::std::predicate<Compare, const Max, const Min>
         [[nodiscard]] constexpr auto
             operator()(const T& t, const Min& min, const Max& max, Compare cmp = {}) const noexcept(
-                concepts::nothrow_predicate<Compare, const T, const Min>&&
-                    concepts::nothrow_predicate<Compare, const Max, const T> &&
+                nothrow_predicate<Compare, const T, const Min>&&
+                    nothrow_predicate<Compare, const Max, const T> &&
                 !is_debug
             )
         {

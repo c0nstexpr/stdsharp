@@ -61,7 +61,7 @@ namespace stdsharp
                 const ::std::index_sequence<Second...>,
                 Fn&& fn,
                 Tuple&&... tuple // clang-format off
-            ) const noexcept(concepts::nothrow_invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>)
+            ) const noexcept(nothrow_invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>)
             { // clang-format on
                 return ::std::invoke(
                     ::std::forward<Fn>(fn),
@@ -88,8 +88,8 @@ namespace stdsharp
                 Fn&& fn,
                 Tuple&&... tuple // clang-format off
             ) const noexcept( // clang-format on
-                concepts::
-                    nothrow_invocable<apply_coord, ConstantT, FirstSeq, SecondSeq, Fn, Tuple...> //
+
+                nothrow_invocable<apply_coord, ConstantT, FirstSeq, SecondSeq, Fn, Tuple...> //
             )
             {
                 return apply_coord{}(
@@ -132,7 +132,7 @@ namespace stdsharp
                 requires ::std::invocable<construct_coords_seq, Constant, Seq, Fn, Tuple...>
 
             constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const
-                noexcept(concepts::nothrow_invocable<construct_coords_seq, Seq, Fn, Tuple...>)
+                noexcept(nothrow_invocable<construct_coords_seq, Seq, Fn, Tuple...>)
             {
                 return construct_coords_seq{}(
                     Constant{},
@@ -148,7 +148,7 @@ namespace stdsharp
             requires ::std::invocable<impl, Fn, Tuple...>
 
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const
-            noexcept(concepts::nothrow_invocable<impl, Fn, Tuple...>)
+            noexcept(nothrow_invocable<impl, Fn, Tuple...>)
         {
             return impl{}(::std::forward<Fn>(fn), ::std::forward<Tuple>(tuple)...);
         };
@@ -158,7 +158,7 @@ namespace stdsharp
     concept tuples_applicable = ::std::invocable<tuples_apply_fn, T...>;
 
     template<typename... T>
-    concept nothrow_tuples_applicable = concepts::nothrow_invocable<tuples_apply_fn, T...>;
+    concept nothrow_tuples_applicable = nothrow_invocable<tuples_apply_fn, T...>;
 
     template<typename... T>
     struct tuples_each_apply_fn
@@ -166,7 +166,7 @@ namespace stdsharp
         template<::std::invocable<T...> Fn, typename... Tuple>
             requires(tuples_applicable<type_traits::construct_fn<T>, Tuple> && ...)
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const noexcept(
-            concepts::nothrow_invocable<Fn, T...> &&
+            nothrow_invocable<Fn, T...> &&
             (nothrow_tuples_applicable<type_traits::construct_fn<T>, Tuple> && ...) //
         )
         {

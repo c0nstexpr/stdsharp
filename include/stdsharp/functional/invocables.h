@@ -18,7 +18,7 @@ namespace stdsharp::functional
     template<typename... Args>                                                                    \
         requires ::std::invocable<const_ Func ref, Args...>                                       \
     constexpr decltype(auto) operator()(Args&&... args)                                           \
-        const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, Args...>)                \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)                          \
     {                                                                                             \
         return ::std::invoke(static_cast<const_ Func ref>(value), ::std::forward<Args>(args)...); \
     }
@@ -64,7 +64,7 @@ namespace stdsharp::functional
                 decltype(details::like_invocables<Index>(::std::declval<T>())) // clang-format off
         > // clang-format on
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
-            noexcept(concepts::nothrow_invocable<Invocable, Args...>)
+            noexcept(nothrow_invocable<Invocable, Args...>)
         {
             return get<Index>(::std::forward<T>(t))(::std ::forward<Args>(args)...);
         }
@@ -85,7 +85,7 @@ namespace stdsharp::functional
         typename This = const_ sequenced_invocables ref>                                   \
         requires ::std::invocable<InvokeAt, This, Args...>                                 \
     constexpr decltype(auto) operator()(Args&&... args)                                    \
-        const_ ref noexcept(concepts::nothrow_invocable<InvokeAt, This, Args...>)          \
+        const_ ref noexcept(nothrow_invocable<InvokeAt, This, Args...>)                    \
     {                                                                                      \
         return InvokeAt{}(static_cast<This>(*this), ::std::forward<Args>(args)...);        \
     }
@@ -114,7 +114,7 @@ namespace stdsharp::functional
         requires ::std::invocable<InvokeAt, This, Args...> &&                                  \
         (::std::ranges::count(trivial_invocables::template invoke_result<Args...>, true) == 1) \
     constexpr decltype(auto) operator()(Args&&... args)                                        \
-        const_ ref noexcept(concepts::nothrow_invocable<InvokeAt, This, Args...>)              \
+        const_ ref noexcept(nothrow_invocable<InvokeAt, This, Args...>)                        \
     {                                                                                          \
         return InvokeAt{}(static_cast<This>(*this), ::std::forward<Args>(args)...);            \
     }
@@ -139,7 +139,7 @@ namespace stdsharp::functional
     template<typename... Args>                                                     \
         requires ::std::invocable<const_ base ref, Args...>                        \
     [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args)              \
-        const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, Args...>) \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)           \
     {                                                                              \
         return static_cast<const_ base ref>(*this)(::std::forward<Args>(args)...); \
     }

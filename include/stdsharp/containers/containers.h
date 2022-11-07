@@ -94,7 +94,7 @@ namespace stdsharp::containers
         requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv) //
     {
         requires move_insertable<ValueType, Allocator>;
-        requires concepts::nothrow_move_constructible<ValueType>;
+        requires nothrow_move_constructible<ValueType>;
         requires noexcept(
             ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, ::std::move(rv))
         );
@@ -130,7 +130,7 @@ namespace stdsharp::containers
         requires(Allocator allocator_instance, ValueType* ptr, ValueType v) //
     {
         requires nothrow_move_insertable<ValueType, Allocator>;
-        requires concepts::nothrow_copy_constructible<ValueType>;
+        requires nothrow_copy_constructible<ValueType>;
         requires noexcept(
             ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v) //
         );
@@ -175,7 +175,7 @@ namespace stdsharp::containers
     concept nothrow_emplace_constructible =
         requires(Allocator allocator_instance, ValueType* ptr, Args&&... args) //
     {
-        requires concepts::nothrow_constructible_from<ValueType, Args...>;
+        requires nothrow_constructible_from<ValueType, Args...>;
         requires noexcept(::std::allocator_traits<Allocator>::construct(
             allocator_instance,
             ptr,
@@ -292,8 +292,8 @@ namespace stdsharp::containers
             requires ::std::destructible<decltype(instance)>;
 
             requires functional::logical_imply(
-                         (concepts::nothrow_default_initializable<Elements> && ...),
-                         concepts::nothrow_default_initializable<decltype(instance)> //
+                         (nothrow_default_initializable<Elements> && ...),
+                         nothrow_default_initializable<decltype(instance)> //
                      ) ||
                 functional::logical_imply(
                          (::std::default_initializable<Elements> && ...),
@@ -301,9 +301,9 @@ namespace stdsharp::containers
                 );
 
             requires functional::logical_imply(
-                         (concepts::nothrow_copy_constructible<Elements> && ...) &&
+                         (nothrow_copy_constructible<Elements> && ...) &&
                              container_nothrow_copy_insertable<decltype(instance)>,
-                         concepts::nothrow_copy_constructible<decltype(instance)> //
+                         nothrow_copy_constructible<decltype(instance)> //
                      ) ||
                 functional::logical_imply(
                          (::std::copy_constructible<Elements> && ...) &&
@@ -311,16 +311,15 @@ namespace stdsharp::containers
                          ::std::copy_constructible<decltype(instance)> //
                 );
             requires functional::logical_imply(
-                         (concepts::nothrow_copy_assignable<Elements> && ...) &&
-                             concepts::nothrow_copy_assignable<decltype(value)> &&
+                         (nothrow_copy_assignable<Elements> && ...) &&
+                             nothrow_copy_assignable<decltype(value)> &&
                              container_nothrow_copy_insertable<decltype(instance)>,
-                         concepts::nothrow_copy_assignable<decltype(instance)> //
+                         nothrow_copy_assignable<decltype(instance)> //
                      ) ||
                 functional::logical_imply(
-                         (concepts::copy_assignable<Elements> && ...) &&
-                             concepts::copy_assignable<decltype(value)> &&
+                         (copy_assignable<Elements> && ...) && copy_assignable<decltype(value)> &&
                              container_copy_insertable<decltype(instance)>,
-                         concepts::copy_assignable<decltype(instance)> //
+                         copy_assignable<decltype(instance)> //
                 );
 
             requires functional::logical_imply(
@@ -328,8 +327,8 @@ namespace stdsharp::containers
                          ::std::move_constructible<decltype(instance)> //
                      ) ||
                 functional::logical_imply(
-                         (concepts::nothrow_move_constructible<Elements> && ...),
-                         concepts::nothrow_move_constructible<decltype(instance)> //
+                         (nothrow_move_constructible<Elements> && ...),
+                         nothrow_move_constructible<decltype(instance)> //
                 );
 
             requires functional::logical_imply(
@@ -347,15 +346,15 @@ namespace stdsharp::containers
                              ::std::allocator_traits<decltype(alloc
                                  )>::propagate_on_container_move_assignment::value ||
                                  container_nothrow_move_insertable<decltype(instance)> &&
-                                     (concepts::nothrow_move_assignable<Elements> && ...),
-                             concepts::nothrow_move_assignable<decltype(instance)> //
+                                     (nothrow_move_assignable<Elements> && ...),
+                             nothrow_move_assignable<decltype(instance)> //
                          ) ||
                     functional::logical_imply(
                              ::std::allocator_traits<decltype(alloc
                                  )>::propagate_on_container_move_assignment::value ||
                                  container_move_insertable<decltype(instance)> &&
-                                     (concepts::move_assignable<Elements> && ...),
-                             concepts::move_assignable<decltype(instance)> //
+                                     (move_assignable<Elements> && ...),
+                             move_assignable<decltype(instance)> //
                     );
             };
 
@@ -510,7 +509,7 @@ namespace stdsharp::containers
 
             requires functional::logical_imply(
                 container_copy_insertable<decltype(instance)> &&
-                    concepts::copy_assignable<decltype(value)>, // clang-format off
+                    copy_assignable<decltype(value)>, // clang-format off
                 requires(decltype(size) n)
                 {
                     requires ::std::assignable_from<
@@ -748,7 +747,7 @@ namespace stdsharp::containers
             requires ::std::predicate<decltype(key_equal), decltype(key), decltype(key)>;
 
             requires ::std::copyable<decltype(hasher)>;
-            requires concepts::invocable_r<decltype(hasher), ::std::size_t, decltype(key)>;
+            requires invocable_r<decltype(hasher), ::std::size_t, decltype(key)>;
 
             requires details::iterator_identical<decltype(iter), decltype(local_iter)>;
             requires details::iterator_identical<decltype(const_iter), decltype(const_local_iter)>;
@@ -796,8 +795,7 @@ namespace stdsharp::containers
             );
 
             requires functional::logical_imply(
-                container_copy_insertable<decltype(instance)> &&
-                    concepts::copy_assignable<decltype(value)> &&
+                container_copy_insertable<decltype(instance)> && copy_assignable<decltype(value)> &&
                     ::std::default_initializable<decltype(hasher)> &&
                     ::std::default_initializable<decltype(key_equal)> &&
                     ::std::default_initializable<decltype(alloc)>,

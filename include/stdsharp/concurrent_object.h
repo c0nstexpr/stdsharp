@@ -12,8 +12,8 @@
 
 namespace stdsharp
 {
-    template<typename T, concepts::shared_lockable Lockable = ::std::shared_mutex>
-        requires ::std::default_initializable<Lockable> && concepts::basic_lockable<Lockable>
+    template<typename T, shared_lockable Lockable = ::std::shared_mutex>
+        requires ::std::default_initializable<Lockable> && basic_lockable<Lockable>
     class concurrent_object
     {
     public:
@@ -33,7 +33,7 @@ namespace stdsharp
         }
 
         template<typename OtherLockable>
-            requires concepts::copy_assignable<value_type>
+            requires copy_assignable<value_type>
         static void assign_value(
             value_type& object, //
             const concurrent_object<T, OtherLockable>& other //
@@ -43,7 +43,7 @@ namespace stdsharp
         }
 
         template<typename OtherLockable>
-            requires concepts::move_assignable<value_type>
+            requires move_assignable<value_type>
         static void assign_value(value_type& object, concurrent_object<T, OtherLockable>&& other)
         {
             ::std::move(other).write([&object](value_type&& obj) { object = ::std::move(obj); });
@@ -196,14 +196,14 @@ namespace stdsharp
         ::std::optional<T> object_{};
         mutable Lockable lockable_{};
 
-        template<auto Name, concepts::decay_same_as<concurrent_object> This>
+        template<auto Name, decay_same_as<concurrent_object> This>
             requires requires { requires Name == "write"sv; }
         [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
             return functional::bind(write_fn{}, ::std::forward<This>(instance));
         }
 
-        template<auto Name, concepts::decay_same_as<concurrent_object> This>
+        template<auto Name, decay_same_as<concurrent_object> This>
             requires requires { requires Name == "read"sv; }
         [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {

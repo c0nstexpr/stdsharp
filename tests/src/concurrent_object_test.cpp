@@ -7,8 +7,6 @@ using namespace stdsharp;
 
 SCENARIO("concurrent object", "[concurrent object]") // NOLINT
 {
-    using namespace stdsharp::concepts;
-
     struct my_mutex
     {
         static constexpr void lock() {}

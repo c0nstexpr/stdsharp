@@ -12,7 +12,7 @@ namespace stdsharp
     struct encode_to_string_fn
     {
         auto operator()(const CharT character) const
-            requires concepts::same_as_any<CharT, char8_t, char16_t, char32_t, wchar_t>
+            requires same_as_any<CharT, char8_t, char16_t, char32_t, wchar_t>
         {
             ::std::mbstate_t mb = std::mbstate_t();
             ::std::string res(MB_CUR_MAX, '\0');

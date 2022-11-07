@@ -284,7 +284,7 @@ namespace stdsharp::actions
             template<typename... Args>
                 requires(::std::invocable<actions::emplace_back_fn, Container&, Args> && ...)
             constexpr auto operator()(Args&&... args) const noexcept( //
-                (concepts::nothrow_invocable<actions::emplace_back_fn, Container&, Args>&&...) && //
+                (nothrow_invocable<actions::emplace_back_fn, Container&, Args>&&...) && //
                 noexcept(reserved<Container, sizeof...(Args)>())
             )
             {
@@ -297,7 +297,7 @@ namespace stdsharp::actions
             template<typename... Args>
                 requires(::std::invocable<actions::emplace_fn, Container&, Args> && ...)
             constexpr auto operator()(Args&&... args) const noexcept( //
-                (concepts::nothrow_invocable<actions::emplace_fn, Container&, Args>&&...) && //
+                (nothrow_invocable<actions::emplace_fn, Container&, Args>&&...) && //
                 noexcept(reserved<Container, sizeof...(Args)>())
             )
             {
@@ -325,7 +325,7 @@ namespace stdsharp::actions
                 // clang-format off
             > // clang-format on
             constexpr auto operator()(const ::std::piecewise_construct_t, Tuples&&... tuples) const
-                noexcept(concepts::nothrow_invocable<
+                noexcept(nothrow_invocable<
                          ApplyFn,
                          regular_make_container_fn<Container>,
                          Tuples...>)

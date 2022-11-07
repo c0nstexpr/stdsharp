@@ -29,7 +29,7 @@ namespace stdsharp::functional
                 First&& first,
                 Fn&&... fn
             ) const noexcept( //
-                concepts::nothrow_invocable<
+                nothrow_invocable<
                     compose_impl,
                     ::std::invoke_result_t<First, Arg...>,
                     type_traits::empty_t,
@@ -55,21 +55,20 @@ namespace stdsharp::functional
         {
         }
 
-#define BS_OPERATOR(const_, ref)                                                              \
-    template<typename... Args>                                                                \
-        requires ::std::invocable<details::compose_impl, Args..., type_traits::empty_t, T...> \
-    constexpr decltype(auto) operator()(Args&&... args)                                       \
-        const_ ref noexcept(concepts::nothrow_invocable<                                      \
-                            details::compose_impl,                                            \
-                            Args...,                                                          \
-                            type_traits::empty_t,                                             \
-                            T...>)                                                            \
-    {                                                                                         \
-        return details::compose_impl{}(                                                       \
-            ::std::forward<Args>(args)...,                                                    \
-            type_traits::empty,                                                               \
-            static_cast<const_ T ref>(value_wrapper<T>::value)...                             \
-        );                                                                                    \
+#define BS_OPERATOR(const_, ref)                                                                   \
+    template<typename... Args>                                                                     \
+        requires ::std::invocable<details::compose_impl, Args..., type_traits::empty_t, T...>      \
+    constexpr decltype(auto) operator()(Args&&... args) const_ ref noexcept(nothrow_invocable<     \
+                                                                            details::compose_impl, \
+                                                                            Args...,               \
+                                                                            type_traits::empty_t,  \
+                                                                            T...>)                 \
+    {                                                                                              \
+        return details::compose_impl{}(                                                            \
+            ::std::forward<Args>(args)...,                                                         \
+            type_traits::empty,                                                                    \
+            static_cast<const_ T ref>(value_wrapper<T>::value)...                                  \
+        );                                                                                         \
     }
         BS_OPERATOR(, &)
         BS_OPERATOR(const, &)
@@ -97,5 +96,5 @@ namespace stdsharp::functional
     concept composable = ::std::invocable<make_composed_fn, Fn...>;
 
     template<typename... Fn>
-    concept nothrow_composable = concepts::nothrow_invocable<make_composed_fn, Fn...>;
+    concept nothrow_composable = nothrow_invocable<make_composed_fn, Fn...>;
 }

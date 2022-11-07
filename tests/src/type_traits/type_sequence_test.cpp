@@ -38,7 +38,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     identity,
     decltype( //
         []( //
-            const stdsharp::concepts::same_as_any<
+            const stdsharp::same_as_any<
                 type_constant<int>,
                 type_constant<char>,
                 type_constant<unsigned>,

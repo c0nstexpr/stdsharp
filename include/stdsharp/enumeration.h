@@ -5,7 +5,7 @@
 
 namespace stdsharp
 {
-    template<concepts::enumeration T>
+    template<enumeration T>
     struct enumeration
     {
         using enum_type = T;
@@ -31,7 +31,7 @@ namespace stdsharp
     template<typename T>
     enumeration(T) -> enumeration<::std::remove_cv_t<T>>;
 
-    template<concepts::enumeration T>
+    template<enumeration T>
     struct flag : enumeration<T>
     {
         using base = enumeration<T>;

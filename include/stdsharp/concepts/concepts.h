@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace stdsharp::concepts
+namespace stdsharp
 {
     template<typename T, typename... U>
     concept same_as_any = (::std::same_as<T, U> || ...);

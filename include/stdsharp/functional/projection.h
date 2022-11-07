@@ -13,7 +13,7 @@ namespace stdsharp::functional
             requires ::std::invocable<Fn, ::std::invoke_result_t<Projector, Args>...>;
         }
         constexpr decltype(auto) operator()(Fn&& fn, Projector projector, Args&&... args) const
-            noexcept(concepts::nothrow_invocable<Fn, ::std::invoke_result_t<Projector, Args>...>)
+            noexcept(nothrow_invocable<Fn, ::std::invoke_result_t<Projector, Args>...>)
         {
             return ::std::invoke(
                 ::std::forward<Fn>(fn),
@@ -26,7 +26,7 @@ namespace stdsharp::functional
     concept projected_invocable = ::std::invocable<projected_invoke_fn, Args...>;
 
     template<typename... Args>
-    concept projected_nothrow_invocable = concepts::nothrow_invocable<projected_invoke_fn, Args...>;
+    concept projected_nothrow_invocable = nothrow_invocable<projected_invoke_fn, Args...>;
 
     template<typename Proj>
     struct projector : value_wrapper<Proj>
@@ -78,7 +78,7 @@ namespace stdsharp::functional
                 ::std::invoke_result_t<make_projector_fn, Proj> // clang-format off
         > // clang-format on
         constexpr auto operator()(Proj&& proj, Func&& func) const
-            noexcept(concepts::nothrow_invocable<make_projector_fn, Proj>&&
+            noexcept(nothrow_invocable<make_projector_fn, Proj>&&
                          nothrow_std_bindable<Projector, Func>)
         {
             return ::std::bind(
@@ -92,7 +92,7 @@ namespace stdsharp::functional
     concept projectable = ::std::invocable<projected_fn, Args...>;
 
     template<typename... Args>
-    concept nothrow_projectable = concepts::nothrow_invocable<projected_fn, Args...>;
+    concept nothrow_projectable = nothrow_invocable<projected_fn, Args...>;
 
     template<typename... Args>
     using projected_t = ::std::invoke_result_t<projected_fn, Args...>;

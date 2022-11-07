@@ -16,7 +16,7 @@ namespace stdsharp::scope
         on_exit = on_success | on_failure
     };
 
-    template<exit_fn_policy Policy, concepts::nothrow_invocable Fn>
+    template<exit_fn_policy Policy, nothrow_invocable Fn>
     struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
         private value_wrapper<Fn>,
         type_traits::unique_object
@@ -55,7 +55,7 @@ namespace stdsharp::scope
         template<typename Fn>
             requires ::std::constructible_from<scoped_t<Fn>, Fn>
         constexpr scoped_t<Fn> operator()(Fn&& fn) const
-            noexcept(concepts::nothrow_constructible_from<scoped_t<Fn>, Fn>)
+            noexcept(nothrow_constructible_from<scoped_t<Fn>, Fn>)
         {
             return ::std::forward<Fn>(fn);
         }

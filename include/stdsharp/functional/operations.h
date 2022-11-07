@@ -17,7 +17,7 @@ namespace stdsharp::functional
         template<typename T>
             requires ::std::constructible_from<::std::decay_t<T>, T>
         [[nodiscard]] constexpr ::std::decay_t<T> operator()(T&& t) const
-            noexcept(concepts::nothrow_constructible_from<::std::decay_t<T>>)
+            noexcept(nothrow_constructible_from<::std::decay_t<T>>)
         {
             return t;
         }
@@ -31,9 +31,9 @@ namespace stdsharp::functional
         struct assign
         {
             template<typename T, typename U = T>
-                requires concepts::assignable<T&, U>
+                requires assignable<T&, U>
             constexpr decltype(auto) operator()(T& left, U&& right) const
-                noexcept(concepts::nothrow_assignable<T&, U>)
+                noexcept(nothrow_assignable<T&, U>)
             {
                 return left = ::std::forward<U>(right);
             }
@@ -211,25 +211,25 @@ namespace stdsharp::functional
     {
         struct advance_by_op
         {
-            template<typename T, concepts::unsigned_ Distance = ::std::iter_difference_t<T>>
+            template<typename T, unsigned_ Distance = ::std::iter_difference_t<T>>
                 requires ::std::invocable<pre_increase, T>
             constexpr decltype(auto) operator()(T& v, Distance distance) const
-                noexcept(concepts::nothrow_invocable<pre_increase, T>)
+                noexcept(nothrow_invocable<pre_increase, T>)
             {
                 if(distance == 0) return v;
                 for(; distance > 0; --distance) pre_increase_v(v);
                 return v;
             }
 
-            template<typename T, concepts::signed_ Distance = ::std::iter_difference_t<T>>
+            template<typename T, signed_ Distance = ::std::iter_difference_t<T>>
                 requires(
                     ::std::invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
                     ::std::invocable<pre_decrease, T> //
                 )
             constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept( //
                 noexcept( //
-                    concepts::nothrow_invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
-                    concepts::nothrow_invocable<pre_decrease, T>
+                    nothrow_invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
+                    nothrow_invocable<pre_decrease, T>
                 )
             )
             {

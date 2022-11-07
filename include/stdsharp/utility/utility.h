@@ -18,9 +18,9 @@ namespace stdsharp
             T&& t;
 
             template<typename U>
-                requires concepts::explicitly_convertible<T, U>
+                requires explicitly_convertible<T, U>
             [[nodiscard]] constexpr operator U() const&& //
-                noexcept(concepts::nothrow_explicitly_convertible<T, U>)
+                noexcept(nothrow_explicitly_convertible<T, U>)
             {
                 return static_cast<U>(::std::forward<T>(t));
             }
@@ -39,8 +39,7 @@ namespace stdsharp
     {
     private:
         template<typename U>
-        using copy_const_t =
-            ::std::conditional_t<concepts::const_<::std::remove_reference_t<T>>, const U, U>;
+        using copy_const_t = ::std::conditional_t<const_<::std::remove_reference_t<T>>, const U, U>;
 
     public:
         template<typename U>

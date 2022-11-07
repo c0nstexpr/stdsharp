@@ -2,7 +2,6 @@
 #include "stdsharp/tuple/tuple.h"
 
 using namespace stdsharp;
-using namespace stdsharp::concepts;
 
 using my_tuple_t = std::tuple<int, char, float>;
 

@@ -21,27 +21,25 @@ namespace stdsharp::functional
     public:
         using base::base;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                            \
-                                                                                                  \
-private:                                                                                          \
-    template<::std::size_t... I, typename... Args>                                                \
-    constexpr decltype(auto) operator()(                                                          \
-        const ::std::index_sequence<I...>,                                                        \
-        Args&&... args                                                                            \
-    ) const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, const_ T ref..., Args...>) \
-    {                                                                                             \
-        decltype(auto) tuple = static_cast<const_ base ref>(*this);                               \
-        return ::std::invoke(::std::get<I>(tuple)..., ::std::forward<Args>(args)...);             \
-    }                                                                                             \
-                                                                                                  \
-public:                                                                                           \
-    template<typename... Args>                                                                    \
-        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>                      \
-    constexpr decltype(auto) operator()(Args&&... args                                            \
-    ) const_ ref noexcept(concepts::nothrow_invocable<const_ Func ref, const_ T ref..., Args...>) \
-    {                                                                                             \
-        return static_cast<const_ bind_t ref>(*this                                               \
-        )(::std::index_sequence_for<Func, T...>{}, ::std::forward<Args>(args)...);                \
+#define STDSHARP_OPERATOR(const_, ref)                                                     \
+                                                                                           \
+private:                                                                                   \
+    template<::std::size_t... I, typename... Args>                                         \
+    constexpr decltype(auto) operator()(const ::std::index_sequence<I...>, Args&&... args) \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, const_ T ref..., Args...>)  \
+    {                                                                                      \
+        decltype(auto) tuple = static_cast<const_ base ref>(*this);                        \
+        return ::std::invoke(::std::get<I>(tuple)..., ::std::forward<Args>(args)...);      \
+    }                                                                                      \
+                                                                                           \
+public:                                                                                    \
+    template<typename... Args>                                                             \
+        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>               \
+    constexpr decltype(auto) operator()(Args&&... args)                                    \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, const_ T ref..., Args...>)  \
+    {                                                                                      \
+        return static_cast<const_ bind_t ref>(*this                                        \
+        )(::std::index_sequence_for<Func, T...>{}, ::std::forward<Args>(args)...);         \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -73,5 +71,5 @@ public:                                                                         
     concept bindable = ::std::invocable<bind_fn, Args...>;
 
     template<typename... Args>
-    concept nothrow_bindable = concepts::nothrow_invocable<bind_fn, Args...>;
+    concept nothrow_bindable = nothrow_invocable<bind_fn, Args...>;
 }

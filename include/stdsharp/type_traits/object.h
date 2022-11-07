@@ -42,8 +42,8 @@ namespace stdsharp::type_traits
         template<typename... U>
             requires ::std::constructible_from<Base, U...> && (::std::constructible_from<T> && ...)
         constexpr explicit inherited(U&&... u) noexcept(
-            concepts::nothrow_constructible_from<Base, U...> &&
-            (concepts::nothrow_constructible_from<T> && ...) // clang-format off
+            nothrow_constructible_from<Base, U...> &&
+            (nothrow_constructible_from<T> && ...) // clang-format off
         ): Base(::std::forward<U>(u)...) // clang-format on
         {
         }
@@ -55,15 +55,15 @@ namespace stdsharp::type_traits
             requires(::std::constructible_from<T, U> && ...);
         }
         constexpr explicit inherited(BaseT&& base, U&&... u) noexcept(
-            concepts::nothrow_constructible_from<Base, BaseT> &&
-            (concepts::nothrow_constructible_from<T, U> && ...) // clang-format off
+            nothrow_constructible_from<Base, BaseT> &&
+            (nothrow_constructible_from<T, U> && ...) // clang-format off
         ): Base(::std::forward<BaseT>(base)), T(::std::forward<U>(u))... // clang-format on
         {
         }
 
         template<typename U>
             requires ::std::assignable_from<Base, U>
-        constexpr inherited& operator=(U&& u) noexcept(concepts::nothrow_assignable_from<Base, U>)
+        constexpr inherited& operator=(U&& u) noexcept(nothrow_assignable_from<Base, U>)
         {
             Base::operator=(::std::forward<U>(u));
             return *this;

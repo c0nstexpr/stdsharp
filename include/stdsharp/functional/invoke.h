@@ -22,14 +22,14 @@ namespace stdsharp::functional
         template<::std::invocable Func>
             requires(Condition)
         constexpr decltype(auto) operator()(Func&& func, const auto& = empty_invoke) const
-            noexcept(concepts::nothrow_invocable<Func>)
+            noexcept(nothrow_invocable<Func>)
         {
             return func();
         }
 
         template<::std::invocable Func = empty_invoke_fn>
         constexpr decltype(auto) operator()(const auto&, Func&& func = empty_invoke) const
-            noexcept(concepts::nothrow_invocable<Func>)
+            noexcept(nothrow_invocable<Func>)
         {
             return func();
         }
@@ -43,25 +43,25 @@ namespace stdsharp::functional
 
     template<bool Condition, typename T, typename U>
     concept nothrow_conditional_invocable =
-        concepts::nothrow_invocable<conditional_invoke_fn<Condition>, T, U>;
+        nothrow_invocable<conditional_invoke_fn<Condition>, T, U>;
 
     template<typename ReturnT>
     struct invoke_r_fn
     {
-        template<typename... Args, concepts::invocable_r<ReturnT, Args...> Func>
+        template<typename... Args, invocable_r<ReturnT, Args...> Func>
         [[nodiscard]] constexpr ReturnT operator()(Func&& func, Args&&... args) const
-            noexcept(concepts::nothrow_invocable_r<Func, ReturnT, Args...>)
+            noexcept(nothrow_invocable_r<Func, ReturnT, Args...>)
         {
             return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...);
         };
     };
 
-    template<concepts::decay_same_as<void> ReturnT>
+    template<decay_same_as<void> ReturnT>
     struct invoke_r_fn<ReturnT>
     {
         template<typename... Args, ::std::invocable<Args...> Func>
         constexpr void operator()(Func&& func, Args&&... args) const
-            noexcept(concepts::nothrow_invocable<Func, Args...>)
+            noexcept(nothrow_invocable<Func, Args...>)
         {
             ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...);
         };

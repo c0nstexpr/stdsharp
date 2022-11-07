@@ -38,7 +38,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: value sequence invoke",
     "[type traits]",
     identity,
-    decltype([](stdsharp::concepts::same_as_any<int, size_t, array<char, 11>> auto) {})
+    decltype([](stdsharp::same_as_any<int, size_t, array<char, 11>> auto) {})
 )
 {
     STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
