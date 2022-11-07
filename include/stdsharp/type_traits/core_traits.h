@@ -111,7 +111,7 @@ namespace stdsharp::type_traits
     using regular_type_sequence = ::meta::list<T...>;
 
     template<typename, ::std::size_t>
-    class indexed_type;
+    struct indexed_type;
 
     template<typename T, ::std::size_t Index>
     struct indexed_type : value_wrapper<T>
