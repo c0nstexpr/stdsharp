@@ -358,8 +358,7 @@ namespace stdsharp
             requires ::std::
                 same_as<decltype(value), ::std::ranges::range_value_t<decltype(instance)>>;
             requires ::std::same_as<decltype(ref), ::std::add_lvalue_reference_t<decltype(value)>>;
-            requires ::std::
-                same_as<decltype(const_ref), type_traits::add_const_lvalue_ref_t<decltype(value)>>;
+            requires ::std::same_as<decltype(const_ref), add_const_lvalue_ref_t<decltype(value)>>;
             requires ::std::same_as<decltype(iter), ::std::ranges::iterator_t<decltype(instance)>>;
             requires ::std::same_as<decltype(iter), ::std::ranges::sentinel_t<decltype(instance)>>;
             requires ::std::same_as<decltype(const_iter), const_iterator_t<decltype(instance)>>;

@@ -76,8 +76,8 @@ namespace stdsharp
             // clang-format off
 
                 { *p } -> ::std::same_as<::std::add_lvalue_reference_t<decltype(v)>>;
-                { *const_p } -> ::std::same_as<type_traits::add_const_lvalue_ref_t<decltype(v)>>;
-                { *const_p } -> ::std::same_as<type_traits::add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
+                { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
+                { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
 
             requires requires(
                 typename decltype(u_traits)::pointer other_p,

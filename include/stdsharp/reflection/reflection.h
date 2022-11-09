@@ -108,7 +108,7 @@ namespace stdsharp::reflection
         using details::get_member_fn;
         using details::get_members_fn;
 
-        template<type_traits::ltr Literal>
+        template<ltr Literal>
         inline constexpr get_member_fn<Literal> get_member{};
 
         template<typename T>

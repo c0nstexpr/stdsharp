@@ -8,7 +8,7 @@ namespace stdsharp
 {
     inline constexpr struct empty_invoke_fn
     {
-        constexpr type_traits::empty_t operator()(const auto&...) const noexcept { return {}; }
+        constexpr empty_t operator()(const auto&...) const noexcept { return {}; }
     } empty_invoke{};
 
     inline constexpr sequenced_invocables optional_invoke{::ranges::invoke, empty_invoke};

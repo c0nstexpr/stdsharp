@@ -7,7 +7,6 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-using namespace type_traits;
 
 using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
 
@@ -228,7 +227,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE( //
         same_as<
             typename as_value_sequence_t<Seq>:: //
-            template apply_t<type_traits::unique_value_sequence_t>,
+            template apply_t<unique_value_sequence_t>,
             Expect
         >
     );
@@ -247,7 +246,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE( //
         same_as<
             typename as_value_sequence_t<Seq>:: //
-            template apply_t<type_traits::reverse_value_sequence_t>,
+            template apply_t<reverse_value_sequence_t>,
             Expect
         >
     );

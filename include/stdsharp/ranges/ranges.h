@@ -20,6 +20,5 @@ namespace stdsharp
     using const_sentinel_t = decltype(::std::ranges::cend(::std::declval<T&>()));
 
     template<typename T>
-    using range_const_reference_t =
-        type_traits::add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
+    using range_const_reference_t = add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
 }

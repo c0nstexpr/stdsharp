@@ -43,8 +43,7 @@ namespace stdsharp
 
     public:
         template<typename U>
-        [[nodiscard]] constexpr type_traits::
-            ref_align_t<T&&, copy_const_t<::std::remove_reference_t<U>>>
+        [[nodiscard]] constexpr ref_align_t<T&&, copy_const_t<::std::remove_reference_t<U>>>
             operator()(U&& u) const noexcept
         {
             return auto_cast(u);

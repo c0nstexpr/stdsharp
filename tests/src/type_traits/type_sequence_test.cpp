@@ -5,7 +5,6 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-using namespace type_traits;
 
 using test_seq = type_sequence<int, float, char, unsigned, float>;
 
@@ -167,7 +166,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            typename Seq::template apply_t<type_traits::unique_type_sequence_t>,
+            typename Seq::template apply_t<unique_type_sequence_t>,
             Expect // clang-format off
         > // clang-format on
     );

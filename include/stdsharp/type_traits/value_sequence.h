@@ -9,7 +9,7 @@
 
 #include "core_traits.h"
 
-namespace stdsharp::type_traits
+namespace stdsharp
 {
     template<auto...>
     struct value_sequence;
@@ -43,7 +43,7 @@ namespace stdsharp::type_traits
         > // clang-format on
             requires requires //
         {
-            type_traits::index_constant<::std::ranges::size(T::value)>{};
+            index_constant<::std::ranges::size(T::value)>{};
             ::std::array<ValueType, 1>{};
             requires ::std::copyable<ValueType>;
         }
@@ -83,7 +83,7 @@ namespace stdsharp::type_traits
     using rng_to_sequence_t = typename details::rng_to_sequence<Rng>::type;
 
     template<auto Rng>
-    using rng_v_to_sequence_t = rng_to_sequence_t<type_traits::constant<Rng>>;
+    using rng_v_to_sequence_t = rng_to_sequence_t<constant<Rng>>;
 
     namespace details
     {
@@ -132,7 +132,7 @@ namespace stdsharp::type_traits
             }();
 
             using type = typename as_value_sequence_t<
-                type_traits::rng_v_to_sequence_t<unique_indices_value> // clang-format off
+                rng_v_to_sequence_t<unique_indices_value> // clang-format off
             >::template apply_t<seq::template at_t>; // clang-format on
         };
 
@@ -316,7 +316,7 @@ namespace stdsharp::type_traits
                 noexcept((nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
-                type_traits::empty =
+                empty =
                     ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
                 return i;
             }
@@ -516,9 +516,9 @@ namespace stdsharp::type_traits
 namespace std
 {
     template<auto... Values>
-    struct tuple_size<::stdsharp::type_traits::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
-        ::stdsharp::type_traits:: // clang-format off
-            index_constant<::stdsharp::type_traits::value_sequence<Values...>::size()>
+    struct tuple_size<::stdsharp::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
+        ::stdsharp:: // clang-format off
+            index_constant<::stdsharp::value_sequence<Values...>::size()>
     // clang-format on
     {
     };

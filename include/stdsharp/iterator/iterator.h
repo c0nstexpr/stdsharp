@@ -19,7 +19,7 @@ namespace stdsharp
             requires requires { typename ::std::iter_value_t<T>; }
         struct iter_const_reference<T>
         {
-            using type = typename type_traits::add_const_lvalue_ref_t<::std::iter_value_t<T>>;
+            using type = add_const_lvalue_ref_t<::std::iter_value_t<T>>;
         };
 
         template<typename T>

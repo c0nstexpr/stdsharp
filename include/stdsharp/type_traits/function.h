@@ -4,7 +4,7 @@
 
 #include "type_sequence.h"
 
-namespace stdsharp::type_traits
+namespace stdsharp
 {
     namespace details
     {

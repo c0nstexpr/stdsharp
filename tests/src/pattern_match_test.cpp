@@ -46,7 +46,7 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
                 requires //
                 {
                     constexpr_pattern_match::from_constant<my_enum::two>(
-                        [](const type_traits::constant<my_enum::two>) {}
+                        [](const constant<my_enum::two>) {}
                     );
                 }
             );

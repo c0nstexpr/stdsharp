@@ -4,7 +4,7 @@
 
 #include "value_sequence.h"
 
-namespace stdsharp::type_traits
+namespace stdsharp
 {
     template<typename...>
     struct type_sequence;
@@ -128,9 +128,9 @@ namespace stdsharp::type_traits
 namespace std
 {
     template<typename... Types>
-    struct tuple_size<::stdsharp::type_traits::type_sequence<Types...>> :// NOLINT(cert-dcl58-cpp)
-        ::stdsharp::type_traits:: // clang-format off
-            index_constant<::stdsharp::type_traits::type_sequence<Types...>::size>
+    struct tuple_size<::stdsharp::type_sequence<Types...>> :// NOLINT(cert-dcl58-cpp)
+        ::stdsharp:: // clang-format off
+            index_constant<::stdsharp::type_sequence<Types...>::size>
     // clang-format on
     {
     };

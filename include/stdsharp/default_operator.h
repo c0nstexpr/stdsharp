@@ -62,7 +62,7 @@ namespace stdsharp
     template<
         typename T,
         bool Interchangable = true,
-        ::std::constructible_from Delegate = type_traits::empty_t // clang-format off
+        ::std::constructible_from Delegate = empty_t // clang-format off
     > // clang-format on
     class default_arithmetic_operation : default_post_increase_and_decrease<T>
     {
@@ -76,7 +76,7 @@ namespace stdsharp
     ) noexcept(noexcept(This{delegate(t) op u}))                                                   \
         requires requires {                                                                        \
                      requires ::std::constructible_from<This, decltype(delegate(t) op u)> &&       \
-                         !::std::same_as<Delegate, type_traits::empty_t>;                          \
+                         !::std::same_as<Delegate, empty_t>;                                       \
                  }                                                                                 \
     {                                                                                              \
         return T{delegate(t) op u};                                                                \
@@ -90,7 +90,7 @@ namespace stdsharp
                      requires ::std::constructible_from<                                           \
                                   This,                                                            \
                                   decltype(delegate(t) op delegate(u))> &&                         \
-                         !::std::same_as<Delegate, type_traits::empty_t>;                          \
+                         !::std::same_as<Delegate, empty_t>;                                       \
                  }                                                                                 \
     {                                                                                              \
         return T{delegate(t) op delegate(u)};                                                      \

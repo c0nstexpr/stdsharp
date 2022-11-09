@@ -13,7 +13,7 @@
 
 using namespace ::std::literals;
 
-namespace stdsharp::type_traits
+namespace stdsharp
 {
     template<typename...>
     constexpr auto always_false(const auto&...) noexcept
@@ -250,12 +250,7 @@ namespace stdsharp::type_traits
 namespace meta::extension
 {
     template<invocable Fn, template<auto...> typename T, auto... V>
-    struct apply<Fn, T<V...>> : lazy::invoke<Fn, ::stdsharp::type_traits::constant<V>...>
+    struct apply<Fn, T<V...>> : lazy::invoke<Fn, ::stdsharp::constant<V>...>
     {
     };
-}
-
-namespace stdsharp::inline literals
-{
-    using namespace stdsharp::type_traits::literals;
 }

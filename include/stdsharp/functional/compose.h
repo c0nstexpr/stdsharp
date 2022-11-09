@@ -10,8 +10,7 @@ namespace stdsharp
         struct compose_impl
         {
             template<typename Arg>
-            constexpr decltype(auto
-            ) operator()(Arg&& arg, const type_traits::empty_t) const noexcept
+            constexpr decltype(auto) operator()(Arg&& arg, const empty_t) const noexcept
             {
                 return ::std::forward<Arg>(arg);
             }
@@ -20,26 +19,26 @@ namespace stdsharp
                 requires ::std::invocable<
                     compose_impl,
                     ::std::invoke_result_t<First, Arg...>,
-                    type_traits::empty_t,
+                    empty_t,
                     Fn... // clang-format off
                 > // clang-format on
             constexpr decltype(auto) operator()(
                 Arg&&... arg,
-                const type_traits::empty_t,
+                const empty_t,
                 First&& first,
                 Fn&&... fn
             ) const noexcept( //
                 nothrow_invocable<
                     compose_impl,
                     ::std::invoke_result_t<First, Arg...>,
-                    type_traits::empty_t,
+                    empty_t,
                     Fn... // clang-format off
                 > // clang-format on
             )
             {
                 return (*this)( //
                     ::std::invoke(::std::forward<First>(first), std::forward<Arg>(arg)...),
-                    type_traits::empty,
+                    empty,
                     ::std::forward<Fn>(fn)...
                 );
             }
@@ -55,20 +54,17 @@ namespace stdsharp
         {
         }
 
-#define BS_OPERATOR(const_, ref)                                                                   \
-    template<typename... Args>                                                                     \
-        requires ::std::invocable<details::compose_impl, Args..., type_traits::empty_t, T...>      \
-    constexpr decltype(auto) operator()(Args&&... args) const_ ref noexcept(nothrow_invocable<     \
-                                                                            details::compose_impl, \
-                                                                            Args...,               \
-                                                                            type_traits::empty_t,  \
-                                                                            T...>)                 \
-    {                                                                                              \
-        return details::compose_impl{}(                                                            \
-            ::std::forward<Args>(args)...,                                                         \
-            type_traits::empty,                                                                    \
-            static_cast<const_ T ref>(value_wrapper<T>::value)...                                  \
-        );                                                                                         \
+#define BS_OPERATOR(const_, ref)                                                              \
+    template<typename... Args>                                                                \
+        requires ::std::invocable<details::compose_impl, Args..., empty_t, T...>              \
+    constexpr decltype(auto) operator()(Args&&... args)                                       \
+        const_ ref noexcept(nothrow_invocable<details::compose_impl, Args..., empty_t, T...>) \
+    {                                                                                         \
+        return details::compose_impl{}(                                                       \
+            ::std::forward<Args>(args)...,                                                    \
+            empty,                                                                            \
+            static_cast<const_ T ref>(value_wrapper<T>::value)...                             \
+        );                                                                                    \
     }
         BS_OPERATOR(, &)
         BS_OPERATOR(const, &)

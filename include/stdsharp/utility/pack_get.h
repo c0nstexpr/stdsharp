@@ -15,11 +15,11 @@ namespace stdsharp
             noexcept
         {
             return ::ranges::overload(
-                [&args](const type_traits::index_constant<I>) -> Args&&
+                [&args](const index_constant<I>) -> Args&&
                 {
                     return ::std::forward<Args>(args); //
                 }... // clang-format off
-            )(type_traits::index_constant<N>{}); // clang-format on
+            )(index_constant<N>{}); // clang-format on
         }
 
     public:

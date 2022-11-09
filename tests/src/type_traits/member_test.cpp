@@ -13,7 +13,7 @@ SCENARIO("member", "[type traits]") // NOLINT
         int m;
 
         using mem_func_r_t = char;
-        using mem_func_args_t = stdsharp::type_traits::type_sequence<long, double>;
+        using mem_func_args_t = stdsharp::type_sequence<long, double>;
 
         // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
         char mem_f(long, double) { return {}; }
@@ -33,9 +33,8 @@ SCENARIO("member", "[type traits]") // NOLINT
     {
         THEN("use member traits to get member type, type should be expected")
         {
-            using mem_p_t = stdsharp::type_traits::member_pointer_traits<&my_class::m>;
-            using mem_p_func_t =
-                stdsharp::type_traits::member_function_pointer_traits<&my_class::mem_f>;
+            using mem_p_t = stdsharp::member_pointer_traits<&my_class::m>;
+            using mem_p_func_t = stdsharp::member_function_pointer_traits<&my_class::mem_f>;
             using mem_func_r = mem_p_func_t::result_t;
             using mem_func_args = mem_p_func_t::args_t;
 

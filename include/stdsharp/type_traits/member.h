@@ -4,7 +4,7 @@
 
 #include "function.h"
 
-namespace stdsharp::type_traits
+namespace stdsharp
 {
     template<typename>
     struct member_traits;

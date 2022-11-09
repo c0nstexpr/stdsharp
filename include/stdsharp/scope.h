@@ -19,10 +19,10 @@ namespace stdsharp::scope
     template<exit_fn_policy Policy, nothrow_invocable Fn>
     struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
         private value_wrapper<Fn>,
-        type_traits::unique_object
+        unique_object
     {
     private:
-        using unique_base = type_traits::unique_object;
+        using unique_base = unique_object;
         using wrapper = value_wrapper<Fn>;
         using wrapper::value;
 

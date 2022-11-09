@@ -51,7 +51,7 @@ public:                                                                         
     };
 
     template<typename Func, typename... Args>
-    bind_t(Func&&, Args&&...) -> bind_t<::std::decay_t<Func>, type_traits::persist_t<Args&&>...>;
+    bind_t(Func&&, Args&&...) -> bind_t<::std::decay_t<Func>, persist_t<Args&&>...>;
 
     inline constexpr struct bind_fn
     {

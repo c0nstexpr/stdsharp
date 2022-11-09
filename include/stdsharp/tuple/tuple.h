@@ -56,7 +56,7 @@ namespace stdsharp
             > // clang-format on
                 requires ::std::invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>
             constexpr decltype(auto) operator()(
-                const type_traits::constant<Coords>,
+                const constant<Coords>,
                 const ::std::index_sequence<First...>,
                 const ::std::index_sequence<Second...>,
                 Fn&& fn,
@@ -126,7 +126,7 @@ namespace stdsharp
                 typename Fn,
                 typename... Tuple,
                 auto Coords = get_coords<Tuple...>(),
-                typename Constant = type_traits::constant<Coords>,
+                typename Constant = constant<Coords>,
                 typename Seq = ::std::index_sequence<Coords.size()> // clang-format off
             > // clang-format on
                 requires ::std::invocable<construct_coords_seq, Constant, Seq, Fn, Tuple...>
@@ -164,15 +164,15 @@ namespace stdsharp
     struct tuples_each_apply_fn
     {
         template<::std::invocable<T...> Fn, typename... Tuple>
-            requires(tuples_applicable<type_traits::construct_fn<T>, Tuple> && ...)
+            requires(tuples_applicable<construct_fn<T>, Tuple> && ...)
         constexpr decltype(auto) operator()(Fn&& fn, Tuple&&... tuple) const noexcept(
             nothrow_invocable<Fn, T...> &&
-            (nothrow_tuples_applicable<type_traits::construct_fn<T>, Tuple> && ...) //
+            (nothrow_tuples_applicable<construct_fn<T>, Tuple> && ...) //
         )
         {
             return ::std::invoke(
                 fn, //
-                tuple_apply(type_traits::construct<T>, ::std::forward<Tuple>(tuple))... //
+                tuple_apply(construct<T>, ::std::forward<Tuple>(tuple))... //
             );
         };
     };
@@ -184,11 +184,11 @@ namespace stdsharp
     struct make_from_tuples_fn
     {
         template<typename... Tuple>
-            requires tuples_applicable<type_traits::construct_fn<T>, Tuple...>
+            requires tuples_applicable<construct_fn<T>, Tuple...>
         constexpr T make_from_tuple(Tuple&&... t) const
-            noexcept(nothrow_tuples_applicable<type_traits::construct_fn<T>, Tuple...>)
+            noexcept(nothrow_tuples_applicable<construct_fn<T>, Tuple...>)
         {
-            return tuples_apply(type_traits::construct<T>, std::forward<Tuple>(t)...);
+            return tuples_apply(construct<T>, std::forward<Tuple>(t)...);
         }
     };
 

@@ -6,7 +6,7 @@
 
 #include "../concepts/concepts.h"
 
-namespace stdsharp::type_traits
+namespace stdsharp
 {
     struct unique_object
     {

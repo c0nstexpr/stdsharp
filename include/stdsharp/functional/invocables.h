@@ -32,7 +32,7 @@ namespace stdsharp
     };
 
     template<typename... Func>
-    struct invocables : type_traits::indexed_types<invocable_t<Func>...>
+    struct invocables : indexed_types<invocable_t<Func>...>
     {
         template<typename... Args>
         static constexpr ::std::array invoke_result{::std::invocable<Func, Args...>...};

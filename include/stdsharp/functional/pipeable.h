@@ -27,20 +27,20 @@ namespace stdsharp
         {
             requires ::std::invocable<make_trivial_invocables_fn, Fn>;
             requires ::std::invocable<
-                type_traits::make_inherited_fn,
+                make_inherited_fn,
                 pipeable_base<Mode>,
                 ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
             >; // clang-format on
         }
         constexpr auto operator()(Fn&& fun) const noexcept( //
             nothrow_invocable<
-                type_traits::make_inherited_fn,
+                make_inherited_fn,
                 pipeable_base<Mode>,
                 ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
             > // clang-format on
         )
         {
-            return type_traits::make_inherited(
+            return make_inherited(
                 pipeable_base<Mode>{},
                 make_trivial_invocables(::std::forward<Fn>(fun))
             );

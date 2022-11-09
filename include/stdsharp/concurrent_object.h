@@ -20,7 +20,7 @@ namespace stdsharp
         using value_type = ::std::optional<T>;
 
     private:
-        using empty_t = type_traits::empty_t;
+        using empty_t = empty_t;
 
         template<typename Other>
             requires requires(concurrent_object& left) //
@@ -110,20 +110,19 @@ namespace stdsharp
 
         template<typename Other>
             requires(other_assignable<Other>)
-        concurrent_object(Other&& other):
-            concurrent_object(type_traits::empty, ::std::forward<Other>(other))
+        concurrent_object(Other&& other): concurrent_object(empty, ::std::forward<Other>(other))
         {
         }
 
         concurrent_object(const concurrent_object& other)
             requires copy_assignable
-            : concurrent_object(type_traits::empty, other)
+            : concurrent_object(empty, other)
         {
         }
 
         concurrent_object(concurrent_object&& other) noexcept(false)
             requires move_assignable
-            : concurrent_object(type_traits::empty, ::std::move(other))
+            : concurrent_object(empty, ::std::move(other))
         {
         }
 

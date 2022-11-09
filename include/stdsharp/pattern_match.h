@@ -73,7 +73,7 @@ namespace stdsharp
         using from_type_fn = details::impl<::std::type_identity<ConditionT>>;
 
         template<auto Condition>
-        using from_constant_fn = details::impl<type_traits::constant<Condition>>;
+        using from_constant_fn = details::impl<constant<Condition>>;
 
         template<typename ConditionT>
         inline constexpr from_type_fn<ConditionT> from_type{};
