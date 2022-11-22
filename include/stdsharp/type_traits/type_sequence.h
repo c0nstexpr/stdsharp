@@ -30,18 +30,18 @@ namespace stdsharp
         struct as_type_sequence
         {
             template<typename... T>
-            using invoke = type_sequence<T...>;
+            using invoke = stdsharp::type_sequence<T...>;
         };
 
         template<typename... Types>
         struct type_sequence
         {
             struct type :
-                private value_sequence<type_constant<Types>{}...>,
-                private details::type_seq_conversion
+                private stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
+                private type_seq_conversion
             {
             private:
-                using base = value_sequence<type_constant<Types>{}...>;
+                using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
                 using type_seq_conversion::from_value_seq_t;
                 using type_seq_conversion::to_value_seq_t;
 

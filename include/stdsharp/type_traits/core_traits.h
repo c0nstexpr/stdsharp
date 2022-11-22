@@ -172,7 +172,7 @@ namespace stdsharp
         struct indexed_types
         {
             template<::std::size_t... Index>
-            struct inherited : indexed_type<T, Index>...
+            struct inherited : stdsharp::indexed_type<T, Index>...
             {
             };
 
@@ -183,23 +183,19 @@ namespace stdsharp
                 using type =
                     ::std::remove_cvref_t<decltype(get<I>(::std::declval<inherited<Index...>>()))>;
             };
-        };
 
-        template<typename... T, ::std::size_t... Index>
-        consteval typename indexed_types<T...>::template invoke<Index...> get_indexed_types(
-            ::std::index_sequence<Index...>,
-            regular_type_sequence<T...> //
-        );
+            template<typename = ::std::index_sequence_for<T...>>
+            struct type;
+
+            template<::std::size_t... Index>
+            struct type<::std::index_sequence<Index...>> : invoke<Index...>
+            {
+            };
+        };
     }
 
     template<typename... T>
-    struct indexed_types :
-        decltype( //
-            details::get_indexed_types(
-                ::std::index_sequence_for<T...>{},
-                regular_type_sequence<T...>{}
-            )
-        )
+    struct indexed_types : details::indexed_types<T...>::template type<>
     {
     };
 
