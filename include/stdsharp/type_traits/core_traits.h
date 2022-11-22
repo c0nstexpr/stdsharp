@@ -61,21 +61,74 @@ namespace stdsharp
     template<::std::size_t I>
     using index_constant = ::std::integral_constant<::std::size_t, I>;
 
-    template<typename T>
-    struct type_constant : ::std::type_identity<T>
+    namespace details
     {
-        template<template<typename> typename OtherT, typename U>
-        friend constexpr auto operator==(const type_constant, const OtherT<U>&) noexcept
+        template<typename T>
+        struct type_constant
         {
-            return ::std::same_as<T, U>;
-        }
+            struct type : ::std::type_identity<T>
+            {
+                template<template<typename> typename OtherT, typename U>
+                friend constexpr auto operator==(const type_constant, const OtherT<U>&) noexcept
+                {
+                    return ::std::same_as<T, U>;
+                }
 
-        template<template<typename> typename OtherT, typename U>
-        friend constexpr auto operator!=(const type_constant l, const OtherT<U>& r) noexcept
+                template<template<typename> typename OtherT, typename U>
+                friend constexpr auto operator!=(const type_constant l, const OtherT<U>& r) noexcept
+                {
+                    return !(l == r);
+                }
+            };
+        };
+
+        template<typename... T>
+        struct regular_type_sequence
         {
-            return !(l == r);
-        }
-    };
+            struct type : ::meta::list<T...>
+            {
+            };
+        };
+
+        template<typename, ::std::size_t>
+        struct indexed_type;
+
+        template<typename T, ::std::size_t Index>
+        struct indexed_type
+        {
+            struct type : value_wrapper<T>
+            {
+                using value_wrapper<T>::value;
+
+#define STDSHARP_GET(const_, ref)                                               \
+    template<::std::size_t I>                                                   \
+        requires(I == Index)                                                    \
+    friend constexpr decltype(auto) get(const_ indexed_type ref this_) noexcept \
+    {                                                                           \
+        return static_cast<const_ T ref>(this_.value);                          \
+    }
+
+                STDSHARP_GET(, &)
+                STDSHARP_GET(const, &)
+                STDSHARP_GET(, &&)
+                STDSHARP_GET(const, &&)
+
+#undef STDSHARP_GET
+            };
+        };
+
+        template<typename T>
+        struct nttp_check
+        {
+            template<T...>
+            struct nested
+            {
+            };
+        };
+    }
+
+    template<typename T>
+    using type_constant = typename details::type_constant<T>::type;
 
     template<typename T>
     inline constexpr type_constant<T> type_constant_v{};
@@ -108,31 +161,10 @@ namespace stdsharp
     using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
     template<typename... T>
-    using regular_type_sequence = ::meta::list<T...>;
+    using regular_type_sequence = typename details::regular_type_sequence<T...>::type;
 
-    template<typename, ::std::size_t>
-    struct indexed_type;
-
-    template<typename T, ::std::size_t Index>
-    struct indexed_type : value_wrapper<T>
-    {
-        using value_wrapper<T>::value;
-
-#define STDSHARP_GET(const_, ref)                                               \
-    template<::std::size_t I>                                                   \
-        requires(I == Index)                                                    \
-    friend constexpr decltype(auto) get(const_ indexed_type ref this_) noexcept \
-    {                                                                           \
-        return static_cast<const_ T ref>(this_.value);                          \
-    }
-
-        STDSHARP_GET(, &)
-        STDSHARP_GET(const, &)
-        STDSHARP_GET(, &&)
-        STDSHARP_GET(const, &&)
-
-#undef STDSHARP_GET
-    };
+    template<typename T, ::std::size_t I>
+    using indexed_type = typename details::indexed_type<T, I>::type;
 
     namespace details
     {
@@ -158,15 +190,6 @@ namespace stdsharp
             ::std::index_sequence<Index...>,
             regular_type_sequence<T...> //
         );
-
-        template<typename T>
-        struct nttp_check
-        {
-            template<T...>
-            struct nested
-            {
-            };
-        };
     }
 
     template<typename... T>
