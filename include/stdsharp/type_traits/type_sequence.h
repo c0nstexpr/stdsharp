@@ -6,19 +6,29 @@
 
 namespace stdsharp
 {
-    template<typename...>
-    struct type_sequence;
+    namespace details
+    {
+        template<typename... Types>
+        struct type_sequence
+        {
+            struct t;
+        };
+    }
+
+    template<typename... Types>
+    using type_sequence = typename details::type_sequence<Types...>::t;
 
     namespace details
     {
         struct type_seq_conversion
         {
             template<auto... Values>
-            static regular_type_sequence<::meta::_t<decltype(Values)>...>
+            static stdsharp::regular_type_sequence<::meta::_t<decltype(Values)>...>
                 from_value_seq(regular_value_sequence<Values...>);
 
-            template<template<typename...> typename S, typename... T>
-            static regular_value_sequence<(type_constant<T>{})...> to_value_seq(S<T...>);
+            template<typename... T>
+            static regular_value_sequence<(stdsharp::type_constant<T>{})...>
+                to_value_seq(regular_type_sequence<T...>);
 
             template<typename Seq>
             using from_value_seq_t = decltype(from_value_seq(::std::declval<Seq>()));
@@ -34,113 +44,104 @@ namespace stdsharp
         };
 
         template<typename... Types>
-        struct type_sequence
+        struct type_sequence<Types...>::t :
+            private stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
+            stdsharp::regular_type_sequence<Types...>,
+            private type_seq_conversion
         {
-            struct type :
-                private stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
-                private type_seq_conversion
-            {
-            private:
-                using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
-                using type_seq_conversion::from_value_seq_t;
-                using type_seq_conversion::to_value_seq_t;
+        private:
+            using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
+            using type_seq_conversion::from_value_seq_t;
+            using type_seq_conversion::to_value_seq_t;
 
-            public:
-                using base::size;
-                using base::for_each;
-                using base::for_each_n;
-                using base::find_if;
-                using base::find_if_not;
-                using base::find;
-                using base::count_if;
-                using base::count_if_not;
-                using base::count;
-                using base::all_of;
-                using base::any_of;
-                using base::none_of;
-                using base::contains;
-                using base::adjacent_find;
-                using base::at_v;
+            template<typename... T>
+            using regular_type_sequence = stdsharp::regular_type_sequence<T...>;
 
-                template<template<typename...> typename T>
-                using apply_t = T<Types...>;
+            template<typename T>
+            using type_constant = stdsharp::type_constant<T>;
 
-                template<::std::size_t I>
-                using get_t = typename decltype(get<I>(base{}))::type;
+        public:
+            using base::adjacent_find;
+            using base::all_of;
+            using base::any_of;
+            using base::contains;
+            using base::count;
+            using base::count_if;
+            using base::count_if_not;
+            using base::find;
+            using base::find_if;
+            using base::find_if_not;
+            using base::for_each;
+            using base::for_each_n;
+            using base::none_of;
+            using base::size;
 
-                template<::std::size_t... I>
-                using at_t = regular_type_sequence<get_t<I>...>;
+            template<template<typename...> typename T>
+            using apply_t = T<Types...>;
 
-                template<::std::size_t Size>
-                using back_t = from_value_seq_t<typename base::template back_t<Size>>;
+            template<::std::size_t I>
+            using type = typename stdsharp::indexed_values<Types...>::template type<I>;
 
-                template<::std::size_t Size>
-                using front_t = from_value_seq_t<typename base::template front_t<Size>>;
+            template<::std::size_t... I>
+            using at_t = stdsharp::regular_type_sequence<type<I>...>;
 
-                template<typename... Others>
-                using append_t = regular_type_sequence<Types..., Others...>;
+            template<::std::size_t Size>
+            using back_t = from_value_seq_t<typename base::template back_t<Size>>;
 
-                template<typename T = void>
-                using invoke_fn = typename base::template invoke_fn<T>;
+            template<::std::size_t Size>
+            using front_t = from_value_seq_t<typename base::template front_t<Size>>;
 
-                template<typename T = empty_t>
-                static constexpr invoke_fn<T> invoke{};
+            template<typename... Others>
+            using append_t = regular_type_sequence<Types..., Others...>;
 
-                template<typename... Others>
-                using append_front_t = regular_type_sequence<Others..., Types...>;
+            template<typename T = void>
+            using invoke_fn = typename base::template invoke_fn<T>;
 
-                template<::std::size_t Index, typename... Other>
-                using insert_t = from_value_seq_t< //
-                    typename base::template insert_t<
-                        Index,
-                        static_const_v<type_constant<Other>>... // clang-format off
-                    >
-                >; // clang-format on
+            template<typename T = empty_t>
+            static constexpr invoke_fn<T> invoke{};
 
-                template<::std::size_t... Index>
-                using remove_at_t = from_value_seq_t<typename base::template remove_at_t<Index...>>;
+            template<typename... Others>
+            using append_front_t = regular_type_sequence<Others..., Types...>;
 
-                template<::std::size_t Index, typename Other>
-                using replace_t = from_value_seq_t<
-                    typename base::template replace_t<Index, type_constant<Other>{}>>;
+            template<::std::size_t Index, typename... Other>
+            using insert_t = from_value_seq_t< //
+                typename base::template insert_t<
+                    Index,
+                    static_const_v<type_constant<Other>>... // clang-format off
+                >
+            >; // clang-format on
 
-                template<::std::size_t From, ::std::size_t Size>
-                using select_range_t =
-                    from_value_seq_t<typename base::template select_range_t<From, Size>>;
-            };
+            template<::std::size_t... Index>
+            using remove_at_t = from_value_seq_t<typename base::template remove_at_t<Index...>>;
+
+            template<::std::size_t Index, typename Other>
+            using replace_t =
+                from_value_seq_t<typename base::template replace_t<Index, type_constant<Other>{}>>;
+
+            template<::std::size_t From, ::std::size_t Size>
+            using select_range_t =
+                from_value_seq_t<typename base::template select_range_t<From, Size>>;
         };
     }
 
     template<typename T>
     using as_type_sequence_t = ::meta::apply<details::as_type_sequence, T>;
 
-    template<typename... Types>
-    struct type_sequence : details::type_sequence<Types...>::type
-    {
-    };
+    template<typename... T>
+    using reverse_type_sequence_t = details::type_seq_conversion::from_value_seq_t<
+        reverse_value_sequence_t<type_constant<T>{}...>>;
 
     template<typename... T>
-    using reverse_type_sequence_t = as_type_sequence_t< //
-        details::type_seq_conversion::from_value_seq_t<
-            reverse_value_sequence_t<type_constant<T>{}...> // clang-format off
-        >
-    >; // clang-format on
-
-    template<typename... T>
-    using unique_type_sequence_t = as_type_sequence_t< //
-        details::type_seq_conversion::from_value_seq_t<
-            unique_value_sequence_t<type_constant<T>{}...> // clang-format off
-        >
-    >; // clang-format on
+    using unique_type_sequence_t = details::type_seq_conversion::from_value_seq_t<
+        unique_value_sequence_t<type_constant<T>{}...>>;
 }
 
 namespace std
 {
-    template<typename... Types>
-    struct tuple_size<::stdsharp::type_sequence<Types...>> :// NOLINT(cert-dcl58-cpp)
-        ::stdsharp:: // clang-format off
-            index_constant<::stdsharp::type_sequence<Types...>::size>
-    // clang-format on
+    template<typename Seq>
+        requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::type_sequence<>>
+    struct tuple_size<Seq> :// NOLINT(cert-dcl58-cpp)
+        ::stdsharp::index_constant<Seq::size()>
     {
     };
 }

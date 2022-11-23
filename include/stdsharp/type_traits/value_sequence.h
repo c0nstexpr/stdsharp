@@ -174,7 +174,7 @@ namespace stdsharp
             requires (I < size())
         [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence)noexcept
         {
-            return at_v<I>;
+            return value<I>;
         }
 
     public:
@@ -212,11 +212,11 @@ namespace stdsharp
         using apply_t = T<Values...>;
 
         template<::std::size_t I>
-        static constexpr decltype(auto) at_v =
-            ::std::decay_t<decltype(get<I>(indexed_types<constant<Values>...>{}))>::value;
+        static constexpr decltype(auto) value =
+            indexed_values<constant<Values>...>::template type<I>::value;
 
         template<::std::size_t... I>
-        using at_t = regular_value_sequence<at_v<I>...>;
+        using at_t = regular_value_sequence<value<I>...>;
 
     private:
         template<auto... Func>
@@ -316,7 +316,7 @@ namespace stdsharp
                 noexcept((nothrow_predicate<Func, decltype(Values)> && ...))
             {
                 ::std::size_t i = 0;
-                empty =
+                ::std::ignore =
                     ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
                 return i;
             }
@@ -378,7 +378,7 @@ namespace stdsharp
                     requires ::std::predicate<Comp>
                 constexpr auto operator()(Comp& comp) const noexcept(nothrow_predicate<Comp, bool>)
                 {
-                    return static_cast<bool>(::std::invoke(comp, at_v<I>, at_v<I + 1>));
+                    return static_cast<bool>(::std::invoke(comp, value<I>, value<I + 1>));
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }

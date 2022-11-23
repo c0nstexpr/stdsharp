@@ -21,8 +21,7 @@
 
 //     GIVEN( //
 //         fmt::format(
-//             "custom class type\n name: {}\nmember type: {}\nmem func type: {}\nreturn: {}\nargs:
-//             "
+//             "custom class type\n name: {}\nmember type: {}\nmem func type: {}\nreturn: {}\nargs:"
 //             "{}",
 //             type<my_class>(),
 //             type<my_class::mem_t>(),
