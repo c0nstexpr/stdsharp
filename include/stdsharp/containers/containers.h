@@ -267,7 +267,7 @@ namespace stdsharp
     using insert_return_type =
         details::insert_return_type_of<::std::set<int>::insert_return_type>::type<Iterator, Node>;
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept container = requires //
     {
         typename ::std::decay_t<Container>;
@@ -289,42 +289,42 @@ namespace stdsharp
             requires ::std::destructible<decltype(instance)>;
 
             requires logical_imply(
-                         (nothrow_default_initializable<Elements> && ...),
+                         (nothrow_default_initializable<Members> && ...),
                          nothrow_default_initializable<decltype(instance)> //
                      ) ||
                 logical_imply(
-                         (::std::default_initializable<Elements> && ...),
+                         (::std::default_initializable<Members> && ...),
                          ::std::default_initializable<decltype(instance)> //
                 );
 
             requires logical_imply(
-                         (nothrow_copy_constructible<Elements> && ...) &&
+                         (nothrow_copy_constructible<Members> && ...) &&
                              container_nothrow_copy_insertable<decltype(instance)>,
                          nothrow_copy_constructible<decltype(instance)> //
                      ) ||
                 logical_imply(
-                         (::std::copy_constructible<Elements> && ...) &&
+                         (::std::copy_constructible<Members> && ...) &&
                              container_copy_insertable<decltype(instance)>,
                          ::std::copy_constructible<decltype(instance)> //
                 );
             requires logical_imply(
-                         (nothrow_copy_assignable<Elements> && ...) &&
+                         (nothrow_copy_assignable<Members> && ...) &&
                              nothrow_copy_assignable<decltype(value)> &&
                              container_nothrow_copy_insertable<decltype(instance)>,
                          nothrow_copy_assignable<decltype(instance)> //
                      ) ||
                 logical_imply(
-                         (copy_assignable<Elements> && ...) && copy_assignable<decltype(value)> &&
+                         (copy_assignable<Members> && ...) && copy_assignable<decltype(value)> &&
                              container_copy_insertable<decltype(instance)>,
                          copy_assignable<decltype(instance)> //
                 );
 
             requires logical_imply(
-                         (::std::move_constructible<Elements> && ...),
+                         (::std::move_constructible<Members> && ...),
                          ::std::move_constructible<decltype(instance)> //
                      ) ||
                 logical_imply(
-                         (nothrow_move_constructible<Elements> && ...),
+                         (nothrow_move_constructible<Members> && ...),
                          nothrow_move_constructible<decltype(instance)> //
                 );
 
@@ -343,14 +343,14 @@ namespace stdsharp
                              ::std::allocator_traits<decltype(alloc
                                  )>::propagate_on_container_move_assignment::value ||
                                  container_nothrow_move_insertable<decltype(instance)> &&
-                                     (nothrow_move_assignable<Elements> && ...),
+                                     (nothrow_move_assignable<Members> && ...),
                              nothrow_move_assignable<decltype(instance)> //
                          ) ||
                     logical_imply(
                              ::std::allocator_traits<decltype(alloc
                                  )>::propagate_on_container_move_assignment::value ||
                                  container_move_insertable<decltype(instance)> &&
-                                     (move_assignable<Elements> && ...),
+                                     (move_assignable<Members> && ...),
                              move_assignable<decltype(instance)> //
                     );
             };
@@ -392,8 +392,8 @@ namespace stdsharp
         };
     };
 
-    template<typename Container, typename... Elements>
-    concept reversible_container = container<Container, Elements...> &&
+    template<typename Container, typename... Members>
+    concept reversible_container = container<Container, Members...> &&
         requires //
     {
         typename ::std::decay_t<Container>;
@@ -413,7 +413,7 @@ namespace stdsharp
         };
     };
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept allocator_aware_container = requires //
     {
         requires requires(
@@ -423,7 +423,7 @@ namespace stdsharp
         ) //
         {
             requires allocator_req<decltype(alloc)>;
-            requires container<Container, decltype(alloc), Elements...>;
+            requires container<Container, decltype(alloc), Members...>;
             requires ::std::constructible_from<decltype(instance), decltype(alloc)>;
 
             requires logical_imply(
@@ -449,8 +449,8 @@ namespace stdsharp
         };
     };
 
-    template<typename Container, typename... Elements>
-    concept sequence_container = container<Container, Elements...> &&
+    template<typename Container, typename... Members>
+    concept sequence_container = container<Container, Members...> &&
         requires //
     {
         requires requires(
@@ -588,8 +588,8 @@ namespace stdsharp
         };
     }
 
-    template<typename Container, typename... Elements>
-    concept associative_like_container = allocator_aware_container<Container, Elements...> &&
+    template<typename Container, typename... Members>
+    concept associative_like_container = allocator_aware_container<Container, Members...> &&
         requires //
     {
         requires requires(
@@ -648,7 +648,7 @@ namespace stdsharp
         };
     };
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept associative_container = requires //
     {
         requires requires(
@@ -665,7 +665,7 @@ namespace stdsharp
             ::std::initializer_list<decltype(value)> v_list
         ) //
         {
-            requires associative_like_container<decltype(instance), decltype(key_cmp)>;
+            requires associative_like_container<decltype(instance), decltype(key_cmp), Members...>;
 
             requires ::std::copyable<decltype(key_cmp)>;
             requires ::std::predicate<decltype(key_cmp), decltype(key), decltype(key)>;
@@ -687,7 +687,7 @@ namespace stdsharp
                 >::template value<decltype(key_cmp), decltype(alloc)>
             );
 
-#ifdef __cpp_lib_ranges_to_container
+#if (defined __cpp_lib_containers_ranges) && !(defined _MSVC_LANG)
             requires details::optional_constructible<
                 decltype(instance),
                 ::std::from_range_t,
@@ -705,15 +705,15 @@ namespace stdsharp
         };
     };
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept unique_associative_container =
-        associative_container<Container, Elements...> && details::unique_associative<Container>;
+        associative_container<Container, Members...> && details::unique_associative<Container>;
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept multikey_associative_container =
-        associative_container<Container, Elements...> && details::multikey_associative<Container>;
+        associative_container<Container, Members...> && details::multikey_associative<Container>;
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept unordered_associative_container = requires //
     {
         requires requires(
@@ -735,7 +735,7 @@ namespace stdsharp
             ::std::initializer_list<decltype(value)> v_list
         ) //
         {
-            requires associative_like_container<decltype(instance), decltype(hasher), Elements...>;
+            requires associative_like_container<decltype(instance), decltype(hasher), Members...>;
 
             requires ::std::copyable<decltype(key_equal)>;
             requires ::std::predicate<decltype(key_equal), decltype(key), decltype(key)>;
@@ -773,7 +773,7 @@ namespace stdsharp
                         decltype(alloc)
                     >; // clang-format on
 
-#ifdef __cpp_lib_ranges_to_container
+#if (defined __cpp_lib_containers_ranges) && !(defined _MSVC_LANG)
                     requires details::optional_constructible<
                         decltype(instance),
                         ::std::from_range_t,
@@ -824,14 +824,14 @@ namespace stdsharp
         };
     };
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept unique_unordered_associative_container =
-        unordered_associative_container<Container, Elements...> &&
+        unordered_associative_container<Container, Members...> &&
         details::unique_associative<Container>;
 
-    template<typename Container, typename... Elements>
+    template<typename Container, typename... Members>
     concept multikey_unordered_associative_container =
-        unordered_associative_container<Container, Elements...> &&
+        unordered_associative_container<Container, Members...> &&
         details::multikey_associative<Container>;
 
     template<typename Predicate, typename Container>

@@ -169,19 +169,13 @@ namespace stdsharp
     struct indexed_value : value_wrapper<T>
     {
         using value_wrapper<T>::value;
-#define STDSHARP_GET(const_, ref)                                                          \
-    template<::std::size_t Index>                                                          \
-        requires(I == Index)                                                               \
-    friend constexpr decltype(auto) get(const_ indexed_value<T, Index> ref this_) noexcept \
-    {                                                                                      \
-        return static_cast<const_ T ref>(this_.value);                                     \
-    }                                                                                      \
-                                                                                           \
-    template<::std::size_t Index>                                                          \
-        requires(I == Index)                                                               \
-    constexpr decltype(auto) get() const_ ref noexcept                                     \
-    {                                                                                      \
-        return static_cast<const_ T ref>(value);                                           \
+
+#define STDSHARP_GET(const_, ref_)                                                \
+    template<::std::size_t Index = I>                                             \
+        requires(I == Index)                                                      \
+    friend constexpr decltype(auto) get(const_ indexed_value ref_ this_) noexcept \
+    {                                                                             \
+        return static_cast<const_ T ref_>(this_.value);                           \
     }
 
         STDSHARP_GET(, &)
