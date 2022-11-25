@@ -346,4 +346,7 @@ namespace stdsharp
 
     template<typename T> // clang-format off
     concept dereferenceable = requires(T& t) { { *t } -> referenceable; }; // clang-format on
+
+    template<typename T, template<typename...> typename Impl, typename... U>
+    concept proxy_concept = Impl<T, U...>::value;
 }

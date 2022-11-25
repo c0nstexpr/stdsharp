@@ -31,9 +31,10 @@ namespace stdsharp
 
         template<::std::array Array, ::std::size_t... Index>
             requires nttp_able<typename decltype(Array)::value_type>
-        consteval auto array_to_sequence(const ::std::index_sequence<Index...>)
+        consteval regular_value_sequence<Array[Index]...>
+            array_to_sequence(const ::std::index_sequence<Index...>)
         {
-            return regular_value_sequence<Array[Index]...>{};
+            return {};
         }
 
         template<
@@ -280,13 +281,24 @@ namespace stdsharp
             }
         };
 
+        template<typename Func>
+        struct predicate
+        {
+            static constexpr auto value = (::std::invocable<Func, decltype(Values)> && ...);
+        };
+
+        template<typename Func>
+        struct nothrow_predicate
+        {
+            static constexpr auto value = (nothrow_invocable<Func, decltype(Values)> && ...);
+        };
+
     public:
         static constexpr struct for_each_fn
+
         {
-            template<typename Func>
-                requires(::std::invocable<Func, decltype(Values)> && ...)
-            constexpr auto operator()(Func func) const
-                noexcept((nothrow_invocable<Func, decltype(Values)> && ...))
+            template<proxy_concept<predicate> Func>
+            constexpr auto operator()(Func func) const noexcept(nothrow_predicate<Func>::value)
             {
                 (::std::invoke(func, Values), ...);
                 return func;
@@ -295,10 +307,9 @@ namespace stdsharp
 
         static constexpr struct for_each_n_fn
         {
-            template<typename Func>
-                requires(::std::invocable<Func, decltype(Values)> && ...)
+            template<proxy_concept<predicate> Func>
             constexpr auto operator()(auto for_each_n_count, Func func) const
-                noexcept((nothrow_invocable<Func, decltype(Values)> && ...))
+                noexcept(nothrow_predicate<Func>::value)
             {
                 ((for_each_n_count == 0 ?
                       false :
@@ -310,10 +321,9 @@ namespace stdsharp
 
         static constexpr struct find_if_fn
         {
-            template<typename Func>
-                requires(::std::predicate<Func, decltype(Values)> && ...)
+            template<proxy_concept<predicate> Func>
             [[nodiscard]] constexpr auto operator()(Func func) const
-                noexcept((nothrow_predicate<Func, decltype(Values)> && ...))
+                noexcept(nothrow_predicate<Func>::value)
             {
                 ::std::size_t i = 0;
                 ::std::ignore =
@@ -332,10 +342,9 @@ namespace stdsharp
 
         static constexpr struct count_if_fn
         {
-            template<typename Func>
-                requires(::std::predicate<Func, decltype(Values)> && ...)
+            template<proxy_concept<predicate> Func>
             [[nodiscard]] constexpr auto operator()(Func func) const
-                noexcept((nothrow_predicate<Func, decltype(Values)> && ...))
+                noexcept(nothrow_predicate<Func>::value)
             {
                 ::std::size_t i = 0;
                 for_each(
@@ -376,7 +385,8 @@ namespace stdsharp
             {
                 template<typename Comp>
                     requires ::std::predicate<Comp>
-                constexpr auto operator()(Comp& comp) const noexcept(nothrow_predicate<Comp, bool>)
+                constexpr auto operator()(Comp& comp) const
+                    noexcept(stdsharp::nothrow_predicate<Comp, bool>)
                 {
                     return static_cast<bool>(::std::invoke(comp, value<I>, value<I + 1>));
                 }

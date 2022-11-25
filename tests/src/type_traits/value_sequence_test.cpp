@@ -7,7 +7,6 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-
 using test_seq = value_sequence<0, 1, size_t{7}, 1, to_array("my literal")>;
 
 TEMPLATE_TEST_CASE( // NOLINT
