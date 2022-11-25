@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <functional>
 
-#include "core_traits.h"
+#include "indexed_traits.h"
 
 namespace stdsharp
 {
@@ -171,6 +171,10 @@ namespace stdsharp
         using regular_value_sequence<Values...>::size;
 
     private:
+        using values_t = indexed_values<decltype(Values)...>;
+
+        static constexpr values_t values{Values...};
+
         template<::std::size_t I>
             requires (I < size())
         [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence)noexcept
@@ -213,8 +217,10 @@ namespace stdsharp
         using apply_t = T<Values...>;
 
         template<::std::size_t I>
-        static constexpr decltype(auto) value =
-            indexed_values<constant<Values>...>::template type<I>::value;
+        using value_type = typename values_t::template type<I>;
+
+        template<::std::size_t I>
+        static constexpr value_type<I> value = get<I>(values);
 
         template<::std::size_t... I>
         using at_t = regular_value_sequence<value<I>...>;

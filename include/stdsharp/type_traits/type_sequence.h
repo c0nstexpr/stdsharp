@@ -11,6 +11,8 @@ namespace stdsharp
         template<typename... Types>
         struct type_sequence
         {
+            using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
+
             struct t;
         };
     }
@@ -45,12 +47,11 @@ namespace stdsharp
 
         template<typename... Types>
         struct type_sequence<Types...>::t :
-            private stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
+            private base,
             stdsharp::regular_type_sequence<Types...>,
             private type_seq_conversion
         {
         private:
-            using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
             using type_seq_conversion::from_value_seq_t;
             using type_seq_conversion::to_value_seq_t;
 
@@ -80,7 +81,7 @@ namespace stdsharp
             using apply_t = T<Types...>;
 
             template<::std::size_t I>
-            using type = typename stdsharp::indexed_values<Types...>::template type<I>;
+            using type = typename base::template value_type<I>::type;
 
             template<::std::size_t... I>
             using at_t = stdsharp::regular_type_sequence<type<I>...>;

@@ -16,7 +16,7 @@ using namespace ::std::literals;
 namespace stdsharp
 {
     template<typename...>
-    constexpr auto always_false(const auto&...) noexcept
+    [[nodiscard]] constexpr auto always_false(const auto&...) noexcept
     {
         return false;
     }
@@ -68,7 +68,7 @@ namespace stdsharp
     template<auto... V>
     struct regular_value_sequence
     {
-        static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
+        [[nodiscard]] static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
     };
 
     namespace details
@@ -100,14 +100,20 @@ namespace stdsharp
 
                 constexpr t(const ::std::type_identity<T>) noexcept {}
 
-                explicit constexpr operator ::std::type_identity<T>() const noexcept { return {}; }
+                [[nodiscard]] explicit constexpr operator ::std::type_identity<T>() const noexcept
+                {
+                    return {};
+                }
 
             private:
-                friend constexpr bool operator==(const t, const t) noexcept { return true; }
+                [[nodiscard]] friend constexpr bool operator==(const t, const t) noexcept
+                {
+                    return true;
+                }
 
                 template<typename U>
                     requires requires { requires ::std::same_as<t, template_rebind<U, T>>; }
-                friend constexpr bool operator==(const t, const U) noexcept
+                [[nodiscard]] friend constexpr bool operator==(const t, const U) noexcept
                 {
                     return false;
                 }
@@ -119,7 +125,7 @@ namespace stdsharp
         {
             struct type
             {
-                static constexpr auto size() noexcept { return sizeof...(T); }
+                [[nodiscard]] static constexpr auto size() noexcept { return sizeof...(T); }
             };
         };
 
@@ -137,7 +143,8 @@ namespace stdsharp
     using type_constant = typename details::type_constant<T>::t;
 
     template<typename T>
-    constexpr type_constant<T> make_type_constant(const ::std::type_identity<T>) noexcept
+    [[nodiscard]] constexpr type_constant<T>
+        make_type_constant(const ::std::type_identity<T>) noexcept
     {
         return {};
     }
@@ -164,58 +171,6 @@ namespace stdsharp
 
     template<typename... T>
     using regular_type_sequence = typename details::regular_type_sequence<T...>::type;
-
-    template<typename T, ::std::size_t I>
-    struct indexed_value : value_wrapper<T>
-    {
-        using value_wrapper<T>::value;
-
-#define STDSHARP_GET(const_, ref_)                                                \
-    template<::std::size_t Index = I>                                             \
-        requires(I == Index)                                                      \
-    friend constexpr decltype(auto) get(const_ indexed_value ref_ this_) noexcept \
-    {                                                                             \
-        return static_cast<const_ T ref_>(this_.value);                           \
-    }
-
-        STDSHARP_GET(, &)
-        STDSHARP_GET(const, &)
-        STDSHARP_GET(, &&)
-        STDSHARP_GET(const, &&)
-
-#undef STDSHARP_GET
-    };
-
-    namespace details
-    {
-        template<typename... T>
-        struct indexed_values
-        {
-            template<::std::size_t... Index>
-            struct inherited : stdsharp::indexed_value<T, Index>...
-            {
-            };
-
-            template<typename = ::std::index_sequence_for<T...>>
-            struct t;
-
-            template<::std::size_t... Index>
-            struct t<::std::index_sequence<Index...>> : inherited<Index...>
-            {
-                template<::std::size_t I>
-                using type =
-                    ::std::remove_cvref_t<decltype(get<I>(::std::declval<inherited<Index...>>()))>;
-            };
-        };
-    }
-
-    template<typename... T>
-    struct indexed_values : details::indexed_values<T...>::template t<>
-    {
-    };
-
-    template<typename... T>
-    indexed_values(T&&...) -> indexed_values<::std::decay_t<T>...>;
 
     template<typename T>
     struct construct_fn
@@ -259,7 +214,7 @@ namespace stdsharp
 
             constexpr ltr& operator=(array_t arr) noexcept { *this = ::std::to_array(arr); }
 
-            constexpr operator ::std::string_view() const noexcept
+            [[nodiscard]] constexpr operator ::std::string_view() const noexcept
             {
                 return {base::data(), Size - 1};
             }

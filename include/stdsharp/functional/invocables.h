@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-#include "../type_traits/core_traits.h"
+#include "../type_traits/indexed_traits.h"
 
 namespace stdsharp
 {
