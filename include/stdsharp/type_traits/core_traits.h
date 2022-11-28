@@ -65,6 +65,12 @@ namespace stdsharp
     using persist_t =
         ::std::conditional_t<::std::is_rvalue_reference_v<T>, ::std::remove_reference_t<T>, T&>;
 
+    template<typename... T>
+    struct basic_type_sequence
+    {
+        [[nodiscard]] static constexpr auto size() noexcept { return sizeof...(T); }
+    };
+
     template<auto... V>
     struct regular_value_sequence
     {
@@ -123,9 +129,8 @@ namespace stdsharp
         template<typename... T>
         struct regular_type_sequence
         {
-            struct type
+            struct type : basic_type_sequence<T...>
             {
-                [[nodiscard]] static constexpr auto size() noexcept { return sizeof...(T); }
             };
         };
 
