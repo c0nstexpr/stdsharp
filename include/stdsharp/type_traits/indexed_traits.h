@@ -10,6 +10,13 @@ namespace stdsharp
         using value_wrapper<T>::value;
 
     private:
+        template<::std::size_t Index = I>
+            requires(I == Index)
+        friend constexpr type_constant<T> get_type(const indexed_value&) noexcept
+        {
+            return {};
+        }
+
 #define STDSHARP_GET(const_, ref_)                                                              \
     template<::std::size_t Index = I>                                                           \
         requires(I == Index)                                                                    \
@@ -67,7 +74,7 @@ namespace stdsharp
             {
                 template<::std::size_t I>
                 using type =
-                    ::std::remove_cvref_t<decltype(get<I>(::std::declval<inherited<Index...>>()))>;
+                    typename decltype(get_type<I>(::std::declval<inherited<Index...>>()))::type;
             };
         };
 
