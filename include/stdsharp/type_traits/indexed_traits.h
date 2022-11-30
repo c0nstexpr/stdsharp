@@ -72,9 +72,12 @@ namespace stdsharp
             template<::std::size_t... Index>
             struct t<::std::index_sequence<Index...>> : inherited<Index...>
             {
+            private:
+                using base = inherited<Index...>;
+
+            public:
                 template<::std::size_t I>
-                using type =
-                    typename decltype(get_type<I>(::std::declval<inherited<Index...>>()))::type;
+                using type = typename decltype(get_type<I>(::std::declval<base>()))::type;
             };
         };
 
