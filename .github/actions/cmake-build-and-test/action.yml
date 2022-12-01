@@ -38,23 +38,17 @@ runs:
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
 
     - name: Run before cmake build
-      id: before-cmake-build
       run: ${{ inputs.before-build }}
       shell: bash
 
-    - name: Cache builds
-      id: cache-build
+    - name: Cache vcpkg builds
       uses: actions/cache@v3
       with:
         path: |
-          ${{ inputs.build-dir }}
-          !${{ inputs.build-dir }}/CMakeCache.txt
-          !${{ inputs.build-dir }}/CMakeFiles
-          !${{ inputs.build-dir }}/clang-tidy-report
+          ${{ inputs.build-dir }}/vcpkg_installed
         key: ${{ runner.os }}-${{ inputs.build-type }}
 
     - name: Install dependencies and generate project files
-      id: cmake-config
       run: cmake -S "${{ github.workspace }}" -B "${{ inputs.build-dir }}" -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ inputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
       shell: bash
 
