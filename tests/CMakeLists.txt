@@ -28,7 +28,7 @@ set(src
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
-target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp
+target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp::stdsharp
                                                    Catch2::Catch2WithMain)
 
 config_exe(${PROJECT_NAME} EXE_SRC ${src})
