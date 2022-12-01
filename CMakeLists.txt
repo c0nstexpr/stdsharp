@@ -11,6 +11,7 @@ project(
   LANGUAGES CXX)
 
 config_lib(${PROJECT_NAME} INTERFACE STD 23)
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 #
 # Model project dependencies
