@@ -10,6 +10,7 @@
 #include <meta/meta.hpp>
 
 #include "../utility/value_wrapper.h"
+#include "../utility/adl_proof.h"
 
 using namespace ::std::literals;
 
@@ -77,6 +78,11 @@ namespace stdsharp
         [[nodiscard]] static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
     };
 
+    template<not_same_as<void> T, T... V>
+    struct regular_value_sequence<V...> : ::std::integer_sequence<T, V...>
+    {
+    };
+
     namespace details
     {
         template<typename>
@@ -98,40 +104,24 @@ namespace stdsharp
         template<typename T>
         struct type_constant
         {
-            struct t
+            using type = T;
+
+            type_constant() = default;
+
+            constexpr type_constant(const ::std::type_identity<T>) noexcept {}
+
+            [[nodiscard]] explicit constexpr operator ::std::type_identity<T>() const noexcept
             {
-                using type = T;
+                return {};
+            }
 
-                t() = default;
-
-                constexpr t(const ::std::type_identity<T>) noexcept {}
-
-                [[nodiscard]] explicit constexpr operator ::std::type_identity<T>() const noexcept
-                {
-                    return {};
-                }
-
-            private:
-                [[nodiscard]] friend constexpr bool operator==(const t, const t) noexcept
-                {
-                    return true;
-                }
-
-                template<typename U>
-                    requires requires { requires ::std::same_as<t, template_rebind<U, T>>; }
-                [[nodiscard]] friend constexpr bool operator==(const t, const U) noexcept
-                {
-                    return false;
-                }
-            };
-        };
-
-        template<typename... T>
-        struct regular_type_sequence
-        {
-            struct type : basic_type_sequence<T...>
+        private:
+            template<typename U>
+            [[nodiscard]] friend constexpr bool
+                operator==(const type_constant, const type_constant<U>) noexcept
             {
-            };
+                return ::std::same_as<T, U>;
+            }
         };
 
         template<typename T>
@@ -145,7 +135,7 @@ namespace stdsharp
     }
 
     template<typename T>
-    using type_constant = typename details::type_constant<T>::t;
+    using type_constant = adl_proof_t<details::type_constant, T>;
 
     template<typename T>
     [[nodiscard]] constexpr type_constant<T>
@@ -175,7 +165,7 @@ namespace stdsharp
     using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
     template<typename... T>
-    using regular_type_sequence = typename details::regular_type_sequence<T...>::type;
+    using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
 
     template<typename T>
     struct construct_fn

@@ -9,16 +9,11 @@ namespace stdsharp
     namespace details
     {
         template<typename... Types>
-        struct type_sequence
-        {
-            using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
-
-            struct t;
-        };
+        struct type_sequence;
     }
 
     template<typename... Types>
-    using type_sequence = typename details::type_sequence<Types...>::t;
+    using type_sequence = adl_proof_t<details::type_sequence, Types...>;
 
     namespace details
     {
@@ -46,12 +41,14 @@ namespace stdsharp
         };
 
         template<typename... Types>
-        struct type_sequence<Types...>::t :
-            private base,
+        struct type_sequence :
+            private stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
             stdsharp::regular_type_sequence<Types...>,
             private type_seq_conversion
         {
         private:
+            using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
+
             using type_seq_conversion::from_value_seq_t;
             using type_seq_conversion::to_value_seq_t;
 

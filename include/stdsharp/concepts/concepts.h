@@ -13,6 +13,9 @@ namespace stdsharp
     template<typename T, typename... U>
     concept same_as_any = (::std::same_as<T, U> || ...);
 
+    template<typename T, typename... U>
+    concept all_same = (::std::same_as<T, U> && ...);
+
     template<typename T>
     concept enumeration = ::std::is_enum_v<T>;
 
