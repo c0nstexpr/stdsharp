@@ -1,5 +1,3 @@
-// Created by BlurringShadow at 2021-03-12-下午 1:56
-
 #pragma once
 
 #include <optional>

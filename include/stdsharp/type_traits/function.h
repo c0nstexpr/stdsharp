@@ -1,4 +1,3 @@
-// Created by BlurringShadow at 2021-03-03-下午 4:33
 
 #pragma once
 
@@ -21,7 +20,7 @@ namespace stdsharp
         struct function_traits_helper_base
         {
             using result_t = R;
-            using args_t = type_sequence<Args...>;
+            using args_t = regular_type_sequence<Args...>;
         };
 
         template<typename R, typename... Args>

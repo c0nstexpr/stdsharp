@@ -1,6 +1,5 @@
 //
-// Created by BlurringShadow on 2021-10-15.
-//
+
 #pragma once
 
 #include <algorithm>
@@ -9,34 +8,23 @@
 
 namespace stdsharp
 {
-    template<typename Func>
-    struct invocable_t : value_wrapper<Func>
+    namespace details
     {
-        using value_wrapper<Func>::value;
-
-#define STDSHARP_OPERATOR(const_, ref)                                                            \
-    template<typename... Args>                                                                    \
-        requires ::std::invocable<const_ Func ref, Args...>                                       \
-    constexpr decltype(auto) operator()(Args&&... args)                                           \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)                          \
-    {                                                                                             \
-        return ::std::invoke(static_cast<const_ Func ref>(value), ::std::forward<Args>(args)...); \
+        template<typename... Func>
+        using invocables = stdsharp::indexed_values<invocable_t<Func>...>;
     }
 
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-
-#undef STDSHARP_OPERATOR
-    };
-
     template<typename... Func>
-    struct invocables : indexed_values<invocable_t<Func>...>
+    struct invocables : details::invocables<Func...>
     {
+        using details::invocables<Func...>::invocables;
+
         template<typename... Args>
         static constexpr ::std::array invoke_result{::std::invocable<Func, Args...>...};
     };
+
+    template<typename... Func>
+    invocables(Func&&...) -> invocables<::std::decay_t<Func>...>;
 
     namespace details
     {
@@ -76,6 +64,8 @@ namespace stdsharp
     template<typename... Func>
     struct sequenced_invocables : invocables<Func...>
     {
+        using invocables<Func...>::invocables;
+
 #define STDSHARP_OPERATOR(const_, ref)                                                     \
     template<                                                                              \
         typename... Args,                                                                  \
@@ -129,31 +119,6 @@ namespace stdsharp
 
     template<typename... Func>
     trivial_invocables(Func&&...) -> trivial_invocables<::std::decay_t<Func>...>;
-
-    template<typename Func>
-    struct nodiscard_invocable : invocable_t<Func>
-    {
-        using base = invocable_t<Func>;
-
-#define STDSHARP_OPERATOR(const_, ref)                                             \
-    template<typename... Args>                                                     \
-        requires ::std::invocable<const_ base ref, Args...>                        \
-    [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args)              \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)           \
-    {                                                                              \
-        return static_cast<const_ base ref>(*this)(::std::forward<Args>(args)...); \
-    }
-
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-
-#undef STDSHARP_OPERATOR
-    };
-
-    template<typename Func>
-    nodiscard_invocable(Func&& func) -> nodiscard_invocable<::std::decay_t<Func>>;
 
     inline constexpr struct make_trivial_invocables_fn
     {

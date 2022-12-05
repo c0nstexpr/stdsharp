@@ -1,7 +1,6 @@
 //
-// Created by BlurringShadow on 2021-11-15.
-//
 
+//
 #pragma once
 
 #include <iterator>

@@ -1,7 +1,6 @@
 //
-// Created by BlurringShadow on 2021-10-4.
-//
 
+//
 #pragma once
 
 #include <deque>
@@ -773,7 +772,7 @@ namespace stdsharp
                         decltype(alloc)
                     >; // clang-format on
 
-#if (defined __cpp_lib_containers_ranges) && !(defined _MSVC_LANG)
+#if(defined __cpp_lib_containers_ranges) && !(defined _MSVC_LANG)
                     requires details::optional_constructible<
                         decltype(instance),
                         ::std::from_range_t,

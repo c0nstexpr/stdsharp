@@ -1,7 +1,6 @@
 //
-// Created by BlurringShadow on 2021-9-18.
-//
 
+//
 #pragma once
 
 #include <concepts>

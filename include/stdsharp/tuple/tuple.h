@@ -3,6 +3,7 @@
 #include <range/v3/utility/tuple_algorithm.hpp>
 
 #include "../functional/operations.h"
+#include "../utility/constructor.h"
 
 namespace stdsharp
 {

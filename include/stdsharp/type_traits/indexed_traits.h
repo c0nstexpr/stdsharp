@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core_traits.h"
+#include "../utility/invocable.h"
 
 namespace stdsharp
 {
@@ -79,11 +80,15 @@ namespace stdsharp
 #undef STDSHARP_GET
     };
 
-    template<::std::size_t I, typename T>
-    constexpr indexed_value<::std::decay_t<T>, I> make_indexed_value(T&& t)
-    {
-        return ::std::forward<T>(t);
-    }
+    template<::std::size_t I>
+    inline constexpr nodiscard_invocable make_indexed_value( //
+        []<typename T,
+           ::std::constructible_from<T> IndexedValue = indexed_value<::std::decay_t<T>, I>> //
+        (T&& t) noexcept(nothrow_constructible_from<IndexedValue, T>) //
+        {
+            return ::std::forward<T>(t); //
+        }
+    );
 
     namespace details
     {
@@ -110,18 +115,28 @@ namespace stdsharp
             template<::std::size_t... Index>
             struct t<::std::index_sequence<Index...>> : inherited<Index...>
             {
+            private:
+                using m_base = inherited<Index...>;
+
+            public:
+                using m_base::m_base;
+
                 template<::std::size_t I>
-                using type = typename decltype(get_type<I>(inherited<Index...>{}))::type;
+                using type = typename decltype(get_type<I>(::std::declval<m_base>()))::type;
             };
         };
+
+        template<typename... T>
+        using indexed_values = typename details::indexed_types<indexed_value, T...>::template t<>;
     }
 
     template<typename... T>
     using indexed_types = typename details::indexed_types<indexed_type, T...>::template t<>;
 
     template<typename... T>
-    struct indexed_values : details::indexed_types<indexed_value, T...>::template t<>
+    struct indexed_values : details::indexed_values<T...>
     {
+        using details::indexed_values<T...>::indexed_values;
     };
 
     template<typename... T>

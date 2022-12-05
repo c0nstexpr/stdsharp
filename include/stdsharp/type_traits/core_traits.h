@@ -1,4 +1,3 @@
-// Created by BlurringShadow at 2021-03-01-下午 9:00
 
 #pragma once
 
@@ -9,7 +8,6 @@
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
 
-#include "../utility/value_wrapper.h"
 #include "../utility/adl_proof.h"
 
 using namespace ::std::literals;
@@ -78,7 +76,8 @@ namespace stdsharp
         [[nodiscard]] static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
     };
 
-    template<not_same_as<void> T, T... V>
+    template<typename T, T... V>
+        requires(!::std::same_as<T, void>)
     struct regular_value_sequence<V...> : ::std::integer_sequence<T, V...>
     {
     };
@@ -166,29 +165,6 @@ namespace stdsharp
 
     template<typename... T>
     using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
-
-    template<typename T>
-    struct construct_fn
-    {
-        template<typename... Args>
-            requires ::std::constructible_from<T, Args...>
-        [[nodiscard]] constexpr auto operator()(Args&&... args) const
-            noexcept(nothrow_constructible_from<T, Args...>)
-        {
-            return T(::std::forward<Args>(args)...);
-        }
-
-        template<typename... Args>
-            requires(!::std::constructible_from<T, Args...> && list_initializable_from<T, Args...>)
-        [[nodiscard]] constexpr auto operator()(Args&&... args) const
-            noexcept(nothrow_list_initializable_from<T, Args...>)
-        {
-            return T{::std::forward<Args>(args)...};
-        }
-    };
-
-    template<typename T>
-    inline constexpr construct_fn<T> construct{};
 
     template<typename T>
     concept nttp_able = requires { typename details::nttp_check<T>::template nested<>; };
