@@ -7,7 +7,7 @@ include(cmake/Utils.cmake)
 #
 project(
   stdsharp
-  VERSION 0.4.3
+  VERSION 0.4.4
   LANGUAGES CXX)
 
 config_lib(${PROJECT_NAME} INTERFACE STD 23)
@@ -32,12 +32,8 @@ target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt range-v3::range-v3
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
-target_install(
-  ${PROJECT_NAME}
-  COMPATIBILITY
-  SameMajorVersion
-  DEPENDENCIES
-  fmt;ctre;range-v3)
+target_install(${PROJECT_NAME} COMPATIBILITY SameMajorVersion DEPENDENCIES
+               fmt;ctre;range-v3)
 
 install(FILES cmake/Utils.cmake
         DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}/stdsharp)
