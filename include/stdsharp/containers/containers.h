@@ -6,13 +6,11 @@
 #include <deque>
 #include <forward_list>
 #include <list>
+#include <vector>
 #include <set>
 #include <map>
-#include <type_traits>
 #include <unordered_set>
 #include <unordered_map>
-#include <stack>
-#include <queue>
 
 #include "../memory/memory.h"
 #include "../ranges/ranges.h"
