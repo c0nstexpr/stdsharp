@@ -1,9 +1,10 @@
 #pragma once
 
 #include <algorithm>
+#include <ranges>
 #include <array>
-#include <cstddef>
-#include <limits>
+
+#include <range/v3/view/concat.hpp>
 
 #include "../cstdint/cstdint.h"
 
@@ -26,14 +27,20 @@ namespace stdsharp
         [[nodiscard]] constexpr void*
             allocate(const ::std::size_t bytes, const typename storage_t::const_iterator hint)
         {
+            using subrange = ::std::ranges::subrange<typename storage_t::const_iterator>;
+
             if(bytes == 0) return nullptr;
 
             const auto state_init_begin = state_.begin() + (hint - storage_.cbegin());
 
-            auto it = ::std::ranges::search_n(state_init_begin, state_.end(), bytes, false);
-
-            if(it == state_.end())
-                it = ::std::ranges::search_n(state_.begin(), state_init_begin, bytes, false);
+            const auto it = ::std::ranges::search_n(
+                ::ranges::views::concat(
+                    subrange{state_init_begin, state_.end()},
+                    subrange{state_.begin(), state_init_begin}
+                ),
+                bytes,
+                false
+            );
 
             ::std::ranges::fill_n(it, bytes, true);
 
