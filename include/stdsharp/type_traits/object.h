@@ -20,11 +20,10 @@ namespace stdsharp
     };
 
     template<typename T>
-    struct private_object
+    class private_object
     {
         friend T;
 
-    protected:
         private_object() noexcept = default;
         private_object(const private_object&) = default;
         private_object& operator=(const private_object&) = default;
