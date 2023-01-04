@@ -8,17 +8,17 @@ SCENARIO("static buffer", "[memory][static_buffer]") // NOLINT
     struct base // NOLINT(*-special-member-functions)
     {
         virtual ~base() = default;
-        constexpr virtual int foo() = 0;
+        [[nodiscard]] constexpr virtual int foo() const = 0;
     };
 
     struct d1 : base
     {
-        constexpr int foo() override { return 0; }
+        [[nodiscard]] constexpr int foo() const override { return 0; }
     };
 
     struct d2 : base
     {
-        constexpr int foo() override { return 1; }
+        [[nodiscard]] constexpr int foo() const override { return 1; }
     };
 
     GIVEN("buffer with 16 bytes")
