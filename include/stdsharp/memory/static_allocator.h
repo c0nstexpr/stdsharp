@@ -43,7 +43,7 @@ namespace stdsharp
 
             auto it = ::std::ranges::search_n(hint_begin, state_.cend(), count_v, false).begin();
 
-            if(it == state_.end())
+            if(it == state_.cend())
             {
                 it = ::std::ranges::search_n( // clang-format off
                     state_.begin(),
