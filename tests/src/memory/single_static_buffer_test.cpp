@@ -1,6 +1,7 @@
 #include "test.h"
 #include "stdsharp/memory/single_static_buffer.h"
 
+using namespace std;
 using namespace stdsharp;
 
 SCENARIO("static buffer", "[memory][static_buffer]") // NOLINT
@@ -27,18 +28,24 @@ SCENARIO("static buffer", "[memory][static_buffer]") // NOLINT
 
         THEN("constructing a d1 at buffer")
         {
-            const auto& proxy = buffer.construct<d1>();
-            base* ptr = proxy.ptr();
+            const auto& element = buffer.construct<d1>();
+            base* ptr = element.ptr();
 
             REQUIRE(ptr->foo() == 0);
         }
 
         THEN("constructing a d2 at buffer")
         {
-            const auto& proxy = buffer.construct<d2>();
-            base* ptr = proxy.ptr();
+            const auto& element = buffer.construct<d2>();
+            base* ptr = element.ptr();
 
             REQUIRE(ptr->foo() == 1);
+        }
+
+        THEN("multi-construct should throws")
+        {
+            const auto& element = buffer.construct<d1>();
+            REQUIRE_THROWS_AS(buffer.construct<d2>(), bad_alloc);
         }
     }
 }

@@ -1,4 +1,5 @@
 #pragma once
 
 #include "allocator_traits.h"
-#include "static_buffer.h"
+#include "single_static_buffer.h"
+#include "static_allocator.h"

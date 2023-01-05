@@ -1,11 +1,9 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
 
-#include <range/v3/view/concat.hpp>
-
 #include "../utility/utility.h"
+#include "../algorithm/algorithm.h"
 
 namespace stdsharp
 {
@@ -22,6 +20,12 @@ namespace stdsharp
         using propagate_on_container_move_assignment = ::std::true_type;
         using propagate_on_container_swap = ::std::true_type;
 
+        template<typename U>
+        struct rebind
+        {
+            using other = static_allocator<U, Size>;
+        };
+
         static constexpr auto size = Size;
 
         [[nodiscard]] constexpr T* allocate(const ::std::size_t count)
@@ -31,35 +35,35 @@ namespace stdsharp
 
         [[nodiscard]] constexpr T* allocate(const ::std::size_t count, const void* hint)
         {
-            using subrange = ::std::ranges::subrange<typename storage_t::const_iterator>;
-
             if(count == 0) return nullptr;
 
-            const auto diff = static_cast<const T*>(hint) - storage_.data();
+            const auto hint_begin = map_state(auto_cast(hint));
 
-            const auto state_init_begin = state_.begin() + diff;
+            const std::iter_difference_t<typename state_t::iterator> count_v = auto_cast(count);
 
-            const auto concat_view = ::ranges::views::concat(
-                ::ranges::subrange{state_init_begin, state_.end()},
-                ::ranges::subrange{state_.begin(), state_init_begin}
-            );
+            auto it = ::std::ranges::search_n(hint_begin, state_.cend(), count_v, false).begin();
 
-            const ::std::ranges::range_difference_t<decltype(concat_view)> count_v =
-                auto_cast(count);
+            if(it == state_.end())
+            {
+                it = ::std::ranges::search_n( // clang-format off
+                    state_.begin(),
+                    hint_begin,
+                    count_v,
+                    false
+                ).begin(); // clang-format on
 
-            const auto it = ::std::ranges::search_n(concat_view, count_v, false).begin();
-
-            if(it == concat_view.end()) throw ::std::bad_alloc{};
+                if(it == hint_begin) throw ::std::bad_alloc{};
+            }
 
             ::std::ranges::fill_n(it, count_v, true);
 
-            return &storage_[::std::ranges::distance(concat_view.begin(), it) + diff];
+            return &*map_storage(it);
         }
 
         constexpr void deallocate(T* ptr, const ::std::size_t count) noexcept
         {
             if(ptr == nullptr) return;
-            ::std::ranges::fill_n(state_.begin() + (ptr - storage_.data()), count, false);
+            ::std::ranges::fill_n(map_state(ptr), auto_cast(count), false);
         }
 
         constexpr bool operator==(const auto&) const noexcept { return false; }
@@ -70,9 +74,21 @@ namespace stdsharp
 
         constexpr auto used() const noexcept { return ::std::ranges::count(state_, true); }
 
-        constexpr auto max_size() const noexcept { return size - used(); }
+        constexpr auto max_size() const noexcept { return storage_.size() - used(); }
 
     private:
+        constexpr auto map_storage(const typename state_t::const_iterator it) noexcept
+        {
+            return storage_.begin() + (it - state_.cbegin());
+        }
+
+        constexpr auto map_state(const T* ptr)
+        {
+            const auto diff = ptr - storage_.data();
+
+            return is_between(diff, 0, storage_.size()) ? state_.begin() + diff : state_.end();
+        }
+
         storage_t storage_{};
 
         state_t state_{};

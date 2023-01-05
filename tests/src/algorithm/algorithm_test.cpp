@@ -46,7 +46,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     GIVEN("given three values")
     {
-        constexpr auto is_in_range = !(Value < Min) && !(Value > Max);
+        constexpr auto is_in_range = !(Value <= Min) && !(Value >= Max);
 
         THEN(fmt::format("value should {}between min-max", is_in_range ? "" : "not "))
         {

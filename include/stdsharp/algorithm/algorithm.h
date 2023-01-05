@@ -46,7 +46,11 @@ namespace stdsharp
 
     inline constexpr struct is_between_fn
     {
-        template<typename T, typename Min, typename Max, typename Compare = ::std::ranges::less>
+        template<
+            typename T,
+            typename Min,
+            typename Max,
+            typename Compare = ::std::ranges::less_equal>
             requires ::std::predicate<Compare, const T, const Min> &&
             ::std::predicate<Compare, const Max, const T> &&
             ::std::predicate<Compare, const Max, const Min>
