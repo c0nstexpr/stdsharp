@@ -31,6 +31,10 @@ namespace stdsharp
     concept const_ = ::std::is_const_v<T>;
 
     template<typename T>
+    concept const_lvalue_ref =
+        ::std::is_lvalue_reference_v<T> && const_<::std::remove_reference_t<T>>;
+
+    template<typename T>
     concept volatile_ = ::std::is_volatile_v<T>;
 
     template<typename T>

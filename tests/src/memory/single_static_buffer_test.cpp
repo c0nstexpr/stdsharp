@@ -44,7 +44,7 @@ SCENARIO("static buffer", "[memory][static_buffer]") // NOLINT
 
         THEN("multi-construct should throws")
         {
-            const auto& element = buffer.construct<d1>();
+            [[maybe_unused]] const auto& element = buffer.construct<d1>();
             REQUIRE_THROWS_AS(buffer.construct<d2>(), bad_alloc);
         }
     }

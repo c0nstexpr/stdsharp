@@ -33,24 +33,32 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: is between",
+    "Scenario: clamp and is between",
     "[algorithm]",
     ((auto Value, auto Min, auto Max), Value, Min, Max),
     (1, 1, 2),
     (4, 2, 4),
     (3, 5, 10),
     (10, -1, 9),
+    (3, 3, 5),
     (100, 50, 900),
     (3, 2, 3)
 )
 {
     GIVEN("given three values")
     {
-        constexpr auto is_in_range = !(Value <= Min) && !(Value >= Max);
+        static constexpr auto v = Value;
+        static constexpr auto min = Min;
+        static constexpr auto max = Max;
 
-        THEN(fmt::format("value should {}between min-max", is_in_range ? "" : "not "))
+        THEN("clamp result should match std::clamp result")
         {
-            STATIC_REQUIRE(is_between(Value, Min, Max) == is_in_range);
+            STATIC_REQUIRE(std::clamp(v, min, max) == stdsharp::clamp(v, min, max));
+        }
+
+        THEN("is between result should be correct")
+        {
+            STATIC_REQUIRE(is_between(v, min, max) == ((v >= min) && (v <= max)));
         }
     }
 }

@@ -102,8 +102,8 @@ namespace stdsharp
 
                 template<typename... U>
                     requires(::std::constructible_from<Indexed<T, Index>, U> && ...)
-                constexpr inherited(U&&... u
-                ) noexcept((nothrow_constructible_from<Indexed<T, Index>, U> && ...)):
+                constexpr inherited(U&&... u) //
+                    noexcept((nothrow_constructible_from<Indexed<T, Index>, U> && ...)):
                     Indexed<T, Index>(::std::forward<U>(u))...
                 {
                 }

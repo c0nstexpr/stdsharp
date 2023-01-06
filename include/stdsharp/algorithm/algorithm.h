@@ -44,22 +44,52 @@ namespace stdsharp
 
     using set_if_less_fn = decltype(set_if_less);
 
+    namespace details
+    {
+        template<typename Compare, typename T, typename Min, typename Max>
+        concept min_max_predicate = ::std::predicate<Compare, const T&, const Min&> &&
+            ::std::predicate<Compare, const Max&, const T&> &&
+            ::std::predicate<Compare, const Max&, const Min&>;
+
+        template<typename Compare, typename T, typename Min, typename Max>
+        concept nothrow_min_max_predicate = nothrow_predicate<Compare, const T&, const Min&> &&
+            nothrow_predicate<Compare, const Max&, const T&> &&
+            nothrow_predicate<Compare, const Max&, const Min&>;
+    }
+
+    inline constexpr struct clamp_fn
+    {
+        template<
+            typename T,
+            typename Min,
+            typename Max,
+            details::min_max_predicate<T, Min, Max> Compare =
+                ::std::ranges::less // clang-format off
+        > // clang-format on
+        [[nodiscard]] constexpr ::std::common_reference_t<const T&, const Min&, const Max&>
+            operator()(const T& t, const Min& min, const Max& max, Compare cmp = {}) const
+            noexcept(details::nothrow_min_max_predicate<Compare, T, Min, Max> && !is_debug)
+        {
+            if constexpr(is_debug)
+                if(invoke_r<bool>(cmp, max, min))
+                    throw ::std::invalid_argument{"max value should not less than min value"};
+
+            return invoke_r<bool>(cmp, t, min) ? min : (invoke_r<bool>(cmp, max, t) ? max : t);
+        }
+    } clamp{};
+
     inline constexpr struct is_between_fn
     {
         template<
             typename T,
             typename Min,
             typename Max,
-            typename Compare = ::std::ranges::less_equal>
-            requires ::std::predicate<Compare, const T, const Min> &&
-            ::std::predicate<Compare, const Max, const T> &&
-            ::std::predicate<Compare, const Max, const Min>
+            details::min_max_predicate<T, Min, Max> Compare =
+                ::std::ranges::less // clang-format off
+        > // clang-format on
         [[nodiscard]] constexpr auto
-            operator()(const T& t, const Min& min, const Max& max, Compare cmp = {}) const noexcept(
-                nothrow_predicate<Compare, const T, const Min>&&
-                    nothrow_predicate<Compare, const Max, const T> &&
-                !is_debug
-            )
+            operator()(const T& t, const Min& min, const Max& max, Compare&& cmp = {}) const
+            noexcept(details::nothrow_min_max_predicate<Compare, T, Min, Max> && !is_debug)
         {
             if constexpr(is_debug)
                 if(invoke_r<bool>(cmp, max, min))

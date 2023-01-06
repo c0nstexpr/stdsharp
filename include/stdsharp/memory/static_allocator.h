@@ -39,7 +39,7 @@ namespace stdsharp
 
             const auto hint_begin = map_state(auto_cast(hint));
 
-            const std::iter_difference_t<typename state_t::iterator> count_v = auto_cast(count);
+            const ::std::iter_difference_t<typename state_t::iterator> count_v = auto_cast(count);
 
             auto it = ::std::ranges::search_n(hint_begin, state_.cend(), count_v, false).begin();
 
@@ -66,27 +66,34 @@ namespace stdsharp
             ::std::ranges::fill_n(map_state(ptr), auto_cast(count), false);
         }
 
-        constexpr bool operator==(const auto&) const noexcept { return false; }
+        [[nodiscard]] constexpr bool operator==(const auto&) const noexcept { return false; }
 
-        constexpr const auto& state() const noexcept { return state_; }
+        [[nodiscard]] constexpr const auto& state() const noexcept { return state_; }
 
-        constexpr const auto& storage() const noexcept { return storage_; }
+        [[nodiscard]] constexpr const auto& storage() const noexcept { return storage_; }
 
-        constexpr auto used() const noexcept { return ::std::ranges::count(state_, true); }
+        [[nodiscard]] constexpr auto used() const noexcept
+        {
+            return ::std::ranges::count(state_, true);
+        }
 
-        constexpr auto max_size() const noexcept { return storage_.size() - used(); }
+        [[nodiscard]] constexpr auto max_size() const noexcept { return storage_.size() - used(); }
 
     private:
-        constexpr auto map_storage(const typename state_t::const_iterator it) noexcept
+        [[nodiscard]] constexpr auto map_storage(const typename state_t::const_iterator it) noexcept
         {
             return storage_.begin() + (it - state_.cbegin());
         }
 
-        constexpr auto map_state(const T* ptr)
+        [[nodiscard]] constexpr auto map_state(const T* ptr)
         {
             const auto diff = ptr - storage_.data();
 
-            return is_between(diff, 0, storage_.size()) ? state_.begin() + diff : state_.end();
+            using diff_t = ::std::remove_const_t<decltype(diff)>;
+
+            return is_between(diff, diff_t{0}, static_cast<diff_t>(storage_.size())) ?
+                state_.begin() + diff :
+                state_.end();
         }
 
         storage_t storage_{};

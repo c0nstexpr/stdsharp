@@ -21,7 +21,7 @@ namespace stdsharp
     {
     public:
         template<typename T>
-        class element : unique_object // NOLINT(*-special-member-functions)
+        class [[nodiscard]] element : unique_object // NOLINT(*-special-member-functions)
         {
             friend class single_static_buffer;
 
@@ -40,14 +40,14 @@ namespace stdsharp
         public:
             element() = default;
 
-            constexpr T& ref() const noexcept { return *ptr_impl(); }
+            [[nodiscard]] constexpr T& ref() const noexcept { return *ptr_impl(); }
 
-            constexpr T* ptr() const noexcept
+            [[nodiscard]] constexpr T* ptr() const noexcept
             {
                 return instance_ == nullptr ? nullptr : ptr_impl();
             }
 
-            constexpr operator bool() const noexcept { return instance_ != nullptr; }
+            [[nodiscard]] constexpr operator bool() const noexcept { return instance_ != nullptr; }
 
             constexpr ~element() noexcept
                 requires ::std::invocable<decltype(::std::ranges::destroy_at), T*>
@@ -58,12 +58,12 @@ namespace stdsharp
             }
 
         private:
-            constexpr T* ptr_impl() const noexcept
+            [[nodiscard]] constexpr T* ptr_impl() const noexcept
             {
                 return reinterpret_cast<T*>(instance().storage_.data());
             }
 
-            constexpr auto& instance() const noexcept { return *instance_; }
+            [[nodiscard]] constexpr auto& instance() const noexcept { return *instance_; }
 
             single_static_buffer* instance_ = nullptr;
         };
