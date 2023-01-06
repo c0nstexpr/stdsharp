@@ -247,13 +247,10 @@ function(target_enable_clang_tidy target)
         "${CLANG_TIDY};--enable-check-profile;--store-check-profile=${report_folder}"
     )
 
-    if(EXISTS ${report_folder})
-      add_custom_target(
-        ${target}ClangTidyClean ALL
-        COMMAND ${CMAKE_COMMAND} -E rm -r ${report_folder}/
-        USES_TERMINAL)
-      add_dependencies(${target} ${target}ClangTidyClean)
-    endif()
+    add_custom_target(
+      ${target}ClangTidyClean ALL
+      COMMAND ${CMAKE_COMMAND} -E rm -rf ${report_folder}/
+      USES_TERMINAL)
   else()
     message(STATUS "clang-tidy not found")
   endif()
