@@ -13,13 +13,39 @@ namespace stdsharp
     {
         using base = ::std::tuple<Allocators...>;
 
-        template<typename Alloc>
-        using pointers_storage = ::std::shared_ptr<::std::vector<T*, Alloc>>;
+    public:
+        class pointer
+        {
+            friend class composed_allocator;
 
-        using pointers_tuple = ::std::tuple<pointers_storage<Allocators>...>;
+            using deallocator_function = void (*)(composed_allocator&) noexcept;
 
-        pointers_tuple pointers_;
+            T* ptr = nullptr;
 
+            deallocator_function deallocate_fn;
+
+            constexpr pointer(T* ptr, const deallocator_function func) noexcept:
+                ptr(ptr), deallocate_fn(func)
+            {
+            }
+
+        public:
+            constexpr pointer(const nullptr_t = {}) {}
+
+            constexpr operator T*() const noexcept { return ptr; }
+
+            constexpr T* operator->() const noexcept { return ptr; }
+
+            constexpr T& operator*() const noexcept { return *ptr; }
+
+            constexpr auto operator<=>(const pointer other) const noexcept
+            {
+                return ptr <=> other.ptr;
+            }
+        };
+
+
+    private:
         template<::std::size_t... I>
         constexpr void
             copy_assign_impl(const composed_allocator& other, const ::std::index_sequence<I...>)
@@ -27,7 +53,7 @@ namespace stdsharp
             auto f = [this, &other]<::std::size_t J>
             {
                 if constexpr( //
-                    allocator_traits<::std::tuple_element_t<J, ::std::tuple<Allocators...>>>::
+                    allocator_traits<::std::tuple_element_t<J, base>>::
                         propagate_on_container_copy_assignment::value //
                 )
                     ::std::get<J>(*this) = ::std::get<J>(other);
@@ -43,7 +69,7 @@ namespace stdsharp
             auto f = [this, &other]<::std::size_t J>
             {
                 if constexpr( //
-                    allocator_traits<::std::tuple_element_t<J, ::std::tuple<Allocators...>>>::
+                    allocator_traits<::std::tuple_element_t<J, base>>::
                         propagate_on_container_move_assignment::value //
                 )
                     ::std::get<J>(*this) = ::std::move(::std::get<J>(other));
@@ -56,18 +82,20 @@ namespace stdsharp
         [[nodiscard]] constexpr ::std::pair<T*, bool> allocate_impl_by(
             const index_constant<I>,
             const ::std::size_t count,
-            const void* hint = nullptr
+            const void* hint,
+            T*& out_ptr
         )
         {
             auto& alloc = ::std::get<I>(*this);
 
             try
             {
-                return {alloc.allocate(count, hint), true};
+                out_ptr = alloc.allocate(count, hint);
+                return true;
             }
             catch(...)
             {
-                return {nullptr, false};
+                return false;
             }
         }
 
