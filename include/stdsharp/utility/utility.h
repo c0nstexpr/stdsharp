@@ -3,37 +3,15 @@
 
 #include <utility>
 
+#include "adl_proof.h"
+#include "auto_cast.h"
+#include "constructor.h"
+#include "invocable.h"
 #include "pack_get.h"
 #include "value_wrapper.h"
-#include "adl_proof.h"
 
 namespace stdsharp
 {
-    inline constexpr struct
-    {
-    private:
-        template<typename T>
-        struct auto_cast_operator
-        {
-            T&& t;
-
-            template<typename U>
-                requires explicitly_convertible<T, U>
-            [[nodiscard]] constexpr operator U() const&& //
-                noexcept(nothrow_explicitly_convertible<T, U>)
-            {
-                return static_cast<U>(::std::forward<T>(t));
-            }
-        };
-
-    public:
-        template<typename T>
-        [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
-        {
-            return auto_cast_operator<T>{::std::forward<T>(t)}; //
-        }
-    } auto_cast{};
-
     template<typename T>
     struct forward_like_fn
     {
