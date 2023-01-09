@@ -20,7 +20,7 @@ namespace stdsharp
         requires requires //
     {
         typename T::value_type;
-        ::std::copyable<T>;
+        nothrow_copyable<T>;
         nothrow_movable<T>;
 
         requires requires(
@@ -34,7 +34,7 @@ namespace stdsharp
             typename decltype(t_traits)::size_type size,
             typename decltype(t_traits
             )::template rebind_traits<details::alloc_req_dummy_t> u_traits,
-            typename decltype(t_traits)::is_always_equal aq,
+            typename decltype(t_traits)::is_always_equal always_equal,
             typename decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
             typename decltype(t_traits)::propagate_on_container_move_assignment move_assign,
             typename decltype(t_traits)::propagate_on_container_swap swap // clang-format off
@@ -99,8 +99,8 @@ namespace stdsharp
             { t_traits.max_size(alloc) } -> ::std::same_as<decltype(size)>;
             // clang-format on
 
-            requires ::std::derived_from<decltype(aq), ::std::true_type> ||
-                ::std::derived_from<decltype(aq), ::std::false_type>;
+            requires ::std::derived_from<decltype(always_equal), ::std::true_type> ||
+                ::std::derived_from<decltype(always_equal), ::std::false_type>;
 
             // clang-format off
             { t_traits.select_on_container_copy_construction(alloc) } -> ::std::same_as<T>;
