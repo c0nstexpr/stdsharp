@@ -33,7 +33,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: clamp and is between",
+    "Scenario: is between",
     "[algorithm]",
     ((auto Value, auto Min, auto Max), Value, Min, Max),
     (1, 1, 2),
@@ -50,11 +50,6 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         static constexpr auto v = Value;
         static constexpr auto min = Min;
         static constexpr auto max = Max;
-
-        THEN("clamp result should match std::clamp result")
-        {
-            STATIC_REQUIRE(std::clamp(v, min, max) == stdsharp::clamp(v, min, max));
-        }
 
         THEN("is between result should be correct")
         {

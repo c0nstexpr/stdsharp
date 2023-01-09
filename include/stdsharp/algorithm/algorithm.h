@@ -44,58 +44,38 @@ namespace stdsharp
 
     using set_if_less_fn = decltype(set_if_less);
 
-    namespace details
-    {
-        template<typename Compare, typename T, typename Min, typename Max>
-        concept min_max_predicate = ::std::predicate<Compare, const T&, const Min&> &&
-            ::std::predicate<Compare, const Max&, const T&> &&
-            ::std::predicate<Compare, const Max&, const Min&>;
-
-        template<typename Compare, typename T, typename Min, typename Max>
-        concept nothrow_min_max_predicate = nothrow_predicate<Compare, const T&, const Min&> &&
-            nothrow_predicate<Compare, const Max&, const T&> &&
-            nothrow_predicate<Compare, const Max&, const Min&>;
-    }
-
-    inline constexpr struct clamp_fn
-    {
-        template<
-            typename T,
-            typename Min,
-            typename Max,
-            details::min_max_predicate<T, Min, Max> Compare =
-                ::std::ranges::less // clang-format off
-        > // clang-format on
-        [[nodiscard]] constexpr ::std::common_reference_t<const T&, const Min&, const Max&>
-            operator()(const T& t, const Min& min, const Max& max, Compare cmp = {}) const
-            noexcept(details::nothrow_min_max_predicate<Compare, T, Min, Max> && !is_debug)
-        {
-            if constexpr(is_debug)
-                if(invoke_r<bool>(cmp, max, min))
-                    throw ::std::invalid_argument{"max value should not less than min value"};
-
-            return invoke_r<bool>(cmp, t, min) ? min : (invoke_r<bool>(cmp, max, t) ? max : t);
-        }
-    } clamp{};
-
     inline constexpr struct is_between_fn
     {
         template<
             typename T,
-            typename Min,
-            typename Max,
-            details::min_max_predicate<T, Min, Max> Compare =
+            typename Proj = ::std::identity,
+            ::std::indirect_strict_weak_order<::std::projected<const T*, Proj>> Compare =
                 ::std::ranges::less // clang-format off
         > // clang-format on
-        [[nodiscard]] constexpr auto
-            operator()(const T& t, const Min& min, const Max& max, Compare&& cmp = {}) const
-            noexcept(details::nothrow_min_max_predicate<Compare, T, Min, Max> && !is_debug)
+        [[nodiscard]] constexpr auto operator()(// NOLINTBEGIN(*-easily-swappable-parameters)
+            const T& t,
+            const T& min,
+            const T& max,
+            Compare cmp = {},
+            Proj proj = {}
+        ) const// NOLINTEND(*-easily-swappable-parameters)
+            noexcept(
+                nothrow_predicate<
+                    Compare,
+                    ::std::projected<const T*, Proj>,
+                    ::std::projected<const T*, Proj>> &&
+                !is_debug
+            )
         {
+            const auto& proj_max = ::std::invoke(proj, max);
+            const auto& proj_min = ::std::invoke(proj, min);
+            const auto& proj_t = ::std::invoke(proj, t);
+
             if constexpr(is_debug)
-                if(invoke_r<bool>(cmp, max, min))
+                if(invoke_r<bool>(cmp, proj_max, proj_min))
                     throw ::std::invalid_argument{"max value should not less than min value"};
 
-            return !invoke_r<bool>(cmp, t, min) && !invoke_r<bool>(cmp, max, t);
+            return !invoke_r<bool>(cmp, proj_t, proj_min) && !invoke_r<bool>(cmp, proj_max, proj_t);
         }
     } is_between{};
 }
