@@ -7,6 +7,21 @@
 
 namespace stdsharp
 {
+    template<::std::size_t I>
+    class aggregate_bad_alloc : public ::std::bad_alloc
+    {
+        ::std::array<::std::exception_ptr, I> exceptions_;
+
+    public:
+        template<typename... Args>
+        constexpr aggregate_bad_alloc(Args&&... args) noexcept:
+            exceptions_{::std::forward<Args>(args)...}
+        {
+        }
+
+        [[nodiscard]] constexpr const auto& exceptions() const noexcept { return exceptions_; }
+    }
+
     template<typename T, allocator_req... Allocators>
         requires requires(
             allocator_traits<Allocators>... traits,
@@ -24,8 +39,11 @@ namespace stdsharp
 
         typename ::std::common_type_t<typename decltype(traits)::difference_type...>;
         typename ::std::common_type_t<typename decltype(traits)::size_type...>;
+
+        requires(::std::three_way_comparable<decltype(pointers), ::std::strong_ordering> && ...);
     }
     class composed_allocator : ::std::tuple<Allocators...>
+
     {
         using base = ::std::tuple<Allocators...>;
 
@@ -41,28 +59,27 @@ namespace stdsharp
     private:
         using pointer_variant = ::std::variant<typename allocator_traits<Allocators>::pointer...>;
 
+        using post_increase_fn = void (*)(pointer_variant&);
+        using post_decrease_fn = void (*)(pointer_variant&);
+        using plus_fn = T& (*)(pointer_variant&, difference_type);
+        using minus_fn = T& (*)(pointer_variant&, difference_type);
+        using subscript_fn = T& (*)(const pointer_variant&, difference_type);
+        using three_ways_compare_fn =
+            ::std::strong_ordering (*)(const pointer_variant&, const pointer_variant&);
+        using equal_to_nullptr_fn = bool (*)(const pointer_variant&, const nullptr_t);
+        using deallocate_fn = void (*)(base&, pointer_variant&, size_type) noexcept;
+
         template<::std::size_t I>
         struct pointer_proxy
         {
-            static constexpr ::std::variant<typename allocator_traits<Allocators>::pointer...>
-                member_of_pointer(const pointer_variant& info)
+            static constexpr void post_increase(pointer_variant& info)
             {
-                return {::std::in_place_index<I>, ::std::get<I>(info)};
+                post_increase_v(::std::get<I>(info));
             }
 
-            static constexpr auto post_increase(pointer_variant& info)
+            static constexpr void post_decrease(pointer_variant& info)
             {
-                return post_increase_v(::std::get<I>(info));
-            }
-
-            static constexpr auto post_decrease(pointer_variant& info)
-            {
-                return post_decrease_v(::std::get<I>(info));
-            }
-
-            static constexpr auto indirection(const pointer_variant& info)
-            {
-                return subscript(info, 0);
+                post_decrease_v(::std::get<I>(info));
             }
 
             static constexpr void plus(pointer_variant& info, const difference_type n)
@@ -77,30 +94,24 @@ namespace stdsharp
 
             static constexpr T& subscript(const pointer_variant& info, const difference_type n)
             {
-                return {::std::in_place_index<I>, *(::std::get<I>(info).ptr + n)};
+                return *(::std::get<I>(info).ptr + n);
             }
 
-            static constexpr auto
-                not_equal(const pointer_variant& left, const pointer_variant& right)
-            {
-                return not_equal_to_v(::std::get<I>(left), ::std::get<I>(right));
-            }
-
-            static constexpr auto
+            static constexpr ::std::strong_ordering
                 three_ways_compare(const pointer_variant& left, const pointer_variant& right)
             {
                 return compare_three_way_v(::std::get<I>(left), ::std::get<I>(right));
             }
 
-            static constexpr auto not_equal_to_nullptr(const pointer_variant& left, const nullptr_t)
+            static constexpr bool equal_to_nullptr(const pointer_variant& left, const nullptr_t)
             {
-                return not_equal_to_v(::std::get<I>(left).ptr, nullptr);
+                return equal_to_v(::std::get<I>(left).ptr, nullptr);
             }
 
-            static constexpr auto
-                three_ways_compare_to_nullptr(const pointer_variant& left, const nullptr_t)
+            static constexpr void
+                deallocate(base& tuple, const pointer_variant& info, const size_type n) noexcept
             {
-                return compare_three_way_v(::std::get<I>(left).ptr, nullptr);
+                alloc_traits<I>::deallocate(::std::get<I>(tuple), ::std::get<I>(info), n);
             }
         };
 
@@ -114,41 +125,129 @@ namespace stdsharp
             friend class composed_allocator;
             friend class pointer_delegate;
 
-            alloc_info_variant info_;
+            static constexpr auto operator_impl_ =
+                []<::std::size_t... I>(const ::std::index_sequence<I...>)
+            {
+                return ::std::tuple<
+                    ::std::array<post_increase_fn, sizeof...(I)>,
+                    ::std::array<post_decrease_fn, sizeof...(I)>,
+                    ::std::array<plus_fn, sizeof...(I)>,
+                    ::std::array<minus_fn, sizeof...(I)>,
+                    ::std::array<subscript_fn, sizeof...(I)>,
+                    ::std::array<three_ways_compare_fn, sizeof...(I)>,
+                    ::std::array<equal_to_nullptr_fn, sizeof...(I)>,
+                    ::std::array<deallocate_fn, sizeof...(I)> // clang-format off
+                >{
+                    {&pointer_proxy<I>::post_increase...}, // clang-format on
+                    {&pointer_proxy<I>::post_decrease...},
+                    {&pointer_proxy<I>::plus...},
+                    {&pointer_proxy<I>::minus...},
+                    {&pointer_proxy<I>::subscript...},
+                    {&pointer_proxy<I>::three_ways_compare...},
+                    {&pointer_proxy<I>::equal_to_nullptr...},
+                    {&pointer_proxy<I>::deallocate...} //
+                };
+            }
+            (::std::make_index_sequence<sizeof...(Allocators)>());
+
+            static constexpr auto post_increase_impl = ::std::get<0>(operator_impl_);
+            static constexpr auto post_decrease_impl = ::std::get<1>(operator_impl_);
+            static constexpr auto plus_impl = ::std::get<2>(operator_impl_);
+            static constexpr auto minus_impl = ::std::get<3>(operator_impl_);
+            static constexpr auto subscript_impl = ::std::get<4>(operator_impl_);
+            static constexpr auto three_ways_compare_impl = ::std::get<5>(operator_impl_);
+            static constexpr auto equal_to_nullptr_impl = ::std::get<6>(operator_impl_);
+            static constexpr auto deallocate_impl = ::std::get<7>(operator_impl_);
+
+            pointer_variant ptr_;
 
             template<::std::size_t I, typename... Args>
                 requires ::std::constructible_from<
-                    alloc_info_variant,
+                    pointer_variant,
                     ::std::in_place_index_t<I>,
                     Args...>
             constexpr pointer(
                 const ::std::in_place_index_t<I> placeholder,
                 Args&&... args
-            ) noexcept(nothrow_constructible_from<alloc_info_variant, ::std::in_place_index_t<I>, Args...>):
-                info_(placeholder, ::std::forward<Args>(args)...)
+            ) noexcept(nothrow_constructible_from<pointer_variant, ::std::in_place_index_t<I>, Args...>):
+                ptr_(placeholder, ::std::forward<Args>(args)...)
             {
             }
 
-            friend ::std::ptrdiff_t operator-(const pointer& lhs, const pointer& rhs) noexcept
+            constexpr void deallocate(base& tuple, const size_type n) noexcept
             {
-                return lhs.ptr_ - rhs.ptr_;
+                deallocate_impl[ptr_.index()](tuple, ptr_, n);
             }
-
-            template<::std::size_t I>
-            struct deallocate_fn
-            {
-                static constexpr void invoke(composed_allocator& alloc, T* ptr) noexcept
-                {
-                    alloc_traits<I>::deallocate(::std::get<I>(alloc), ptr);
-                }
-            };
-
-            constexpr void deallocate(composed_allocator& alloc) noexcept { deallocate_fn_(alloc); }
 
         public:
             using element_type = T;
 
-            constexpr pointer(const nullptr_t = {}) {}
+            pointer() = default;
+
+            constexpr pointer(const nullptr_t) noexcept {}
+
+            constexpr const pointer operator++(int) // NOLINT(*-const-return-type)
+            {
+                const auto result = *this;
+                post_increase_impl[ptr_.index()](ptr_);
+                return result;
+            }
+
+            constexpr const pointer operator--(int) // NOLINT(*-const-return-type)
+            {
+                const auto result = *this;
+                post_decrease_impl[ptr_.index()](ptr_);
+                return result;
+            }
+
+            constexpr pointer& operator+(const difference_type n)
+            {
+                plus_impl[ptr_.index()](ptr_, n);
+                return *this;
+            }
+
+            constexpr pointer& operator-(const difference_type n)
+            {
+                minus_impl[ptr_.index()](ptr_, n);
+                return *this;
+            }
+
+            constexpr T& operator[](const difference_type n)
+            {
+                return subscript_impl[ptr_.index()](ptr_, n);
+            }
+
+            constexpr ::std::strong_ordering operator<=>(const pointer& right) const
+            {
+                return three_ways_compare_impl[ptr_.index()](ptr_, right.ptr_);
+            }
+
+            constexpr bool operator!=(const pointer& right) const { return (*this <=> right) != 0; }
+
+            constexpr bool operator==(const nullptr_t) const
+            {
+                return equal_to_nullptr_impl[ptr_.index()](ptr_, nullptr);
+            }
+
+            constexpr bool operator!=(const nullptr_t) const { return !(*this == nullptr); }
+
+            friend constexpr bool operator==(const nullptr_t, const pointer& right)
+            {
+                return right == nullptr;
+            }
+
+            friend constexpr bool operator!=(const nullptr_t, const pointer& right)
+            {
+                return right != nullptr;
+            }
+
+            constexpr T& operator*() const { return (*this)[0]; }
+
+            constexpr T* operator->() const { return ::std::addressof(**this); }
+
+            constexpr explicit operator bool() const { return *this != nullptr; }
+
+            constexpr bool operator!() const { return !static_cast<bool>(*this); }
         };
 
     private:
