@@ -43,11 +43,7 @@ namespace stdsharp::filesystem
             space_size<Rep, ::std::ratio<Num, Denom>>,
             details::space_size_delegate // clang-format off
         >, // clang-format on
-        default_arithmetic_operation<
-            space_size<Rep, ::std::ratio<Num, Denom>>,
-            true,
-            details::space_size_delegate // clang-format off
-        > // clang-format on
+        default_arithmetic_operation<space_size<Rep, ::std::ratio<Num, Denom>>> // clang-format on
     {
     public:
         using rep = Rep;
