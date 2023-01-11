@@ -2,7 +2,6 @@
 #include "stdsharp/memory/static_allocator.h"
 #include "stdsharp/memory/allocator_traits.h"
 #include "stdsharp/memory/pointer_traits.h"
-#include <type_traits>
 
 using namespace stdsharp;
 using namespace std;

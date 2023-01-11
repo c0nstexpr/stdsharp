@@ -17,7 +17,7 @@ namespace stdsharp
     }
 
     template<typename T>
-        requires requires //
+    concept allocator_req = requires //
     {
         typename T::value_type;
         nothrow_copyable<T>;
@@ -78,7 +78,7 @@ namespace stdsharp
             requires requires(
                 typename decltype(u_traits)::pointer other_p,
                 typename decltype(u_traits)::const_pointer other_const_p,
-                typename decltype(u_traits)::allocator_type u_alloc // clang-format off
+                typename decltype(t_traits)::allocator_type another_alloc // clang-format off
             )
             {
                 { other_p->v } -> ::std::same_as<decltype(((*other_p).v))>;
@@ -87,7 +87,7 @@ namespace stdsharp
                 { t_traits.construct(alloc, other_p) };
                 { t_traits.destroy(alloc, other_p) };
 
-                requires noexcept(alloc == u_alloc) && noexcept(alloc != u_alloc);
+                requires noexcept(alloc == another_alloc);
             }; // clang-format on
 
             ::std::pointer_traits<decltype(p)>::pointer_to(*p); // clang-format off
@@ -117,7 +117,9 @@ namespace stdsharp
             requires ::std::derived_from<decltype(swap), ::std::true_type> &&
                     nothrow_swappable<T> || ::std::derived_from<decltype(swap), ::std::false_type>;
         };
-    }
+    };
+
+    template<allocator_req T>
     struct allocator_traits : private ::std::allocator_traits<T>
     {
     private:
@@ -137,6 +139,12 @@ namespace stdsharp
         using typename base::propagate_on_container_swap;
         using typename base::is_always_equal;
 
+        template<typename U>
+        using rebind_alloc = typename base::template rebind_alloc<U>;
+
+        template<typename U>
+        using rebind_traits = typename base::template rebind_traits<U>;
+
         using base::allocate;
         using base::deallocate;
         using base::max_size;
@@ -152,8 +160,6 @@ namespace stdsharp
         }
     };
 
-    template<typename T>
-    concept allocator_req = requires { typename allocator_traits<T>; };
 
     template<typename>
     struct allocator_of;
