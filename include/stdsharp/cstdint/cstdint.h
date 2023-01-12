@@ -4,7 +4,7 @@
 #include <limits>
 #include <stdexcept>
 
-#include "../utility/utility.h"
+#include "../utility/auto_cast.h"
 
 namespace stdsharp
 {

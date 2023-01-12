@@ -30,36 +30,32 @@ namespace stdsharp
     template<::std::size_t I>
     aggregate_bad_alloc(::std::array<::std::exception_ptr, I>&&) -> aggregate_bad_alloc<I>;
 
-    namespace details
-    {
-        template<typename... T>
-        concept common_and_inter_convertible = requires //
-        {
-            typename ::std::common_type_t<T...>;
-            requires(::std::convertible_to<::std::common_type_t<T...>, T> && ...);
-        };
-    }
-
     template<typename T, allocator_req... Allocators>
         requires requires(
             allocator_traits<Allocators>... traits,
             typename decltype(traits)::pointer... pointers,
-            typename decltype(traits)::const_pointer... const_pointers
+            typename ::std::common_type_t<decltype(pointers)...> common_p,
+            typename decltype(traits)::void_pointer... void_pointers,
+            typename ::std::common_type_t<decltype(void_pointers)...> common_vp,
+            typename decltype(traits)::const_pointer... const_pointers,
+            typename ::std::common_type_t<decltype(const_pointers)...> common_cp,
+            typename decltype(traits)::difference_type... difference_values,
+            typename ::std::common_type_t<decltype(difference_values)...> common_diff,
+            typename decltype(traits)::size_type... size_values,
+            typename ::std::common_type_t<decltype(size_values)...> common_size
         ) //
     {
-        requires details::common_and_inter_convertible<typename decltype(traits)::pointer...>;
-        typename ::std::common_type_t<typename decltype(traits)::const_pointer...>;
-        requires details::common_and_inter_convertible< // clang-format off
-            typename decltype(traits)::const_void_pointer...
-        >; // clang-format on
-        requires details::common_and_inter_convertible< // clang-format off
-            typename decltype(traits)::difference_type...
-        >; // clang-format on
-        requires details::common_and_inter_convertible<typename decltype(traits)::size_type...>;
+        requires(::std::convertible_to<decltype(common_vp), decltype(void_pointers)> && ...);
+        requires(::std::convertible_to<decltype(common_diff), decltype(difference_values)> && ...);
+        requires(::std::convertible_to<decltype(common_size), decltype(size_values)> && ...);
+
+        requires inter_convertible<decltype(common_p), decltype(common_vp)>;
     }
-    class composed_allocator : indexed_values<Allocators...>
+    class composed_allocator :
+        indexed_values<typename allocator_traits<Allocators>::template rebind_alloc<byte>...>
     {
-        using base = indexed_values<Allocators...>;
+        using base =
+            indexed_values<typename allocator_traits<Allocators>::template rebind_alloc<byte>...>;
 
         template<::std::size_t I>
         using alloc_t = typename base::template type<I>;
@@ -69,6 +65,9 @@ namespace stdsharp
 
         template<::std::size_t I>
         using alloc_pointer = typename alloc_traits<I>::pointer;
+
+        template<::std::size_t I>
+        using alloc_void_pointer = typename alloc_traits<I>::void_pointer;
 
         template<::std::size_t I>
         using alloc_const_void_pointer = typename alloc_traits<I>::const_void_pointer;
@@ -88,6 +87,9 @@ namespace stdsharp
         using size_type = ::std::common_type_t<typename allocator_traits<Allocators>::size_type...>;
 
         using pointer = ::std::common_type_t<typename allocator_traits<Allocators>::pointer...>;
+
+        using void_pointer =
+            ::std::common_type_t<typename allocator_traits<Allocators>::void_pointer...>;
 
         using const_pointer =
             ::std::common_type_t<typename allocator_traits<Allocators>::const_pointer...>;
@@ -118,162 +120,188 @@ namespace stdsharp
     private:
         template<::std::size_t... I>
         constexpr void
-            copy_assign_impl(const composed_allocator& other, const ::std::index_sequence<I...>) noexcept(
-                (nothrow_copy_assignable<Allocators> && ...)
-            )
+            copy_assign_impl(const composed_allocator& other, const ::std::index_sequence<I...>) noexcept
         {
-            auto f = [this, &other]<::std::size_t J>
+            const auto f = []<::std::size_t J>( // clang-format off
+                const index_constant<J>,
+                composed_allocator& instance,
+                const composed_allocator& other
+            ) // clang-format on
             {
-                if constexpr( //
-                    allocator_traits<alloc_t<J>>::propagate_on_container_copy_assignment::value //
-                )
-                    get<J>(*this) = get<J>(other);
+                if constexpr(alloc_traits<J>::propagate_on_container_copy_assignment::value)
+                    get<J>(instance) = get<J>(other);
             };
 
-            (f(index_constant<I>{}), ...);
+            (f(index_constant<I>{}, *this, other), ...);
         }
 
         template<::std::size_t... I>
         constexpr void
-            move_assign_impl(composed_allocator&& other, const ::std::index_sequence<I...>) noexcept(
-                (nothrow_move_assignable<Allocators> && ...)
-            )
+            move_assign_impl(composed_allocator&& other, const ::std::index_sequence<I...>) noexcept
         {
-            auto f = [this, &other]<::std::size_t J>
+            const auto f = []<::std::size_t J>( // clang-format off
+                const index_constant<J>,
+                composed_allocator& instance,
+                composed_allocator& other
+            ) // clang-format on
             {
-                if constexpr( //
-                    allocator_traits<alloc_t<J>>::propagate_on_container_move_assignment::value //
-                )
-                    get<J>(*this) = ::std::move(get<J>(other));
+                if constexpr(alloc_traits<J>::propagate_on_container_move_assignment::value)
+                    get<J>(instance) = ::std::move(get<J>(other));
             };
 
-            (f(index_constant<I>{}), ...);
+            (f(index_constant<I>{}, *this, other), ...);
         }
 
         template<::std::size_t... I>
         constexpr void
-            swap_impl(composed_allocator& other, const ::std::index_sequence<I...>) noexcept(
-                (nothrow_swappable<Allocators> && ...)
-            )
+            swap_impl(composed_allocator& other, const ::std::index_sequence<I...>) noexcept
         {
-            auto f = [this, &other]<::std::size_t J>
+            const auto f = []<::std::size_t J>( // clang-format off
+                const index_constant<J>,
+                composed_allocator& instance,
+                composed_allocator& other
+            ) // clang-format on
             {
-                if constexpr( //
-                    allocator_traits<alloc_t<J>>::propagate_on_container_swap::value //
-                )
-                    ::std::ranges::swap(get<J>(*this), get<J>(other));
+                if constexpr(alloc_traits<J>::propagate_on_container_swap::value)
+                    ::std::ranges::swap(get<J>(instance), get<J>(other));
             };
 
-            (f(index_constant<I>{}), ...);
-        }
-
-        template<bool Noexcept, ::std::size_t I>
-        constexpr ::std::variant<
-            pointer,
-            ::std::conditional_t<Noexcept, empty_t, ::std::exception_ptr> // clang-format off
-        > allocate_at(const alloc_size_type<I> count, const alloc_const_void_pointer<I>& hint)
-            noexcept // clang-format on
-        {
-            try
-            {
-                return {
-                    ::std::in_place_index<0>,
-                    static_cast<pointer>(alloc_traits<I>::allocate(get<I>(*this), count, hint)) //
-                };
-            }
-            catch(...)
-            {
-                if constexpr(Noexcept) return {::std::in_place_index<1>};
-                else return {::std::in_place_index<1>, ::std::current_exception()};
-            }
+            (f(index_constant<I>{}, *this, other), ...);
         }
 
         template<::std::size_t I>
-            requires requires(
-                alloc_t<I> alloc,
-                alloc_size_type<I> count,
-                alloc_const_void_pointer<I> hint
-            ) // clang-format off
+        using size_alloc_traits = typename alloc_traits<I>::template rebind_traits<::std::size_t>;
+
+        template<
+            ::std::size_t I,
+            typename SizePointer = typename size_alloc_traits<I>::pointer>
+        constexpr alloc_void_pointer<I> assign_alloc_index(const alloc_void_pointer<I>& ptr) //
+            noexcept(noexcept(*(static_cast<SizePointer>(ptr)) = I, ptr + sizeof(::std::size_t)))
         {
-            { alloc.try_allocate(count, hint) } ->
-                ::std::convertible_to<pointer>; // clang-format on
-            requires noexcept(alloc.try_allocate(count, hint));
+            *(static_cast<SizePointer>(ptr)) = I;
+
+            return ptr + sizeof(::std::size_t);
         }
-        constexpr pointer try_allocate_at(
+
+        template<::std::size_t I>
+        constexpr alloc_void_pointer<I> raw_allocate_at(
             const alloc_size_type<I> count,
             const alloc_const_void_pointer<I>& hint
         ) noexcept
         {
+            auto&& ptr = auto_cast(alloc_traits<I>::try_allocate(get<I>(*this), count, hint));
+
+            if(ptr != nullptr) return assign_alloc_index<I>(::std::move(ptr));
+
+            return {nullptr};
+        }
+
+        template<::std::size_t I>
+        constexpr alloc_void_pointer<I> raw_allocate_at(
+            const alloc_size_type<I> count,
+            const alloc_const_void_pointer<I>& hint,
+            ::std::exception_ptr& exception
+        ) noexcept
+        {
             try
             {
-                return auto_cast(get<I>(*this).try_allocate(count, hint));
+                return assign_alloc_index<I>(
+                    ::std::move(auto_cast(alloc_traits<I>::allocate(get<I>(*this), count, hint)))
+                );
             }
             catch(...)
             {
-                return nullptr;
+                exception = ::std::current_exception();
+
+                return {nullptr};
             }
         }
 
-        template<bool Noexcept, ::std::size_t... I>
-        constexpr pointer allocate_impl(
-            const ::std::index_sequence<I...>,
-            const size_type count,
-            const const_void_pointer& hint
-        ) noexcept(Noexcept)
+        constexpr auto get_alloc_info(const void_pointer& ptr) //
+            noexcept(noexcept(ptr + sizeof(::std::size_t)))
         {
-            pointer ptr{};
-            ::std::conditional_t<
-                Noexcept,
-                empty_t,
-                ::std::array<::std::exception_ptr, sizeof...(I)> // clang-format off
-            > exception{}; // clang-format on
+            using ConstSizePointer = typename size_alloc_traits<I>::const_pointer;
 
-            const auto allocate_f = [this, &ptr, &exception]<::std::size_t J>( // clang-format off
-                const index_constant<J>,
-                const size_type count,
-                const_void_pointer hint
-            ) noexcept(Noexcept) // clang-format on
+            struct local
             {
-                const alloc_size_type<J> count_v = auto_cast(count);
+                void_pointer ptr;
 
-                try
+                [[nodiscard]] constexpr ::std::size_t get_alloc_index() const
+                    noexcept(noexcept(*(static_cast<ConstSizePointer>(ptr))))
                 {
-                    const alloc_const_void_pointer<J> hint_v = auto_cast(::std::move(hint));
-
-                    if constexpr(requires { try_allocate<J>(count_v, hint_v); })
-                    {
-                        auto&& res_ptr = try_allocate<J>(count_v, hint_v);
-
-                        if(res_ptr != nullptr)
-                        {
-                            ptr = ::std::move(res_ptr);
-                            return true;
-                        }
-                    }
-                    else
-                    {
-                        auto&& res_ptr = allocate_at<Noexcept, J>(count_v, hint_v);
-
-                        if(res_ptr.index() == 0)
-                        {
-                            ptr = ::std::move(::std::get<0>(res_ptr));
-                            return true;
-                        }
-
-                        if constexpr(!Noexcept) exception[J] = ::std::move(::std::get<1>(res_ptr));
-
-                        return false;
-                    }
-                }
-                catch(...)
-                {
-                    if constexpr(!Noexcept) exception[J] = ::std::current_exception();
-                    return false;
+                    return *(static_cast<ConstSizePointer>(ptr));
                 }
             };
 
-            if(!(allocate_f(index_constant<I>{}, count, hint) || ...))
-                if constexpr(!Noexcept) throw aggregate_bad_alloc{::std::move(exception)};
+            return local{ptr - sizeof(::std::size_t)};
+        }
+
+        template<bool Noexcept, ::std::size_t... I>
+        constexpr void_pointer raw_allocate_impl(
+            const ::std::index_sequence<I...>,
+            size_type count,
+            const const_void_pointer& hint
+        ) noexcept(Noexcept)
+        {
+            void_pointer ptr{nullptr};
+
+            count += sizeof(::std::size_t);
+
+            if constexpr(Noexcept)
+            {
+                try
+                {
+                    ( //
+                        ( //
+                            empty =
+                                (ptr =
+                                     auto_cast(raw_allocate_at<I>(auto_cast(count), auto_cast(hint))
+                                     )),
+                            static_cast<bool>(ptr != nullptr)
+                        ) ||
+                        ...
+                    );
+                }
+                catch(...)
+                {
+                }
+            }
+            else
+            {
+                ::std::array<::std::exception_ptr, sizeof...(I)> exceptions{};
+
+                const auto alloc_f = [this]<::std::size_t J>( // clang-format off
+                    const index_constant<J>,
+                    const alloc_size_type<J> count,
+                    const const_void_pointer& hint,
+                    ::std::exception_ptr& exception
+                ) noexcept -> void_pointer // clang-format on
+                {
+                    try
+                    {
+                        return auto_cast(raw_allocate_at<J>(count, auto_cast(hint), exception));
+                    }
+                    catch(...)
+                    {
+                        exception = ::std::current_exception();
+                    }
+
+                    return {nullptr};
+                };
+
+                const bool res = ( //
+                    ( //
+                        empty = ( //
+                            ptr =
+                                alloc_f(index_constant<I>{}, auto_cast(count), hint, exceptions[I])
+                        ),
+                        static_cast<bool>(exceptions[I])
+                    ) &&
+                    ...
+                );
+
+                if(res) throw aggregate_bad_alloc{::std::move(exceptions)};
+            }
 
             return ptr;
         }
@@ -305,13 +333,10 @@ namespace stdsharp
 
         composed_allocator() = default;
         ~composed_allocator() = default;
-
         composed_allocator(const composed_allocator&) = default;
         composed_allocator(composed_allocator&&) noexcept = default;
 
-        constexpr composed_allocator& operator=(const composed_allocator& other) noexcept( //
-            noexcept(copy_assign_impl(other, ::std::index_sequence_for<Allocators...>{}))
-        )
+        constexpr composed_allocator& operator=(const composed_allocator& other) noexcept
             requires(propagate_on_container_copy_assignment::value)
         {
             copy_assign_impl(other, ::std::index_sequence_for<Allocators...>{});
@@ -320,11 +345,7 @@ namespace stdsharp
 
         composed_allocator& operator=(const composed_allocator& other) = default;
 
-        constexpr composed_allocator& operator=(composed_allocator&& other) noexcept( //
-            noexcept(
-                move_assign_impl(::std::move(other), ::std::index_sequence_for<Allocators...>{})
-            )
-        )
+        constexpr composed_allocator& operator=(composed_allocator&& other) noexcept
             requires(propagate_on_container_move_assignment::value)
         {
             move_assign_impl(::std::move(other), ::std::index_sequence_for<Allocators...>{});
@@ -333,14 +354,13 @@ namespace stdsharp
 
         composed_allocator& operator=(composed_allocator&& other) noexcept = default;
 
-        constexpr void swap(composed_allocator& other) //
-            noexcept(noexcept(swap_impl(other, ::std::index_sequence_for<Allocators...>{})))
+        constexpr void swap(composed_allocator& other) noexcept
             requires(propagate_on_container_swap::value)
         {
             swap_impl(other, ::std::index_sequence_for<Allocators...>{});
         }
 
-        constexpr void swap(composed_allocator& other) noexcept(nothrow_swappable<base>)
+        constexpr void swap(composed_allocator& other) noexcept
         {
             ::std::ranges::swap(static_cast<base&>(*this), static_cast<base&>(other));
         }
@@ -349,19 +369,37 @@ namespace stdsharp
         [[nodiscard]] constexpr pointer
             allocate(const size_type count, const const_void_pointer& hint = nullptr)
         {
-            return allocate_impl<false>(::std::index_sequence_for<Allocators...>{}, count, hint);
+            return auto_cast( //
+                raw_allocate_impl<false>(
+                    ::std::index_sequence_for<Allocators...>{},
+                    count * sizeof(T),
+                    hint
+                )
+            );
         }
 
         // allocate the memory in sequence of allocators
         [[nodiscard]] constexpr pointer
             try_allocate(const size_type count, const const_void_pointer& hint = nullptr) noexcept
         {
-            return allocate_impl<true>(::std::index_sequence_for<Allocators...>{}, count, hint);
+            return raw_allocate_impl<true>(
+                ::std::index_sequence_for<Allocators...>{},
+                count * sizeof(T),
+                hint
+            );
         }
 
-        constexpr void deallocate(pointer& ptr, const size_type count) noexcept
+        constexpr void deallocate(pointer& ptr, size_type count) noexcept
         {
-            ptr.deallocate(static_cast<base&>(*this), count);
+            const auto alloc_info = get_alloc_info(auto_cast(ptr));
+            const auto index = alloc_info.get_alloc_index();
+            const auto& void_p = alloc_info.ptr;
+
+            count += sizeof(::std::size_t);
+
+            {
+                get<index>(*this).deallocate(auto_cast(ptr), count * sizeof(T));
+            }
         }
 
         [[nodiscard]] constexpr auto max_size() const noexcept {}

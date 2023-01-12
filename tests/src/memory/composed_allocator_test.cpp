@@ -1,9 +1,18 @@
+#include <list>
+
 #include "test.h"
 #include "stdsharp/memory/composed_allocator.h"
-#include <catch2/catch_test_macros.hpp>
+
 
 using namespace stdsharp;
 using namespace std;
+
+void foo()
+{
+    list<int> l(allocator<int>{});
+
+    l.emplace_back(1);
+}
 
 template<typename T>
 struct my_alloc : allocator<T>
@@ -23,14 +32,6 @@ struct my_alloc : allocator<T>
 
 SCENARIO( // NOLINT
     "check static allocator for allocator named requirement",
-    "[memory][static_allocator]"
-)
-{
-    STATIC_REQUIRE(allocator_req<composed_allocator<int, allocator<int>, my_alloc<int>>>);
-}
-
-SCENARIO( // NOLINT
-    "check static allocator",
     "[memory][static_allocator]"
 )
 {

@@ -7,7 +7,6 @@
 
 #include "../iterator/iterator.h"
 #include "invocables.h"
-#include "../cstdint/cstdint.h"
 
 namespace stdsharp
 {

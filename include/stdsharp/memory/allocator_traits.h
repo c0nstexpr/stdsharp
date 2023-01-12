@@ -78,16 +78,20 @@ namespace stdsharp
             requires requires(
                 typename decltype(u_traits)::pointer other_p,
                 typename decltype(u_traits)::const_pointer other_const_p,
+                typename decltype(u_traits)::allocator_type u_alloc,
                 typename decltype(t_traits)::allocator_type another_alloc // clang-format off
             )
             {
+                nothrow_constructible_from<T, const decltype(u_alloc)&>;
+                nothrow_constructible_from<T, decltype(u_alloc)>;
+
                 { other_p->v } -> ::std::same_as<decltype(((*other_p).v))>;
                 { other_const_p->v } -> ::std::same_as<decltype(((*other_const_p).v))>;
 
-                { t_traits.construct(alloc, other_p) };
-                { t_traits.destroy(alloc, other_p) };
+                t_traits.construct(alloc, other_p);
+                t_traits.destroy(alloc, other_p);
 
-                requires noexcept(alloc == another_alloc);
+                requires noexcept(alloc == another_alloc) && noexcept(alloc != another_alloc);
             }; // clang-format on
 
             ::std::pointer_traits<decltype(p)>::pointer_to(*p); // clang-format off
@@ -95,7 +99,7 @@ namespace stdsharp
             { t_traits.allocate(alloc, size) } -> ::std::same_as<decltype(p)>;
             { t_traits.allocate(alloc, size, const_void_p) } -> ::std::same_as<decltype(p)>;
             // { t_traits.allocate_at_least(alloc, size) } -> ::std::same_as<::std::allocation_result<decltype(p)>>;
-            { t_traits.deallocate(alloc, p, size) };
+            noexcept(alloc.deallocate(alloc, p, size));
             { t_traits.max_size(alloc) } -> ::std::same_as<decltype(size)>;
             // clang-format on
 
@@ -157,6 +161,37 @@ namespace stdsharp
             noexcept(nothrow_constructible_from<U, Args...>)
         {
             base::construct(a, ptr, ::std::forward<Args>(args)...);
+        }
+
+        constexpr pointer try_allocate(
+            allocator_type& alloc,
+            const size_type count,
+            const const_void_pointer& hint
+        ) noexcept
+        {
+            try
+            {
+                return allocate(alloc, count, hint);
+            }
+            catch(...)
+            {
+                return nullptr;
+            }
+        }
+
+        constexpr pointer try_allocate(
+            allocator_type& alloc,
+            const size_type count,
+            const const_void_pointer& hint
+        ) noexcept
+            requires requires // clang-format off
+        {
+            { alloc.try_allocate(count, hint) } ->
+                ::std::same_as<pointer>; // clang-format on
+            requires noexcept(alloc.try_allocate(count, hint));
+        }
+        {
+            return alloc.try_allocate(count, hint);
         }
     };
 
