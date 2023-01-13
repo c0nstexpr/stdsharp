@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "../functional/invocables.h"
+#include "../utility/auto_cast.h"
 
 namespace stdsharp
 {
@@ -12,6 +13,21 @@ namespace stdsharp
         struct pointer_traits_reference :
             ::std::type_identity<decltype(*::std::declval<typename Traits::pointer>())>
         {
+            using element_type = ::std::remove_reference_t<typename pointer_traits_reference::type>;
+        };
+
+        template<typename Traits>
+            requires ::std::same_as<typename Traits::pointer, void*>
+        struct pointer_traits_reference<Traits> : ::std::type_identity<void>
+        {
+            using element_type = void;
+        };
+
+        template<typename Traits>
+            requires ::std::same_as<typename Traits::pointer, const void*>
+        struct pointer_traits_reference<Traits> : ::std::type_identity<const void>
+        {
+            using element_type = const void;
         };
 
         template<typename Traits>
@@ -19,82 +35,72 @@ namespace stdsharp
         struct pointer_traits_reference<Traits> :
             ::std::type_identity<::std::add_lvalue_reference_t<typename Traits::element_type>>
         {
+            using element_type = ::std::remove_reference_t<typename pointer_traits_reference::type>;
         };
     }
 
-    template<class Ptr>
-    struct pointer_traits
+    template<typename Ptr>
+    struct pointer_traits : private ::std::pointer_traits<Ptr>
     {
     private:
         using base = ::std::pointer_traits<Ptr>;
 
     public:
-        using pointer = typename base::pointer;
+        using typename base::pointer;
 
-        using difference_type = typename base::difference_type;
+        using typename base::difference_type;
 
-        template<class U>
+        template<typename U>
         using rebind = typename base::template rebind<U>;
 
         using reference = typename details::pointer_traits_reference<base>::type;
 
-        using element_type = ::std::remove_reference_t<reference>;
+        using element_type = typename details::pointer_traits_reference<base>::element_type;
 
         using raw_pointer = element_type*;
 
     private:
         struct base_pointer_to
         {
-            template<class U>
-            constexpr pointer operator()(reference r) const noexcept(noexcept(base::pointer_to(r)))
-                requires requires { base::pointer_to(r); }
+            template<::std::same_as<reference> T>
+                requires requires(T t) //
             {
-                return base::pointer_to(r);
+                requires requires { Ptr::pointer_to(t); } || requires { ::std::addressof(t); }; //
             }
-        };
-
-        struct ptr_pointer_to
-        {
-            template<typename T = Ptr> // clang-format off
-                requires requires(reference r) { { T::pointer_to(r) } -> ::std::same_as<pointer>; } // clang-format on
-            constexpr pointer operator()(reference r) const noexcept(noexcept(T::pointer_to(r)))
+            constexpr pointer operator()(T t) const noexcept
             {
-                return T::pointer_to(r);
+                return base::pointer_to(t);
             }
         };
 
         struct convert_pointer_to
         {
-            constexpr pointer operator()(reference r) const
-                noexcept(nothrow_convertible_to<raw_pointer, pointer>)
-                requires ::std::convertible_to<raw_pointer, pointer>
+            constexpr pointer operator()(reference r) const noexcept
+                requires nothrow_explicitly_convertible<raw_pointer, pointer>
             {
-                return static_cast<pointer>(::std::addressof(r));
+                return auto_cast(::std::addressof(r));
             }
         };
 
-        using pointer_to_impl_fn =
-            sequenced_invocables<base_pointer_to, ptr_pointer_to, convert_pointer_to>;
+        using pointer_to_impl_fn = sequenced_invocables<base_pointer_to, convert_pointer_to>;
 
         static constexpr pointer_to_impl_fn pointer_to_impl;
 
         struct base_to_address
         {
-            constexpr auto operator()(const pointer& p) const
-                noexcept(noexcept(base::to_address(p)))
-                requires requires { base::to_address(p); }
+            constexpr auto operator()(const pointer& p) const noexcept
+                requires requires { ::std::to_address(p); }
             {
-                return base::to_address(p);
+                return ::std::to_address(p);
             }
         };
 
         struct raw_ptr_to_address
         {
-            constexpr auto operator()(const pointer& p) const
-                noexcept(nothrow_convertible_to<pointer, raw_pointer>)
-                requires ::std::convertible_to<pointer, raw_pointer>
+            constexpr raw_pointer operator()(const pointer& p) const noexcept
+                requires nothrow_explicitly_convertible<pointer, raw_pointer>
             {
-                return static_cast<raw_pointer>(p);
+                return auto_cast(p);
             }
         };
 
@@ -103,9 +109,9 @@ namespace stdsharp
         static constexpr to_address_impl_fn to_address_impl;
 
     public:
-        static constexpr auto pointer_to(element_type& r) //
-            noexcept(nothrow_invocable<pointer_to_impl_fn, element_type&>)
-            requires ::std::invocable<pointer_to_impl_fn, element_type&>
+        static constexpr auto pointer_to(reference r) noexcept
+            requires not_same_as<::std::remove_const_t<reference>, void> &&
+            ::std::invocable<pointer_to_impl_fn, reference>
         {
             return pointer_to_impl(r);
         }
@@ -115,6 +121,21 @@ namespace stdsharp
             requires ::std::invocable<to_address_impl_fn, const pointer&>
         {
             return to_address_impl(p);
+        }
+
+        static constexpr pointer to_pointer(const raw_pointer p) // NOLINT(*-misplaced-const)
+            noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
+            requires explicitly_convertible<raw_pointer, pointer>
+        {
+            return auto_cast(p);
+        }
+
+        template<::std::same_as<raw_pointer> T = raw_pointer>
+            requires requires(const T p) { pointer_to(*p); }
+        static constexpr pointer to_pointer(const T p) // NOLINT(*-misplaced-const)
+            noexcept(noexcept(pointer_to(*p)))
+        {
+            return pointer_to(*p);
         }
     };
 

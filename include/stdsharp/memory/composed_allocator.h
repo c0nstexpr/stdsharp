@@ -3,10 +3,14 @@
 #include <variant>
 
 #include "allocator_traits.h"
+#include "pointer_traits.h"
 #include "../default_operator.h"
 #include "../functional/operations.h"
 #include "../type_traits/function.h"
+#include "../cstdint/cstdint.h"
+#include "stdsharp/concepts/concepts.h"
 
+// NOLINTBEGIN(*-reinterpret-cast, *-pointer-arithmetic)
 namespace stdsharp
 {
     template<::std::size_t I>
@@ -33,24 +37,10 @@ namespace stdsharp
     template<typename T, allocator_req... Allocators>
         requires requires(
             allocator_traits<Allocators>... traits,
-            typename decltype(traits)::pointer... pointers,
-            typename ::std::common_type_t<decltype(pointers)...> common_p,
-            typename decltype(traits)::void_pointer... void_pointers,
-            typename ::std::common_type_t<decltype(void_pointers)...> common_vp,
-            typename decltype(traits)::const_pointer... const_pointers,
-            typename ::std::common_type_t<decltype(const_pointers)...> common_cp,
-            typename decltype(traits)::difference_type... difference_values,
-            typename ::std::common_type_t<decltype(difference_values)...> common_diff,
-            typename decltype(traits)::size_type... size_values,
-            typename ::std::common_type_t<decltype(size_values)...> common_size
+            typename decltype(traits)::template rebind_alloc<byte>... byte_alloc,
+            allocator_traits<decltype(byte_alloc)>... byte_traits
         ) //
-    {
-        requires(::std::convertible_to<decltype(common_vp), decltype(void_pointers)> && ...);
-        requires(::std::convertible_to<decltype(common_diff), decltype(difference_values)> && ...);
-        requires(::std::convertible_to<decltype(common_size), decltype(size_values)> && ...);
-
-        requires inter_convertible<decltype(common_p), decltype(common_vp)>;
-    }
+    { requires(allocator_req<decltype(byte_alloc)> && ...); }
     class composed_allocator :
         indexed_values<typename allocator_traits<Allocators>::template rebind_alloc<byte>...>
     {
@@ -67,35 +57,16 @@ namespace stdsharp
         using alloc_pointer = typename alloc_traits<I>::pointer;
 
         template<::std::size_t I>
-        using alloc_void_pointer = typename alloc_traits<I>::void_pointer;
+        using alloc_const_pointer = typename alloc_traits<I>::const_pointer;
 
         template<::std::size_t I>
         using alloc_const_void_pointer = typename alloc_traits<I>::const_void_pointer;
-
-        template<::std::size_t I>
-        using alloc_difference_type = typename alloc_traits<I>::difference_type;
 
         template<::std::size_t I>
         using alloc_size_type = typename alloc_traits<I>::size_type;
 
     public:
         using value_type = T;
-
-        using difference_type =
-            ::std::common_type_t<typename allocator_traits<Allocators>::difference_type...>;
-
-        using size_type = ::std::common_type_t<typename allocator_traits<Allocators>::size_type...>;
-
-        using pointer = ::std::common_type_t<typename allocator_traits<Allocators>::pointer...>;
-
-        using void_pointer =
-            ::std::common_type_t<typename allocator_traits<Allocators>::void_pointer...>;
-
-        using const_pointer =
-            ::std::common_type_t<typename allocator_traits<Allocators>::const_pointer...>;
-
-        using const_void_pointer =
-            ::std::common_type_t<typename allocator_traits<Allocators>::const_void_pointer...>;
 
         using propagate_on_container_copy_assignment = ::std::disjunction<
             typename allocator_traits<Allocators>::propagate_on_container_copy_assignment...>;
@@ -170,80 +141,91 @@ namespace stdsharp
         }
 
         template<::std::size_t I>
-        using size_alloc_traits = typename alloc_traits<I>::template rebind_traits<::std::size_t>;
-
-        template<
-            ::std::size_t I,
-            typename SizePointer = typename size_alloc_traits<I>::pointer>
-        constexpr alloc_void_pointer<I> assign_alloc_index(const alloc_void_pointer<I>& ptr) //
-            noexcept(noexcept(*(static_cast<SizePointer>(ptr)) = I, ptr + sizeof(::std::size_t)))
+        static constexpr byte* assign_alloc_index(const alloc_pointer<I>& ptr)
         {
-            *(static_cast<SizePointer>(ptr)) = I;
+            byte* const raw_ptr = pointer_traits<alloc_pointer<I>>::to_address(ptr);
 
-            return ptr + sizeof(::std::size_t);
+            *reinterpret_cast<::std::size_t*>(raw_ptr) = I;
+
+            return raw_ptr + sizeof(::std::size_t);
         }
 
         template<::std::size_t I>
-        constexpr alloc_void_pointer<I> raw_allocate_at(
+        constexpr byte* raw_allocate_at(
             const alloc_size_type<I> count,
             const alloc_const_void_pointer<I>& hint
         ) noexcept
         {
-            auto&& ptr = auto_cast(alloc_traits<I>::try_allocate(get<I>(*this), count, hint));
+            auto& alloc = get<I>(*this);
+            auto&& ptr = alloc_traits<I>::try_allocate(alloc, count, hint);
 
-            if(ptr != nullptr) return assign_alloc_index<I>(::std::move(ptr));
+            try
+            {
+                if(ptr != nullptr) return assign_alloc_index<I>(ptr);
+            }
+            catch(...)
+            {
+                alloc_traits<I>::deallocate(alloc, ptr, count);
+            }
 
-            return {nullptr};
+            return nullptr;
         }
 
         template<::std::size_t I>
-        constexpr alloc_void_pointer<I> raw_allocate_at(
+        constexpr byte* raw_allocate_at(
             const alloc_size_type<I> count,
             const alloc_const_void_pointer<I>& hint,
             ::std::exception_ptr& exception
         ) noexcept
         {
+            bool allocated = false;
+            auto& alloc = get<I>(*this);
+            alloc_pointer<I> ptr;
+
             try
             {
-                return assign_alloc_index<I>(
-                    ::std::move(auto_cast(alloc_traits<I>::allocate(get<I>(*this), count, hint)))
-                );
+                ptr = alloc_traits<I>::allocate(alloc, count, hint);
+                allocated = true;
+                return assign_alloc_index<I>(ptr);
             }
             catch(...)
             {
+                if(allocated) alloc_traits<I>::deallocate(alloc, ptr, count);
                 exception = ::std::current_exception();
-
-                return {nullptr};
             }
+
+            return nullptr;
         }
 
-        constexpr auto get_alloc_info(const void_pointer& ptr) //
-            noexcept(noexcept(ptr + sizeof(::std::size_t)))
+        static constexpr ::std::pair<byte*, ::std::size_t> get_alloc_info(byte* ptr)
         {
-            using ConstSizePointer = typename size_alloc_traits<I>::const_pointer;
+            ptr -= sizeof(::std::size_t);
+            return {ptr, *reinterpret_cast<const ::std::size_t*>(ptr)};
+        }
 
-            struct local
-            {
-                void_pointer ptr;
+        template<::std::size_t I>
+        static constexpr alloc_const_void_pointer<I> to_alloc_void_pointer(const void* const ptr) //
+            noexcept
+        {
+            return auto_cast(pointer_traits<alloc_const_pointer<I>>::to_pointer(ptr));
+        }
 
-                [[nodiscard]] constexpr ::std::size_t get_alloc_index() const
-                    noexcept(noexcept(*(static_cast<ConstSizePointer>(ptr))))
-                {
-                    return *(static_cast<ConstSizePointer>(ptr));
-                }
-            };
-
-            return local{ptr - sizeof(::std::size_t)};
+        template<::std::size_t I, typename Traits = pointer_traits<alloc_const_void_pointer<I>>>
+            requires requires { Traits::to_pointer({}); }
+        static constexpr alloc_const_void_pointer<I> to_alloc_void_pointer(const void* const ptr) //
+            noexcept
+        {
+            return Traits::to_pointer(ptr);
         }
 
         template<bool Noexcept, ::std::size_t... I>
-        constexpr void_pointer raw_allocate_impl(
+        constexpr byte* raw_allocate_impl(
             const ::std::index_sequence<I...>,
-            size_type count,
-            const const_void_pointer& hint
+            ::std::size_t count,
+            const void* const hint
         ) noexcept(Noexcept)
         {
-            void_pointer ptr{nullptr};
+            byte* ptr = nullptr;
 
             count += sizeof(::std::size_t);
 
@@ -253,11 +235,12 @@ namespace stdsharp
                 {
                     ( //
                         ( //
-                            empty =
-                                (ptr =
-                                     auto_cast(raw_allocate_at<I>(auto_cast(count), auto_cast(hint))
-                                     )),
-                            static_cast<bool>(ptr != nullptr)
+
+                            ptr = raw_allocate_at<I>(
+                                auto_cast(count),
+                                to_alloc_void_pointer<I>(hint)
+                            ),
+                            ptr != nullptr
                         ) ||
                         ...
                     );
@@ -273,28 +256,25 @@ namespace stdsharp
                 const auto alloc_f = [this]<::std::size_t J>( // clang-format off
                     const index_constant<J>,
                     const alloc_size_type<J> count,
-                    const const_void_pointer& hint,
+                    const void* const hint,
                     ::std::exception_ptr& exception
-                ) noexcept -> void_pointer // clang-format on
+                ) noexcept -> byte* // clang-format on
                 {
                     try
                     {
-                        return auto_cast(raw_allocate_at<J>(count, auto_cast(hint), exception));
+                        return raw_allocate_at<J>(count, to_alloc_void_pointer<J>(hint), exception);
                     }
                     catch(...)
                     {
                         exception = ::std::current_exception();
                     }
 
-                    return {nullptr};
+                    return nullptr;
                 };
 
                 const bool res = ( //
                     ( //
-                        empty = ( //
-                            ptr =
-                                alloc_f(index_constant<I>{}, auto_cast(count), hint, exceptions[I])
-                        ),
+                        ptr = alloc_f(index_constant<I>{}, auto_cast(count), hint, exceptions[I]),
                         static_cast<bool>(exceptions[I])
                     ) &&
                     ...
@@ -366,10 +346,10 @@ namespace stdsharp
         }
 
         // allocate the memory in sequence of allocators
-        [[nodiscard]] constexpr pointer
-            allocate(const size_type count, const const_void_pointer& hint = nullptr)
+        [[nodiscard]] constexpr T*
+            allocate(const ::std::size_t count, const void* const hint = nullptr)
         {
-            return auto_cast( //
+            return reinterpret_cast<T*>( //
                 raw_allocate_impl<false>(
                     ::std::index_sequence_for<Allocators...>{},
                     count * sizeof(T),
@@ -379,13 +359,15 @@ namespace stdsharp
         }
 
         // allocate the memory in sequence of allocators
-        [[nodiscard]] constexpr pointer
-            try_allocate(const size_type count, const const_void_pointer& hint = nullptr) noexcept
+        [[nodiscard]] constexpr T*
+            try_allocate(const ::std::size_t count, const void* const hint = nullptr) noexcept
         {
-            return raw_allocate_impl<true>(
-                ::std::index_sequence_for<Allocators...>{},
-                count * sizeof(T),
-                hint
+            return reinterpret_cast<T*>( //
+                raw_allocate_impl<true>(
+                    ::std::index_sequence_for<Allocators...>{},
+                    count * sizeof(T),
+                    hint
+                )
             );
         }
 
@@ -405,3 +387,5 @@ namespace stdsharp
         [[nodiscard]] constexpr auto max_size() const noexcept {}
     };
 }
+
+// NOLINTEND(*-reinterpret-cast, *-pointer-arithmetic)

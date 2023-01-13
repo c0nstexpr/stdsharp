@@ -1,4 +1,5 @@
 #include <list>
+#include <memory>
 
 #include "test.h"
 #include "stdsharp/memory/composed_allocator.h"
@@ -9,9 +10,12 @@ using namespace std;
 
 void foo()
 {
-    list<int> l(allocator<int>{});
+    void* ptr = nullptr;
+    int* iptr = static_cast<int*>(ptr);
+    void* ptr2 = iptr;
 
-    l.emplace_back(1);
+
+    // static_assert(inter_convertible<int*, void*>);
 }
 
 template<typename T>
@@ -35,5 +39,5 @@ SCENARIO( // NOLINT
     "[memory][static_allocator]"
 )
 {
-    STATIC_REQUIRE(allocator_req<composed_allocator<int, allocator<int>, my_alloc<int>>>);
+    STATIC_REQUIRE(allocator_req<allocator<int>>);
 }

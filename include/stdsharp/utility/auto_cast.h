@@ -23,9 +23,9 @@ namespace stdsharp
 
     public:
         template<typename T>
-        [[nodiscard]] constexpr auto_cast_operator<T> operator()(T&& t) const noexcept
+        [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
         {
-            return ::std::forward<T>(t); //
+            return auto_cast_operator<T>{::std::forward<T>(t)}; //
         }
     } auto_cast{};
 

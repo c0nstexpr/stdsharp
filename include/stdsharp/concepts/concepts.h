@@ -170,8 +170,21 @@ namespace stdsharp
         { u != t } -> boolean_testable; // clang-format on
     };
 
+    template<typename T, typename U>
+    concept nothrow_weakly_equality_comparable_with = weakly_equality_comparable_with<T, U> &&
+        requires(const ::std::remove_reference_t<T>& t, const ::std::remove_reference_t<U>& u) //
+    {
+        noexcept(t == u);
+        noexcept(t != u);
+        noexcept(u == t);
+        noexcept(u != t);
+    };
+
     template<typename T>
     concept weakly_equality_comparable = weakly_equality_comparable_with<T, T>;
+
+    template<typename T>
+    concept nothrow_weakly_equality_comparable = nothrow_weakly_equality_comparable_with<T, T>;
 
     template<typename T, typename U>
     concept partial_ordered_with = requires(
@@ -299,12 +312,11 @@ namespace stdsharp
     concept nothrow_explicitly_convertible =
         requires { requires noexcept(static_cast<To>(std::declval<From>())); };
 
-    template<typename From, typename To>
-    concept implicitly_convertible = requires { [](const To&) {}(std::declval<From>()); };
+    template<typename To, typename From>
+    concept explicitly_convertible_from = explicitly_convertible<From, To>;
 
-    template<typename From, typename To>
-    concept nothrow_implicitly_convertible =
-        requires { requires noexcept([](const To&) noexcept {}(std::declval<From>())); };
+    template<typename To, typename From>
+    concept nothrow_explicitly_convertible_from = nothrow_explicitly_convertible<From, To>;
 
     template<typename T, typename U>
     concept convertible_from = ::std::convertible_to<U, T>;
@@ -318,6 +330,14 @@ namespace stdsharp
     template<typename T, typename U>
     concept nothrow_inter_convertible =
         nothrow_convertible_to<T, U> && nothrow_convertible_from<T, U>;
+
+    template<typename T, typename U>
+    concept explicitly_inter_convertible =
+        explicitly_convertible<T, U> && explicitly_convertible_from<T, U>;
+
+    template<typename T, typename U>
+    concept nothrow_explicitly_inter_convertible =
+        nothrow_explicitly_convertible<T, U> && nothrow_explicitly_convertible_from<T, U>;
 
     template<typename Func, typename... Args>
     concept nothrow_invocable = ::std::is_nothrow_invocable_v<Func, Args...>;

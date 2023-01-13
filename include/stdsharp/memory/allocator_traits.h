@@ -14,6 +14,12 @@ namespace stdsharp
         {
             int v;
         };
+
+        template<typename T>
+        concept allocator_pointer =
+            nullable_pointer<T> && nothrow_default_initializable<T> && nothrow_movable<T> &&
+            nothrow_swappable<T> && nothrow_copyable<T> && nothrow_weakly_equality_comparable<T> &&
+            nothrow_weakly_equality_comparable_with<T, ::std::nullptr_t>;
     }
 
     template<typename T>
@@ -32,8 +38,8 @@ namespace stdsharp
             typename decltype(t_traits)::const_void_pointer const_void_p,
             typename decltype(t_traits)::value_type v,
             typename decltype(t_traits)::size_type size,
-            typename decltype(t_traits
-            )::template rebind_traits<details::alloc_req_dummy_t> u_traits,
+            typename decltype(t_traits):: //
+            template rebind_traits<details::alloc_req_dummy_t> u_traits,
             typename decltype(t_traits)::is_always_equal always_equal,
             typename decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
             typename decltype(t_traits)::propagate_on_container_move_assignment move_assign,
@@ -42,22 +48,26 @@ namespace stdsharp
         {
             requires !const_volatile<decltype(v)>;
 
-            requires nullable_pointer<decltype(p)> && ::std::random_access_iterator<decltype(p)> &&
+            requires details::allocator_pointer<decltype(p)> &&
+                details::allocator_pointer<decltype(const_p)> &&
+                details::allocator_pointer<decltype(void_p)> &&
+                details::allocator_pointer<decltype(const_void_p)>;
+
+            requires ::std::random_access_iterator<decltype(p)> &&
                 ::std::contiguous_iterator<decltype(p)>;
 
-            requires ::std::convertible_to<decltype(p), decltype(const_p)> &&
-                nullable_pointer<decltype(const_p)> &&
+            requires nothrow_convertible_to<decltype(p), decltype(const_p)> &&
                 ::std::random_access_iterator<decltype(const_p)> &&
                 ::std::contiguous_iterator<decltype(const_p)>;
 
-            requires ::std::convertible_to<decltype(p), decltype(void_p)> &&
-                nullable_pointer<decltype(void_p)> &&
+            requires nothrow_convertible_to<decltype(p), decltype(void_p)> &&
+                nothrow_explicitly_convertible<decltype(void_p), decltype(p)> &&
                 ::std::same_as<decltype(void_p), typename decltype(u_traits)::void_pointer>;
 
-            requires ::std::convertible_to<decltype(p), decltype(const_void_p)> &&
-                ::std::convertible_to<decltype(const_p), decltype(const_void_p)> &&
-                ::std::convertible_to<decltype(void_p), decltype(const_void_p)> &&
-                nullable_pointer<decltype(const_void_p)> &&
+            requires nothrow_convertible_to<decltype(p), decltype(const_void_p)> &&
+                nothrow_convertible_to<decltype(const_p), decltype(const_void_p)> &&
+                nothrow_explicitly_convertible<decltype(const_void_p), decltype(const_p)> &&
+                nothrow_convertible_to<decltype(void_p), decltype(const_void_p)> &&
                 ::std::same_as< // clang-format off
                     decltype(const_void_p),
                     typename decltype(u_traits)::const_void_pointer
@@ -94,12 +104,12 @@ namespace stdsharp
                 requires noexcept(alloc == another_alloc) && noexcept(alloc != another_alloc);
             }; // clang-format on
 
-            ::std::pointer_traits<decltype(p)>::pointer_to(*p); // clang-format off
+            ::std::pointer_traits<decltype(p)>::pointer_to(v); // clang-format off
 
             { t_traits.allocate(alloc, size) } -> ::std::same_as<decltype(p)>;
             { t_traits.allocate(alloc, size, const_void_p) } -> ::std::same_as<decltype(p)>;
             // { t_traits.allocate_at_least(alloc, size) } -> ::std::same_as<::std::allocation_result<decltype(p)>>;
-            noexcept(alloc.deallocate(alloc, p, size));
+            noexcept(alloc.deallocate(p, size));
             { t_traits.max_size(alloc) } -> ::std::same_as<decltype(size)>;
             // clang-format on
 
