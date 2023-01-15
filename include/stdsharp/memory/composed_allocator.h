@@ -1,6 +1,4 @@
 #pragma once
-#include <exception>
-#include <variant>
 
 #include "allocator_traits.h"
 #include "pointer_traits.h"
@@ -8,7 +6,6 @@
 #include "../functional/operations.h"
 #include "../type_traits/function.h"
 #include "../cstdint/cstdint.h"
-#include "stdsharp/concepts/concepts.h"
 
 // NOLINTBEGIN(*-reinterpret-cast, *-pointer-arithmetic)
 namespace stdsharp
@@ -197,7 +194,7 @@ namespace stdsharp
             return nullptr;
         }
 
-        static constexpr ::std::pair<byte*, ::std::size_t> get_alloc_info(byte* ptr)
+        static constexpr ::std::pair<byte*, ::std::size_t> get_alloc_index(byte* ptr)
         {
             ptr -= sizeof(::std::size_t);
             return {ptr, *reinterpret_cast<const ::std::size_t*>(ptr)};
@@ -371,10 +368,9 @@ namespace stdsharp
             );
         }
 
-        constexpr void deallocate(pointer& ptr, size_type count) noexcept
+        constexpr void deallocate(T* const ptr, const ::std::size_t count) noexcept
         {
-            const auto alloc_info = get_alloc_info(auto_cast(ptr));
-            const auto index = alloc_info.get_alloc_index();
+            const auto index = get_alloc_index(reinterpret_cast<byte*>(ptr));
             const auto& void_p = alloc_info.ptr;
 
             count += sizeof(::std::size_t);
