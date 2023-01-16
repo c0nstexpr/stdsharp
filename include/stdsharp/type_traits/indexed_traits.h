@@ -43,8 +43,7 @@ namespace stdsharp
             private:
                 template<::std::size_t Index = I>
                     requires(I == Index)
-                [[nodiscard]] friend constexpr stdsharp::type_constant<
-                    T> get_type(const t&) noexcept
+                [[nodiscard]] friend constexpr stdsharp::type_constant<T> get_type(const t) noexcept
                 {
                     return {};
                 }

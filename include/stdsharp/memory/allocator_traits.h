@@ -81,9 +81,9 @@ namespace stdsharp
                 same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, T>;
             // clang-format off
 
-                { *p } -> ::std::same_as<::std::add_lvalue_reference_t<decltype(v)>>;
-                { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
-                { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
+            { *p } -> ::std::same_as<::std::add_lvalue_reference_t<decltype(v)>>;
+            { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
+            { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
 
             requires requires(
                 typename decltype(u_traits)::pointer other_p,
@@ -173,12 +173,14 @@ namespace stdsharp
             base::construct(a, ptr, ::std::forward<Args>(args)...);
         }
 
-        constexpr pointer try_allocate(
+        static constexpr pointer try_allocate(
             allocator_type& alloc,
             const size_type count,
             const const_void_pointer& hint
         ) noexcept
         {
+            if(max_size(alloc) < count) return nullptr;
+
             try
             {
                 return allocate(alloc, count, hint);
@@ -189,7 +191,7 @@ namespace stdsharp
             }
         }
 
-        constexpr pointer try_allocate(
+        static constexpr pointer try_allocate(
             allocator_type& alloc,
             const size_type count,
             const const_void_pointer& hint
@@ -202,6 +204,11 @@ namespace stdsharp
         }
         {
             return alloc.try_allocate(count, hint);
+        }
+
+        static constexpr auto allocate_at_least(allocator_type& alloc, const size_type count)
+        {
+            return ::std::allocate_at_least(alloc, count);
         }
     };
 

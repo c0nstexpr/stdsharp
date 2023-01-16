@@ -4,6 +4,7 @@
 
 #include "../functional/operations.h"
 #include "../utility/constructor.h"
+#include "../utility/pack_get.h"
 
 namespace stdsharp
 {

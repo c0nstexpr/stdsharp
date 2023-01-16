@@ -17,6 +17,7 @@ namespace stdsharp
 
     public:
         template<typename... Args>
+            requires ::std::constructible_from<decltype(exceptions_), Args...>
         constexpr aggregate_bad_alloc(Args&&... args) noexcept:
             exceptions_{::std::forward<Args>(args)...}
         {
@@ -25,27 +26,24 @@ namespace stdsharp
         [[nodiscard]] constexpr const auto& exceptions() const noexcept { return exceptions_; }
     };
 
-    template<::std::size_t I>
-    aggregate_bad_alloc(const ::std::array<::std::exception_ptr, I>&) -> aggregate_bad_alloc<I>;
-
-    template<::std::size_t I>
-    aggregate_bad_alloc(::std::array<::std::exception_ptr, I>&&) -> aggregate_bad_alloc<I>;
-
     template<typename T, allocator_req... Allocators>
         requires requires(
             allocator_traits<Allocators>... traits,
             typename decltype(traits)::template rebind_alloc<byte>... byte_alloc,
             allocator_traits<decltype(byte_alloc)>... byte_traits
         ) //
-    { requires(allocator_req<decltype(byte_alloc)> && ...); }
+    {
+        requires(allocator_req<decltype(byte_alloc)> && ...);
+        requires all_same<T, typename decltype(traits)::value_type...>;
+    }
     class composed_allocator :
         indexed_values<typename allocator_traits<Allocators>::template rebind_alloc<byte>...>
     {
-        using base =
+        using m_base =
             indexed_values<typename allocator_traits<Allocators>::template rebind_alloc<byte>...>;
 
         template<::std::size_t I>
-        using alloc_t = typename base::template type<I>;
+        using alloc_t = typename m_base::template type<I>;
 
         template<::std::size_t I>
         using alloc_traits = allocator_traits<alloc_t<I>>;
@@ -84,6 +82,8 @@ namespace stdsharp
                 U,
                 typename allocator_traits<Allocators>::template rebind_alloc<U>...>;
         };
+
+        [[nodiscard]] constexpr const m_base& get_allocators() const noexcept { return *this; }
 
     private:
         template<::std::size_t... I>
@@ -175,26 +175,25 @@ namespace stdsharp
             ::std::exception_ptr& exception
         ) noexcept
         {
-            bool allocated = false;
             auto& alloc = get<I>(*this);
-            alloc_pointer<I> ptr;
+            alloc_pointer<I> ptr = nullptr;
 
             try
             {
                 ptr = alloc_traits<I>::allocate(alloc, count, hint);
-                allocated = true;
+
                 return assign_alloc_index<I>(ptr);
             }
             catch(...)
             {
-                if(allocated) alloc_traits<I>::deallocate(alloc, ptr, count);
+                if(ptr != nullptr) alloc_traits<I>::deallocate(alloc, ptr, count);
                 exception = ::std::current_exception();
             }
 
             return nullptr;
         }
 
-        static constexpr ::std::pair<byte*, ::std::size_t> get_alloc_index(byte* ptr)
+        static constexpr ::std::pair<byte*, ::std::size_t> get_alloc_info(byte* ptr)
         {
             ptr -= sizeof(::std::size_t);
             return {ptr, *reinterpret_cast<const ::std::size_t*>(ptr)};
@@ -277,16 +276,48 @@ namespace stdsharp
                     ...
                 );
 
-                if(res) throw aggregate_bad_alloc{::std::move(exceptions)};
+                if(res) throw aggregate_bad_alloc<exceptions.size()>{::std::move(exceptions)};
             }
 
             return ptr;
         }
 
         template<::std::size_t... I>
+        constexpr void deallocate_impl(
+            const ::std::index_sequence<I...>,
+            const ::std::size_t alloc_index,
+            byte* const ptr,
+            const ::std::size_t count
+        ) noexcept
+        {
+            using deallocate_fn = void (*)(composed_allocator&, byte*, ::std::size_t);
+
+            static constexpr ::std::array<deallocate_fn, sizeof...(I)> deallocate_f = {
+                +[](composed_allocator& instance, byte* const ptr, const ::std::size_t count) //
+                noexcept
+                {
+                    alloc_traits<I>::deallocate(
+                        get<I>(instance),
+                        pointer_traits<alloc_pointer<I>>::to_pointer(ptr),
+                        auto_cast(count)
+                    );
+                }... //
+            };
+
+            deallocate_f[alloc_index](*this, ptr, count); // NOLINT(*-constant-array-index)
+        }
+
+        template<::std::size_t... I>
+        [[nodiscard]] constexpr auto max_size_impl(const ::std::index_sequence<I...>) const noexcept
+        {
+            return (alloc_traits<I>::max_size(get<I>(*this)) + ...);
+        }
+
+        template<::std::size_t... I>
         constexpr bool
             equal_impl(const ::std::index_sequence<I...>, const composed_allocator& other)
                 const noexcept
+
         {
             return ((get<I>(*this) == get<I>(other)) && ...);
         }
@@ -306,7 +337,9 @@ namespace stdsharp
         };
 
     public:
-        using base::base;
+        using indexed_values< // clang-format off
+            typename allocator_traits<Allocators>::template rebind_alloc<byte>...
+        >::indexed_values; // clang-format on
 
         composed_allocator() = default;
         ~composed_allocator() = default;
@@ -339,7 +372,7 @@ namespace stdsharp
 
         constexpr void swap(composed_allocator& other) noexcept
         {
-            ::std::ranges::swap(static_cast<base&>(*this), static_cast<base&>(other));
+            ::std::ranges::swap(static_cast<m_base&>(*this), static_cast<m_base&>(other));
         }
 
         // allocate the memory in sequence of allocators
@@ -370,17 +403,15 @@ namespace stdsharp
 
         constexpr void deallocate(T* const ptr, const ::std::size_t count) noexcept
         {
-            const auto index = get_alloc_index(reinterpret_cast<byte*>(ptr));
-            const auto& void_p = alloc_info.ptr;
+            const auto [src_ptr, index] = get_alloc_info(reinterpret_cast<byte*>(ptr));
 
-            count += sizeof(::std::size_t);
-
-            {
-                get<index>(*this).deallocate(auto_cast(ptr), count * sizeof(T));
-            }
+            deallocate_impl(::std::index_sequence_for<Allocators...>{}, index, src_ptr, count);
         }
 
-        [[nodiscard]] constexpr auto max_size() const noexcept {}
+        [[nodiscard]] constexpr auto max_size() const noexcept
+        {
+            return max_size_impl(::std::index_sequence_for<Allocators...>{});
+        }
     };
 }
 
