@@ -1,5 +1,7 @@
 #pragma once
 
+#include <__type_traits/is_constant_evaluated.h>
+#include <ranges>
 #include <array>
 
 #include "../utility/utility.h"
@@ -37,7 +39,7 @@ namespace stdsharp
         {
             if(count == 0) return nullptr;
 
-            const auto hint_begin = map_state(auto_cast(hint));
+            const auto hint_begin = map_state(hint);
 
             const ::std::iter_difference_t<typename state_t::iterator> count_v = auto_cast(count);
 
@@ -85,15 +87,28 @@ namespace stdsharp
             return storage_.begin() + (it - state_.cbegin());
         }
 
-        [[nodiscard]] constexpr auto map_state(const T* ptr)
+        [[nodiscard]] constexpr auto map_state(const void* ptr)
         {
-            const auto diff = ptr - storage_.data();
+            return ::std::is_constant_evaluated() ? constexpr_map_state_impl(ptr) :
+                                                    map_state_impl(ptr);
+        }
 
-            using diff_t = ::std::remove_const_t<decltype(diff)>;
+        [[nodiscard]] auto map_state_impl(const void* void_ptr)
+        {
+            const T* first = storage_.data();
+            const T* ptr = auto_cast(void_ptr);
 
-            return is_between(diff, diff_t{0}, static_cast<diff_t>(storage_.size())) ?
-                state_.begin() + diff :
-                state_.end();
+            return state_.begin() + // NOLINTNEXTLINE(*-pointer-arithmetic)
+                (is_between(ptr, first, first + storage_.size()) ? (ptr - first) : 0);
+        }
+
+        [[nodiscard]] constexpr auto constexpr_map_state_impl(const void* ptr)
+        {
+            const auto data = storage_.data(); // NOLINTNEXTLINE(*-pointer-arithmetic)
+            const auto ptr_view = ::std::views::iota(data, data + storage_.size());
+            const auto it = ::std::ranges::find(ptr_view, ptr);
+
+            return state_.begin() + (it != ptr_view.end() ? it - ptr_view.begin() : 0);
         }
 
         storage_t storage_{};

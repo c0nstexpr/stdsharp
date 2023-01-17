@@ -26,6 +26,8 @@ namespace stdsharp
     {
         using ignore_t::operator=;
 
+        empty_t() = default;
+
         constexpr empty_t(const auto&...) noexcept {}
     } empty;
 

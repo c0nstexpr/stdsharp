@@ -116,5 +116,21 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
         }
     }
 
+    GIVEN("allocator with 4 * sizeof(int), constexpr allocate and deallocate")
+    {
+        constexpr int _ = ( //
+            []
+            {
+                static_allocator<char, 4 * sizeof(int)> allocator;
+
+                using traits = stdsharp::allocator_traits<decltype(allocator)>;
+
+                const auto p1 = traits::allocate(allocator, 1);
+                traits::deallocate(allocator, p1, 1);
+            }(),
+            0
+        );
+    }
+
     // NOLINTEND(*-reinterpret-cast)
 }

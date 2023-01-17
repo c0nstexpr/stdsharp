@@ -1,9 +1,8 @@
 
 #pragma once
 
-#include <utility>
-
 #include "../concepts/concepts.h"
+#include "core_traits.h"
 
 namespace stdsharp
 {
@@ -35,6 +34,8 @@ namespace stdsharp
     template<typename Base, typename... T>
     struct inherited : Base, T...
     {
+        using base = regular_type_sequence<Base, T...>;
+
         inherited() = default;
 
         template<typename... U>
