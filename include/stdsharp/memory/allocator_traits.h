@@ -159,11 +159,20 @@ namespace stdsharp
         template<typename U>
         using rebind_traits = typename base::template rebind_traits<U>;
 
-        using base::allocate;
         using base::deallocate;
         using base::max_size;
         using base::destroy;
         using base::select_on_container_copy_construction;
+
+        static constexpr pointer allocate(
+            allocator_type& alloc,
+            const size_type count,
+            const const_void_pointer hint = nullptr
+        ) noexcept
+        {
+            return hint == nullptr ? base::allocate(alloc, count) :
+                                     base::allocate(alloc, count, hint);
+        }
 
         template<typename U, typename... Args>
             requires ::std::constructible_from<U, Args...>
@@ -176,7 +185,7 @@ namespace stdsharp
         static constexpr pointer try_allocate(
             allocator_type& alloc,
             const size_type count,
-            const const_void_pointer& hint
+            const const_void_pointer hint = nullptr
         ) noexcept
         {
             if(max_size(alloc) < count) return nullptr;
@@ -194,16 +203,19 @@ namespace stdsharp
         static constexpr pointer try_allocate(
             allocator_type& alloc,
             const size_type count,
-            const const_void_pointer& hint
+            const const_void_pointer hint = nullptr
         ) noexcept
             requires requires // clang-format off
         {
             { alloc.try_allocate(count, hint) } ->
-                ::std::same_as<pointer>; // clang-format on
+                ::std::same_as<pointer>;
             requires noexcept(alloc.try_allocate(count, hint));
+            { alloc.try_allocate(count) } ->
+                ::std::same_as<pointer>; // clang-format on
+            requires noexcept(alloc.try_allocate(count));
         }
         {
-            return alloc.try_allocate(count, hint);
+            return hint == nullptr ? alloc.try_allocate(count) : alloc.try_allocate(count, hint);
         }
 
         static constexpr auto allocate_at_least(allocator_type& alloc, const size_type count)

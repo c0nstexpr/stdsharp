@@ -41,7 +41,7 @@ namespace stdsharp
         public:
             element() = default;
 
-            [[nodiscard]] constexpr T& ref() const noexcept { return *ptr_impl(); }
+            [[nodiscard]] T& ref() const noexcept { return *ptr_impl(); }
 
             [[nodiscard]] constexpr T* ptr() const noexcept
             {
@@ -59,7 +59,7 @@ namespace stdsharp
             }
 
         private:
-            [[nodiscard]] constexpr T* ptr_impl() const noexcept
+            [[nodiscard]] T* ptr_impl() const noexcept
             {
                 return reinterpret_cast<T*>(instance().storage_.data());
             }
