@@ -2,11 +2,8 @@
 
 #include "allocator_traits.h"
 #include "pointer_traits.h"
-#include "../default_operator.h"
-#include "../functional/operations.h"
-#include "../type_traits/function.h"
 #include "../cstdint/cstdint.h"
-#include <__type_traits/is_constant_evaluated.h>
+#include "../cmath/cmath.h"
 
 // NOLINTBEGIN(*-reinterpret-cast, *-pointer-arithmetic)
 namespace stdsharp
@@ -29,9 +26,18 @@ namespace stdsharp
 
     namespace details
     {
+        template<typename T>
+        union byte_like
+        {
+            ::std::array<T, ceil_reminder(sizeof(::std::size_t), sizeof(T))> t;
+            ::std::size_t index;
+        };
+
         template<typename T, typename Base, typename... Allocators>
         class composed_allocator : Base
         {
+            using data = byte_like<T>;
+
             template<::std::size_t I>
             using alloc_t = typename Base::template type<I>;
 
@@ -77,17 +83,21 @@ namespace stdsharp
 
         private:
             template<::std::size_t I>
-            static constexpr byte* set_alloc_meta(const alloc_pointer<I>& ptr) noexcept
+            static constexpr data* set_alloc_meta(const alloc_pointer<I>& ptr) noexcept
             {
-                byte* const raw_ptr = pointer_traits<alloc_pointer<I>>::to_address(ptr);
+                data* const begin = pointer_traits<alloc_pointer<I>>::to_address(ptr);
+                begin->index = I;
+                return begin + 1;
+            }
 
-                *reinterpret_cast<::std::size_t*>(raw_ptr) = I;
-
-                return raw_ptr + sizeof(::std::size_t);
+            static constexpr ::std::pair<data*, ::std::size_t> get_alloc_meta(data* ptr)
+            {
+                ptr -= 1;
+                return {ptr, ptr->index};
             }
 
             template<::std::size_t I>
-            constexpr byte* raw_allocate_at(
+            constexpr data* raw_allocate_at(
                 const alloc_size_type<I> count,
                 const alloc_const_void_pointer<I>& hint
             ) noexcept
@@ -99,7 +109,7 @@ namespace stdsharp
             }
 
             template<::std::size_t I>
-            constexpr byte* raw_allocate_at( // NOLINT(*-exception-escape)
+            constexpr data* raw_allocate_at( // NOLINT(*-exception-escape)
                 const alloc_size_type<I> count,
                 const alloc_const_void_pointer<I>& hint,
                 ::std::exception_ptr& exception
@@ -107,13 +117,7 @@ namespace stdsharp
             {
                 alloc_pointer<I> ptr = nullptr;
 
-                if(::std::is_constant_evaluated())
-                {
-                    auto ptr = raw_allocate_at<I>(count, hint);
-                    if(ptr == nullptr) exception = ::std::make_exception_ptr(::std::bad_alloc{});
-
-                    return ptr;
-                }
+                if(::std::is_constant_evaluated()) return raw_allocate_at<I>(count, hint);
 
                 try
                 {
@@ -131,12 +135,6 @@ namespace stdsharp
                 return nullptr;
             }
 
-            static constexpr ::std::pair<byte*, ::std::size_t> get_alloc_meta(byte* ptr)
-            {
-                ptr -= sizeof(::std::size_t);
-                return {ptr, *reinterpret_cast<const ::std::size_t*>(ptr)};
-            }
-
             template<::std::size_t I>
             static constexpr auto to_alloc_void_pointer(const void* const ptr) noexcept
             {
@@ -144,15 +142,13 @@ namespace stdsharp
             }
 
             template<bool Noexcept, ::std::size_t... I>
-            constexpr byte* raw_allocate_impl(
+            constexpr data* raw_allocate_impl(
                 const ::std::index_sequence<I...>,
                 ::std::size_t count,
                 const void* const hint
             ) noexcept(Noexcept)
             {
-                byte* ptr = nullptr;
-
-                count += sizeof(::std::size_t);
+                data* ptr = nullptr;
 
                 if constexpr(Noexcept)
                 {
@@ -173,11 +169,11 @@ namespace stdsharp
                     ::std::array<::std::exception_ptr, sizeof...(I)> exceptions{};
 
                     const auto alloc_f = [this]<::std::size_t J>( // clang-format off
-                    const index_constant<J>,
-                    const alloc_size_type<J> count,
-                    const void* const hint,
-                    ::std::exception_ptr& exception
-                ) noexcept -> byte* // clang-format on
+                        const index_constant<J>,
+                        const alloc_size_type<J> count,
+                        const void* const hint,
+                        ::std::exception_ptr& exception
+                    ) noexcept -> data* // clang-format on
                     {
                         try
                         {
@@ -214,16 +210,16 @@ namespace stdsharp
             constexpr void deallocate_impl(
                 const ::std::index_sequence<I...>,
                 const ::std::size_t alloc_index,
-                byte* const ptr,
+                data* const ptr,
                 const ::std::size_t count
             ) noexcept
             {
-                using deallocate_fn = void (*)(composed_allocator&, byte*, ::std::size_t);
+                using deallocate_fn = void (*)(composed_allocator&, data*, ::std::size_t);
 
                 static constexpr ::std::array<deallocate_fn, sizeof...(I)> deallocate_f = {
                     +[]( // NOLINT(*-exception-escape)
                          composed_allocator& instance,
-                         byte* const ptr,
+                         data* const ptr,
                          const ::std::size_t count
                      ) noexcept
                     {
@@ -253,17 +249,9 @@ namespace stdsharp
             constexpr bool
                 equal_impl(const ::std::index_sequence<I...>, const composed_allocator& other)
                     const noexcept
-
             {
-                return ((get<I>(*this) == get<I>(other)) && ...);
-            }
-
-            template<::std::size_t... I>
-                requires is_always_equal::value
-            constexpr bool equal_impl(const ::std::index_sequence<I...>, const composed_allocator&)
-                const noexcept
-            {
-                return true;
+                if constexpr(is_always_equal::value) return true;
+                else return ((get<I>(*this) == get<I>(other)) && ...);
             }
 
             friend constexpr bool
@@ -271,6 +259,23 @@ namespace stdsharp
             {
                 return left.equal_impl(::std::index_sequence_for<Allocators...>{}, right);
             };
+
+            static constexpr auto get_data_count(const ::std::size_t t_count) noexcept
+            {
+                return ceil_reminder(t_count * sizeof(T) + sizeof(::std::size_t), sizeof(data));
+            }
+
+            static constexpr auto get_value_ptr(data* ptr) noexcept { return ptr->t.data(); }
+
+            static /* TODO: constexpr */ auto get_data_ptr(T* ptr) noexcept
+            {
+                // conversion from pointer to void to any pointer-to-object type is not
+                // constexpr
+                return
+                    // ::std::is_constant_evaluated() ?
+                    //     static_cast<data*>(static_cast<void*>(ptr)) :
+                    reinterpret_cast<data*>(ptr);
+            }
 
         public:
             using Base::Base; // clang-format on
@@ -282,43 +287,26 @@ namespace stdsharp
 
             [[nodiscard]] T* allocate(const ::std::size_t count, const void* const hint = nullptr)
             {
-                return ::std::is_constant_evaluated() ?
-                    try_allocate(count, hint) :
-                    reinterpret_cast<T*>( //
-                        raw_allocate_impl<false>(
-                            ::std::index_sequence_for<Allocators...>{},
-                            count * sizeof(T),
-                            hint
-                        )
-                    );
+                return get_value_ptr(raw_allocate_impl<false>(
+                    ::std::index_sequence_for<Allocators...>{},
+                    get_data_count(count),
+                    hint
+                ));
             }
 
-            // allocate the memory in sequence of allocators
             [[nodiscard]] constexpr T*
                 try_allocate(const ::std::size_t count, const void* const hint = nullptr) noexcept
             {
-                const auto ptr = raw_allocate_impl<true>(
+                return get_value_ptr(raw_allocate_impl<true>(
                     ::std::index_sequence_for<Allocators...>{},
-                    count * sizeof(T),
+                    get_data_count(count),
                     hint
-                );
-
-                if(::std::is_constant_evaluated())
-                {
-                    // TODO
-                    // constexpr byte* null_ptr = nullptr;
-
-                    // const auto diff = ptr - null_ptr;
-
-                    // return static_cast<T*>(nullptr) + diff / sizeof(T);
-                }
-
-                return reinterpret_cast<T*>(ptr);
+                ));
             }
 
             constexpr void deallocate(T* const ptr, const ::std::size_t count) noexcept
             {
-                const auto [src_ptr, index] = get_alloc_meta(reinterpret_cast<byte*>(ptr));
+                const auto [src_ptr, index] = get_alloc_meta(get_data_ptr(ptr));
 
                 deallocate_impl(::std::index_sequence_for<Allocators...>{}, index, src_ptr, count);
             }
@@ -343,8 +331,9 @@ namespace stdsharp
     }
     using composed_allocator = details::composed_allocator<
         T,
-        indexed_values<typename allocator_traits<Allocators>::template rebind_alloc<byte>...>,
-        Allocators... // clang-format off
+        indexed_values<typename allocator_traits<Allocators>:: // clang-format off
+        template rebind_alloc<details::byte_like<T>>...>,
+        Allocators...
     >; // clang-format on
 }
 
