@@ -1,10 +1,10 @@
 #pragma once
 
+#include <tuple>
+
 #include "allocator_traits.h"
 #include "pointer_traits.h"
-#include "../cstdint/cstdint.h"
-#include "../cmath/cmath.h"
-#include <__tuple>
+#include "../scope.h"
 
 // NOLINTBEGIN(*-reinterpret-cast, *-pointer-arithmetic)
 namespace stdsharp
@@ -153,6 +153,15 @@ namespace stdsharp
 
             if(ptr == nullptr) throw aggregate_bad_alloc<sizeof...(I)>{::std::move(exceptions)};
 
+            auto deallocator = [&allocators, ptr, count, alloc_index]() noexcept
+            {
+                deallocate_f[alloc_index](allocators, ptr, count); //
+            };
+
+            struct guard : scope::scoped<scope::exit_fn_policy::on_exit, decltype(deallocator)>
+            {
+            };
+
             return ::std::pair{ptr, deallocate_f[alloc_index]}; // NOLINT(*-constant-array-index)
         }
     }
@@ -188,207 +197,6 @@ namespace stdsharp
             ::std::make_index_sequence<1 + sizeof...(Allocators)>{}
         );
     }
-
-    namespace details
-    {
-        template<typename T, typename Meta>
-        union byte_like
-        {
-            ::std::array<T, ceil_reminder(sizeof(Meta), sizeof(T))> t;
-            Meta index;
-        };
-
-        template<typename T, typename Base, typename... Allocators>
-        class composed_allocator : Base
-        {
-            using data = byte_like<T>;
-
-            using deallocate_fn = void (*)(::std::tuple<Allocators...>&, data*, ::std::size_t);
-
-            template<::std::size_t I>
-            using alloc_t = typename Base::template type<I>;
-
-            template<::std::size_t I>
-            using alloc_traits = allocator_traits<alloc_t<I>>;
-
-            template<::std::size_t I>
-            using alloc_pointer = typename alloc_traits<I>::pointer;
-
-            template<::std::size_t I>
-            using alloc_const_pointer = typename alloc_traits<I>::const_pointer;
-
-            template<::std::size_t I>
-            using alloc_const_void_pointer = typename alloc_traits<I>::const_void_pointer;
-
-            template<::std::size_t I>
-            using alloc_size_type = typename alloc_traits<I>::size_type;
-
-        public:
-            using value_type = T;
-
-            using propagate_on_container_copy_assignment = ::std::disjunction<
-                typename allocator_traits<Allocators>::propagate_on_container_copy_assignment...>;
-
-            using propagate_on_container_move_assignment = ::std::disjunction<
-                typename allocator_traits<Allocators>::propagate_on_container_move_assignment...>;
-
-            using propagate_on_container_swap = ::std::disjunction<
-                typename allocator_traits<Allocators>::propagate_on_container_swap...>;
-
-            using is_always_equal =
-                ::std::conjunction<typename allocator_traits<Allocators>::is_always_equal...>;
-
-            template<typename U>
-            struct rebind
-            {
-                using other = composed_allocator<
-                    U,
-                    typename allocator_traits<Allocators>::template rebind_alloc<U>...>;
-            };
-
-            [[nodiscard]] constexpr const Base& get_allocators() const noexcept { return *this; }
-
-        private:
-            static constexpr data*
-                set_alloc_meta(data* const ptr, const ::std::size_t alloc_index) noexcept
-            {
-                ptr->index = alloc_index;
-                return ptr + 1;
-            }
-
-            static constexpr ::std::pair<data*, ::std::size_t> get_alloc_meta(data* ptr)
-            {
-                ptr -= 1;
-                return {ptr, ptr->index};
-            }
-
-            template<::std::size_t... I>
-            constexpr void deallocate_impl(
-                const ::std::index_sequence<I...>,
-                const ::std::size_t alloc_index,
-                data* const ptr,
-                const ::std::size_t count
-            ) noexcept
-            {
-                using deallocate_fn = void (*)(composed_allocator&, data*, ::std::size_t);
-
-                static constexpr ::std::array<deallocate_fn, sizeof...(I)> deallocate_f = {
-                    +[]( // NOLINT(*-exception-escape)
-                         composed_allocator& instance,
-                         data* const ptr,
-                         const ::std::size_t count
-                     ) noexcept
-                    {
-                        alloc_traits<I>::deallocate(
-                            get<I>(instance),
-                            pointer_traits<alloc_pointer<I>>::to_pointer(ptr),
-                            auto_cast(count)
-                        );
-                    }... //
-                };
-
-                deallocate_f[alloc_index](*this, ptr, count); // NOLINT(*-constant-array-index)
-            }
-
-            template<::std::size_t... I>
-            [[nodiscard]] constexpr auto
-                max_size_impl(const ::std::index_sequence<I...>) const noexcept
-            {
-                return ::std::max( //
-                    ::std::initializer_list{
-                        static_cast<::std::size_t>(alloc_traits<I>::max_size(get<I>(*this)))... //
-                    }
-                );
-            }
-
-            template<::std::size_t... I>
-            constexpr bool
-                equal_impl(const ::std::index_sequence<I...>, const composed_allocator& other)
-                    const noexcept
-            {
-                if constexpr(is_always_equal::value) return true;
-                else return ((get<I>(*this) == get<I>(other)) && ...);
-            }
-
-            friend constexpr bool
-                operator==(const composed_allocator& left, const composed_allocator& right) noexcept
-            {
-                return left.equal_impl(::std::index_sequence_for<Allocators...>{}, right);
-            };
-
-            static constexpr auto get_data_count(const ::std::size_t t_count) noexcept
-            {
-                return ceil_reminder(t_count * sizeof(T) + sizeof(::std::size_t), sizeof(data));
-            }
-
-            static constexpr auto get_value_ptr(data* ptr) noexcept { return ptr->t.data(); }
-
-            static /* TODO: constexpr */ auto get_data_ptr(T* ptr) noexcept
-            {
-                // conversion from pointer to void to any pointer-to-object type is not
-                // constexpr
-                return
-                    // ::std::is_constant_evaluated() ?
-                    //     static_cast<data*>(static_cast<void*>(ptr)) :
-                    reinterpret_cast<data*>(ptr);
-            }
-
-        public:
-            using Base::Base; // clang-format on
-
-            constexpr void swap(composed_allocator& other) noexcept
-            {
-                ::std::ranges::swap(static_cast<Base&>(*this), static_cast<Base&>(other));
-            }
-
-            [[nodiscard]] T* allocate(const ::std::size_t count, const void* const hint = nullptr)
-            {
-                const auto [ptr, alloc_index] =
-                    fallback_allocate_by(*this, get_data_count(count), hint);
-                return get_value_ptr(set_alloc_meta(ptr, alloc_index));
-            }
-
-            [[nodiscard]] constexpr T*
-                try_allocate(const ::std::size_t count, const void* const hint = nullptr) noexcept
-            {
-                return get_value_ptr(raw_allocate_impl<true>(
-                    ::std::index_sequence_for<Allocators...>{},
-                    get_data_count(count),
-                    hint
-                ));
-            }
-
-            constexpr void deallocate(T* const ptr, const ::std::size_t count) noexcept
-            {
-                const auto [src_ptr, index] = get_alloc_meta(get_data_ptr(ptr));
-
-                deallocate_impl(::std::index_sequence_for<Allocators...>{}, index, src_ptr, count);
-            }
-
-            [[nodiscard]] constexpr auto max_size() const noexcept
-            {
-                return max_size_impl(::std::index_sequence_for<Allocators...>{});
-            }
-        };
-    }
-
-    template<typename T, typename... Allocators>
-        requires requires(
-                     allocator_traits<Allocators>... traits,
-                     typename decltype(traits)::template rebind_alloc<byte>... byte_alloc,
-                     allocator_traits<decltype(byte_alloc)>... byte_traits
-                 ) //
-    {
-        requires all_same<T, typename decltype(traits)::value_type...>;
-
-        (pointer_traits<typename decltype(byte_traits)::const_void_pointer>::to_pointer({}), ...);
-    }
-    using composed_allocator = details::composed_allocator<
-        T,
-        indexed_values<typename allocator_traits<Allocators>:: // clang-format off
-        template rebind_alloc<details::byte_like<T>>...>,
-        Allocators...
-    >; // clang-format on
 }
 
 // NOLINTEND(*-reinterpret-cast, *-pointer-arithmetic)

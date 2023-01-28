@@ -1,14 +1,13 @@
 #pragma once
 
-#include <functional>
-#include <memory>
+#include "allocator_traits.h"
 
 namespace stdsharp
 {
-    template<typename Alloc>
+    template<allocator_req Alloc>
     class allocator_reference : ::std::reference_wrapper<Alloc>
     {
-        using traits = ::std::allocator_traits<Alloc>;
+        using traits = allocator_traits<Alloc>;
 
     public:
         using ::std::reference_wrapper<Alloc>::reference_wrapper;
@@ -33,20 +32,36 @@ namespace stdsharp
             using other = typename traits::template rebind_alloc<U>;
         };
 
-        [[nodiscard]] constexpr auto allocate(const size_type n) const
-        {
-            return traits::allocate(this->get(), n);
-        }
-
         [[nodiscard]] constexpr auto
-            allocate(const size_type n, const const_void_pointer hint) const
+            allocate(const size_type n, const const_void_pointer hint = nullptr) const
         {
             return traits::allocate(this->get(), n, hint);
         }
 
+        [[nodiscard]] constexpr auto
+            try_allocate(const size_type n, const const_void_pointer hint = nullptr) const
+        {
+            return traits::try_allocate(this->get(), n, hint);
+        }
+
         [[nodiscard]] constexpr auto allocate_at_least(const size_type n) const
         {
-            return traits::allocate_at_least(this->get(), n);
+            return ::std::allocate_at_least(this->get(), n);
+        }
+
+        template<typename U, typename... Args>
+        constexpr void construct(U* const p, Args&&... args) const //
+            noexcept(noexcept(traits::construct(this->get(), p, ::std::declval<Args>()...)))
+            requires requires { traits::construct(this->get(), p, ::std::declval<Args>()...); }
+        {
+            traits::construct(this->get(), p, ::std::forward<Args>(args)...);
+        }
+
+        template<typename U>
+        constexpr void destroy(U* const p) const noexcept
+            requires requires { traits::destroy(this->get(), p); }
+        {
+            traits::destroy(this->get(), p);
         }
 
         constexpr void deallocate(const pointer p, const size_type n) const
@@ -56,9 +71,14 @@ namespace stdsharp
 
         constexpr auto max_size() const noexcept { return traits::max_size(this->get()); }
 
-        constexpr allocator_reference select_on_container_copy_construction() const
+        constexpr auto select_on_container_copy_construction() const
         {
             return traits::select_on_container_copy_construction(this->get());
+        }
+
+        constexpr auto operator==(const allocator_reference& other) const noexcept
+        {
+            return this->get() == other.get();
         }
     };
 }

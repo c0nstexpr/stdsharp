@@ -161,7 +161,6 @@ namespace stdsharp
 
         using base::deallocate;
         using base::max_size;
-        using base::destroy;
         using base::select_on_container_copy_construction;
 
         static constexpr pointer allocate(
@@ -176,10 +175,17 @@ namespace stdsharp
 
         template<typename U, typename... Args>
             requires ::std::constructible_from<U, Args...>
-        static constexpr void construct(T& a, U* ptr, Args&&... args) //
+        static constexpr void construct(T& a, U* const ptr, Args&&... args) //
             noexcept(nothrow_constructible_from<U, Args...>)
         {
             base::construct(a, ptr, ::std::forward<Args>(args)...);
+        }
+
+        template<typename U>
+            requires ::std::destructible<U>
+        static constexpr void destroy(T& a, U* const ptr) noexcept
+        {
+            base::destroy(a, ptr);
         }
 
         static constexpr pointer try_allocate(

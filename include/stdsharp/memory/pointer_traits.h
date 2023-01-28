@@ -65,7 +65,7 @@ namespace stdsharp
             }
         };
 
-        struct raw_ptr_to_address
+        struct convert_to_address
         {
             constexpr raw_pointer operator()(const pointer& p) const noexcept
                 requires nothrow_explicitly_convertible<pointer, raw_pointer>
@@ -74,7 +74,7 @@ namespace stdsharp
             }
         };
 
-        using to_address_fn = sequenced_invocables<base_to_address, raw_ptr_to_address>;
+        using to_address_fn = sequenced_invocables<base_to_address, convert_to_address>;
 
         static constexpr to_address_fn to_address_impl;
 
