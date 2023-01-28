@@ -1,6 +1,5 @@
 #pragma once
 
-#include <__type_traits/is_constant_evaluated.h>
 #include <ranges>
 #include <array>
 
@@ -111,7 +110,7 @@ namespace stdsharp
             return state_.begin() + (it != ptr_view.end() ? it - ptr_view.begin() : 0);
         }
 
-        storage_t storage_{};
+        alignas(alignof(::std::max_align_t)) storage_t storage_{};
 
         state_t state_{};
     };
