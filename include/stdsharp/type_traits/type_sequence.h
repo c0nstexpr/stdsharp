@@ -57,6 +57,13 @@ namespace stdsharp
             template<typename T>
             using type_constant = stdsharp::type_constant<T>;
 
+            template<::std::size_t I>
+                requires(I < base::size())
+            [[nodiscard]] friend constexpr decltype(auto) get(const type_sequence) noexcept
+            {
+                return get<I>(base{});
+            }
+
         public:
             using base::adjacent_find;
             using base::all_of;
@@ -141,4 +148,5 @@ namespace std
         ::stdsharp::index_constant<Seq::size()>
     {
     };
+
 }

@@ -185,7 +185,7 @@ namespace stdsharp::actions
                         ::ranges::remove_if(container, predicate_fn)
                     );
                     const auto r = ::std::ranges::distance(it, container.cend());
-                    actions::cpo::erase(container, it, container.cend());
+                    cpo::erase(container, it, container.cend());
                     return r;
                 }
             };
@@ -210,37 +210,36 @@ namespace stdsharp::actions
         }
     } resize{};
 
-#define STDSHARP_POP_WHERE_ACTION(where, iter)                                                  \
-    namespace details                                                                           \
-    {                                                                                           \
-        struct pop_##where##_default_fn                                                         \
-        {                                                                                       \
-            template<typename Container>                                                        \
-                requires ::std::                                                                \
-                    invocable<actions::cpo::erase_fn, Container&, const_iterator_t<Container>>  \
-                constexpr void operator()(Container& container) const                           \
-            {                                                                                   \
-                actions::cpo::erase(container, container.c##iter());                            \
-            }                                                                                   \
-        };                                                                                      \
-                                                                                                \
-        struct pop_##where##_mem_fn                                                             \
-        {                                                                                       \
-            template<typename Container>                                                        \
-            constexpr void operator()(Container& container) const                               \
-                requires requires {                                                             \
-                             requires sequence_container<Container>;                            \
-                             requires ::std::same_as<decltype(container.pop_##where()), void>;  \
-                         }                                                                      \
-            {                                                                                   \
-                return container.pop_##where();                                                 \
-            }                                                                                   \
-        };                                                                                      \
-    }                                                                                           \
-                                                                                                \
-    using pop_##where##_fn =                                                                    \
-        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>; \
-                                                                                                \
+#define STDSHARP_POP_WHERE_ACTION(where, iter)                                                    \
+    namespace details                                                                             \
+    {                                                                                             \
+        struct pop_##where##_default_fn                                                           \
+        {                                                                                         \
+            template<typename Container>                                                          \
+                requires ::std::invocable<cpo::erase_fn, Container&, const_iterator_t<Container>> \
+            constexpr void operator()(Container& container) const                                 \
+            {                                                                                     \
+                cpo::erase(container, container.c##iter());                                       \
+            }                                                                                     \
+        };                                                                                        \
+                                                                                                  \
+        struct pop_##where##_mem_fn                                                               \
+        {                                                                                         \
+            template<typename Container>                                                          \
+            constexpr void operator()(Container& container) const                                 \
+                requires requires {                                                               \
+                             requires sequence_container<Container>;                              \
+                             requires ::std::same_as<decltype(container.pop_##where()), void>;    \
+                         }                                                                        \
+            {                                                                                     \
+                return container.pop_##where();                                                   \
+            }                                                                                     \
+        };                                                                                        \
+    }                                                                                             \
+                                                                                                  \
+    using pop_##where##_fn =                                                                      \
+        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>;   \
+                                                                                                  \
     inline constexpr pop_##where##_fn pop_##where{};
 
     STDSHARP_POP_WHERE_ACTION(front, begin)

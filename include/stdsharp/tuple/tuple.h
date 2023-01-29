@@ -8,40 +8,8 @@
 
 namespace stdsharp
 {
-    namespace cpo
-    {
-        namespace details
-        {
-            template<::std::size_t>
-            void get(auto) = delete;
-
-            template<::std::size_t N>
-            struct get_fn
-            {
-                template<typename T>
-                    requires requires { get<N>(::std::declval<T>()); }
-
-                [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                    noexcept(noexcept(get<N>(::std::declval<T>())))
-                {
-                    return get<N>(::std::forward<T>(t));
-                }
-            };
-        }
-
-        inline namespace cpo_impl
-        {
-            using details::get_fn;
-
-            template<::std::size_t N>
-            inline constexpr get_fn<N> get{};
-        }
-    }
-
-    template<::std::size_t N, typename T>
-    using get_t = ::std::invoke_result_t<cpo::get_fn<N>, T>;
-
     template<typename T>
+        requires requires { ::std::tuple_size<::std::decay_t<T>>{}; }
     using type_size_seq_t = ::std::make_index_sequence<::std::tuple_size_v<::std::decay_t<T>>>;
 
     inline constexpr struct tuples_apply_fn
@@ -56,14 +24,15 @@ namespace stdsharp
                 typename Fn,
                 typename... Tuple // clang-format off
             > // clang-format on
-                requires ::std::invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>
-            constexpr decltype(auto) operator()(
-                const constant<Coords>,
-                const ::std::index_sequence<First...>,
-                const ::std::index_sequence<Second...>,
-                Fn&& fn,
-                Tuple&&... tuple // clang-format off
-            ) const noexcept(nothrow_invocable<Fn, get_t<Second, pack_get_t<First, Tuple>>...>)
+                requires ::std::
+                    invocable<Fn, ::std::tuple_element_t<Second, pack_get_t<First, Tuple>>...>
+                constexpr decltype(auto) operator()(
+                    const constant<Coords>,
+                    const ::std::index_sequence<First...>,
+                    const ::std::index_sequence<Second...>,
+                    Fn&& fn,
+                    Tuple&&... tuple // clang-format off
+            ) const noexcept(nothrow_invocable<Fn, ::std::tuple_element_t<Second, pack_get_t<First, Tuple>>...>)
             { // clang-format on
                 return ::std::invoke(
                     ::std::forward<Fn>(fn),
@@ -209,4 +178,19 @@ namespace stdsharp
             );
         }
     } tuple_cat{};
+
+    namespace details
+    {
+        template<typename, typename>
+        struct tuple_elements;
+
+        template<typename Seq, ::std::size_t... I>
+        struct tuple_elements<Seq, ::std::index_sequence<I...>>
+        {
+            using type = regular_type_sequence<::std::tuple_element_t<I, Seq>...>;
+        };
+    }
+
+    template<typename Seq>
+    using tuple_elements = typename details::tuple_elements<Seq, type_size_seq_t<Seq>>::type;
 }

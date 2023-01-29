@@ -97,6 +97,44 @@ namespace stdsharp
         };
     }
 
+    namespace cpo
+    {
+        namespace details
+        {
+            void get() = delete;
+
+            template<::std::size_t I>
+            struct get_fn
+            {
+                template<typename T>
+                    requires requires { ::std::get<I>(::std::declval<T>()); }
+                [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+                    noexcept(noexcept(::std::get<I>(::std::declval<T>())))
+                {
+                    return ::std::get<I>(::std::forward<T>(t));
+                }
+
+                template<typename T>
+                    requires requires //
+                {
+                    get<I>(::std::declval<T>());
+                    requires !requires { ::std::get<I>(::std::declval<T>()); };
+                }
+                [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
+                    noexcept(noexcept(get<I>(::std::declval<T>())))
+                {
+                    return get<I>(::std::forward<T>(t));
+                }
+            };
+        }
+
+        inline namespace cpo_impl
+        {
+            template<::std::size_t I>
+            inline constexpr details::get_fn<I> get;
+        }
+    }
+
     template<typename Template, typename... T>
     using template_rebind = typename details::template_of<Template>::template rebind<T...>;
 
@@ -214,5 +252,18 @@ namespace meta::extension
     template<invocable Fn, template<auto...> typename T, auto... V>
     struct apply<Fn, T<V...>> : lazy::invoke<Fn, ::stdsharp::constant<V>...>
     {
+    };
+}
+
+namespace std
+{
+    template<::std::size_t I, typename Seq>
+        requires requires //
+    {
+        ::std::type_identity<decltype(::stdsharp::cpo::get<I>(::std::declval<Seq>()))>{}; //
+    }
+    struct tuple_element<I, Seq> // NOLINT(cert-dcl58-cpp)
+    {
+        using type = decltype(::stdsharp::cpo::get<I>(::std::declval<Seq>()));
     };
 }

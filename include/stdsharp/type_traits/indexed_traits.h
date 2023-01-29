@@ -141,3 +141,19 @@ namespace stdsharp
     template<typename... T>
     indexed_values(T&&...) -> indexed_values<::std::decay_t<T>...>;
 }
+
+namespace std
+{
+    template<typename... T>
+    struct tuple_size<::stdsharp::indexed_values<T...>> :// NOLINT(cert-dcl58-cpp)
+        ::stdsharp::index_constant<sizeof...(T)>
+    {
+    };
+
+    template<::std::size_t I, typename Seq>
+        requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::indexed_values<>>
+    struct tuple_element<I, Seq> // NOLINT(cert-dcl58-cpp)
+    {
+        using type = typename Seq::template type<I>;
+    };
+}
