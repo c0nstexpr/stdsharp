@@ -3,7 +3,6 @@
 #include <exception>
 
 #include "cstdint/cstdint.h"
-#include "functional/invoke.h"
 #include "type_traits/object.h"
 #include "utility/value_wrapper.h"
 
@@ -22,25 +21,31 @@ namespace stdsharp::scope
         unique_object
     {
     private:
-        using unique_base = unique_object;
         using wrapper = value_wrapper<Fn>;
         using wrapper::value;
 
+        constexpr void execute() noexcept // NOLINT(*-exception-escape)
+        {
+            ::std::invoke(::std::move(value));
+        };
+
     public:
         using exit_fn_t = Fn;
-        using unique_base::unique_base;
         using wrapper::wrapper;
 
         static constexpr auto policy = Policy;
 
-        constexpr ~scoped()
+        constexpr ~scoped() // NOLINT(*-exception-escape)
         {
-            const auto execute = [this]() noexcept { ::std::invoke(::std::move(value)); };
-
             if constexpr(policy == exit_fn_policy::on_exit) execute();
             else if(::std::uncaught_exceptions() == 0)
-                conditional_invoke<policy == exit_fn_policy::on_success>(execute);
-            else conditional_invoke<policy == exit_fn_policy::on_exit>(execute);
+            {
+                if constexpr(policy == exit_fn_policy::on_success) execute();
+            }
+            else
+            {
+                if constexpr(policy == exit_fn_policy::on_failure) execute();
+            }
         }
     };
 

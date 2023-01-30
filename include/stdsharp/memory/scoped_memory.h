@@ -47,7 +47,7 @@ namespace stdsharp::scope
             {
             }
 
-            constexpr void operator()() const noexcept
+            constexpr void operator()() const noexcept // NOLINT(*-exception-escape)
             {
                 alloc_traits::deallocate(
                     alloc_,
@@ -56,11 +56,11 @@ namespace stdsharp::scope
                 );
             }
 
-            constexpr auto ptr() const noexcept { return ptr_; }
+            [[nodiscard]] constexpr auto ptr() const noexcept { return ptr_; }
 
-            constexpr auto count() const noexcept { return count_; }
+            [[nodiscard]] constexpr auto count() const noexcept { return count_; }
 
-            constexpr auto& allocator() const noexcept { return alloc_.get(); }
+            [[nodiscard]] constexpr auto& allocator() const noexcept { return alloc_.get(); }
 
         private:
             ::std::reference_wrapper<Alloc> alloc_;
@@ -179,11 +179,11 @@ namespace stdsharp::scope
 
                 constexpr void operator()() noexcept { deallocators[index_](alloc_, ptr_, count_); }
 
-                constexpr auto ptr() const noexcept { return ptr_; }
+                [[nodiscard]] constexpr auto ptr() const noexcept { return ptr_; }
 
-                constexpr auto count() const noexcept { return count_; }
+                [[nodiscard]] constexpr auto count() const noexcept { return count_; }
 
-                constexpr auto& allocator() const noexcept { return alloc_.get(); }
+                [[nodiscard]] constexpr auto& allocator() const noexcept { return alloc_.get(); }
 
             private:
                 ::std::reference_wrapper<Tuple> alloc_;
