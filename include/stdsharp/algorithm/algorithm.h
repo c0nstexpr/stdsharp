@@ -8,7 +8,6 @@
 
 #include "../functional/operations.h"
 #include "../functional/invoke.h"
-#include "../cassert/cassert.h"
 
 namespace stdsharp
 {
@@ -52,28 +51,31 @@ namespace stdsharp
             ::std::indirect_strict_weak_order<::std::projected<const T*, Proj>> Compare =
                 ::std::ranges::less // clang-format off
         > // clang-format on
-        [[nodiscard]] constexpr auto operator()(// NOLINTBEGIN(*-easily-swappable-parameters)
+        [[nodiscard]] constexpr auto operator()( // NOLINTBEGIN(*-easily-swappable-parameters)
             const T& t,
             const T& min,
             const T& max,
             Compare cmp = {},
             Proj proj = {}
-        ) const// NOLINTEND(*-easily-swappable-parameters)
-            noexcept(
+        ) const // NOLINTEND(*-easily-swappable-parameters)
+#ifndef NDEBUG
+            noexcept( //
                 nothrow_predicate<
                     Compare,
                     ::std::projected<const T*, Proj>,
-                    ::std::projected<const T*, Proj>> &&
-                !is_debug
+                    ::std::projected<const T*, Proj> // clang-format off
+                > // clang-format on
             )
+#endif
         {
             const auto& proj_max = ::std::invoke(proj, max);
             const auto& proj_min = ::std::invoke(proj, min);
             const auto& proj_t = ::std::invoke(proj, t);
 
-            if constexpr(is_debug)
-                if(invoke_r<bool>(cmp, proj_max, proj_min))
-                    throw ::std::invalid_argument{"max value should not less than min value"};
+#ifndef NDEBUG
+            if(invoke_r<bool>(cmp, proj_max, proj_min))
+                throw ::std::invalid_argument{"max value should not less than min value"};
+#endif
 
             return !invoke_r<bool>(cmp, proj_t, proj_min) && !invoke_r<bool>(cmp, proj_max, proj_t);
         }
