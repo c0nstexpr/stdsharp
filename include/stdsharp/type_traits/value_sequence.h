@@ -162,7 +162,7 @@ namespace stdsharp
     template<auto... Values>
     using unique_value_sequence_t = typename details::unique_value_sequence<Values...>::type;
 
-    template<auto... Values> // clang-format off
+    template<auto... Values>
     struct value_sequence : regular_value_sequence<Values...>
     {
     public:
@@ -174,8 +174,8 @@ namespace stdsharp
         static constexpr values_t values{Values...};
 
         template<::std::size_t I>
-            requires (I < size())
-        [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence)noexcept
+            requires(I < size())
+        [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence) noexcept
         {
             return value<I>;
         }
@@ -525,6 +525,9 @@ namespace stdsharp
             // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
+
+    template<auto... V>
+    inline constexpr auto enable_tuple_element_by_get<value_sequence<V...>> = true;
 }
 
 namespace std

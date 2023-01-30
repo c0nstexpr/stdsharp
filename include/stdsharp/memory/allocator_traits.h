@@ -167,7 +167,7 @@ namespace stdsharp
             allocator_type& alloc,
             const size_type count,
             const const_void_pointer hint = nullptr
-        ) noexcept
+        )
         {
             return hint == nullptr ? base::allocate(alloc, count) :
                                      base::allocate(alloc, count, hint);

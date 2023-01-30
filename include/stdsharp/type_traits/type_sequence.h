@@ -138,6 +138,10 @@ namespace stdsharp
     template<typename... T>
     using unique_type_sequence_t = details::type_seq_conversion::from_value_seq_t<
         unique_value_sequence_t<type_constant<T>{}...>>;
+
+    template<template<typename...> typename T, typename... U>
+        requires ::std::same_as<T<>, type_sequence<>>
+    inline constexpr auto enable_tuple_element_by_get<T<U...>> = true;
 }
 
 namespace std

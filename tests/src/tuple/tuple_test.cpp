@@ -14,5 +14,5 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (2, float)
 )
 {
-    STATIC_REQUIRE(decay_same_as<get_t<Index, my_tuple_t>, T>);
+    STATIC_REQUIRE(decay_same_as<::std::tuple_element_t<Index, my_tuple_t>, T>);
 }

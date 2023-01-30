@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../utility/value_wrapper.h"
+#include <memory>
 
 namespace stdsharp
 {
@@ -56,4 +57,26 @@ namespace stdsharp
 
     template<typename Func>
     nodiscard_invocable(Func&& func) -> nodiscard_invocable<::std::decay_t<Func>>;
+
+    template<typename Func>
+    struct ref_invocable_t : ::std::reference_wrapper<Func>
+    {
+        using ::std::reference_wrapper<Func>::reference_wrapper;
+
+#define STDSHARP_OPERATOR(const_, ref)                                    \
+    template<typename... Args>                                            \
+        requires ::std::invocable<const_ Func ref, Args...>               \
+    constexpr decltype(auto) operator()(Args&&... args)                   \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)  \
+    {                                                                     \
+        return ::std::invoke(this->get(), ::std::forward<Args>(args)...); \
+    }
+
+        STDSHARP_OPERATOR(, &)
+        STDSHARP_OPERATOR(const, &)
+        STDSHARP_OPERATOR(, &&)
+        STDSHARP_OPERATOR(const, &&)
+
+#undef STDSHARP_OPERATOR
+    };
 }

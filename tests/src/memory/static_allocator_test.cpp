@@ -25,15 +25,15 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
     // NOLINTBEGIN(*-reinterpret-cast)
 
-    GIVEN("allocator with 16 bytes")
-    {
-        static_allocator<char, sizeof(derived) * 4> allocator;
+    constexpr auto alloc_size = sizeof(derived) * 4;
 
-        using traits = stdsharp::allocator_traits<decltype(allocator)>;
+    GIVEN("allocator with " << alloc_size << " bytes")
+    {
+        static_allocator<char, alloc_size> allocator;
 
         THEN("constructing a derived type at allocator")
         {
-            const auto p1 = traits::allocate(allocator, sizeof(derived));
+            const auto p1 = allocator.allocate(sizeof(derived));
             const auto d1_ptr = reinterpret_cast<derived*>(p1);
 
             {
@@ -47,7 +47,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
             AND_THEN("constructing anther one at allocator")
             {
-                const auto p2 = traits::allocate(allocator, sizeof(derived));
+                const auto p2 = allocator.allocate(sizeof(derived));
                 const auto d2_ptr = reinterpret_cast<derived*>(p2);
 
                 {
@@ -59,10 +59,10 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
                     REQUIRE(base_ptr->foo() == v2);
                 }
 
-                traits::deallocate(allocator, p2, sizeof(derived));
+                allocator.deallocate(p2, sizeof(derived));
             }
 
-            traits::deallocate(allocator, p1, sizeof(derived));
+            allocator.deallocate(p1, sizeof(derived));
         }
 
         THEN("constructing two derived types at allocator")
@@ -75,7 +75,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
             {
                 auto& d_ptr = *it;
 
-                d_ptr = reinterpret_cast<derived*>(traits::allocate(allocator, sizeof(derived)));
+                d_ptr = reinterpret_cast<derived*>(allocator.allocate(sizeof(derived)));
 
                 std::ranges::construct_at(d_ptr, d);
 
@@ -88,15 +88,11 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
             AND_THEN("release first type and construct the third type")
             {
-                traits::deallocate(
-                    allocator,
-                    reinterpret_cast<char*>(ptrs.front()),
-                    sizeof(derived)
-                );
+                allocator.deallocate(reinterpret_cast<char*>(ptrs.front()), sizeof(derived));
 
                 constexpr derived d3{65};
 
-                const auto ptr = traits::allocate(allocator, sizeof(derived));
+                const auto ptr = allocator.allocate(sizeof(derived));
                 const auto d3_ptr = reinterpret_cast<derived*>(ptr);
                 const base* base3_ptr = d3_ptr;
 
@@ -106,27 +102,25 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
                 REQUIRE(base3_ptr->foo() == d3.foo());
                 REQUIRE(ptrs[1]->foo() == derived_array[1].foo());
 
-                traits::deallocate(allocator, ptr, sizeof(derived));
+                allocator.deallocate(ptr, sizeof(derived));
             }
         }
 
         THEN("constructing 5 d1 at allocator should throws")
         {
-            REQUIRE_THROWS_AS(traits::allocate(allocator, sizeof(derived) * 5), bad_alloc);
+            REQUIRE_THROWS_AS(allocator.allocate(sizeof(derived) * 5), bad_alloc);
         }
     }
 
     GIVEN("allocator with 4 * sizeof(int), constexpr allocate and deallocate")
     {
-        constexpr int _ = ( //
+        [[maybe_unused]] constexpr int _ = ( //
             []
             {
                 static_allocator<char, 4 * sizeof(int)> allocator;
 
-                using traits = stdsharp::allocator_traits<decltype(allocator)>;
-
-                const auto p1 = traits::allocate(allocator, 1);
-                traits::deallocate(allocator, p1, 1);
+                const auto p1 = allocator.allocate(1);
+                allocator.deallocate(p1, 1);
             }(),
             0
         );
