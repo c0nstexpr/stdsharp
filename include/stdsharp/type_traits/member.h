@@ -2,6 +2,7 @@
 #pragma once
 
 #include "function.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -25,12 +26,38 @@ namespace stdsharp
     template<typename>
     struct member_function_traits;
 
-    enum class member_ref_qualifier
+    template<auto Ptr>
+    struct member_function_pointer_traits : member_function_traits<::std::decay_t<decltype(Ptr)>>
     {
-        none,
-        lvalue,
-        rvalue
     };
+
+#define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, qualifiers)                 \
+    template<typename R, typename ClassT, typename... Args, bool Noexcept>                   \
+    struct member_function_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)> :    \
+        function_traits<R (*)(Args...) noexcept(Noexcept)>,                                  \
+        member_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)>                  \
+    {                                                                                        \
+        static constexpr auto is_const = const_;                                             \
+        static constexpr auto is_volatile = volatile_;                                       \
+        static constexpr auto ref_type = ref_qualifier::ref_;                                \
+        using qualified_class_t = apply_qualifiers<ClassT, is_const, is_volatile, ref_type>; \
+    };
+
+#define STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \
+    STDSHARP_MEMBER_FUNCTION_TRAITS(true, is_volatile, ref_type, const qualifiers)    \
+    STDSHARP_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, qualifiers)
+
+#define STDSHARP_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, qualifiers)         \
+    STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(true, ref_type, volatile qualifiers) \
+    STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(false, ref_type, qualifiers)
+
+    STDSHARP_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(none, )
+    STDSHARP_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(lvalue, &)
+    STDSHARP_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, &&)
+
+#undef STDSHARP_MEMBER_FUNCTION_TRAITS_REF_PACK
+#undef STDSHARP_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK
+#undef STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK
 
     template<typename T, typename ClassT>
     concept member_of = ::std::same_as<typename member_traits<T>::class_t, ClassT>;
@@ -38,56 +65,4 @@ namespace stdsharp
     template<typename T, typename ClassT>
     concept member_func_of = ::std::is_member_pointer_v<T> &&
         ::std::same_as<typename member_function_traits<T>::class_t, ClassT>;
-
-    template<auto Ptr>
-    struct member_function_pointer_traits : member_function_traits<::std::decay_t<decltype(Ptr)>>
-    {
-    };
-
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)     \
-    template<typename R, typename ClassT, typename... Args>                                       \
-    struct member_function_traits<R (ClassT::*)(Args...) qualifiers> :                            \
-        function_traits<::std::conditional_t<noexcept_, R (*)(Args...) noexcept, R (*)(Args...)>> \
-    {                                                                                             \
-        using class_t = ClassT;                                                                   \
-        static constexpr auto is_const = const_;                                                  \
-        static constexpr auto is_volatile = volatile_;                                            \
-        static constexpr auto ref_type = member_ref_qualifier::ref_;                              \
-    };
-
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK( \
-    is_volatile,                                          \
-    ref_type,                                             \
-    is_noexcept,                                          \
-    qualifiers /**/                                       \
-)                                                         \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(                \
-        true,                                             \
-        is_volatile,                                      \
-        ref_type,                                         \
-        is_noexcept,                                      \
-        const qualifiers /**/                             \
-    )                                                     \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, is_noexcept, qualifiers)
-
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, is_noexcept, qualifiers) \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(                                          \
-        true,                                                                                  \
-        ref_type,                                                                              \
-        is_noexcept,                                                                           \
-        volatile qualifiers /**/                                                               \
-    )                                                                                          \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK(false, ref_type, is_noexcept, qualifiers)
-
-#define UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK(is_noexcept, qualifiers)           \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(none, is_noexcept, qualifiers)    \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(lvalue, is_noexcept, &qualifiers) \
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(rvalue, is_noexcept, &&qualifiers)
-
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK(true, noexcept)
-    UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK(false, )
-
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_REF_PACK
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK
-#undef UTILITY_TRAITS_MEMBER_FUNCTION_TRAITS_CONST_PACK
 }

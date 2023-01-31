@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "type_sequence.h"
+#include "../functional/invoke.h"
 
 namespace stdsharp
 {
@@ -10,31 +10,30 @@ namespace stdsharp
         template<typename T>
         struct function_traits_helper;
 
-        template<bool IsNoexcept>
-        struct function_qualifiers_traits
+        template<typename R, typename... Args, bool Noexcept>
+        struct function_traits_helper<R (*)(Args...) noexcept(Noexcept)>
         {
-            static auto constexpr is_noexcept = IsNoexcept;
-        };
+            static auto constexpr is_noexcept = Noexcept;
 
-        template<typename R, typename... Args>
-        struct function_traits_helper_base
-        {
             using result_t = R;
             using args_t = regular_type_sequence<Args...>;
-        };
 
-        template<typename R, typename... Args>
-        struct function_traits_helper<R (*)(Args...)> :
-            details::function_traits_helper_base<R, Args...>,
-            details::function_qualifiers_traits<false>
-        {
-        };
+            using ptr_t = R (*)(Args...) noexcept(Noexcept);
 
-        template<typename R, typename... Args>
-        struct function_traits_helper<R (*)(Args...) noexcept> :
-            details::function_traits_helper_base<R, Args...>,
-            function_qualifiers_traits<true>
-        {
+            template<typename Ret, typename... InArgs>
+            static constexpr auto invocable_r = stdsharp::invocable_r<ptr_t, Ret, InArgs...>;
+
+            template<typename Ret, typename... InArgs>
+            static constexpr auto nothrow_invocable_r =
+                stdsharp::nothrow_invocable_r<ptr_t, Ret, InArgs...>;
+
+            template<typename Ret = R, typename... InArgs>
+                requires invocable_r<ptr_t, Ret, InArgs...>
+            static constexpr Ret invoke_r(const ptr_t ptr, InArgs&&... args) //
+                noexcept(nothrow_invocable_r<ptr_t, Ret, InArgs...>)
+            {
+                return stdsharp::invoke_r<Ret>(ptr, ::std::forward<Args>(args)...);
+            }
         };
     }
 

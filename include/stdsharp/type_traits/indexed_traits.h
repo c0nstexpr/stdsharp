@@ -132,6 +132,10 @@ namespace stdsharp
     template<typename... T>
     using indexed_types = typename details::indexed_types<indexed_type, T...>::template t<>;
 
+    template<template<typename...> typename T, typename... U>
+        requires ::std::same_as<T<U...>, indexed_types<U...>>
+    inline constexpr auto enable_tuple_element_by_get<T<U...>> = true;
+
     template<typename... T>
     struct indexed_values : details::indexed_values<T...>
     {
@@ -141,9 +145,8 @@ namespace stdsharp
     template<typename... T>
     indexed_values(T&&...) -> indexed_values<::std::decay_t<T>...>;
 
-    template<template<typename...> typename T, typename... U>
-        requires(::std::same_as<T<>, indexed_values<>> || ::std::same_as<T<>, indexed_types<>>)
-    inline constexpr auto enable_tuple_element_by_get<T<U...>> = true;
+    template<typename... T>
+    inline constexpr auto enable_tuple_element_by_get<indexed_values<T...>> = true;
 }
 
 namespace std

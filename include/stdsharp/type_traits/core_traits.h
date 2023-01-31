@@ -13,6 +13,33 @@ using namespace ::std::literals;
 
 namespace stdsharp
 {
+    enum class ref_qualifier
+    {
+        none,
+        lvalue,
+        rvalue
+    };
+
+    template<typename T, bool Const>
+    using apply_const = ::std::conditional_t<Const, ::std::add_const_t<T>, T>;
+
+    template<typename T, bool Volatile>
+    using apply_volatile = ::std::conditional_t<Volatile, ::std::add_volatile_t<T>, T>;
+
+    template<typename T, ref_qualifier ref>
+    using apply_ref = ::std::conditional_t<
+        ref == ref_qualifier::lvalue,
+        ::std::add_lvalue_reference_t<T>,
+        ::std::conditional_t<
+            ref == ref_qualifier::rvalue,
+            ::std::add_rvalue_reference_t<T>,
+            T // clang-format off
+        >
+    >; // clang-format on
+
+    template<typename T, bool Const, bool Volatile, ref_qualifier ref>
+    using apply_qualifiers = apply_ref<apply_volatile<apply_const<T, Const>, Volatile>, ref>;
+
     template<typename...>
     [[nodiscard]] constexpr auto always_false(const auto&...) noexcept
     {
