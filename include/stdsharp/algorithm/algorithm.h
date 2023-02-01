@@ -2,8 +2,11 @@
 
 #include <algorithm>
 
-#ifndef NDEBUG
+#ifdef NDEBUG
+    #define INVALID_ARGUMENT void
+#else
     #include <stdexcept>
+    #define INVALID_ARGUMENT ::std::invalid_argument
 #endif
 
 #include "../functional/operations.h"
@@ -72,12 +75,14 @@ namespace stdsharp
             const auto& proj_min = ::std::invoke(proj, min);
             const auto& proj_t = ::std::invoke(proj, t);
 
-#ifndef NDEBUG
-            if(invoke_r<bool>(cmp, proj_max, proj_min))
-                throw ::std::invalid_argument{"max value should not less than min value"};
-#endif
+            debug_throw<INVALID_ARGUMENT>(
+                [&] { return invoke_r<bool>(cmp, proj_max, proj_min); },
+                "max value should not less than min value"
+            );
 
             return !invoke_r<bool>(cmp, proj_t, proj_min) && !invoke_r<bool>(cmp, proj_max, proj_t);
         }
     } is_between{};
 }
+
+#undef INVALID_ARGUMENT

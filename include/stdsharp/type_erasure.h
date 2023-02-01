@@ -1,14 +1,15 @@
 #pragma once
 
-#include "stdsharp/type_traits/core_traits.h"
+#include "type_traits/core_traits.h"
 #include "type_traits/member.h"
+#include "cassert/cassert.h"
 
 namespace stdsharp
 {
     namespace details
     {
         template<typename T>
-        struct erasure_dispatch_traits
+        struct dispatch_traits
         {
             using func_traits = member_function_traits<T>;
 
@@ -26,89 +27,75 @@ namespace stdsharp
                     func_traits::ref_type // clang-format off
                 >; // clang-format on
 
-                template<typename First>
-                using type = typename func_traits::result_t (*)(qualified_t<First>, Args...) //
+                template<typename Storage>
+                using type = typename func_traits::result_t (*)(Storage, Args...) //
                     noexcept(func_traits::is_noexcept);
-
-                template<typename First>
-                using func_traits = function_traits<First>;
             };
 
             using type = impl<>;
         };
+
+        template<typename T>
+            requires requires { member_function_traits<T>{}; }
+        using dispatch_traits_t = typename dispatch_traits<::std::decay_t<T>>::type;
+
+        template<typename ErasedT, typename... Func>
+            requires requires { (dispatch_traits_t<Func>{}, ...); }
+        class erasure
+        {
+            template<typename... Traits>
+            class impl
+            {
+                indexed_values<typename Traits::template type<
+                    typename Traits::template qualified_t<ErasedT>>...>
+                    dispatchers_;
+
+            public:
+                template<::std::size_t I>
+                using func_traits =
+                    function_traits<::std::tuple_element_t<I, decltype(dispatchers_)>>;
+
+                template<typename... T>
+                    requires(::std::same_as<nullptr_t, T> || ...)
+                constexpr impl(const T...) = delete;
+
+                constexpr impl(const typename Traits:: //
+                               template type<typename Traits::template qualified_t<ErasedT>>... t):
+                    dispatchers_(t...)
+                {
+                    debug_assert<::std::invalid_argument>(
+                        [&]() noexcept { return ((t == nullptr) || ...); },
+                        "one of the arguments is null pointer"
+                    );
+                }
+
+                template<
+                    ::std ::size_t I,
+                    typename Ret = typename func_traits<I>::result_t,
+                    typename... Args>
+                static constexpr auto invocable_r_at =
+                    invocable_r<Ret, const typename func_traits<I>::ptr_t&, Args...>;
+
+                template<
+                    ::std ::size_t I,
+                    typename Ret = typename func_traits<I>::result_t,
+                    typename... Args>
+                static constexpr auto nothrow_invocable_r_at =
+                    nothrow_invocable_r<Ret, const typename func_traits<I>::ptr_t&, Args...>;
+
+                template<
+                    ::std ::size_t I,
+                    typename Ret = typename func_traits<I>::result_t,
+                    typename... Args>
+                    requires invocable_r_at<I, Ret, Args...>
+                constexpr Ret invoke_at(Args&&... args) const
+                    noexcept(nothrow_invocable_r_at<I, Ret, Args...>)
+                {
+                    return invoke_r<Ret>(get<I>(dispatchers_), ::std ::forward<Args>(args)...);
+                }
+            };
+
+            using type = impl<dispatch_traits_t<Func>...>;
+        };
     }
-
-    template<typename T>
-        requires requires { member_function_traits<T>{}; }
-    using erasure_dispatch_traits =
-        typename details::erasure_dispatch_traits<::std::decay_t<T>>::type;
-
-    template<typename Storage, typename... Func>
-        requires requires { (erasure_dispatch_traits<Func>{}, ...); }
-    class ref_erasure
-    {
-        static constexpr indexed_types<erasure_dispatch_traits<Func>...> dispatcher_traits;
-
-        indexed_values<typename erasure_dispatch_traits<Func>::template type<Storage>...>
-            dispatchers_;
-        Storage storage_;
-
-        template<::std::size_t I>
-        using dispatch_traits = ::std::tuple_element_t<I, decltype(dispatcher_traits)>;
-
-        template<::std::size_t I>
-        using func_traits = function_traits<::std::tuple_element_t<I, decltype(dispatchers_)>>;
-
-        template<::std::size_t I>
-        using qualified_storage = func_traits<I>;
-
-        template<::std::size_t I, typename Ret, typename... Args>
-        static constexpr auto invocable_r_at = func_traits<I>::template invocable_r<Ret, Args...>;
-
-        template<::std::size_t I, typename Ret, typename... Args>
-        static constexpr auto nothrow_invocable_r_at =
-            func_traits<I>::template nothrow_invocable_r<Ret, Args...>;
-
-    public:
-        template<typename... T>
-            requires(::std::same_as<T, nullptr_t> || ...)
-        ref_erasure(T...) = delete;
-
-        template<typename... T>
-            requires(::std::constructible_from<Storage, T> && ...)
-        constexpr ref_erasure(
-            T&&... t,
-            const typename function_traits<Func>::ptr_t... funcs
-        ) noexcept(nothrow_constructible_from<Storage, T...>):
-            storage_(::std::forward<T>(t)...), dispatchers_(funcs...)
-        {
-        }
-
-        template<
-            ::std::size_t I,
-            typename Ret = typename func_traits<I>::result_t,
-            typename... Args // clang-format off
-        > // clang-format on
-            requires invocable_r_at<I, Ret, Args...>
-        constexpr Ret invoke_at(Args&&... args) noexcept(nothrow_invocable_r_at<I, Ret, Args...>)
-        {
-            return func_traits<I>::template invoke_r<Ret>(
-                get<I>(dispatchers_),
-                static_cast<>(storage_),
-                ::std::forward<Args>(args)...
-            );
-        }
-
-        template<
-            ::std::size_t I,
-            typename... Args,
-            typename Ret = typename func_traits<I>::result_t // clang-format off
-        > // clang-format on
-            requires invocable_r_at<I, Ret, Args...>
-        constexpr decltype(auto) operator()(Args&&... args) //
-            noexcept(nothrow_invocable_r_at<I, Ret, Args...>)
-        {
-            return invoke_at<I>(::std::forward<Args>(args)...);
-        }
-    };
 }

@@ -147,9 +147,9 @@ namespace stdsharp
 
             template<typename U>
                 requires ::std::predicate<Comp, U, T>
-            constexpr auto operator()(const U& other) const noexcept(nothrow_predicate<Comp, U, T>)
+            constexpr bool operator()(const U& other) const noexcept(nothrow_predicate<Comp, U, T>)
             {
-                return static_cast<bool>(::std::invoke(comp, other, value));
+                return ::std::invoke(comp, other, value);
             }
 
             constexpr auto operator()(const auto&) const noexcept { return false; }
@@ -174,7 +174,7 @@ namespace stdsharp
         static constexpr values_t values{Values...};
 
         template<::std::size_t I>
-            requires(I < size())
+            requires requires { requires I < size(); }
         [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence) noexcept
         {
             return value<I>;
@@ -330,8 +330,7 @@ namespace stdsharp
                 noexcept(nothrow_predicate<Func>::value)
             {
                 ::std::size_t i = 0;
-                ::std::ignore =
-                    ((static_cast<bool>(::std::invoke(func, Values)) ? false : (++i, true)) && ...);
+                empty = ((::std::invoke(func, Values) ? false : (++i, true)) && ...);
                 return i;
             }
         } find_if{};
@@ -356,8 +355,7 @@ namespace stdsharp
                      &func](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
-                        if(static_cast<bool>(::std::invoke(func, v))) ++i;
-                        return true;
+                        if(::std::invoke(func, v)) ++i;
                     } //
                 );
 
@@ -389,10 +387,10 @@ namespace stdsharp
             {
                 template<typename Comp>
                     requires ::std::predicate<Comp>
-                constexpr auto operator()(Comp& comp) const
+                constexpr bool operator()(Comp& comp) const
                     noexcept(stdsharp::nothrow_predicate<Comp, bool>)
                 {
-                    return static_cast<bool>(::std::invoke(comp, value<I>, value<I + 1>));
+                    return ::std::invoke(comp, value<I>, value<I + 1>);
                 }
 
                 constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }

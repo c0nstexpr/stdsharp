@@ -7,12 +7,15 @@ namespace stdsharp
 {
     namespace details
     {
-        template<typename... Types>
+        template<typename, typename...>
         struct type_sequence;
     }
 
     template<typename... Types>
-    using type_sequence = adl_proof_t<details::type_sequence, Types...>;
+    using type_sequence = adl_proof_t<
+        details::type_sequence,
+        stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
+        Types...>;
 
     namespace details
     {
@@ -39,15 +42,13 @@ namespace stdsharp
             using invoke = stdsharp::type_sequence<T...>;
         };
 
-        template<typename... Types>
+        template<typename Base, typename... Types>
         struct type_sequence :
-            private stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
+            private Base,
             stdsharp::regular_type_sequence<Types...>,
             private type_seq_conversion
         {
         private:
-            using base = stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>;
-
             using type_seq_conversion::from_value_seq_t;
             using type_seq_conversion::to_value_seq_t;
 
@@ -58,48 +59,48 @@ namespace stdsharp
             using type_constant = stdsharp::type_constant<T>;
 
             template<::std::size_t I>
-                requires(I < base::size())
+                requires requires { requires I < Base::size(); }
             [[nodiscard]] friend constexpr decltype(auto) get(const type_sequence) noexcept
             {
-                return get<I>(base{});
+                return get<I>(Base{});
             }
 
         public:
-            using base::adjacent_find;
-            using base::all_of;
-            using base::any_of;
-            using base::contains;
-            using base::count;
-            using base::count_if;
-            using base::count_if_not;
-            using base::find;
-            using base::find_if;
-            using base::find_if_not;
-            using base::for_each;
-            using base::for_each_n;
-            using base::none_of;
-            using base::size;
+            using Base::adjacent_find;
+            using Base::all_of;
+            using Base::any_of;
+            using Base::contains;
+            using Base::count;
+            using Base::count_if;
+            using Base::count_if_not;
+            using Base::find;
+            using Base::find_if;
+            using Base::find_if_not;
+            using Base::for_each;
+            using Base::for_each_n;
+            using Base::none_of;
+            using Base::size;
 
             template<template<typename...> typename T>
             using apply_t = T<Types...>;
 
             template<::std::size_t I>
-            using type = typename base::template value_type<I>::type;
+            using type = typename Base::template value_type<I>::type;
 
             template<::std::size_t... I>
             using at_t = stdsharp::regular_type_sequence<type<I>...>;
 
             template<::std::size_t Size>
-            using back_t = from_value_seq_t<typename base::template back_t<Size>>;
+            using back_t = from_value_seq_t<typename Base::template back_t<Size>>;
 
             template<::std::size_t Size>
-            using front_t = from_value_seq_t<typename base::template front_t<Size>>;
+            using front_t = from_value_seq_t<typename Base::template front_t<Size>>;
 
             template<typename... Others>
             using append_t = regular_type_sequence<Types..., Others...>;
 
             template<typename T = void>
-            using invoke_fn = typename base::template invoke_fn<T>;
+            using invoke_fn = typename Base::template invoke_fn<T>;
 
             template<typename T = empty_t>
             static constexpr invoke_fn<T> invoke{};
@@ -109,22 +110,22 @@ namespace stdsharp
 
             template<::std::size_t Index, typename... Other>
             using insert_t = from_value_seq_t< //
-                typename base::template insert_t<
+                typename Base::template insert_t<
                     Index,
                     static_const_v<type_constant<Other>>... // clang-format off
                 >
             >; // clang-format on
 
             template<::std::size_t... Index>
-            using remove_at_t = from_value_seq_t<typename base::template remove_at_t<Index...>>;
+            using remove_at_t = from_value_seq_t<typename Base::template remove_at_t<Index...>>;
 
             template<::std::size_t Index, typename Other>
             using replace_t =
-                from_value_seq_t<typename base::template replace_t<Index, type_constant<Other>{}>>;
+                from_value_seq_t<typename Base::template replace_t<Index, type_constant<Other>{}>>;
 
             template<::std::size_t From, ::std::size_t Size>
             using select_range_t =
-                from_value_seq_t<typename base::template select_range_t<From, Size>>;
+                from_value_seq_t<typename Base::template select_range_t<From, Size>>;
         };
     }
 

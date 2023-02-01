@@ -132,10 +132,6 @@ namespace stdsharp
     template<typename... T>
     using indexed_types = typename details::indexed_types<indexed_type, T...>::template t<>;
 
-    template<template<typename...> typename T, typename... U>
-        requires ::std::same_as<T<U...>, indexed_types<U...>>
-    inline constexpr auto enable_tuple_element_by_get<T<U...>> = true;
-
     template<typename... T>
     struct indexed_values : details::indexed_values<T...>
     {
@@ -158,7 +154,7 @@ namespace std
     };
 
     template<::std::size_t I, typename Seq>
-        requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::indexed_values<>>
+        requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::indexed_types<>>
     struct tuple_element<I, Seq> // NOLINT(cert-dcl58-cpp)
     {
         using type = typename Seq::template type<I>;
