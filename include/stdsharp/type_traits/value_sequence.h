@@ -523,18 +523,19 @@ namespace stdsharp
             // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
-
-    template<auto... V>
-    inline constexpr auto enable_tuple_element_by_get<value_sequence<V...>> = true;
 }
 
 namespace std
 {
     template<auto... Values>
-    struct tuple_size<::stdsharp::value_sequence<Values...>> :// NOLINT(cert-dcl58-cpp)
-        ::stdsharp:: // clang-format off
-            index_constant<::stdsharp::value_sequence<Values...>::size()>
-    // clang-format on
+    struct tuple_size<::stdsharp::value_sequence<Values...>> :
+        ::stdsharp::index_constant<::stdsharp::value_sequence<Values...>::size()>
     {
+    };
+
+    template<::std::size_t I, auto... Values>
+    struct tuple_element<I, ::stdsharp::value_sequence<Values...>>
+    {
+        using type = typename ::stdsharp::value_sequence<Values...>::template type<I>;
     };
 }

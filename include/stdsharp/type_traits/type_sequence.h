@@ -139,19 +139,20 @@ namespace stdsharp
     template<typename... T>
     using unique_type_sequence_t = details::type_seq_conversion::from_value_seq_t<
         unique_value_sequence_t<type_constant<T>{}...>>;
-
-    template<template<typename...> typename T, typename... U>
-        requires ::std::same_as<T<>, type_sequence<>>
-    inline constexpr auto enable_tuple_element_by_get<T<U...>> = true;
 }
 
 namespace std
 {
     template<typename Seq>
         requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::type_sequence<>>
-    struct tuple_size<Seq> :// NOLINT(cert-dcl58-cpp)
-        ::stdsharp::index_constant<Seq::size()>
+    struct tuple_size<Seq> : ::stdsharp::index_constant<Seq::size()>
     {
     };
 
+    template<::std::size_t I, typename Seq>
+        requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::type_sequence<>>
+    struct tuple_element<I, Seq>
+    {
+        using type = typename Seq::template type<I>;
+    };
 }

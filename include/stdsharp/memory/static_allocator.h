@@ -1,14 +1,15 @@
 #pragma once
 
-#include <ranges>
+#include <algorithm>
 #include <array>
+#include <ranges>
 
-#include "../utility/utility.h"
-#include "../algorithm/algorithm.h"
+#include "../utility/auto_cast.h"
+#include "../cmath/cmath.h"
 
 namespace stdsharp
 {
-    template<typename T, ::std::size_t Size>
+    template<typename T, ::std::size_t Size, ::std::size_t Align = alignof(T)>
     class static_allocator
     {
     public:
@@ -98,7 +99,7 @@ namespace stdsharp
             const T* ptr = auto_cast(void_ptr);
 
             return state_.begin() + // NOLINTNEXTLINE(*-pointer-arithmetic)
-                (is_between(ptr, first, first + storage_.size()) ? (ptr - first) : 0);
+                (ptr >= first && ptr <= first + storage_.size() ? ptr - first : 0);
         }
 
         [[nodiscard]] constexpr auto constexpr_map_state_impl(const void* ptr)
@@ -110,8 +111,14 @@ namespace stdsharp
             return state_.begin() + (it != ptr_view.end() ? it - ptr_view.begin() : 0);
         }
 
-        alignas(alignof(::std::max_align_t)) storage_t storage_{};
+        alignas(Align) storage_t storage_{};
 
         state_t state_{};
     };
+
+    static constexpr auto sbo_size = sizeof(::std::uintmax_t);
+
+    template<typename T>
+    using sbo_allocator =
+        static_allocator<T, ceil_reminder(sbo_size, sizeof(T)), alignof(::std::max_align_t)>;
 }

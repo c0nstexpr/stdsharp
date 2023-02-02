@@ -18,6 +18,7 @@ set(src
     src/filesystem/filesystem_test.cpp
     src/functional/pipeable_test.cpp
     src/functional/symmetric_operations_test.cpp
+    src/memory/composed_allocator_test.cpp
     src/memory/scoped_memory_test.cpp
     src/memory/static_allocator_test.cpp
     src/tuple/tuple_test.cpp

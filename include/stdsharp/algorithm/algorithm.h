@@ -9,6 +9,8 @@
     #define INVALID_ARGUMENT ::std::invalid_argument
 #endif
 
+#include "../cassert/cassert.h"
+
 #include "../functional/operations.h"
 #include "../functional/invoke.h"
 

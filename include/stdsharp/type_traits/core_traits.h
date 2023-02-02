@@ -271,9 +271,6 @@ namespace stdsharp
             return Ltr;
         }
     }
-
-    template<typename>
-    inline constexpr auto enable_tuple_element_by_get = false;
 }
 
 namespace meta::extension
@@ -281,19 +278,5 @@ namespace meta::extension
     template<invocable Fn, template<auto...> typename T, auto... V>
     struct apply<Fn, T<V...>> : lazy::invoke<Fn, ::stdsharp::constant<V>...>
     {
-    };
-}
-
-namespace std
-{
-    template<size_t I, typename Tuple>
-        requires requires //
-    {
-        requires ::stdsharp::enable_tuple_element_by_get<Tuple>;
-        type_identity<decltype(::stdsharp::cpo::get<I>(declval<Tuple>()))>{};
-    }
-    struct tuple_element<I, Tuple> // NOLINT(cert-dcl58-cpp)
-    {
-        using type = decltype(::stdsharp::cpo::get<I>(declval<Tuple>()));
     };
 }
