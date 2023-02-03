@@ -111,14 +111,18 @@ namespace stdsharp
             return state_.begin() + (it != ptr_view.end() ? it - ptr_view.begin() : 0);
         }
 
-        alignas(Align) storage_t storage_{};
+        union
+        {
+            alignas(Align) storage_t storage_{};
+        };
 
         state_t state_{};
     };
 
-    static constexpr auto sbo_size = sizeof(::std::uintmax_t);
-
     template<typename T>
-    using sbo_allocator =
-        static_allocator<T, ceil_reminder(sbo_size, sizeof(T)), alignof(::std::max_align_t)>;
+    using sbo_allocator = static_allocator<
+        T,
+        ceil_reminder(alignof(::std::max_align_t), sizeof(T)),
+        alignof(::std::max_align_t) // clang-format off
+    >; // clang-format on
 }

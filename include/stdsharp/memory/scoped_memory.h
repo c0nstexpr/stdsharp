@@ -3,26 +3,27 @@
 #include "allocator_traits.h"
 #include "pointer_traits.h"
 #include "../tuple/tuple.h"
-#include "../scope.h"
 
 namespace stdsharp::scope
 {
     namespace details
     {
-        template<
-            typename Deallocator,
-            typename Base = scoped<
-                exit_fn_policy::on_exit,
-                ref_invocable_t<Deallocator> // clang-format off
-            >
-        > // clang-format on
-        struct raii_memory : Deallocator, Base
+        template<typename Deallocator>
+
+        struct raii_memory : Deallocator
         {
             template<typename... T>
-            constexpr raii_memory(T&&... t) noexcept:
-                Deallocator(::std::forward<T>(t)...), Base(*this)
+            constexpr raii_memory(T&&... t) noexcept: Deallocator(::std::forward<T>(t)...)
             {
             }
+
+            raii_memory(const raii_memory&) = delete;
+            raii_memory& operator=(const raii_memory&) = delete;
+
+            raii_memory(raii_memory&&) noexcept = default;
+            raii_memory& operator=(raii_memory&&) noexcept = default;
+
+            ~raii_memory() noexcept { this->operator()(); }
         };
     }
 

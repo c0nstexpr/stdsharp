@@ -8,6 +8,10 @@
 
 namespace stdsharp
 {
+    using max_alignment = ::std::alignment_of<::std::max_align_t>;
+
+    inline constexpr auto max_alignment_v = max_alignment::value;
+
     namespace details
     {
         struct alloc_req_dummy_t
@@ -175,15 +179,14 @@ namespace stdsharp
 
         template<typename U, typename... Args>
             requires ::std::constructible_from<U, Args...>
-        static constexpr void construct(T& a, U* const ptr, Args&&... args) //
-            noexcept(nothrow_constructible_from<U, Args...>)
+        static constexpr void construct(T& a, U* const ptr, Args&&... args)
         {
             base::construct(a, ptr, ::std::forward<Args>(args)...);
         }
 
         template<typename U>
             requires ::std::destructible<U>
-        static constexpr void destroy(T& a, U* const ptr) noexcept
+        static constexpr void destroy(T& a, U* const ptr)
         {
             base::destroy(a, ptr);
         }
