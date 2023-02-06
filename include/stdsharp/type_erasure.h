@@ -180,31 +180,30 @@ namespace stdsharp
         template<allocator_req Allocator, typename... Func>
         class erasure
         {
-            using erased_t = common_erased_base;
-
             using alloc_traits = allocator_traits<Allocator>;
 
             template<
-                allocator_req RebindAlloc = typename alloc_traits::template rebind_alloc<erased_t>>
+                allocator_req RebindAlloc = typename alloc_traits::template rebind_alloc<soo_type>>
             struct impl
             {
-                using erasure_t = basic_erasure<erased_t, Func...>;
+                using erasure_t = basic_erasure<soo_type, Func...>;
 
                 erasure_t erasure_;
-                composed_allocator<sbo_allocator<erased_t>, RebindAlloc> allocator_;
+                composed_allocator<soo_allocator, RebindAlloc> allocator_;
 
                 struct storage
                 {
+                    using alloc_ref = decltype(allocator_)&;
+
                     ::std::uintmax_t count{};
                     typename decltype(allocator_)::alloc_ret allocated{nullptr, 2};
-                    void (*destructor)(const storage&) noexcept {};
+                    void (*destructor)(const storage&, alloc_ref) noexcept {};
+                    void (*copy_construct_to)(storage&, alloc_ref) noexcept {};
+                    void (*move_construct_to)(storage&, alloc_ref) noexcept {};
 
                     constexpr storage() = default;
 
-                    constexpr storage(
-                        const ::std::uintmax_t count,
-                        decltype(allocator_)& allocator
-                    ):
+                    constexpr storage(const ::std::uintmax_t count, alloc_ref allocator):
                         count(count), allocated(allocator.allocate(count))
                     {
                     }
@@ -214,24 +213,41 @@ namespace stdsharp
                     {
                         requires ::std::constructible_from<::std::decay_t<T>, T>; //
                     }
-                    constexpr void construct(T&& t)
+                    constexpr void construct(alloc_ref allocator, T&& t)
                     {
-                        ::std::construct_at(
+                        allocator.construct_at(
                             get_ptr<::std::decay_t<T>>(allocated.ptr),
                             ::std::forward<T>(t)
                         );
-                        destructor = [](const storage& this_) noexcept
+                        destructor = [](const storage& this_, alloc_ref allocator) //
+                            noexcept // NOLINT(*-exception-escape)
                         {
-                            this_.get<::std::decay_t<T>>->~Box(); //
+                            allocator.destroy_at(this_.get_ptr<::std::decay_t<T>>()); //
+                        };
+                        copy_construct_to = [](storage& other, alloc_ref allocator) //
+                            noexcept // NOLINT(*-exception-escape)
+                        {
+                            allocator.construct_at(
+                                other.get_ptr<::std::decay_t<T>>(),
+                                other.get<::std::decay_t<T>>()
+                            );
+                        };
+                        move_construct_to = [](storage& other, alloc_ref allocator) //
+                            noexcept // NOLINT(*-exception-escape)
+                        {
+                            allocator.construct_at(
+                                other.get_ptr<::std::decay_t<T>>(),
+                                ::std::move(other.get<::std::decay_t<T>>())
+                            );
                         };
                     }
 
-                    constexpr void destroy() noexcept
+                    constexpr void destroy(alloc_ref allocator) noexcept
                     {
-                        if(destructor != nullptr) (*destructor)(*this);
+                        if(destructor != nullptr) (*destructor)(*this, allocator);
                     }
 
-                    constexpr void deallocate(decltype(allocator_)& allocator) noexcept
+                    constexpr void deallocate(alloc_ref allocator) noexcept
                     {
                         allocator.deallocate(allocated, count);
                     }
@@ -239,7 +255,7 @@ namespace stdsharp
                     template<typename T>
                     constexpr T* get_ptr() const noexcept
                     {
-                        return static_cast<T*>(static_cast<void*>(allocated.ptr));
+                        return to_other_address<T>(allocated.ptr);
                     }
 
                     template<typename T>
@@ -254,21 +270,63 @@ namespace stdsharp
 
                 struct default_ret;
 
+                constexpr void release_storage() noexcept
+                {
+                    storage_.destroy(allocator_);
+                    storage_.deallocate(allocator_);
+                }
+
+                constexpr void move_from(impl&& other)
+                {
+                    storage_ = {other.storage_.count, allocator_};
+                    other.storage_.move_construct_to(storage_, allocator_);
+
+                    other.release_storage();
+                }
+
             public:
                 impl() = default;
 
                 template<::std::destructible T, typename... Ptr>
                 constexpr impl(T&& t, const Ptr... ptr):
                     erasure_(ptr...),
-                    storage_(ceil_reminder(sizeof(T), sizeof(erased_t)), allocator_)
+                    storage_(ceil_reminder(sizeof(T), sizeof(soo_type)), allocator_)
                 {
                     storage_.construct(::std::forward<T>(t));
                 }
 
-                impl(const impl&) = default;
                 impl(impl&&) noexcept = default;
+
+                impl& operator=(impl&& other) noexcept
+                {
+                    release_storage();
+
+                    if(storage_.allocated.index == 0)
+                    {
+                        move_from(::std::move(other));
+                        return *this;
+                    }
+
+                    if constexpr(allocator_traits<RebindAlloc>:: //
+                                 propagate_on_container_move_assignment::value)
+                    {
+                        storage_ = ::std::move(other.storage_);
+                        allocator_ = ::std::move(other.allocator_);
+                    }
+                    else
+                    {
+                        auto& second_alloc = get<1>(allocator_.allocators);
+                        auto& second_other = get<1>(other.allocator_.allocators);
+
+                        if(second_alloc != second_other) move_from(::std::move(other));
+                        else storage_ = ::std::move(other.storage_);
+                    }
+
+                    return *this;
+                }
+
+                impl(const impl&) = default;
                 impl& operator=(const impl&) = default;
-                impl& operator=(impl&&) noexcept = default;
 
                 constexpr ~erasure()
                 {
@@ -286,7 +344,7 @@ namespace stdsharp
                         ::std::same_as<Ret, default_ret>,
                         typename erasure_t::template invocable_at<J>,
                         typename erasure_t::template invocable_at<J, Ret> // clang-format off
-                    >::template with<erased_t&, Args...>; // clang-format on
+                    >::template with<soo_type&, Args...>; // clang-format on
                 };
 
                 template<

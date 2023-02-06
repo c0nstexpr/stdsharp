@@ -119,10 +119,22 @@ namespace stdsharp
         state_t state_{};
     };
 
-    template<typename T>
-    using sbo_allocator = static_allocator<
-        T,
-        ceil_reminder(alignof(::std::max_align_t), sizeof(T)),
-        alignof(::std::max_align_t) // clang-format off
-    >; // clang-format on
+    // small object optimization
+    struct alignas(::std::max_align_t) soo_type
+    {
+    private:
+        template<typename T> // TODO: make it real constexpr
+        [[nodiscard]] friend constexpr auto to_other_address(soo_type* t) noexcept
+        {
+            return static_cast<T*>(static_cast<void*>(t));
+        }
+
+        template<typename T> // TODO: make it real constexpr
+        [[nodiscard]] friend constexpr auto to_other_address(const soo_type* t) noexcept
+        {
+            return static_cast<const T*>(static_cast<const void*>(t));
+        }
+    };
+
+    using soo_allocator = static_allocator<::std::max_align_t, 1>;
 }

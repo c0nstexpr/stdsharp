@@ -84,6 +84,14 @@ namespace stdsharp
             struct construct_at
             {
                 template<typename... Args>
+                    requires requires //
+                {
+                    alloc_traits<J>::construct(
+                        ::std::declval<composed_allocator_traits::alloc<J>&>(),
+                        typename pointer_traits<J>::pointer{},
+                        ::std::declval<Args>()...
+                    );
+                }
                 constexpr void operator()(Tuple& alloc, value_type* const ptr, Args&&... args) const
                 {
                     alloc_traits<J>::construct(
@@ -103,42 +111,22 @@ namespace stdsharp
                 }
             };
 
-            template<
-                template<::std::size_t>
-                typename Fn,
-                ::std::size_t Begin = 0,
-                ::std::size_t Size = size,
-                typename... Args // clang-format off
-            > // clang-format on
-            static constexpr auto
-                recursive_invoke(Tuple& alloc, const ::std::size_t index, Args&&... args)
+            template<template<::std::size_t> typename Fn, typename... Args>
+                requires(::std::invocable<Fn<I>, Tuple&, Args...> && ...)
+            static constexpr auto invoke_by_index(
+                Tuple& alloc,
+                const ::std::size_t index,
+                Args&&... args
+            ) noexcept((noexcept(Fn<I>{}(alloc, ::std::forward<Args>(args)...)) && ...))
             {
-                if constexpr(Size == 1)
-                {
-                    if(Begin == index) Fn<Begin>{}(alloc, ::std::forward<Args>(args)...);
-                }
-                else
-                {
-                    constexpr auto half_size = Size / 2;
-                    constexpr auto mid_point = Begin + half_size - 1;
+                static constexpr ::std::array impl{
+                    +[](Tuple& alloc, const Args&&... args)
+                    {
+                        Fn<I>{}(alloc, ::std::forward<Args>(args)...); //
+                    }... //
+                };
 
-                    const auto compared = mid_point <=> index;
-
-                    if(compared == ::std::strong_ordering::equal)
-                        Fn<mid_point>{}(alloc, ::std::forward<Args>(args)...);
-                    else if(compared == ::std::strong_ordering::less)
-                        recursive_invoke<Fn, mid_point + 1, half_size>(
-                            alloc,
-                            index,
-                            ::std::forward<Args>(args)...
-                        );
-                    else if(compared == ::std::strong_ordering::greater)
-                        recursive_invoke<Fn, Begin, half_size>(
-                            alloc,
-                            index,
-                            ::std::forward<Args>(args)...
-                        );
-                }
+                impl[index](alloc, ::std::forward<Args>(args)...);
             }
 
             struct alloc_ret
@@ -245,9 +233,12 @@ namespace stdsharp
             return traits::try_allocate(allocators, count, hint);
         }
 
-        constexpr void deallocate(const alloc_ret ret, const ::std::size_t count) noexcept
+        constexpr void deallocate( // NOLINT(*-exception-escape)
+            const alloc_ret ret,
+            const ::std::size_t count
+        ) noexcept
         {
-            traits::template recursive_invoke<traits::template deallocate_at>(
+            traits::template invoke_by_index<traits::template deallocate_at>(
                 allocators,
                 ret.index,
                 ret.ptr,
@@ -257,7 +248,7 @@ namespace stdsharp
 
         constexpr void construct(const alloc_ret ret, auto&&... args)
         {
-            traits::template recursive_invoke<traits::template construct_at>(
+            traits::template invoke_by_index<traits::template construct_at>(
                 allocators,
                 ret.index,
                 ret.ptr,
@@ -267,7 +258,7 @@ namespace stdsharp
 
         constexpr void destroy(const alloc_ret ret)
         {
-            traits::template recursive_invoke<traits::template destroy_at>(
+            traits::template invoke_by_index<traits::template destroy_at>(
                 allocators,
                 ret.index,
                 ret.ptr

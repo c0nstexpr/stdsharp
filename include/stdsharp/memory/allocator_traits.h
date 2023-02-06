@@ -112,7 +112,6 @@ namespace stdsharp
 
             { t_traits.allocate(alloc, size) } -> ::std::same_as<decltype(p)>;
             { t_traits.allocate(alloc, size, const_void_p) } -> ::std::same_as<decltype(p)>;
-            // { t_traits.allocate_at_least(alloc, size) } -> ::std::same_as<::std::allocation_result<decltype(p)>>;
             noexcept(alloc.deallocate(p, size));
             { t_traits.max_size(alloc) } -> ::std::same_as<decltype(size)>;
             // clang-format on
@@ -163,7 +162,6 @@ namespace stdsharp
         template<typename U>
         using rebind_traits = typename base::template rebind_traits<U>;
 
-        using base::deallocate;
         using base::max_size;
         using base::select_on_container_copy_construction;
 
@@ -177,9 +175,19 @@ namespace stdsharp
                                      base::allocate(alloc, count, hint);
         }
 
+        static constexpr void deallocate( // NOLINT(*-exception-escape)
+            allocator_type& alloc,
+            pointer ptr,
+            const size_type count
+        ) noexcept
+        {
+            base::deallocate(alloc, ptr, count);
+        }
+
         template<typename U, typename... Args>
             requires ::std::constructible_from<U, Args...>
         static constexpr void construct(T& a, U* const ptr, Args&&... args)
+            requires requires { base::construct(a, ptr, ::std::forward<Args>(args)...); }
         {
             base::construct(a, ptr, ::std::forward<Args>(args)...);
         }
@@ -231,8 +239,57 @@ namespace stdsharp
         {
             return ::std::allocate_at_least(alloc, count);
         }
-    };
 
+        struct allocate_info
+        {
+            allocator_type& alloc;
+            pointer ptr;
+            size_type size;
+        };
+
+        template<::std::invocable<pointer, allocate_info> Move>
+        static constexpr void move_assignment(
+            allocator_type& first,
+            const allocate_info second,
+            [[maybe_unused]] Move&& individually_move
+        ) noexcept(nothrow_invocable<Move, pointer, allocate_info>)
+        {
+            pointer first_ptr = nullptr;
+
+            if constexpr(propagate_on_container_move_assignment::value)
+            {
+                first = ::std::move(second.alloc);
+                first_ptr = second.ptr;
+            }
+            else
+            {
+                if(first != second.alloc)
+                    ::std::invoke(::std::forward<Move>(individually_move), first.ptr, second);
+                else first_ptr = second.ptr;
+            }
+
+            return first_ptr;
+        }
+
+        template<::std::invocable<pointer, allocate_info> Copy>
+        static constexpr decltype(auto) copy_assignment(
+            const allocate_info first,
+            const allocate_info second,
+            Copy&& individually_copy
+        ) noexcept(nothrow_invocable<Copy, pointer, allocate_info>)
+        {
+            pointer first_ptr = nullptr;
+
+            if constexpr(propagate_on_container_copy_assignment::value)
+            {
+                if(first.alloc != second.alloc) deallocate(first.alloc, first.ptr, first.size);
+
+                first.alloc = second.alloc;
+            }
+
+            return ::std::invoke(::std::forward<Copy>(individually_copy), first.ptr, second);
+        }
+    };
 
     template<typename>
     struct allocator_of;
