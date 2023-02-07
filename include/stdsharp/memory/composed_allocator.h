@@ -1,4 +1,4 @@
-#include <compare>
+#pragma once
 
 #include "allocator_traits.h"
 #include "pointer_traits.h"
@@ -69,13 +69,13 @@ namespace stdsharp
             struct deallocate_at
             {
                 constexpr void
-                    operator()(Tuple& alloc, value_type* const ptr, const ::std::uintmax_t count)
+                    operator()(Tuple& alloc, value_type* const ptr, const ::std::uintmax_t n)
                         const noexcept
                 {
                     alloc_traits<J>::deallocate(
                         get<J>(alloc),
                         pointer_traits<J>::to_pointer(ptr),
-                        auto_cast(count)
+                        auto_cast(n)
                     );
                 }
             };
@@ -83,31 +83,25 @@ namespace stdsharp
             template<::std::size_t J>
             struct construct_at
             {
-                template<typename... Args>
+                template<typename T, typename... Args>
+                constexpr void operator()(Tuple& alloc, T* const ptr, Args&&... args) const
                     requires requires //
                 {
-                    alloc_traits<J>::construct(
-                        ::std::declval<composed_allocator_traits::alloc<J>&>(),
-                        typename pointer_traits<J>::pointer{},
-                        ::std::declval<Args>()...
-                    );
+                    alloc_traits<J>::construct(get<J>(alloc), ptr, ::std::declval<Args>()...); //
                 }
-                constexpr void operator()(Tuple& alloc, value_type* const ptr, Args&&... args) const
                 {
-                    alloc_traits<J>::construct(
-                        get<J>(alloc),
-                        pointer_traits<J>::to_pointer(ptr),
-                        ::std::forward<Args>(args)...
-                    );
+                    alloc_traits<J>::construct(get<J>(alloc), ptr, ::std::forward<Args>(args)...);
                 }
             };
 
             template<::std::size_t J>
             struct destroy_at
             {
-                constexpr void operator()(Tuple& alloc, value_type* const ptr) const
+                template<typename T>
+                constexpr void operator()(Tuple& alloc, T* const ptr) const
+                    requires requires { alloc_traits<J>::destroy(get<J>(alloc), ptr); }
                 {
-                    alloc_traits<J>::destroy(get<J>(alloc), pointer_traits<J>::to_pointer(ptr));
+                    alloc_traits<J>::destroy(get<J>(alloc), ptr);
                 }
             };
 
@@ -137,7 +131,7 @@ namespace stdsharp
 
             [[nodiscard]] static constexpr alloc_ret try_allocate(
                 ::std::same_as<Tuple> auto& allocators,
-                const ::std::uintmax_t count,
+                const ::std::uintmax_t n,
                 const void* const hint
             ) noexcept
             {
@@ -151,7 +145,7 @@ namespace stdsharp
                         to_address( //
                             alloc_traits<I>::try_allocate(
                                 get<I>(allocators),
-                                auto_cast(count),
+                                auto_cast(n),
                                 const_void_pointer_traits<I>::to_pointer(hint)
                             )
                         ),
@@ -165,7 +159,7 @@ namespace stdsharp
 
             [[nodiscard]] static constexpr alloc_ret allocate(
                 ::std::same_as<Tuple> auto& allocators,
-                const ::std::uintmax_t count,
+                const ::std::uintmax_t n,
                 const void* const hint //
             )
             {
@@ -176,7 +170,7 @@ namespace stdsharp
                 empty = ( //
                     ( //
                         alloc_index = I,
-                        [&ptr, &allocators, count, hint, &exceptions]
+                        [&ptr, &allocators, n, hint, &exceptions]
                         {
                             try
                             {
@@ -184,7 +178,7 @@ namespace stdsharp
                                     to_address( //
                                         alloc_traits<I>::allocate(
                                             get<I>(allocators),
-                                            auto_cast(count),
+                                            auto_cast(n),
                                             const_void_pointer_traits<I>::to_pointer(hint)
                                         )
                                     );
@@ -222,47 +216,62 @@ namespace stdsharp
         values allocators;
 
         [[nodiscard]] constexpr alloc_ret
-            allocate(const ::std::uintmax_t count, const void* const hint = nullptr)
+            allocate(const ::std::uintmax_t n, const void* const hint = nullptr)
         {
-            return traits::allocate(allocators, count, hint);
+            return traits::allocate(allocators, n, hint);
         }
 
         [[nodiscard]] constexpr alloc_ret
-            try_allocate(const ::std::uintmax_t count, const void* const hint = nullptr) noexcept
+            try_allocate(const ::std::uintmax_t n, const void* const hint = nullptr) noexcept
         {
-            return traits::try_allocate(allocators, count, hint);
+            return traits::try_allocate(allocators, n, hint);
         }
 
         constexpr void deallocate( // NOLINT(*-exception-escape)
             const alloc_ret ret,
-            const ::std::size_t count
+            const ::std::size_t n
         ) noexcept
         {
             traits::template invoke_by_index<traits::template deallocate_at>(
                 allocators,
                 ret.index,
                 ret.ptr,
-                count
+                n
             );
         }
 
-        constexpr void construct(const alloc_ret ret, auto&&... args)
+        template<typename T, typename... Args>
+        constexpr void construct(const ::std::size_t index, T* const ptr, Args&&... args)
+            requires requires //
         {
             traits::template invoke_by_index<traits::template construct_at>(
                 allocators,
-                ret.index,
-                ret.ptr,
-                ::std::forward<decltype(args)>(args)...
+                ptr,
+                index,
+                ::std::declval<Args>()...
+            );
+        }
+        {
+            traits::template invoke_by_index<traits::template construct_at>(
+                allocators,
+                ptr,
+                index,
+                ::std::forward<Args>(args)...
             );
         }
 
-        constexpr void destroy(const alloc_ret ret)
+        template<typename T>
+        constexpr void destroy(const ::std::size_t index, T* const ptr)
+            requires requires //
         {
             traits::template invoke_by_index<traits::template destroy_at>(
                 allocators,
-                ret.index,
-                ret.ptr
-            );
+                index,
+                ptr
+            ); //
+        }
+        {
+            traits::template invoke_by_index<traits::template destroy_at>(allocators, index, ptr);
         }
     };
 }

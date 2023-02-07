@@ -121,7 +121,18 @@ namespace stdsharp
             template<typename... U>
             using rebind = Template<U...>;
         };
+
+        template<typename T>
+        constexpr ::std::string_view get_type_id() noexcept
+        {
+            static constexpr decltype(auto) sig = __func__;
+
+            return {sig, ::std::size(sig) - 1};
+        }
     }
+
+    template<typename T>
+    inline constexpr auto type_id = get_type_id<T>();
 
     namespace cpo
     {

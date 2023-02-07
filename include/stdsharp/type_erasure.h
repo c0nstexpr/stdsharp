@@ -3,6 +3,7 @@
 #include "cassert/cassert.h"
 #include "memory/composed_allocator.h"
 #include "memory/static_allocator.h"
+#include "stdsharp/type_traits/type_sequence.h"
 #include "type_traits/member.h"
 
 namespace stdsharp
@@ -189,22 +190,23 @@ namespace stdsharp
                 using erasure_t = basic_erasure<soo_type, Func...>;
 
                 erasure_t erasure_;
-                composed_allocator<soo_allocator, RebindAlloc> allocator_;
 
                 struct storage
                 {
-                    using alloc_ref = decltype(allocator_)&;
+                private:
+                    using composed_alloc = composed_allocator<soo_allocator, RebindAlloc>;
 
-                    ::std::uintmax_t count{};
-                    typename decltype(allocator_)::alloc_ret allocated{nullptr, 2};
-                    void (*destructor)(const storage&, alloc_ref) noexcept {};
-                    void (*copy_construct_to)(storage&, alloc_ref) noexcept {};
-                    void (*move_construct_to)(storage&, alloc_ref) noexcept {};
+                    composed_alloc allocator_;
+                    ::std::uintmax_t size{};
+                    typename composed_alloc::alloc_ret allocated_{nullptr, 2};
 
+                    void (*construct_to)(storage&){};
+
+                public:
                     constexpr storage() = default;
 
-                    constexpr storage(const ::std::uintmax_t count, alloc_ref allocator):
-                        count(count), allocated(allocator.allocate(count))
+                    constexpr storage(Allocator allocator):
+                        allocator_{.allocators = {soo_allocator{}, allocator}}
                     {
                     }
 
@@ -213,55 +215,17 @@ namespace stdsharp
                     {
                         requires ::std::constructible_from<::std::decay_t<T>, T>; //
                     }
-                    constexpr void construct(alloc_ref allocator, T&& t)
+                    constexpr void construct(T&& t)
                     {
-                        allocator.construct_at(
-                            get_ptr<::std::decay_t<T>>(allocated.ptr),
+                        constexpr auto n =
+                            ceil_reminder(sizeof(::std::decay_t<T>), sizeof(soo_type));
+                        size = n;
+                        allocated_ = allocator_.allocate(n);
+
+                        allocator_.construct_at(
+                            get_ptr<::std::decay_t<T>>(allocated_.ptr),
                             ::std::forward<T>(t)
                         );
-                        destructor = [](const storage& this_, alloc_ref allocator) //
-                            noexcept // NOLINT(*-exception-escape)
-                        {
-                            allocator.destroy_at(this_.get_ptr<::std::decay_t<T>>()); //
-                        };
-                        copy_construct_to = [](storage& other, alloc_ref allocator) //
-                            noexcept // NOLINT(*-exception-escape)
-                        {
-                            allocator.construct_at(
-                                other.get_ptr<::std::decay_t<T>>(),
-                                other.get<::std::decay_t<T>>()
-                            );
-                        };
-                        move_construct_to = [](storage& other, alloc_ref allocator) //
-                            noexcept // NOLINT(*-exception-escape)
-                        {
-                            allocator.construct_at(
-                                other.get_ptr<::std::decay_t<T>>(),
-                                ::std::move(other.get<::std::decay_t<T>>())
-                            );
-                        };
-                    }
-
-                    constexpr void destroy(alloc_ref allocator) noexcept
-                    {
-                        if(destructor != nullptr) (*destructor)(*this, allocator);
-                    }
-
-                    constexpr void deallocate(alloc_ref allocator) noexcept
-                    {
-                        allocator.deallocate(allocated, count);
-                    }
-
-                    template<typename T>
-                    constexpr T* get_ptr() const noexcept
-                    {
-                        return to_other_address<T>(allocated.ptr);
-                    }
-
-                    template<typename T>
-                    constexpr T& get() const noexcept
-                    {
-                        return *get_ptr<T>();
                     }
                 } storage_;
 
@@ -274,14 +238,6 @@ namespace stdsharp
                 {
                     storage_.destroy(allocator_);
                     storage_.deallocate(allocator_);
-                }
-
-                constexpr void move_from(impl&& other)
-                {
-                    storage_ = {other.storage_.count, allocator_};
-                    other.storage_.move_construct_to(storage_, allocator_);
-
-                    other.release_storage();
                 }
 
             public:
@@ -301,10 +257,22 @@ namespace stdsharp
                 {
                     release_storage();
 
-                    if(storage_.allocated.index == 0)
+                    constexpr auto move_from = [&other](auto& alloc, const auto info) //
                     {
-                        move_from(::std::move(other));
-                        return *this;
+                        alloc.construct_at(
+                            get_ptr<::std::decay_t<T>>(alloc.allocate(info.size)),
+                            ::std::move()
+                        );
+                    };
+
+                    if(storage_.allocated_.index == 0)
+                    {
+                        allocator_traits<soo_allocator>::move_assignment(
+                            get_sbo(),
+                            other.get_sbo(),
+                            {other.storage_.allocated_.ptr, other.storage_.size},
+                            move_from
+                        );
                     }
 
                     if constexpr(allocator_traits<RebindAlloc>:: //
@@ -330,7 +298,7 @@ namespace stdsharp
 
                 constexpr ~erasure()
                 {
-                    if(storage_.count == 0) return;
+                    if(storage_.size == 0) return;
 
                     storage_.destroy();
                     storage_.deallocate(allocator_);

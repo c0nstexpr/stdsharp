@@ -5,7 +5,6 @@
 #include <ranges>
 
 #include "../utility/auto_cast.h"
-#include "../cmath/cmath.h"
 
 namespace stdsharp
 {
@@ -81,6 +80,11 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto max_size() const noexcept { return storage_.size() - used(); }
 
+        [[nodiscard]] constexpr auto contains(const T* const ptr) noexcept
+        {
+            return map_state(ptr) != state_.cend();
+        }
+
     private:
         [[nodiscard]] constexpr auto map_storage(const typename state_t::const_iterator it) noexcept
         {
@@ -118,23 +122,4 @@ namespace stdsharp
 
         state_t state_{};
     };
-
-    // small object optimization
-    struct alignas(::std::max_align_t) soo_type
-    {
-    private:
-        template<typename T> // TODO: make it real constexpr
-        [[nodiscard]] friend constexpr auto to_other_address(soo_type* t) noexcept
-        {
-            return static_cast<T*>(static_cast<void*>(t));
-        }
-
-        template<typename T> // TODO: make it real constexpr
-        [[nodiscard]] friend constexpr auto to_other_address(const soo_type* t) noexcept
-        {
-            return static_cast<const T*>(static_cast<const void*>(t));
-        }
-    };
-
-    using soo_allocator = static_allocator<::std::max_align_t, 1>;
 }

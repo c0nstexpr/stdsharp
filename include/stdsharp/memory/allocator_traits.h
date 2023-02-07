@@ -239,56 +239,6 @@ namespace stdsharp
         {
             return ::std::allocate_at_least(alloc, count);
         }
-
-        struct allocate_info
-        {
-            allocator_type& alloc;
-            pointer ptr;
-            size_type size;
-        };
-
-        template<::std::invocable<pointer, allocate_info> Move>
-        static constexpr void move_assignment(
-            allocator_type& first,
-            const allocate_info second,
-            [[maybe_unused]] Move&& individually_move
-        ) noexcept(nothrow_invocable<Move, pointer, allocate_info>)
-        {
-            pointer first_ptr = nullptr;
-
-            if constexpr(propagate_on_container_move_assignment::value)
-            {
-                first = ::std::move(second.alloc);
-                first_ptr = second.ptr;
-            }
-            else
-            {
-                if(first != second.alloc)
-                    ::std::invoke(::std::forward<Move>(individually_move), first.ptr, second);
-                else first_ptr = second.ptr;
-            }
-
-            return first_ptr;
-        }
-
-        template<::std::invocable<pointer, allocate_info> Copy>
-        static constexpr decltype(auto) copy_assignment(
-            const allocate_info first,
-            const allocate_info second,
-            Copy&& individually_copy
-        ) noexcept(nothrow_invocable<Copy, pointer, allocate_info>)
-        {
-            pointer first_ptr = nullptr;
-
-            if constexpr(propagate_on_container_copy_assignment::value)
-            {
-                if(first.alloc != second.alloc) deallocate(first.alloc, first.ptr, first.size);
-
-                first.alloc = second.alloc;
-            }
-
-            return ::std::invoke(::std::forward<Copy>(individually_copy), first.ptr, second);
-        }
     };
 
     template<typename>
