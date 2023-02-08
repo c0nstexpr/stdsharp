@@ -48,7 +48,7 @@ namespace stdsharp::scope
             {
             }
 
-            constexpr void operator()() const noexcept // NOLINT(*-exception-escape)
+            constexpr void operator()() const noexcept
             {
                 alloc_traits::deallocate(
                     alloc_,

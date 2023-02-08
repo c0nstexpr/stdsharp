@@ -175,26 +175,22 @@ namespace stdsharp
                                      base::allocate(alloc, count, hint);
         }
 
-        static constexpr void deallocate( // NOLINT(*-exception-escape)
-            allocator_type& alloc,
-            pointer ptr,
-            const size_type count
-        ) noexcept
+        static constexpr void
+            deallocate(allocator_type& alloc, pointer ptr, const size_type count) noexcept
         {
             base::deallocate(alloc, ptr, count);
         }
 
         template<typename U, typename... Args>
             requires ::std::constructible_from<U, Args...>
-        static constexpr void construct(T& a, U* const ptr, Args&&... args)
-            requires requires { base::construct(a, ptr, ::std::forward<Args>(args)...); }
+        static constexpr void construct(T& a, U* const ptr, Args&&... args) //
+            noexcept(nothrow_constructible_from<U, Args...>)
         {
             base::construct(a, ptr, ::std::forward<Args>(args)...);
         }
 
-        template<typename U>
-            requires ::std::destructible<U>
-        static constexpr void destroy(T& a, U* const ptr)
+        template<::std::destructible U>
+        static constexpr void destroy(T& a, U* const ptr) noexcept
         {
             base::destroy(a, ptr);
         }

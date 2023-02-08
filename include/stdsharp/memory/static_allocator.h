@@ -36,6 +36,17 @@ namespace stdsharp
 
         [[nodiscard]] constexpr T* allocate(const ::std::size_t count, const void* hint)
         {
+            const auto ptr = try_allocate(count, hint);
+            return ptr == nullptr ? throw ::std::bad_alloc{} : ptr;
+        }
+
+        [[nodiscard]] constexpr T* try_allocate(const ::std::size_t count)
+        {
+            return try_allocate(count, storage_.data());
+        }
+
+        [[nodiscard]] constexpr T* try_allocate(const ::std::size_t count, const void* hint)
+        {
             if(count == 0) return nullptr;
 
             const auto hint_begin = map_state(hint);
@@ -53,7 +64,7 @@ namespace stdsharp
                     false
                 ).begin(); // clang-format on
 
-                if(it == hint_begin) throw ::std::bad_alloc{};
+                if(it == hint_begin) return nullptr;
             }
 
             ::std::ranges::fill_n(it, count_v, true);

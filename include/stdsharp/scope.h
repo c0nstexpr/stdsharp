@@ -24,10 +24,7 @@ namespace stdsharp::scope
         using wrapper = value_wrapper<Fn>;
         using wrapper::value;
 
-        constexpr void execute() noexcept // NOLINT(*-exception-escape)
-        {
-            ::std::invoke(::std::move(value));
-        };
+        constexpr void execute() noexcept { ::std::invoke(::std::move(value)); };
 
     public:
         using exit_fn_t = Fn;
@@ -35,7 +32,7 @@ namespace stdsharp::scope
 
         static constexpr auto policy = Policy;
 
-        constexpr ~scoped() // NOLINT(*-exception-escape)
+        constexpr ~scoped()
         {
             if constexpr(policy == exit_fn_policy::on_exit) execute();
             else if(::std::uncaught_exceptions() == 0)
