@@ -156,6 +156,12 @@ namespace stdsharp
         using typename base::propagate_on_container_swap;
         using typename base::is_always_equal;
 
+        struct allocated
+        {
+            pointer ptr{};
+            size_type size{};
+        };
+
         template<typename U>
         using rebind_alloc = typename base::template rebind_alloc<U>;
 
