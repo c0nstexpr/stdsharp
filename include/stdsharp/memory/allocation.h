@@ -4,7 +4,6 @@
 
 #include "allocator_traits.h"
 #include "../ranges/ranges.h"
-#include "../cassert/cassert.h"
 
 namespace stdsharp
 {
@@ -135,9 +134,6 @@ namespace stdsharp
 
         constexpr void allocate(const const_iterator_t<Range> it, const size_type size)
         {
-            if constexpr(is_debug)
-                if(it <=) {}
-
             if(size <= it->size) return;
 
             if(it->ptr != nullptr) traits::deallocate(alloc_, it->ptr, it->size);
