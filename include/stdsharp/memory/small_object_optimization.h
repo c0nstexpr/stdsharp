@@ -1,6 +1,6 @@
 #pragma once
 
-#include "composed_allocator.h"
+#include "allocation.h"
 #include "static_allocator.h"
 #include "../cmath/cmath.h"
 
@@ -27,28 +27,39 @@ namespace stdsharp
         class small_object
         {
             using static_alloc = static_allocator<soo_storage, 1>;
+            using alloc_traits = allocator_traits<static_alloc>;
+
+            using static_allocation =
+                allocation<static_alloc, ::std::array<typename alloc_traits::allocated, 1>>;
 
             constexpr void allocate(::std::uintmax_t size)
             {
-                size_ = size;
-                allocated_ = alloc_.allocate(size_);
+                allocation_.allocate(allocation_.rng().begin(), size);
             }
 
             constexpr void deallocate() noexcept
             {
-                alloc_.deallocate(allocated_, size_);
-                allocated_ = nullptr;
-                size_ = 0;
+                allocation_.deallocate(allocation_.rng().begin());
             }
 
-            template<typename T>
-            constexpr T* get_ptr() const noexcept
+            [[nodiscard]] constexpr auto get_raw_ptr() const noexcept
             {
-                return to_other_address<T>(allocated_);
+                return allocation_.rng().begin()->ptr;
             }
 
             template<typename T>
-            constexpr T& get() const noexcept
+            [[nodiscard]] constexpr T* get_ptr() const noexcept
+            {
+                return to_other_address<T>(get_raw_ptr());
+            }
+
+            [[nodiscard]] constexpr auto get_size() const noexcept
+            {
+                return allocation_.rng().begin()->size;
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr T& get() const noexcept
             {
                 return *get_ptr<T>();
             }
@@ -56,11 +67,11 @@ namespace stdsharp
             struct traits_base
             {
                 ::std::string_view curent_type{};
-                void (*destroy)(small_object&) noexcept = nullptr;
-                void (*move_construct)(small_object&, small_object&&) = nullptr;
-                void (*copy_construct)(small_object&, const small_object&) = nullptr;
-                void (*move_assign)(small_object&, small_object&&) = nullptr;
-                void (*copy_assign)(small_object&, const small_object&) = nullptr;
+                void (*destroy)(soo_storage*) noexcept = nullptr;
+                void (*move_construct)(soo_storage*, soo_storage*) = nullptr;
+                void (*copy_construct)(soo_storage*, const soo_storage*) = nullptr;
+                void (*move_assign)(soo_storage*, soo_storage*) = nullptr;
+                void (*copy_assign)(soo_storage*, soo_storage*) = nullptr;
             };
 
             template<typename T>
@@ -103,10 +114,10 @@ namespace stdsharp
                 {
                     constexpr auto n = ceil_reminder(sizeof(T), sizeof(soo_storage));
 
-                    if(size_ < n) allocate(n);
+                    if(get_size() < n) allocate(n);
                 }
 
-                ::std::construct_at(get_ptr<T>(), ::std::forward<Args>(args)...);
+                ::new(get_raw_ptr()) T(::std::forward<Args>(args)...);
 
                 set_traits<T>();
             }
@@ -116,7 +127,7 @@ namespace stdsharp
                 noexcept(sizeof(T) <= static_alloc::size && nothrow_constructible_from<T, Args...>)
             {
                 allocate(ceil_reminder(sizeof(T), sizeof(soo_storage)));
-                ::std::construct_at(get_ptr<T>(), ::std::forward<Args>(args)...);
+                ::new(get_raw_ptr()) T(::std::forward<Args>(args)...);
                 set_traits<T>();
             }
 
@@ -132,7 +143,7 @@ namespace stdsharp
                 overwrite<T>(::std::forward<Args>(args)...);
             }
 
-            constexpr void destroy() noexcept { (*(traits_->destroy))(*this); }
+            constexpr void destroy() noexcept { (*(traits_->destroy))(get_raw_ptr()); }
 
             template<typename T>
             struct traits : traits_base
@@ -149,34 +160,42 @@ namespace stdsharp
                 {
                 }
 
-                static constexpr void destroy_impl(small_object& this_)
+                [[nodiscard]] static constexpr T& get(soo_storage* p) noexcept
                 {
-                    if(!this_.has_value()) return;
-
-                    ::std::destroy_at(this_.get_ptr<T>());
-                    this_.traits_ = nullptr;
+                    return to_other_address<T>(p);
                 }
 
-                static constexpr void move_construct_impl(small_object& this_, small_object& other)
+                [[nodiscard]] static constexpr const T& get(const soo_storage* p) noexcept
                 {
-                    this_.construct_from<T>(::std::move(other.get<T>()));
+                    return to_other_address<T>(p);
                 }
 
-                static constexpr void copy_construct_impl(small_object& this_, small_object& other)
+                static constexpr void destroy_impl(soo_storage* p) noexcept
                 {
-                    this_.construct_from<T>(other.get<T>());
+                    if(p == nullptr) return;
+
+                    ::std::destroy_at(get(p));
                 }
 
-                static constexpr void move_assign_impl(small_object& this_, small_object& other)
+                static constexpr void move_construct_impl(soo_storage* this_, soo_storage* other)
                 {
-                    if(!other.has_value()) return;
-                    this_.emplace(::std::move(other.get<T>()));
+                    ::new(this_) T(::std::move(get(other)));
                 }
 
-                static constexpr void copy_assign_impl(small_object& this_, small_object& other)
+                static constexpr void
+                    copy_construct_impl(soo_storage* this_, const soo_storage* other)
                 {
-                    if(!other.has_value()) return;
-                    this_.emplace(other.get<T>());
+                    ::new(this_) T(get(other));
+                }
+
+                static constexpr void move_assign_impl(soo_storage* this_, soo_storage* other)
+                {
+                    get(this_) = ::std::move(get(other));
+                }
+
+                static constexpr void copy_assign_impl(soo_storage* this_, soo_storage* other)
+                {
+                    get(this_) = get(other);
                 }
             };
 
@@ -193,12 +212,12 @@ namespace stdsharp
 
             template<typename... T>
             constexpr small_object(T&&... t):
-                alloc_{.allocators = {static_alloc{}, ::std::forward<T>(t)...}}
+                allocation_{.allocators = {static_alloc{}, ::std::forward<T>(t)...}}
             {
             }
 
             constexpr small_object(const small_object& other):
-                alloc_{// clang-format off
+                allocation_{// clang-format off
                     .allocators = {
                         other.get_sbo(),
                         fallback_traits::
@@ -212,7 +231,8 @@ namespace stdsharp
 
             constexpr small_object(small_object&& other) //
                 noexcept(noexcept((*(other.traits_->move_construct))(other, *this))):
-                alloc_{.allocators = {other.get_sbo(), ::std::move(other.get_fallback_alloc())}},
+                allocation_{
+                    .allocators = {other.get_sbo(), ::std::move(other.get_fallback_alloc())}},
                 traits_(other.traits_)
             {
                 if(other.has_value()) (*(other.traits_->move_construct))(other, *this);
@@ -253,9 +273,7 @@ namespace stdsharp
             template<typename T>
             static constexpr traits<T> traits_v{};
 
-            static_alloc alloc_;
-            soo_storage* allocated_{};
-            ::std::uintmax_t size_{};
+            static_allocation allocation_;
 
             const traits_base* traits_{};
         };
