@@ -12,7 +12,6 @@
 #include "../cassert/cassert.h"
 
 #include "../functional/operations.h"
-#include "../functional/invoke.h"
 
 namespace stdsharp
 {
@@ -22,7 +21,7 @@ namespace stdsharp
         noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
         -> T& // clang-format on
     {
-        if(invoke_r<bool>(::std::move(comp), right, left)) left = ::std::forward<U>(right);
+        if(::std::invoke(::std::move(comp), right, left)) left = ::std::forward<U>(right);
         return left;
     };
 
@@ -77,12 +76,12 @@ namespace stdsharp
             const auto& proj_min = ::std::invoke(proj, min);
             const auto& proj_t = ::std::invoke(proj, t);
 
-            debug_throw<INVALID_ARGUMENT>(
-                [&] { return invoke_r<bool>(cmp, proj_max, proj_min); },
+            precondition<INVALID_ARGUMENT>(
+                [&] { return !::std::invoke(cmp, proj_max, proj_min); },
                 "max value should not less than min value"
             );
 
-            return !invoke_r<bool>(cmp, proj_t, proj_min) && !invoke_r<bool>(cmp, proj_max, proj_t);
+            return !::std::invoke(cmp, proj_t, proj_min) && !::std::invoke(cmp, proj_max, proj_t);
         }
     } is_between{};
 }
