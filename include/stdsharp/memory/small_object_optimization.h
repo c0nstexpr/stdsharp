@@ -545,5 +545,5 @@ namespace stdsharp
     //     const traits_base* traits_;
     // };
 
-    using small_object = details::small_object;
+    using small_object = details::object_allocation;
 }

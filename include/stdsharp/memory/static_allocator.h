@@ -8,7 +8,7 @@
 
 namespace stdsharp
 {
-    template<typename T, ::std::size_t Size, ::std::size_t Align = alignof(T)>
+    template<nothrow_movable T, ::std::size_t Size, ::std::size_t Align = alignof(T)>
     class static_allocator
     {
     public:
@@ -26,6 +26,28 @@ namespace stdsharp
         {
             using other = static_allocator<U, Size>;
         };
+
+        static_allocator() = default;
+
+        constexpr static_allocator(const static_allocator&) noexcept {}
+
+        static_allocator(static_allocator&&) noexcept = default;
+
+        constexpr static_allocator& operator=(const static_allocator&) noexcept
+        {
+            state_.fill(false);
+            return *this;
+        }
+
+        constexpr static_allocator& operator=(static_allocator&&) noexcept
+        {
+            state_.fill(false);
+            return *this;
+        }
+
+        constexpr void swap(static_allocator&) noexcept { state_.fill(false); }
+
+        ~static_allocator() = default;
 
         static constexpr auto size = Size;
 
@@ -94,6 +116,11 @@ namespace stdsharp
         [[nodiscard]] constexpr auto contains(const T* const ptr) noexcept
         {
             return map_state(ptr) != state_.cend();
+        }
+
+        constexpr bool operator==(const static_allocator& other) const noexcept
+        {
+            return this == &other;
         }
 
     private:

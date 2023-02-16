@@ -123,16 +123,16 @@ namespace stdsharp
         };
 
         template<typename T>
-        constexpr ::std::string_view get_type_id() noexcept
+        struct get_type_id
         {
-            static constexpr decltype(auto) sig = __func__;
+            static constexpr auto impl() noexcept { return ::std::to_array(__func__); }
 
-            return {sig, ::std::size(sig) - 1};
-        }
+            static constexpr auto name = impl();
+        };
     }
 
     template<typename T>
-    inline constexpr auto type_id = get_type_id<T>();
+    inline constexpr ::std::string_view type_id = details::get_type_id<T>::name;
 
     namespace cpo
     {
