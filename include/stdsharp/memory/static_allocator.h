@@ -1,163 +1,63 @@
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <ranges>
-
-#include "../utility/auto_cast.h"
+#include "static_memory_resource.h"
 
 namespace stdsharp
 {
-    template<nothrow_movable T, ::std::size_t Size, ::std::size_t Align = alignof(T)>
+    template<typename T, ::std::size_t ByteSize>
     class static_allocator
     {
     public:
         using value_type = T;
-
-        using state_t = ::std::array<bool, Size>;
-        using storage_t = ::std::array<T, Size>;
-
-        using propagate_on_container_copy_assignment = ::std::true_type;
         using propagate_on_container_move_assignment = ::std::true_type;
+        using propagate_on_container_copy_assignment = ::std::true_type;
         using propagate_on_container_swap = ::std::true_type;
+
+        static constexpr auto size = ByteSize;
+
+        using resource_type = static_memory_resource<size>;
+
+        constexpr explicit static_allocator(resource_type& src) noexcept: src_(src) {}
 
         template<typename U>
         struct rebind
         {
-            using other = static_allocator<U, Size>;
+            using other = static_allocator<U, ByteSize>;
         };
 
-        static_allocator() = default;
-
-        constexpr static_allocator(const static_allocator&) noexcept {}
-
-        static_allocator(static_allocator&&) noexcept = default;
-
-        constexpr static_allocator& operator=(const static_allocator&) noexcept
+        template<typename U>
+        constexpr static_allocator(const typename rebind<U>::other other) noexcept:
+            static_allocator(other.resource())
         {
-            state_.fill(false);
-            return *this;
         }
 
-        constexpr static_allocator& operator=(static_allocator&&) noexcept
+        [[nodiscard]] constexpr T* allocate(const ::std::size_t required_size)
         {
-            state_.fill(false);
-            return *this;
+            return point_as<T>(resource().allocate(required_size * sizeof(T)));
         }
 
-        constexpr void swap(static_allocator&) noexcept { state_.fill(false); }
-
-        ~static_allocator() = default;
-
-        static constexpr auto size = Size;
-
-        [[nodiscard]] constexpr T* allocate(const ::std::size_t count)
+        [[nodiscard]] constexpr T* try_allocate(const ::std::size_t required_size)
         {
-            return allocate(count, storage_.data());
+            return resource().try_allocate(required_size * sizeof(T));
         }
 
-        [[nodiscard]] constexpr T* allocate(const ::std::size_t count, const void* hint)
-        {
-            const auto ptr = try_allocate(count, hint);
-            return ptr == nullptr ? throw ::std::bad_alloc{} : ptr;
-        }
-
-        [[nodiscard]] constexpr T* try_allocate(const ::std::size_t count)
-        {
-            return try_allocate(count, storage_.data());
-        }
-
-        [[nodiscard]] constexpr T* try_allocate(const ::std::size_t count, const void* hint)
-        {
-            if(count == 0) return nullptr;
-
-            const auto hint_begin = map_state(hint);
-
-            const ::std::iter_difference_t<typename state_t::iterator> count_v = auto_cast(count);
-
-            auto it = ::std::ranges::search_n(hint_begin, state_.cend(), count_v, false).begin();
-
-            if(it == state_.cend())
-            {
-                it = ::std::ranges::search_n( // clang-format off
-                    state_.begin(),
-                    hint_begin,
-                    count_v,
-                    false
-                ).begin(); // clang-format on
-
-                if(it == hint_begin) return nullptr;
-            }
-
-            ::std::ranges::fill_n(it, count_v, true);
-
-            return &*map_storage(it);
-        }
-
-        constexpr void deallocate(T* ptr, const ::std::size_t count) noexcept
+        constexpr void deallocate(T* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
-            ::std::ranges::fill_n(map_state(ptr), auto_cast(count), false);
+            resource().deallocate(ptr, required_size * sizeof(T));
         }
 
-        [[nodiscard]] constexpr bool operator==(const auto&) const noexcept { return false; }
+        [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }
 
-        [[nodiscard]] constexpr const auto& state() const noexcept { return state_; }
-
-        [[nodiscard]] constexpr const auto& storage() const noexcept { return storage_; }
-
-        [[nodiscard]] constexpr auto used() const noexcept
+        [[nodiscard]] constexpr bool operator==(const static_allocator other) const noexcept
         {
-            return ::std::ranges::count(state_, true);
-        }
-
-        [[nodiscard]] constexpr auto max_size() const noexcept { return storage_.size() - used(); }
-
-        [[nodiscard]] constexpr auto contains(const T* const ptr) noexcept
-        {
-            return map_state(ptr) != state_.cend();
-        }
-
-        constexpr bool operator==(const static_allocator& other) const noexcept
-        {
-            return this == &other;
+            return resource() == other.resource();
         }
 
     private:
-        [[nodiscard]] constexpr auto map_storage(const typename state_t::const_iterator it) noexcept
-        {
-            return storage_.begin() + (it - state_.cbegin());
-        }
-
-        [[nodiscard]] constexpr auto map_state(const void* ptr)
-        {
-            return ::std::is_constant_evaluated() ? constexpr_map_state_impl(ptr) :
-                                                    map_state_impl(ptr);
-        }
-
-        [[nodiscard]] auto map_state_impl(const void* void_ptr)
-        {
-            const T* first = storage_.data();
-            const T* ptr = auto_cast(void_ptr);
-
-            return state_.begin() + // NOLINTNEXTLINE(*-pointer-arithmetic)
-                (ptr >= first && ptr <= first + storage_.size() ? ptr - first : 0);
-        }
-
-        [[nodiscard]] constexpr auto constexpr_map_state_impl(const void* ptr)
-        {
-            const auto data = storage_.data(); // NOLINTNEXTLINE(*-pointer-arithmetic)
-            const auto ptr_view = ::std::views::iota(data, data + storage_.size());
-            const auto it = ::std::ranges::find(ptr_view, ptr);
-
-            return state_.begin() + (it != ptr_view.end() ? it - ptr_view.begin() : 0);
-        }
-
-        union
-        {
-            alignas(Align) storage_t storage_{};
-        };
-
-        state_t state_{};
+        ::std::reference_wrapper<resource_type> src_;
     };
+
+    template<typename T, ::std::size_t Size>
+    using static_allocator_for = static_allocator<T, Size * sizeof(T)>;
 }

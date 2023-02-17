@@ -190,22 +190,6 @@ namespace stdsharp
 
     namespace details
     {
-        struct alignas(::std::max_align_t) generic_storage
-        {
-        private:
-            template<typename T> // TODO: make it real constexpr
-            [[nodiscard]] friend constexpr auto to_other_address(const pointer& t) noexcept
-            {
-                return static_cast<T*>(static_cast<void*>(t));
-            }
-
-            template<typename T> // TODO: make it real constexpr
-            [[nodiscard]] friend constexpr auto to_other_address(const const pointer& t) noexcept
-            {
-                return static_cast<const T*>(static_cast<const void*>(t));
-            }
-        };
-
         template<
             typename Alloc,
             typename AllocTraits = allocator_traits<Alloc>,

@@ -9,12 +9,10 @@ namespace stdsharp
     struct unique_object
     {
         unique_object() = default;
+        unique_object(unique_object&&) = default;
+        unique_object& operator=(unique_object&&) = default;
         unique_object(const unique_object&) = delete;
-        constexpr unique_object(unique_object&&) noexcept {};
         unique_object& operator=(const unique_object&) = delete;
-
-        constexpr unique_object& operator=(unique_object&&) noexcept { return *this; };
-
         ~unique_object() = default;
     };
 
