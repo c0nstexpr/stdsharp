@@ -50,7 +50,7 @@ namespace stdsharp
         constexpr allocation& operator=(const allocation& other) noexcept( //
             noexcept(
                 to_derived().before_copy_assign(other.to_derived()),
-                to_derived().copy_assign(other.to_derived())
+                to_derived().after_copy_assign(other.to_derived())
             )
         )
             requires traits::propagate_on_container_copy_assignment::value
@@ -60,7 +60,7 @@ namespace stdsharp
 
             to_derived().before_copy_assign(other.to_derived());
             alloc_ = other.alloc_;
-            to_derived().copy_assign(other.to_derived());
+            to_derived().after_copy_assign(other.to_derived());
 
             return *this;
         }
