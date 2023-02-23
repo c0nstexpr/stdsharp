@@ -12,19 +12,19 @@ namespace stdsharp
     {
         template<
             typename Alloc,
-            typename AllocTraits = allocator_traits<Alloc>,
-            typename Allocated = typename AllocTraits::allocated>
-        class object_allocation : allocation<Alloc, object_allocation<Alloc>>
+            typename Derived,
+            typename Base = allocation<Alloc, Derived>,
+            typename AllocTraits = allocator_traits<Alloc>>
+        struct base_object_allocation : private Base
         {
-            friend class allocation<Alloc, object_allocation<Alloc>>;
+            constexpr auto get_allocator() const noexcept { return Base::get_allocator(); }
 
-            using m_base = allocation<Alloc, object_allocation>;
+        private:
+            friend Base;
 
             using pointer = typename AllocTraits::pointer;
             using const_pointer = typename AllocTraits::const_pointer;
             using size_type = typename AllocTraits::size_type;
-
-            [[nodiscard]] constexpr auto& get_raw_ptr() const noexcept { return allocated_.ptr; }
 
             struct traits_base
             {
@@ -75,6 +75,18 @@ namespace stdsharp
             template<::std::movable T>
             struct traits<T> : movable_traits<T>
             {
+                constexpr traits() noexcept:
+                    movable_traits<T>{
+                        type_id<T>,
+                        sizeof(T),
+                        &movable_traits<T>::destroy_impl,
+                        &movable_traits<T>::move_construct_impl,
+                        nullptr,
+                        &movable_traits<T>::move_assign_impl,
+                        nullptr //
+                    }
+                {
+                }
             };
 
             template<::std::copyable T>
@@ -108,6 +120,8 @@ namespace stdsharp
             template<typename T>
             static constexpr traits<T> traits_v{};
 
+            [[nodiscard]] constexpr auto& get_raw_ptr() const noexcept { return allocated_.ptr; }
+
             constexpr void destroy() const noexcept
             {
                 if(traits_ != nullptr)
@@ -140,20 +154,20 @@ namespace stdsharp
                 else allocated_ = {AllocTraits::allocate(this->get_allocator(), size), size};
             }
 
-            constexpr void before_move_assign(object_allocation&& other) noexcept
+            constexpr void before_move_assign(base_object_allocation&& other) noexcept
             {
-                if(this->get_allocator() != other.get_allocator()) reset();
+                if(Base::get_allocator() != other.get_allocator()) reset();
             }
 
-            constexpr void after_move_assign(object_allocation&& other) noexcept
+            constexpr void after_move_assign(base_object_allocation&& other) noexcept
             {
-                if(has_value()) reset();
+                if(this->has_value()) this->reset();
 
                 allocated_ = other.allocated_;
                 traits_ = other.traits_;
             }
 
-            constexpr void move_assign(object_allocation&& other)
+            constexpr void move_assign(base_object_allocation&& other)
             {
                 const auto size = other.allocated_.size;
 
@@ -171,6 +185,77 @@ namespace stdsharp
                 }
                 else if(has_value()) reset();
             }
+
+        public:
+            base_object_allocation(const base_object_allocation&) = default;
+            base_object_allocation(base_object_allocation&&) noexcept = default;
+            base_object_allocation& operator=(const base_object_allocation&) = default;
+            base_object_allocation& operator=(base_object_allocation&&) noexcept = default;
+
+            constexpr ~base_object_allocation() noexcept { reset(); }
+
+            template<typename T>
+            [[nodiscard]] constexpr bool is_same_type() const noexcept
+            {
+                return type_id<T> == type();
+            }
+
+            [[nodiscard]] constexpr auto type() const noexcept
+            {
+                return traits_ == nullptr ? type_id<void> : traits_->curent_type;
+            }
+
+            [[nodiscard]] constexpr auto size() const noexcept
+            {
+                return traits_ == nullptr ? 0 : traits_->type_size;
+            }
+
+            [[nodiscard]] constexpr auto reserved() const noexcept { return allocated_.size; }
+
+            template<typename T>
+            [[nodiscard]] constexpr T& get() noexcept
+            {
+                return *point_as<T>(pointer_traits<pointer>::to_address(get_raw_ptr()));
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr const T& get() const noexcept
+            {
+                return *point_as<T>(pointer_traits<pointer>::to_address(get_raw_ptr()));
+            }
+
+            constexpr void reset() noexcept
+            {
+                destroy();
+                deallocate();
+            }
+
+            [[nodiscard]] constexpr bool has_value() const noexcept { return traits_ != nullptr; }
+
+            [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
+
+        protected:
+            const traits_base* traits_{};
+
+            typename AllocTraits::allocated allocated_{};
+        };
+
+        template<typename Alloc>
+        class object_allocation : base_object_allocation<Alloc, object_allocation<Alloc>>
+        {
+        private:
+            using m_base = base_object_allocation<Alloc, object_allocation<Alloc>>;
+
+        public:
+            using m_base::get_allocator;
+            using m_base::reset;
+            using m_base::has_value;
+            using m_base::type;
+
+        private:
+            using m_base::allocated_;
+            using m_base::traits_;
+            using m_base::get_raw_ptr;
 
             constexpr void before_copy_assign(const object_allocation& other) noexcept
             {
@@ -208,8 +293,6 @@ namespace stdsharp
             }
 
         public:
-            object_allocation() = default;
-
             constexpr object_allocation(const object_allocation& other):
                 m_base(other), traits_(other.traits_)
             {
@@ -231,38 +314,6 @@ namespace stdsharp
             object_allocation&
                 operator=(object_allocation&&) = default; // NOLINT(*-noexcept-move-constructor)
 
-            constexpr ~object_allocation() noexcept { reset(); }
-
-            template<typename T>
-            [[nodiscard]] constexpr bool is_same_type() const noexcept
-            {
-                return type_id<T> == type();
-            }
-
-            [[nodiscard]] constexpr auto type() const noexcept
-            {
-                return traits_ == nullptr ? type_id<void> : traits_->curent_type;
-            }
-
-            [[nodiscard]] constexpr auto size() const noexcept
-            {
-                return traits_ == nullptr ? 0 : traits_->type_size;
-            }
-
-            [[nodiscard]] constexpr auto reserved() const noexcept { return allocated_.size; }
-
-            template<typename T>
-            [[nodiscard]] constexpr T& get() noexcept
-            {
-                return *point_as<T>(pointer_traits<pointer>::to_address(get_raw_ptr()));
-            }
-
-            template<typename T>
-            [[nodiscard]] constexpr const T& get() const noexcept
-            {
-                return *point_as<T>(pointer_traits<pointer>::to_address(get_raw_ptr()));
-            }
-
             template<::std::movable T, typename... Args>
                 requires ::std::constructible_from<T, Args...>
             constexpr void emplace(Args&&... args)
@@ -274,26 +325,6 @@ namespace stdsharp
                 }
                 else emplace_impl<T>(::std::forward<Args>(args)...);
             }
-
-            constexpr void reset() noexcept
-            {
-                destroy();
-                deallocate();
-            }
-
-            [[nodiscard]] constexpr bool has_value() const noexcept { return traits_ != nullptr; }
-
-            [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
-
-        private:
-            const traits_base* traits_{};
-
-            Allocated allocated_{};
-        };
-
-        template<typename Alloc>
-        struct unique_object_allocation : object_allocation<Alloc>, unique_object
-        {
         };
     }
 
