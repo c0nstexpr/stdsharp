@@ -241,6 +241,102 @@ namespace stdsharp
         {
             return ::std::allocate_at_least(alloc, count);
         }
+
+        enum class assign_operation
+        {
+            before,
+            after
+        };
+
+        template<typename Operation>
+            requires requires //
+        {
+            requires ::std::invocable<
+                Operation,
+                constant<assign_operation::before>,
+                allocator_type&,
+                allocator_type // clang-format off
+            >;
+            requires ::std::invocable<
+                Operation,
+                constant<assign_operation::after>,
+                allocator_type&,
+                allocator_type
+            >; // clang-format on
+            requires propagate_on_container_move_assignment::value;
+        }
+        constexpr void assign(allocator_type& left, allocator_type&& right, Operation op) //
+            noexcept( // clang-format off
+                nothrow_invocable<
+                    Operation,
+                    constant<assign_operation::before>,
+                    allocator_type&,
+                    allocator_type
+                >&&
+                    nothrow_invocable<
+                        Operation,
+                        constant<assign_operation::after>,
+                        allocator_type&,
+                        allocator_type
+                    >
+            ) // clang-format on
+        {
+            ::std::invoke(op, constant<assign_operation::before>{}, left, ::std::move(right));
+            left = ::std::move(right);
+            ::std::invoke(op, constant<assign_operation::after>{}, left, ::std::move(right));
+        }
+
+        template<::std::invocable<allocator_type&, allocator_type&&> Operation>
+        constexpr void assign(allocator_type& left, allocator_type&& right, Operation&& op) //
+            noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type&&>)
+        {
+            ::std::invoke(::std::forward<Operation>(op), left, ::std::move(right));
+        }
+
+        template<typename Operation>
+            requires requires //
+        {
+            requires ::std::invocable<
+                Operation,
+                constant<assign_operation::before>,
+                allocator_type&,
+                const allocator_type& // clang-format off
+            >;
+            requires ::std::invocable<
+                Operation,
+                constant<assign_operation::after>,
+                allocator_type&,
+                const allocator_type&
+            >; // clang-format on
+            requires propagate_on_container_copy_assignment::value;
+        }
+        constexpr void assign(allocator_type& left, const allocator_type& right, Operation op) //
+            noexcept( // clang-format off
+                nothrow_invocable<
+                    Operation,
+                    constant<assign_operation::before>,
+                    allocator_type&,
+                    const allocator_type&
+                >&&
+                    nothrow_invocable<
+                        Operation,
+                        constant<assign_operation::after>,
+                        allocator_type&,
+                        const allocator_type&
+                    >
+            ) // clang-format on
+        {
+            ::std::invoke(op, constant<assign_operation::before>{}, left, right);
+            left = right;
+            ::std::invoke(op, constant<assign_operation::after>{}, left, right);
+        }
+
+        template<::std::invocable<allocator_type&, const allocator_type&> Operation>
+        constexpr void assign(allocator_type& left, const allocator_type& right, Operation op) //
+            noexcept(nothrow_invocable<Operation, allocator_type&, const allocator_type&>)
+        {
+            ::std::invoke(::std::forward<Operation>(op), left, right);
+        }
     };
 
     template<typename>
