@@ -2,6 +2,7 @@
 
 #include "pointer_traits.h"
 #include "allocator_traits.h"
+#include "../type_traits/object.h"
 
 namespace stdsharp
 {
@@ -12,15 +13,14 @@ namespace stdsharp
         {
             constexpr auto get_allocator() const noexcept { return allocator; }
 
-            using AllocTraits = allocator_traits<Alloc>;
-
         private:
-            using pointer = typename AllocTraits::pointer;
-            using const_pointer = typename AllocTraits::const_pointer;
-            using size_type = typename AllocTraits::size_type;
+            using alloc_traits = allocator_traits<Alloc>;
+            using pointer = typename alloc_traits::pointer;
+            using const_pointer = typename alloc_traits::const_pointer;
+            using size_type = typename alloc_traits::size_type;
 
             Alloc allocator{};
-            typename AllocTraits::allocated allocated_{};
+            typename alloc_traits::allocated allocated_{};
 
             struct traits_base
             {
@@ -130,7 +130,7 @@ namespace stdsharp
             {
                 if(allocated_.ptr == nullptr) return;
 
-                AllocTraits::deallocate(this->get_allocator(), get_raw_ptr(), allocated_.size);
+                alloc_traits::deallocate(this->get_allocator(), get_raw_ptr(), allocated_.size);
                 allocated_ = {};
             }
 
@@ -144,51 +144,143 @@ namespace stdsharp
                     {
                         deallocate();
                         allocated_ = {
-                            AllocTraits::allocate(this->get_allocator(), size),
+                            alloc_traits::allocate(allocator, size),
                             size //
                         };
                     }
                 }
-                else allocated_ = {AllocTraits::allocate(this->get_allocator(), size), size};
+                else allocated_ = {alloc_traits::allocate(allocator, size), size};
             }
 
-            constexpr void before_move_assign(basic_object_allocation&& other) noexcept
+            constexpr void
+                assign_or_construct(const auto assign_fn, const auto construct_fn, auto&& other)
             {
-                if(allocator != other.allocator) reset();
-            }
-
-            constexpr void after_move_assign(basic_object_allocation&& other) noexcept
-            {
-                if(this->has_value()) this->reset();
-
-                allocated_ = other.allocated_;
-                traits_ = other.traits_;
-            }
-
-            constexpr void move_assign(basic_object_allocation&& other)
-            {
-                const auto size = other.allocated_.size;
-
-                if(other.has_value())
+                if(!other.has_value())
                 {
-                    if(type() == other.type())
-                        (*(other.traits_->move_assign))(get_raw_ptr(), other.get_raw_ptr());
-                    else
-                    {
-                        reserve(size);
-
-                        (*(other.traits_->move_construct))(get_raw_ptr(), other.get_raw_ptr());
-                        traits_ = other.traits_;
-                    }
+                    if(has_value()) reset();
+                    return;
                 }
-                else if(has_value()) reset();
+
+                if(type() == other.type()) (*assign_fn)(get_raw_ptr(), other.get_raw_ptr());
+                else
+                {
+                    reserve(other.allocated_.size);
+
+                    (*construct_fn)(get_raw_ptr(), other.get_raw_ptr());
+                    traits_ = other.traits_;
+                }
             }
+
+            using assign_op = allocator_assign_operation;
 
         public:
-            basic_object_allocation(const basic_object_allocation&) = default;
-            basic_object_allocation(basic_object_allocation&&) noexcept = default;
-            basic_object_allocation& operator=(const basic_object_allocation&) = default;
-            basic_object_allocation& operator=(basic_object_allocation&&) noexcept = default;
+            template<typename... Args>
+                requires ::std::constructible_from<Alloc, Args...>
+            constexpr basic_object_allocation(Args&&... args) //
+                noexcept(nothrow_constructible_from<Alloc, Args...>):
+                allocator(::std::forward<Args>(args)...)
+            {
+            }
+
+            template<typename T, typename... Args, ::std::movable ValueType = ::std::decay_t<T>>
+                requires ::std::constructible_from<Alloc, Args...> &&
+                             ::std::constructible_from<ValueType, T>
+            constexpr basic_object_allocation(T&& value, Args&&... args):
+                allocator(::std::forward<Args>(args)...),
+                allocated_{
+                    {alloc_traits::allocate(allocator, sizeof(ValueType)), sizeof(ValueType)} //
+                },
+                traits_(&traits_v<ValueType>)
+            {
+                ::new(get_raw_ptr()) ValueType{::std::forward<ValueType>(value)};
+            }
+
+            basic_object_allocation() = default;
+
+            constexpr basic_object_allocation(const basic_object_allocation& other):
+                allocator(alloc_traits::copy_construct(other.allocator)),
+                allocated_( //
+                    {
+                        other.has_value() ? alloc_traits::allocate(allocator, other.size) : nullptr,
+                        other.size //
+                    }
+                ),
+                traits_(other.traits_)
+            {
+                if(other.has_value())
+                    (*(other.traits_->copy_construct))(get_raw_ptr(), other.get_raw_ptr());
+            }
+
+            constexpr basic_object_allocation(basic_object_allocation&& other) noexcept:
+                allocator(::std::move(other.allocator)),
+                allocated_(::std::move(other.allocated_)),
+                traits_(::std::exchange(other.traits_, nullptr))
+            {
+            }
+
+            constexpr basic_object_allocation& operator=(const basic_object_allocation& other)
+            {
+                if(this == &other) return *this;
+
+                constexpr auto copy_assign = [this](const basic_object_allocation& other)
+                {
+                    assign_or_construct(
+                        other.traits_->copy_assign,
+                        other.traits_->copy_construct,
+                        other
+                    ); //
+                };
+
+                alloc_traits::assign(
+                    allocator,
+                    other.allocator,
+                    make_trivial_invocables(
+                        [this](const Alloc& left, const Alloc& right, const constant<assign_op::before>)
+                        {
+                            if(left != right) reset();
+                        },
+                        [&other,
+                         &copy_assign](const Alloc&, const Alloc&, const constant<assign_op::after>)
+                        {
+                            copy_assign(other); //
+                        },
+                        [&other, &copy_assign](const Alloc&, const Alloc&) { copy_assign(other); }
+                    )
+                );
+
+                return *this;
+            }
+
+            constexpr basic_object_allocation& operator=(basic_object_allocation&& other) noexcept
+            {
+                if(this == &other) return *this;
+
+                alloc_traits::assign(
+                    allocator,
+                    ::std::move(other.allocator),
+                    make_trivial_invocables(
+                        [this](const Alloc&, const Alloc&, const constant<assign_op::before>)
+                        {
+                            reset(); //
+                        },
+                        [this, &other](const Alloc&, const Alloc&, const constant<assign_op::after>)
+                        {
+                            allocated_ = other.allocated_;
+                            traits_ = other.traits_;
+                        },
+                        [this, &other](const Alloc&, const Alloc&)
+                        {
+                            assign_or_construct(
+                                other.traits_->move_assign,
+                                other.traits_->move_construct,
+                                other
+                            ); //
+                        }
+                    )
+                );
+
+                return *this;
+            }
 
             constexpr ~basic_object_allocation() noexcept { reset(); }
 
@@ -231,27 +323,82 @@ namespace stdsharp
             [[nodiscard]] constexpr bool has_value() const noexcept { return traits_ != nullptr; }
 
             [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
-        };
 
-        template<typename Alloc>
-        class object_allocation : basic_object_allocation<Alloc>
-        {
-        public:
-            template<::std::copyable T, typename... Args>
-                requires requires //
-            {
-                basic_object_allocation<Alloc>::emplace(::std::declval<Args>()...); //
-            }
+            template<::std::movable T, typename... Args>
+                requires ::std::constructible_from<T, Args...>
             constexpr void emplace(Args&&... args)
             {
-                basic_object_allocation<Alloc>::emplace(::std::forward<Args>(args)...);
+                if(type_id<T>() == type()) get<T>() = T{::std::forward<Args>(args)...};
+                else
+                {
+                    reserve(sizeof(T));
+
+                    traits_ = &traits_v<T>;
+                    new(get_raw_ptr()) T{::std::forward<Args>(args)...};
+                }
             }
         };
     }
 
     template<typename Alloc>
-    using object_allocation = details::object_allocation<Alloc>;
+    class object_allocation : details::basic_object_allocation<Alloc>
+    {
+        using m_base = details::basic_object_allocation<Alloc>;
+
+    public:
+        using m_base::get;
+        using m_base::has_value;
+        using m_base::is_same_type;
+        using m_base::operator bool;
+        using m_base::reset;
+        using m_base::reserved;
+        using m_base::size;
+        using m_base::type;
+        using m_base::get_allocator;
+
+        template<typename... Args>
+            requires ::std::constructible_from<m_base, Args...>
+        constexpr object_allocation(Args&&... args) //
+            noexcept(nothrow_constructible_from<Alloc, Args...>):
+            m_base(::std::forward<Args>(args)...)
+        {
+        }
+
+        template<typename T, typename... Args, ::std::copyable ValueType = ::std::decay_t<T>>
+            requires ::std::constructible_from<Alloc, Args...> &&
+            ::std::constructible_from<ValueType, T>
+        constexpr object_allocation(T&& value, Args&&... args):
+            m_base(::std::forward<T>(value), ::std::forward<Args>(args)...)
+        {
+        }
+
+        object_allocation() = default;
+
+        template<::std::copyable T, typename... Args>
+            requires requires //
+        {
+            details::basic_object_allocation<Alloc>::emplace(::std::declval<Args>()...); //
+        }
+        constexpr void emplace(Args&&... args)
+        {
+            details::basic_object_allocation<Alloc>::emplace(::std::forward<Args>(args)...);
+        }
+    };
 
     template<typename Alloc>
-    using unique_object_allocation = details::basic_object_allocation<Alloc>;
+    class unique_object_allocation : details::basic_object_allocation<Alloc>, public unique_object
+    {
+        using m_base = details::basic_object_allocation<Alloc>;
+
+    public:
+        using m_base::get;
+        using m_base::has_value;
+        using m_base::is_same_type;
+        using m_base::operator bool;
+        using m_base::reset;
+        using m_base::reserved;
+        using m_base::size;
+        using m_base::type;
+        using m_base::get_allocator;
+    };
 }
