@@ -136,20 +136,21 @@ namespace stdsharp
 
             constexpr void reserve(const size_type size)
             {
-                if(has_value())
+                if(!has_value())
                 {
-                    destroy();
-
-                    if(allocated_.size < size)
-                    {
-                        deallocate();
-                        allocated_ = {
-                            alloc_traits::allocate(allocator, size),
-                            size //
-                        };
-                    }
+                    allocated_ = {alloc_traits::allocate(allocator, size), size};
+                    return;
                 }
-                else allocated_ = {alloc_traits::allocate(allocator, size), size};
+
+                destroy();
+
+                if(allocated_.size >= size) return;
+
+                deallocate();
+                allocated_ = {
+                    alloc_traits::allocate(allocator, size),
+                    size //
+                };
             }
 
             constexpr void
@@ -161,14 +162,15 @@ namespace stdsharp
                     return;
                 }
 
-                if(type() == other.type()) (*assign_fn)(get_raw_ptr(), other.get_raw_ptr());
-                else
+                if(type() == other.type())
                 {
-                    reserve(other.allocated_.size);
-
-                    (*construct_fn)(get_raw_ptr(), other.get_raw_ptr());
-                    traits_ = other.traits_;
+                    (*assign_fn)(get_raw_ptr(), other.get_raw_ptr());
+                    return;
                 }
+
+                reserve(other.allocated_.size);
+                (*construct_fn)(get_raw_ptr(), other.get_raw_ptr());
+                traits_ = other.traits_;
             }
 
             using assign_op = allocator_assign_operation;
@@ -192,7 +194,11 @@ namespace stdsharp
                 },
                 traits_(&traits_v<ValueType>)
             {
-                ::new(get_raw_ptr()) ValueType{::std::forward<ValueType>(value)};
+                alloc_traits::construct(
+                    allocator,
+                    point_as<T>(pointer_traits<pointer>::to_address(get_raw_ptr())),
+                    ::std::forward<T>(value)
+                );
             }
 
             basic_object_allocation() = default;
@@ -328,14 +334,19 @@ namespace stdsharp
                 requires ::std::constructible_from<T, Args...>
             constexpr void emplace(Args&&... args)
             {
-                if(type_id<T>() == type()) get<T>() = T{::std::forward<Args>(args)...};
-                else
+                if(type_id<T>() == type())
                 {
-                    reserve(sizeof(T));
-
-                    traits_ = &traits_v<T>;
-                    new(get_raw_ptr()) T{::std::forward<Args>(args)...};
+                    get<T>() = T{::std::forward<Args>(args)...};
+                    return;
                 }
+
+                reserve(sizeof(T));
+                traits_ = &traits_v<T>;
+                alloc_traits::construct(
+                    allocator,
+                    point_as<T>(pointer_traits<pointer>::to_address(get_raw_ptr())),
+                    ::std::forward<Args>(args)...
+                );
             }
         };
     }

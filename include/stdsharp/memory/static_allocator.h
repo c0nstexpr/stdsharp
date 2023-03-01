@@ -38,13 +38,13 @@ namespace stdsharp
 
         [[nodiscard]] constexpr T* try_allocate(const ::std::size_t required_size)
         {
-            return resource().try_allocate(required_size * sizeof(T));
+            return point_as<T>(resource().try_allocate(required_size * sizeof(T)));
         }
 
         constexpr void deallocate(T* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
-            resource().deallocate(ptr, required_size * sizeof(T));
+            resource().deallocate(to_generic_ptr(ptr), required_size * sizeof(T));
         }
 
         [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }
@@ -54,8 +54,23 @@ namespace stdsharp
             return resource() == other.resource();
         }
 
+        [[nodiscard]] constexpr bool contains(const T* const ptr) const noexcept
+        {
+            return resource().contains(to_generic_ptr(ptr));
+        }
+
     private:
         ::std::reference_wrapper<resource_type> src_;
+
+        static constexpr auto to_generic_ptr(T* const ptr) noexcept
+        {
+            return static_cast<generic_storage*>(static_cast<void*>(ptr));
+        }
+
+        static constexpr auto to_generic_ptr(const T* const ptr) noexcept
+        {
+            return static_cast<const generic_storage*>(static_cast<const void*>(ptr));
+        }
     };
 
     template<typename T, ::std::size_t Size>

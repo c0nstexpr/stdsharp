@@ -1,255 +1,138 @@
 #pragma once
 
 #include "allocator_traits.h"
-#include "pointer_traits.h"
-#include "../type_traits/indexed_traits.h"
-#include "../tuple/tuple.h"
+#include "../exception/exception.h"
 
 namespace stdsharp
 {
-    template<::std::size_t I>
-    class aggregate_bad_alloc : public ::std::bad_alloc
-    {
-        ::std::array<::std::exception_ptr, I> exceptions_;
-
-    public:
-        template<typename... Args>
-            requires ::std::constructible_from<decltype(exceptions_), Args...>
-        constexpr aggregate_bad_alloc(Args&&... args) noexcept:
-            exceptions_{::std::forward<Args>(args)...}
-        {
-        }
-
-        [[nodiscard]] constexpr const auto& exceptions() const noexcept { return exceptions_; }
-    };
-
     namespace details
     {
-        template<typename T, typename = type_size_seq_t<T>>
-        struct composed_allocator_traits;
-
-        template<
-            typename Tuple,
-            ::std::size_t... I // clang-format off
-        > // clang-format on
-            requires requires(Tuple tuple, ::std::tuple_element_t<I, Tuple>... allocator) //
+        template<typename T>
+        concept allocator_contains = requires(
+            const T alloc,
+            const typename allocator_traits<T>::pointer ptr
+        ) // clang-format off
         {
-            requires all_same<
-                typename ::std::tuple_element_t<0, Tuple>::value_type,
-                typename decltype(allocator)::value_type... // clang-format off
-            >; // clang-format on
-
-            ( //
-                pointer_traits<
-                    typename allocator_traits<decltype(allocator)>::const_void_pointer>:: //
-                to_pointer({}),
-                ...
-            );
-        }
-        struct composed_allocator_traits<Tuple, ::std::index_sequence<I...>>
-        {
-            template<::std::size_t J>
-            using alloc = ::std::tuple_element_t<J, Tuple>;
-
-            template<::std::size_t J>
-            using alloc_traits = allocator_traits<alloc<J>>;
-
-            using value_type = typename alloc<0>::value_type;
-
-            static constexpr auto size = sizeof...(I);
-
-            template<::std::size_t J>
-            using pointer_traits = pointer_traits<typename alloc_traits<J>::pointer>;
-
-            template<::std::size_t J>
-            using const_void_pointer_traits =
-                stdsharp::pointer_traits<typename alloc_traits<J>::const_void_pointer>;
-
-            template<::std::size_t J>
-            struct deallocate_at
-            {
-                constexpr void
-                    operator()(Tuple& alloc, value_type* const ptr, const ::std::uintmax_t n)
-                        const noexcept
-                {
-                    alloc_traits<J>::deallocate(
-                        get<J>(alloc),
-                        pointer_traits<J>::to_pointer(ptr),
-                        auto_cast(n)
-                    );
-                }
-            };
-
-            template<::std::size_t J>
-            struct construct_at
-            {
-                template<typename T, typename... Args>
-                constexpr void operator()(Tuple& alloc, T* const ptr, Args&&... args) const
-                    noexcept(nothrow_constructible_from<T, Args...>)
-                {
-                    alloc_traits<J>::construct(get<J>(alloc), ptr, ::std::forward<Args>(args)...);
-                }
-            };
-
-            template<::std::size_t J>
-            struct destroy_at
-            {
-                template<typename T>
-                constexpr void operator()(Tuple& alloc, T* const ptr) const noexcept
-                {
-                    alloc_traits<J>::destroy(get<J>(alloc), ptr);
-                }
-            };
-
-            template<template<::std::size_t> typename Fn, typename... Args>
-                requires(::std::invocable<Fn<I>, Tuple&, Args...> && ...)
-            static constexpr auto //
-                invoke_by_index(Tuple& alloc, const ::std::size_t index, Args&&... args) //
-                noexcept((noexcept(Fn<I>{}(alloc, ::std::forward<Args>(args)...)) && ...))
-            {
-                static constexpr ::std::array impl{
-                    +[](Tuple& alloc, const Args&&... args)
-                    {
-                        Fn<I>{}(alloc, ::std::forward<Args>(args)...); //
-                    }... //
-                };
-
-                impl[index](alloc, ::std::forward<Args>(args)...);
-            }
-
-            struct alloc_ret
-            {
-                ::std::size_t index;
-                value_type* ptr;
-            };
-
-            [[nodiscard]] static constexpr alloc_ret try_allocate(
-                ::std::same_as<Tuple> auto& allocators,
-                const ::std::uintmax_t n,
-                const void* const hint
-            ) noexcept
-            {
-                value_type* ptr = nullptr;
-                ::std::size_t alloc_index = 0;
-
-                empty = ( //
-                    ( //
-                        alloc_index = I,
-                        ptr = pointer_traits<I>:: //
-                        to_address( //
-                            alloc_traits<I>::try_allocate(
-                                get<I>(allocators),
-                                auto_cast(n),
-                                const_void_pointer_traits<I>::to_pointer(hint)
-                            )
-                        ),
-                        ptr != nullptr
-                    ) ||
-                    ...
-                );
-
-                return {alloc_index, ptr};
-            }
-
-            [[nodiscard]] static constexpr alloc_ret allocate(
-                ::std::same_as<Tuple> auto& allocators,
-                const ::std::uintmax_t n,
-                const void* const hint //
-            )
-            {
-                value_type* ptr = nullptr;
-                ::std::size_t alloc_index = 0;
-                ::std::array<::std::exception_ptr, size> exceptions;
-
-                empty = ( //
-                    ( //
-                        alloc_index = I,
-                        [&ptr, &allocators, n, hint, &exceptions]
-                        {
-                            try
-                            {
-                                ptr = pointer_traits<I>:: //
-                                    to_address( //
-                                        alloc_traits<I>::allocate(
-                                            get<I>(allocators),
-                                            auto_cast(n),
-                                            const_void_pointer_traits<I>::to_pointer(hint)
-                                        )
-                                    );
-                            }
-                            catch(...)
-                            {
-                                exceptions[I] = ::std::current_exception();
-                            }
-                        }(),
-                        ptr != nullptr
-                    ) ||
-                    ...
-                );
-
-                if(ptr == nullptr) throw aggregate_bad_alloc<size>{::std::move(exceptions)};
-
-                return {alloc_index, ptr};
-            }
+            { alloc.contains(ptr) } -> ::std::convertible_to<bool>; // clang-format on
+            requires noexcept(alloc.contains(ptr));
         };
     }
 
-    template<typename... Allocator>
-        requires requires { details::composed_allocator_traits<indexed_values<Allocator...>>{}; }
-    struct composed_allocator
+    template<details::allocator_contains FirstAlloc, allocator_req SecondAlloc>
+        requires ::std::same_as<typename FirstAlloc::value_type, typename SecondAlloc::value_type>
+    class composed_allocator
     {
-    private:
-        using values = indexed_values<Allocator...>;
+        ::std::pair<FirstAlloc, SecondAlloc> alloc_pair_;
 
-        using traits = details::composed_allocator_traits<values>;
+        using first_traits = allocator_traits<FirstAlloc>;
+        using second_traits = allocator_traits<SecondAlloc>;
+
+        using first_pointer = typename first_traits::pointer;
+        using second_pointer = typename second_traits::pointer;
+
+        using first_cvp = typename first_traits::const_void_pointer;
+        using second_cvp = typename second_traits::const_void_pointer;
+
+        using first_pointer_traits = ::std::pointer_traits<first_pointer>;
+        using second_pointer_traits = ::std::pointer_traits<second_pointer>;
+
+        using first_cvp_traits = ::std::pointer_traits<first_cvp>;
+        using second_cvp_traits = ::std::pointer_traits<second_cvp>;
 
     public:
-        using value_type = typename traits::value_type;
-        using alloc_ret = typename traits::alloc_ret;
+        using value_type = typename FirstAlloc::value_type;
 
-        values allocators;
-
-        [[nodiscard]] constexpr alloc_ret
-            allocate(const ::std::uintmax_t n, const void* const hint = nullptr)
+        template<typename... Args>
+        constexpr explicit composed_allocator(Args&&... args):
+            alloc_pair_(::std::forward<Args>(args)...)
         {
-            return traits::allocate(allocators, n, hint);
         }
 
-        [[nodiscard]] constexpr alloc_ret
-            try_allocate(const ::std::uintmax_t n, const void* const hint = nullptr) noexcept
+        constexpr auto allocate(const ::std::size_t n, const void* const hint)
         {
-            return traits::try_allocate(allocators, n, hint);
+            const auto ptr = first_traits::try_allocate(
+                alloc_pair_.first,
+                n,
+                first_cvp_traits::to_pointer(hint)
+            );
+            return ptr == nullptr ? //
+                second_traits::allocate(
+                    alloc_pair_.second,
+                    n,
+                    second_cvp_traits::to_pointer(hint)
+                ) :
+                ptr;
         }
 
-        constexpr void deallocate(const alloc_ret ret, const ::std::size_t n) noexcept
+        constexpr void
+            deallocate(const ::std::size_t n, typename allocator_traits<FirstAlloc>::pointer ptr)
         {
-            traits::template invoke_by_index<traits::template deallocate_at>(
-                allocators,
-                ret.index,
-                ret.ptr,
-                n
+            auto& [first, second] = alloc_pair_;
+            if(first.contains(ptr)) first.deallocate(n, ptr);
+            else second.deallocate(n, ptr);
+        }
+
+        constexpr auto max_size() const noexcept
+        {
+            return ::std::min(
+                first_traits::max_size(alloc_pair_.first),
+                second_traits::max_size(alloc_pair_.second)
             );
         }
 
-        template<typename... Args, ::std::constructible_from<Args...> T>
-        constexpr void construct(
-            const ::std::size_t index,
-            T* const ptr,
-            Args&&... args
-        ) noexcept(nothrow_constructible_from<T, Args...>)
+        constexpr composed_allocator select_on_container_copy_construction() const
         {
-            traits::template invoke_by_index<traits::template construct_at>(
-                allocators,
-                ptr,
-                index,
-                ::std::forward<Args>(args)...
-            );
+            return {
+                first_traits::select_on_container_copy_construction(alloc_pair_.first),
+                second_traits::select_on_container_copy_construction(alloc_pair_.second) //
+            };
         }
 
-        template<::std::destructible T>
-        constexpr void destroy(const ::std::size_t index, T* const ptr) noexcept
+        constexpr auto allocate_at_least(const ::std::size_t n)
         {
-            traits::template invoke_by_index<traits::template destroy_at>(allocators, index, ptr);
+            struct
+            {
+                value_type* ptr;
+                ::std::size_t count;
+            } result;
+
+            aggregate_try(
+                [&result, this, n]
+                {
+                    const auto& res = first_traits::allocate_at_least(alloc_pair_.first, n);
+
+                    result = {.ptr = first_pointer_traits::to_address(res.ptr), .count = res.count};
+                },
+                [&result, this, n]
+                {
+                    const auto& res = second_traits::allocate_at_least(alloc_pair_.second, n);
+
+                    result = {
+                        .ptr = second_pointer_traits::to_address(res.ptr),
+                        .count = res.count //
+                    };
+                }
+            );
+
+            return result;
+        }
+
+        template<typename T, typename... Args>
+        constexpr void construct(T* const ptr, Args&&... args) //
+            noexcept(nothrow_constructible_from<value_type, Args...>)
+        {
+            const auto value_t_p = static_cast<value_type*>(static_cast<void*>(ptr));
+            auto& [first, second] = alloc_pair_;
+            if(first_traits::contains(first, first_pointer_traits::pointer_to(value_t_p)))
+                first_traits::construct(first, value_t_p, ::std::forward<Args>(args)...);
+            else second_traits::construct(second, value_t_p, ::std::forward<Args>(args)...);
+        }
+
+        constexpr bool contains(const value_type* const ptr) const noexcept
+            requires details::allocator_contains<SecondAlloc>
+        {
+            return alloc_pair_.first.contains(first_cvp_traits::to_pointer(ptr)) ||
+                alloc_pair_.second.contains(second_cvp_traits::to_pointer(ptr));
         }
     };
 }

@@ -31,7 +31,6 @@ namespace stdsharp
     {
         typename T::value_type;
         nothrow_copyable<T>;
-        nothrow_movable<T>;
 
         requires requires(
             T alloc,
