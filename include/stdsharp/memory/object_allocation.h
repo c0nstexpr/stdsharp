@@ -6,6 +6,10 @@
 
 namespace stdsharp
 {
+    struct type_spec
+    {
+    };
+
     namespace details
     {
         template<typename Alloc>
@@ -257,7 +261,8 @@ namespace stdsharp
                 return *this;
             }
 
-            constexpr basic_object_allocation& operator=(basic_object_allocation&& other) noexcept
+            constexpr basic_object_allocation& operator=(basic_object_allocation&& other) //
+                noexcept(alloc_traits::propagate_on_container_move_assignment::value)
             {
                 if(this == &other) return *this;
 
@@ -265,11 +270,12 @@ namespace stdsharp
                     allocator,
                     ::std::move(other.allocator),
                     make_trivial_invocables(
-                        [this](const Alloc&, const Alloc&, const constant<assign_op::before>)
+                        [this](const Alloc&, const Alloc&, const constant<assign_op::before>) noexcept
                         {
                             reset(); //
                         },
-                        [this, &other](const Alloc&, const Alloc&, const constant<assign_op::after>)
+                        [this,
+                         &other](const Alloc&, const Alloc&, const constant<assign_op::after>) noexcept
                         {
                             allocated_ = other.allocated_;
                             traits_ = other.traits_;
@@ -357,16 +363,6 @@ namespace stdsharp
         using m_base = details::basic_object_allocation<Alloc>;
 
     public:
-        using m_base::get;
-        using m_base::has_value;
-        using m_base::is_same_type;
-        using m_base::operator bool;
-        using m_base::reset;
-        using m_base::reserved;
-        using m_base::size;
-        using m_base::type;
-        using m_base::get_allocator;
-
         template<typename... Args>
             requires ::std::constructible_from<m_base, Args...>
         constexpr object_allocation(Args&&... args) //
@@ -374,6 +370,16 @@ namespace stdsharp
             m_base(::std::forward<Args>(args)...)
         {
         }
+
+        using m_base ::has_value;
+        using m_base ::reset;
+        using m_base ::reserved;
+        using m_base ::size;
+        using m_base ::type;
+        using m_base ::get_allocator;
+        using m_base ::get;
+        using m_base ::is_same_type;
+        using m_base ::operator bool;
 
         template<typename T, typename... Args, ::std::copyable ValueType = ::std::decay_t<T>>
             requires ::std::constructible_from<Alloc, Args...> &&
@@ -397,19 +403,9 @@ namespace stdsharp
     };
 
     template<typename Alloc>
-    class unique_object_allocation : details::basic_object_allocation<Alloc>, public unique_object
+    class unique_object_allocation :
+        public details::basic_object_allocation<Alloc>,
+        public unique_object
     {
-        using m_base = details::basic_object_allocation<Alloc>;
-
-    public:
-        using m_base::get;
-        using m_base::has_value;
-        using m_base::is_same_type;
-        using m_base::operator bool;
-        using m_base::reset;
-        using m_base::reserved;
-        using m_base::size;
-        using m_base::type;
-        using m_base::get_allocator;
     };
 }

@@ -2,6 +2,7 @@
 
 #include "allocator_traits.h"
 #include "../exception/exception.h"
+#include "pointer_traits.h"
 
 namespace stdsharp
 {
@@ -27,20 +28,36 @@ namespace stdsharp
         using first_traits = allocator_traits<FirstAlloc>;
         using second_traits = allocator_traits<SecondAlloc>;
 
-        using first_pointer = typename first_traits::pointer;
-        using second_pointer = typename second_traits::pointer;
+        using first_ptr = typename first_traits::pointer;
+        using second_ptr = typename second_traits::pointer;
 
         using first_cvp = typename first_traits::const_void_pointer;
         using second_cvp = typename second_traits::const_void_pointer;
 
-        using first_pointer_traits = ::std::pointer_traits<first_pointer>;
-        using second_pointer_traits = ::std::pointer_traits<second_pointer>;
+        using first_ptr_traits = pointer_traits<first_ptr>;
+        using second_ptr_traits = pointer_traits<second_ptr>;
 
-        using first_cvp_traits = ::std::pointer_traits<first_cvp>;
-        using second_cvp_traits = ::std::pointer_traits<second_cvp>;
+        using first_cvp_traits = pointer_traits<first_cvp>;
+        using second_cvp_traits = pointer_traits<second_cvp>;
 
     public:
         using value_type = typename FirstAlloc::value_type;
+
+        using propagate_on_container_copy_assignment = ::std::disjunction<
+            typename first_traits::propagate_on_container_copy_assignment,
+            typename second_traits::propagate_on_container_copy_assignment>;
+        using propagate_on_container_move_assignment = ::std::disjunction<
+            typename first_traits::propagate_on_container_move_assignment,
+            typename second_traits::propagate_on_container_move_assignment>;
+        using propagate_on_container_swap = ::std::disjunction<
+            typename first_traits::propagate_on_container_swap,
+            typename second_traits::propagate_on_container_swap>;
+
+        using is_always_equal = ::std::conjunction<
+            typename first_traits::is_always_equal,
+            typename second_traits::is_always_equal>;
+
+        composed_allocator() = default;
 
         template<typename... Args>
         constexpr explicit composed_allocator(Args&&... args):
@@ -101,14 +118,14 @@ namespace stdsharp
                 {
                     const auto& res = first_traits::allocate_at_least(alloc_pair_.first, n);
 
-                    result = {.ptr = first_pointer_traits::to_address(res.ptr), .count = res.count};
+                    result = {.ptr = first_ptr_traits::to_address(res.ptr), .count = res.count};
                 },
                 [&result, this, n]
                 {
                     const auto& res = second_traits::allocate_at_least(alloc_pair_.second, n);
 
                     result = {
-                        .ptr = second_pointer_traits::to_address(res.ptr),
+                        .ptr = second_ptr_traits::to_address(res.ptr),
                         .count = res.count //
                     };
                 }
@@ -121,18 +138,25 @@ namespace stdsharp
         constexpr void construct(T* const ptr, Args&&... args) //
             noexcept(nothrow_constructible_from<value_type, Args...>)
         {
-            const auto value_t_p = static_cast<value_type*>(static_cast<void*>(ptr));
             auto& [first, second] = alloc_pair_;
-            if(first_traits::contains(first, first_pointer_traits::pointer_to(value_t_p)))
-                first_traits::construct(first, value_t_p, ::std::forward<Args>(args)...);
-            else second_traits::construct(second, value_t_p, ::std::forward<Args>(args)...);
+            if( //
+                first_traits::contains(
+                    first,
+                    first_ptr_traits::pointer_to(
+                        static_cast<value_type*>(static_cast<void*>(ptr))
+                    )
+                )
+            )
+                first_traits::construct(first, ptr, ::std::forward<Args>(args)...);
+            else second_traits::construct(second, ptr, ::std::forward<Args>(args)...);
         }
 
         constexpr bool contains(const value_type* const ptr) const noexcept
             requires details::allocator_contains<SecondAlloc>
         {
-            return alloc_pair_.first.contains(first_cvp_traits::to_pointer(ptr)) ||
-                alloc_pair_.second.contains(second_cvp_traits::to_pointer(ptr));
+            return alloc_pair_.first.contains(first_cvp_traits::to_pointer(ptr)) ?
+                alloc_pair_.second.contains(second_cvp_traits::to_pointer(ptr)) :
+                false;
         }
     };
 }
