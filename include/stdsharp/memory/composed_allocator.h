@@ -65,7 +65,7 @@ namespace stdsharp
         {
         }
 
-        constexpr auto allocate(const ::std::size_t n, const void* const hint)
+        constexpr auto allocate(const ::std::size_t n, const void* const hint = nullptr)
         {
             const auto ptr = first_traits::try_allocate(
                 alloc_pair_.first,
@@ -81,12 +81,29 @@ namespace stdsharp
                 ptr;
         }
 
+        constexpr auto
+            try_allocate(const ::std::size_t n, const void* const hint = nullptr) noexcept
+        {
+            const auto ptr = first_traits::try_allocate(
+                alloc_pair_.first,
+                n,
+                first_cvp_traits::to_pointer(hint)
+            );
+            return ptr == nullptr ? //
+                second_traits::try_allocate(
+                    alloc_pair_.second,
+                    n,
+                    second_cvp_traits::to_pointer(hint)
+                ) :
+                ptr;
+        }
+
         constexpr void
-            deallocate(const ::std::size_t n, typename allocator_traits<FirstAlloc>::pointer ptr)
+            deallocate(typename allocator_traits<FirstAlloc>::pointer ptr, const ::std::size_t n)
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(ptr)) first.deallocate(n, ptr);
-            else second.deallocate(n, ptr);
+            if(first.contains(ptr)) first.deallocate(ptr, n);
+            else second.deallocate(ptr, n);
         }
 
         constexpr auto max_size() const noexcept
@@ -159,4 +176,7 @@ namespace stdsharp
                 false;
         }
     };
+
+    template<typename T, typename U>
+    composed_allocator(T&&, U&&) -> composed_allocator<::std::decay_t<T>, ::std::decay_t<U>>;
 }

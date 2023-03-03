@@ -1,12 +1,12 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <ranges>
 
 #include "../utility/auto_cast.h"
 #include "allocator_traits.h"
 #include "../cmath/cmath.h"
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -22,9 +22,54 @@ namespace stdsharp
         }
 
         template<typename T>
+            requires explicitly_convertible<generic_storage*, T*>
+        [[nodiscard]] friend constexpr auto point_as(generic_storage* const t) //
+            noexcept(nothrow_explicitly_convertible<generic_storage*, T*>)
+        {
+            return static_cast<T*>(t);
+        }
+
+        template<typename T>
         [[nodiscard]] friend constexpr auto point_as(const generic_storage* const t) noexcept
         {
             return static_cast<const T*>(static_cast<const void*>(t));
+        }
+
+        template<typename T>
+            requires explicitly_convertible<const generic_storage*, T*>
+        [[nodiscard]] friend constexpr auto point_as(const generic_storage* const t) //
+            noexcept(nothrow_explicitly_convertible<const generic_storage*, T*>)
+        {
+            return static_cast<const T*>(t);
+        }
+
+    public:
+        template<typename T>
+        [[nodiscard]] static constexpr auto from_ptr(T* const ptr) noexcept
+        {
+            return static_cast<generic_storage*>(static_cast<void*>(ptr));
+        }
+
+        template<typename T>
+            requires explicitly_convertible<T*, generic_storage*>
+        [[nodiscard]] static constexpr auto from_ptr(T* const t) //
+            noexcept(nothrow_explicitly_convertible<T*, generic_storage*>)
+        {
+            return static_cast<generic_storage*>(t);
+        }
+
+        template<typename T>
+        [[nodiscard]] static constexpr auto from_ptr(const T* const ptr) noexcept
+        {
+            return static_cast<const generic_storage*>(static_cast<const void*>(ptr));
+        }
+
+        template<typename T>
+            requires explicitly_convertible<const T*, const generic_storage*>
+        [[nodiscard]] static constexpr auto from_ptr(const T* const t) //
+            noexcept(nothrow_explicitly_convertible<const T*, const generic_storage*>)
+        {
+            return static_cast<const generic_storage*>(t);
         }
     };
 
@@ -32,7 +77,7 @@ namespace stdsharp
     class static_memory_resource
     {
     public:
-        static constexpr auto size = ceil_reminder(Size, sizeof(generic_storage));
+        static constexpr auto size = Size;
 
         using states_t = ::std::array<bool, size>;
 
@@ -57,14 +102,15 @@ namespace stdsharp
         [[nodiscard]] constexpr generic_storage* allocate(const ::std::size_t required_size)
         {
             const auto ptr = try_allocate(required_size);
-            return ptr == nullptr ? throw ::std::bad_alloc{} : ptr;
+
+            return (ptr == nullptr && required_size != 0) ? throw ::std::bad_alloc{} : ptr;
         }
 
         [[nodiscard]] constexpr generic_storage* try_allocate(const ::std::size_t required_size)
         {
             if(required_size == 0) return nullptr;
 
-            const auto found = ::std::ranges::search_n(state_, auto_cast(required_size), true);
+            const auto found = ::std::ranges::search_n(state_, auto_cast(required_size), false);
 
             if(found.empty()) return nullptr;
 
@@ -124,4 +170,11 @@ namespace stdsharp
 
         states_t state_{};
     };
+
+    template<typename T, ::std::size_t Size>
+    using static_memory_resource_for =
+        static_memory_resource<ceil_reminder(Size * sizeof(T), sizeof(generic_storage))>;
+
 }
+
+#include "../compilation_config_out.h"

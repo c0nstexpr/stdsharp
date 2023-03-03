@@ -295,9 +295,9 @@ namespace stdsharp
             );
         }
 
-        template<::std::invocable<allocator_type&, allocator_type&&> Operation>
+        template<::std::invocable<allocator_type&, allocator_type> Operation>
         constexpr void assign(allocator_type& left, allocator_type&& right, Operation&& op) //
-            noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type&&>)
+            noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type>)
         {
             ::std::invoke(::std::forward<Operation>(op), left, ::std::move(right));
         }

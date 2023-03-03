@@ -1,10 +1,11 @@
 #pragma once
 
 #include "static_memory_resource.h"
+#include "../cmath/cmath.h"
 
 namespace stdsharp
 {
-    template<typename T, ::std::size_t ByteSize>
+    template<typename T, ::std::size_t ResourceSize>
     class static_allocator
     {
     public:
@@ -13,7 +14,7 @@ namespace stdsharp
         using propagate_on_container_copy_assignment = ::std::true_type;
         using propagate_on_container_swap = ::std::true_type;
 
-        static constexpr auto size = ByteSize;
+        static constexpr auto size = ResourceSize;
 
         using resource_type = static_memory_resource<size>;
 
@@ -22,7 +23,7 @@ namespace stdsharp
         template<typename U>
         struct rebind
         {
-            using other = static_allocator<U, ByteSize>;
+            using other = static_allocator<U, ResourceSize>;
         };
 
         template<typename U>
@@ -33,18 +34,18 @@ namespace stdsharp
 
         [[nodiscard]] constexpr T* allocate(const ::std::size_t required_size)
         {
-            return point_as<T>(resource().allocate(required_size * sizeof(T)));
+            return point_as<T>(resource().allocate(to_generic_size(required_size)));
         }
 
         [[nodiscard]] constexpr T* try_allocate(const ::std::size_t required_size)
         {
-            return point_as<T>(resource().try_allocate(required_size * sizeof(T)));
+            return point_as<T>(resource().try_allocate(to_generic_size(required_size)));
         }
 
         constexpr void deallocate(T* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
-            resource().deallocate(to_generic_ptr(ptr), required_size * sizeof(T));
+            resource().deallocate(generic_storage::from_ptr(ptr), to_generic_size(required_size));
         }
 
         [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }
@@ -56,23 +57,22 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool contains(const T* const ptr) const noexcept
         {
-            return resource().contains(to_generic_ptr(ptr));
+            return resource().contains(generic_storage::from_ptr(ptr));
         }
 
     private:
         ::std::reference_wrapper<resource_type> src_;
 
-        static constexpr auto to_generic_ptr(T* const ptr) noexcept
+        static constexpr auto to_generic_size(const ::std::size_t size)
         {
-            return static_cast<generic_storage*>(static_cast<void*>(ptr));
-        }
-
-        static constexpr auto to_generic_ptr(const T* const ptr) noexcept
-        {
-            return static_cast<const generic_storage*>(static_cast<const void*>(ptr));
+            return ceil_reminder(size * sizeof(T), sizeof(generic_storage));
         }
     };
 
+    template<::std::size_t Size>
+    static_allocator(static_memory_resource<Size>&) -> static_allocator<generic_storage, Size>;
+
     template<typename T, ::std::size_t Size>
-    using static_allocator_for = static_allocator<T, Size * sizeof(T)>;
+    using static_allocator_for =
+        static_allocator<T, ceil_reminder(Size * sizeof(T), sizeof(generic_storage))>;
 }

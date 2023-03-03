@@ -6,8 +6,36 @@
 
 namespace stdsharp
 {
-    struct type_spec
+    struct requirement
     {
+        enum
+        {
+            move,
+            copy
+        } category;
+
+        enum
+        {
+            ill_formed,
+            well_formed,
+            no_exception,
+        } level;
+
+        constexpr auto operator<=>(const requirement other) const noexcept
+        {
+            const auto category_comp_res = category <=> other.category;
+            const auto level_comp_res = level <=> other.level;
+
+            return (category_comp_res < level_comp_res) ?
+                ::std::partial_ordering::unordered :
+                static_cast<::std::partial_ordering>(category_comp_res);
+        }
+    };
+
+    struct type_requirement
+    {
+        requirement construct;
+        requirement assign;
     };
 
     namespace details
@@ -232,7 +260,7 @@ namespace stdsharp
             {
                 if(this == &other) return *this;
 
-                constexpr auto copy_assign = [this](const basic_object_allocation& other)
+                constexpr auto copy_assign = [this, &other]()
                 {
                     assign_or_construct(
                         other.traits_->copy_assign,
@@ -249,12 +277,11 @@ namespace stdsharp
                         {
                             if(left != right) reset();
                         },
-                        [&other,
-                         &copy_assign](const Alloc&, const Alloc&, const constant<assign_op::after>)
+                        [&copy_assign](const Alloc&, const Alloc&, const constant<assign_op::after>)
                         {
-                            copy_assign(other); //
+                            copy_assign(); //
                         },
-                        [&other, &copy_assign](const Alloc&, const Alloc&) { copy_assign(other); }
+                        [&copy_assign](const Alloc&, const Alloc&) { copy_assign(); }
                     )
                 );
 
@@ -266,6 +293,12 @@ namespace stdsharp
             {
                 if(this == &other) return *this;
 
+                constexpr auto copy_allocation = [this, &other]() noexcept
+                {
+                    allocated_ = other.allocated_;
+                    traits_ = other.traits_;
+                };
+
                 alloc_traits::assign(
                     allocator,
                     ::std::move(other.allocator),
@@ -274,19 +307,23 @@ namespace stdsharp
                         {
                             reset(); //
                         },
-                        [this,
-                         &other](const Alloc&, const Alloc&, const constant<assign_op::after>) noexcept
+                        [&copy_allocation](const Alloc&, const Alloc&, const constant<assign_op::after>) noexcept
                         {
-                            allocated_ = other.allocated_;
-                            traits_ = other.traits_;
+                            copy_allocation(); //
                         },
-                        [this, &other](const Alloc&, const Alloc&)
+                        [this, &other](const Alloc& left, const Alloc& right)
                         {
-                            assign_or_construct(
-                                other.traits_->move_assign,
-                                other.traits_->move_construct,
-                                other
-                            ); //
+                            if(left == right)
+                            {
+                                reset();
+                                copy_allocation();
+                            }
+                            else
+                                assign_or_construct(
+                                    other.traits_->move_assign,
+                                    other.traits_->move_construct,
+                                    other
+                                ); //
                         }
                     )
                 );
@@ -336,6 +373,7 @@ namespace stdsharp
 
             [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
 
+        protected:
             template<::std::movable T, typename... Args>
                 requires ::std::constructible_from<T, Args...>
             constexpr void emplace(Args&&... args)
@@ -358,7 +396,7 @@ namespace stdsharp
     }
 
     template<typename Alloc>
-    class object_allocation : details::basic_object_allocation<Alloc>
+    class object_allocation : public details::basic_object_allocation<Alloc>
     {
         using m_base = details::basic_object_allocation<Alloc>;
 
@@ -370,16 +408,6 @@ namespace stdsharp
             m_base(::std::forward<Args>(args)...)
         {
         }
-
-        using m_base ::has_value;
-        using m_base ::reset;
-        using m_base ::reserved;
-        using m_base ::size;
-        using m_base ::type;
-        using m_base ::get_allocator;
-        using m_base ::get;
-        using m_base ::is_same_type;
-        using m_base ::operator bool;
 
         template<typename T, typename... Args, ::std::copyable ValueType = ::std::decay_t<T>>
             requires ::std::constructible_from<Alloc, Args...> &&
@@ -407,5 +435,7 @@ namespace stdsharp
         public details::basic_object_allocation<Alloc>,
         public unique_object
     {
+    public:
+        using details::basic_object_allocation<Alloc>::emplace;
     };
 }

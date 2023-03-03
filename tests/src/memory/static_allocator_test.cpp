@@ -1,3 +1,4 @@
+#include "stdsharp/memory/static_memory_resource.h"
 #include "test.h"
 #include "stdsharp/memory/static_allocator.h"
 #include "stdsharp/memory/allocator_traits.h"
@@ -25,44 +26,42 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
     // NOLINTBEGIN(*-reinterpret-cast)
 
-    constexpr auto alloc_size = sizeof(derived) * 4;
+    static_memory_resource_for<derived, 4> rsc;
 
-    GIVEN("allocator with " << alloc_size << " bytes")
+    GIVEN("static allocator with " << decltype(rsc)::size << " bytes")
     {
-        static_allocator<char, alloc_size> allocator;
+        static_allocator_for<derived, 4> allocator{rsc};
 
         THEN("constructing a derived type at allocator")
         {
-            const auto p1 = allocator.allocate(sizeof(derived));
-            const auto d1_ptr = reinterpret_cast<derived*>(p1);
+            const auto p1 = allocator.allocate(1);
 
             {
-                const base* base_ptr = d1_ptr;
+                const base* base_ptr = p1;
                 constexpr int v = 42;
 
-                std::ranges::construct_at(d1_ptr, v);
+                std::ranges::construct_at(p1, v);
 
                 REQUIRE(base_ptr->foo() == v);
             }
 
             AND_THEN("constructing anther one at allocator")
             {
-                const auto p2 = allocator.allocate(sizeof(derived));
-                const auto d2_ptr = reinterpret_cast<derived*>(p2);
+                const auto p2 = allocator.allocate(1);
 
                 {
                     constexpr int v2 = 42;
-                    const base* base_ptr = d2_ptr;
+                    const base* base_ptr = p2;
 
-                    std::ranges::construct_at(d2_ptr, v2);
+                    std::ranges::construct_at(p2, v2);
 
                     REQUIRE(base_ptr->foo() == v2);
                 }
 
-                allocator.deallocate(p2, sizeof(derived));
+                allocator.deallocate(p2, 1);
             }
 
-            allocator.deallocate(p1, sizeof(derived));
+            allocator.deallocate(p1, 1);
         }
 
         THEN("constructing two derived types at allocator")
@@ -75,7 +74,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
             {
                 auto& d_ptr = *it;
 
-                d_ptr = reinterpret_cast<derived*>(allocator.allocate(sizeof(derived)));
+                d_ptr = allocator.allocate(1);
 
                 std::ranges::construct_at(d_ptr, d);
 
@@ -88,41 +87,48 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
             AND_THEN("release first type and construct the third type")
             {
-                allocator.deallocate(reinterpret_cast<char*>(ptrs.front()), sizeof(derived));
+                allocator.deallocate(ptrs.front(), 1);
 
                 constexpr derived d3{65};
 
-                const auto ptr = allocator.allocate(sizeof(derived));
-                const auto d3_ptr = reinterpret_cast<derived*>(ptr);
-                const base* base3_ptr = d3_ptr;
+                const auto ptr = allocator.allocate(1);
+                const base* base3_ptr = ptr;
 
-                std::ranges::construct_at(d3_ptr, d3);
+                std::ranges::construct_at(ptr, d3);
 
-                REQUIRE(to_void_pointer(ptr) == to_void_pointer(allocator.storage().data()));
+                REQUIRE(
+                    to_void_pointer(ptr) == to_void_pointer(allocator.resource().storage().data())
+                );
                 REQUIRE(base3_ptr->foo() == d3.foo());
                 REQUIRE(ptrs[1]->foo() == derived_array[1].foo());
 
-                allocator.deallocate(ptr, sizeof(derived));
+                allocator.deallocate(ptr, 1);
             }
         }
 
-        THEN("constructing 5 d1 at allocator should throws")
+        THEN("allocate memory more then its size should throws")
         {
-            REQUIRE_THROWS_AS(allocator.allocate(sizeof(derived) * 5), bad_alloc);
+            REQUIRE_THROWS_AS(
+                allocator.allocate(allocator.size * sizeof(generic_storage)),
+                bad_alloc
+            );
         }
     }
 
     GIVEN("allocator with 4 * sizeof(int), constexpr allocate and deallocate")
     {
-        [[maybe_unused]] constexpr int _ = ( //
+        STATIC_REQUIRE(
             []
             {
-                static_allocator<char, 4 * sizeof(int)> allocator;
-
+                static_memory_resource<2> rsc;
+                static_allocator allocator{rsc};
                 const auto p1 = allocator.allocate(1);
+                const bool is_null = p1 == nullptr;
+
                 allocator.deallocate(p1, 1);
-            }(),
-            0
+
+                return !is_null;
+            }()
         );
     }
 

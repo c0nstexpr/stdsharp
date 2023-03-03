@@ -34,6 +34,21 @@ namespace stdsharp
                 ... //
             );
         }
+
+        template<
+            typename Condition,
+            ::std::invocable<const Condition>... Func // clang-format off
+        > // clang-format on
+        constexpr void operator()(
+            const Condition& condition,
+            ::std::pair<Condition, Func>... cases //
+        ) const noexcept((nothrow_invocable<Func, Condition> && ...))
+        {
+            operator()(
+                condition,
+                make_pair(::std::bind_front(equal_to_v, cases.first), cases.second)...
+            );
+        }
     } pattern_match{};
 
     namespace constexpr_pattern_match

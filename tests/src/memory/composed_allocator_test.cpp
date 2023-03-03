@@ -1,30 +1,34 @@
 #include "stdsharp/memory/static_allocator.h"
 #include "stdsharp/memory/composed_allocator.h"
+#include "stdsharp/memory/allocator_reference.h"
 #include "test_allocator.h"
 
 SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
 {
     GIVEN("an allocator tuple")
     {
-        composed_allocator<static_allocator<int, 4>, test_allocator<int>> alloc;
+        static_memory_resource_for<int, 4> rsc;
+        test_allocator<int> test_alloc;
+
+        composed_allocator alloc{
+            static_allocator_for<int, 4>{rsc},
+            allocator_reference{test_alloc}};
 
         WHEN("allocate a int")
         {
-            const auto mem = alloc.allocate(1);
-            const auto ptr = mem.ptr;
+            const auto ptr = alloc.allocate(1);
 
             *ptr = 42;
 
             REQUIRE(*ptr == 42);
 
-            alloc.deallocate(mem, 1);
+            alloc.deallocate(ptr, 1);
         }
 
         constexpr auto count = 5;
         WHEN(fmt::format("allocate {} ints", count))
         {
-            const auto mem = alloc.allocate(count);
-            const auto ptr = mem.ptr;
+            const auto ptr = alloc.allocate(count);
 
             INFO(fmt::format("address: {}", to_void_pointer(ptr)));
 
@@ -35,16 +39,9 @@ SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
                 REQUIRE_THAT(data, Catch::Matchers::RangeEquals(span(ptr, count)));
             }
 
-            alloc.deallocate(mem, count);
+            alloc.deallocate(ptr, count);
 
-            get<1>(alloc.allocators).leak_check();
+            test_alloc.leak_check();
         }
-    }
-
-    GIVEN("an zero size static allocator tuple")
-    {
-        composed_allocator<static_allocator<int, 0>> alloc;
-
-        WHEN("allocate a int") { REQUIRE_THROWS_AS(alloc.allocate(1), aggregate_bad_alloc<1>); }
     }
 }

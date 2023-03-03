@@ -29,7 +29,7 @@ namespace stdsharp
         template<typename U>
         struct rebind
         {
-            using other = typename traits::template rebind_alloc<U>;
+            using other = allocator_reference<typename traits::template rebind_alloc<U>>;
         };
 
         [[nodiscard]] constexpr auto
@@ -81,4 +81,7 @@ namespace stdsharp
             return this->get() == other.get();
         }
     };
+
+    template<typename Alloc>
+    allocator_reference(Alloc&) -> allocator_reference<Alloc>;
 }
