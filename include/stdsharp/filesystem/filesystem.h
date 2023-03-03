@@ -80,8 +80,8 @@ namespace stdsharp::filesystem
         }
 
         template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto operator<=>(const space_size<OtherRep, Period> other
-        ) const noexcept
+        [[nodiscard]] constexpr auto operator<=>(const space_size<OtherRep, Period> other) //
+            const noexcept
         {
             if constexpr(::std::ratio_greater_equal_v<period, Period>)
                 return value_ <=> cast_from(other.value_, Period{});
@@ -89,8 +89,8 @@ namespace stdsharp::filesystem
         }
 
         template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto operator==(const space_size<OtherRep, Period> other
-        ) const noexcept
+        [[nodiscard]] constexpr auto operator==(const space_size<OtherRep, Period> other) //
+            const noexcept
         {
             return (*this <=> other) == ::std::strong_ordering::equal;
         }

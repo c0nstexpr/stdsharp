@@ -6,36 +6,100 @@
 
 namespace stdsharp
 {
-    struct requirement
-    {
-        enum
-        {
-            move,
-            copy
-        } category;
-
-        enum
-        {
-            ill_formed,
-            well_formed,
-            no_exception,
-        } level;
-
-        constexpr auto operator<=>(const requirement other) const noexcept
-        {
-            const auto category_comp_res = category <=> other.category;
-            const auto level_comp_res = level <=> other.level;
-
-            return (category_comp_res < level_comp_res) ?
-                ::std::partial_ordering::unordered :
-                static_cast<::std::partial_ordering>(category_comp_res);
-        }
-    };
-
     struct type_requirement
     {
-        requirement construct;
-        requirement assign;
+    private:
+        using partial_ordering = ::std::partial_ordering;
+
+        struct spec
+        {
+            enum : unsigned char
+            {
+                ill_formed,
+                well_formed,
+                no_exception,
+            } movable;
+
+            decltype(movable) copyable;
+
+        private:
+            friend constexpr partial_ordering
+                operator<=>(const spec left, const spec right) noexcept
+            {
+                const auto movable_comp = left.movable <=> right.movable;
+
+                return movable_comp == (left.copyable <=> right.copyable) ?
+                    movable_comp :
+                    partial_ordering::unordered;
+            }
+
+            friend constexpr spec min(const spec left, const spec right) noexcept
+            {
+                return {
+                    ::std::min(left.movable, right.movable),
+                    ::std::min(left.copyable, right.copyable) //
+                };
+            }
+        };
+
+    public:
+        spec construct;
+
+        spec assign;
+
+        template<typename T>
+        [[nodiscard]] static constexpr type_requirement from() noexcept
+        {
+            using req_t = decltype(construct);
+
+            return {
+                {
+                    .movable = ::std::move_constructible<T> ?
+                        ( //
+                            nothrow_move_constructible<T> ? req_t::no_exception : req_t::well_formed
+                        ) :
+                        req_t::ill_formed,
+                    .copyable = ::std::copy_constructible<T> ?
+                        ( //
+                            nothrow_copy_constructible<T> ? req_t::no_exception : req_t::well_formed
+                        ) :
+                        req_t::ill_formed //
+                },
+                {
+                    .movable = move_assignable<T> ?
+                        ( //
+                            nothrow_move_assignable<T> ? req_t::no_exception : req_t::well_formed
+                        ) :
+                        req_t::ill_formed,
+                    .copyable = copy_assignable<T> ?
+                        ( //
+                            nothrow_copy_assignable<T> ? req_t::no_exception : req_t::well_formed
+                        ) :
+                        req_t::ill_formed //
+                } //
+            };
+        }
+
+        friend constexpr partial_ordering
+            operator<=>(const type_requirement left, const type_requirement right) noexcept
+        {
+            const auto construct_comp = left.construct <=> right.construct;
+
+            return construct_comp == (left.assign <=> right.assign) ? construct_comp :
+                                                                      partial_ordering::unordered;
+        }
+
+        friend constexpr auto
+            operator==(const type_requirement left, const type_requirement right) noexcept
+        {
+            return (left <=> right) == partial_ordering::equivalent;
+        }
+
+        friend constexpr type_requirement
+            min(const type_requirement left, const type_requirement right) noexcept
+        {
+            return {min(left.construct, right.construct), min(left.assign, right.assign)};
+        }
     };
 
     namespace details

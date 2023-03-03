@@ -16,7 +16,7 @@ namespace stdsharp
     concept all_same = (::std::same_as<T, U> && ...);
 
     template<typename T>
-    concept enumeration = ::std::is_enum_v<T>;
+    concept enum_ = ::std::is_enum_v<T>;
 
     template<typename T>
     concept reference = ::std::is_reference_v<T>;

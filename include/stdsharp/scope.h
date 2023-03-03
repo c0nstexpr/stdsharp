@@ -1,41 +1,44 @@
 #pragma once
 
-#include <exception>
+#include <optional>
 
-#include "cstdint/cstdint.h"
-#include "type_traits/object.h"
-#include "utility/value_wrapper.h"
+#include "stdsharp/type_traits/object.h"
 
 namespace stdsharp::scope
 {
-    enum class exit_fn_policy : u8
+    enum class exit_fn_policy : unsigned char
     {
-        on_success = 1,
-        on_failure = 2,
+        on_success = 0b01,
+        on_failure = 0b10,
         on_exit = on_success | on_failure
     };
 
     template<exit_fn_policy Policy, nothrow_invocable Fn>
     struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
-        private value_wrapper<Fn>,
+        private ::std::optional<Fn>,
         unique_object
     {
     private:
-        using wrapper = value_wrapper<Fn>;
-        using wrapper::value;
-
-        constexpr void execute() noexcept { ::std::invoke(::std::move(value)); };
+        constexpr void execute() noexcept { ::std::invoke(::std::move(this->value())); };
 
     public:
         using exit_fn_t = Fn;
-        using wrapper::wrapper;
+
+        template<typename... Args>
+            requires ::std::constructible_from<Fn, Args...>
+        constexpr explicit scoped(Args&&... args) noexcept(nothrow_constructible_from<Fn, Args...>):
+            ::std::optional<Fn>(::std::in_place, ::std::forward<Args>(args)...)
+        {
+        }
 
         static constexpr auto policy = Policy;
 
         constexpr ~scoped()
         {
+            if(!this->has_value()) return;
+
             if constexpr(policy == exit_fn_policy::on_exit) execute();
-            else if(::std::uncaught_exceptions() == 0)
+            else if(::std::is_constant_evaluated() || ::std::uncaught_exceptions() == 0)
             {
                 if constexpr(policy == exit_fn_policy::on_success) execute();
             }
