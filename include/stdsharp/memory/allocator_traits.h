@@ -137,8 +137,8 @@ namespace stdsharp
 
     enum class allocator_assign_operation
     {
-        before,
-        after
+        before_assign,
+        after_assign
     };
 
     template<allocator_req T>
@@ -160,6 +160,8 @@ namespace stdsharp
         using typename base::propagate_on_container_move_assignment;
         using typename base::propagate_on_container_swap;
         using typename base::is_always_equal;
+
+        using enum allocator_assign_operation;
 
         struct allocated
         {
@@ -250,49 +252,24 @@ namespace stdsharp
         template<typename Operation>
             requires requires //
         {
-            requires ::std::invocable<
-                Operation,
-                constant<allocator_assign_operation::before>,
-                allocator_type&,
-                allocator_type // clang-format off
-            >;
-            requires ::std::invocable<
-                Operation,
-                constant<allocator_assign_operation::after>,
-                allocator_type&,
-                allocator_type
-            >; // clang-format on
+            requires ::std::
+                invocable<Operation, constant<before_assign>, allocator_type&, allocator_type>;
+            requires ::std::
+                invocable<Operation, constant<after_assign>, allocator_type&, allocator_type>;
             requires propagate_on_container_move_assignment::value;
         }
-        constexpr void assign(allocator_type& left, allocator_type&& right, Operation op) //
-            noexcept( // clang-format off
+        constexpr void assign(allocator_type& left, allocator_type&& right, Operation op) noexcept(
+            nothrow_invocable<Operation, constant<before_assign>, allocator_type&, allocator_type>&&
                 nothrow_invocable<
                     Operation,
-                    constant<allocator_assign_operation::before>,
+                    constant<after_assign>,
                     allocator_type&,
-                    allocator_type
-                >&&
-                    nothrow_invocable<
-                        Operation,
-                        constant<allocator_assign_operation::after>,
-                        allocator_type&,
-                        allocator_type
-                    >
-            ) // clang-format on
+                    allocator_type> //
+        )
         {
-            ::std::invoke(
-                op,
-                constant<allocator_assign_operation::before>{},
-                left,
-                ::std::move(right)
-            );
+            ::std::invoke(op, constant<before_assign>{}, left, ::std::move(right));
             left = ::std::move(right);
-            ::std::invoke(
-                op,
-                constant<allocator_assign_operation::after>{},
-                left,
-                ::std::move(right)
-            );
+            ::std::invoke(op, constant<after_assign>{}, left, ::std::move(right));
         }
 
         template<::std::invocable<allocator_type&, allocator_type> Operation>
@@ -307,37 +284,37 @@ namespace stdsharp
         {
             requires ::std::invocable<
                 Operation,
-                constant<allocator_assign_operation::before>,
+                constant<before_assign>,
                 allocator_type&,
-                const allocator_type& // clang-format off
+                const allocator_type&// clang-format off
             >;
             requires ::std::invocable<
                 Operation,
-                constant<allocator_assign_operation::after>,
+                constant<after_assign>,
                 allocator_type&,
                 const allocator_type&
-            >; // clang-format on
+            >;// clang-format on
             requires propagate_on_container_copy_assignment::value;
         }
         constexpr void assign(allocator_type& left, const allocator_type& right, Operation op) //
             noexcept( // clang-format off
                 nothrow_invocable<
                     Operation,
-                    constant<allocator_assign_operation::before>,
+                    constant<before_assign>,
                     allocator_type&,
                     const allocator_type&
                 >&&
                     nothrow_invocable<
                         Operation,
-                        constant<allocator_assign_operation::after>,
+                        constant<after_assign>,
                         allocator_type&,
                         const allocator_type&
                     >
             ) // clang-format on
         {
-            ::std::invoke(op, constant<allocator_assign_operation::before>{}, left, right);
+            ::std::invoke(op, constant<before_assign>{}, left, right);
             left = right;
-            ::std::invoke(op, constant<allocator_assign_operation::after>{}, left, right);
+            ::std::invoke(op, constant<after_assign>{}, left, right);
         }
 
         template<::std::invocable<allocator_type&, const allocator_type&> Operation>
@@ -355,6 +332,12 @@ namespace stdsharp
 
     template<typename>
     struct allocator_of;
+
+    template<typename T>
+        requires requires { typename T::allocator_type; }
+    struct allocator_of<T> : ::std::type_identity<typename T::allocator_type>
+    {
+    };
 
     template<typename T>
     using allocator_of_t = ::meta::_t<allocator_of<T>>;

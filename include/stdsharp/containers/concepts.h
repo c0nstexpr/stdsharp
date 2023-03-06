@@ -16,12 +16,6 @@
 
 namespace stdsharp
 {
-    template<typename Container>
-        requires requires { typename Container::allocator_type; }
-    struct allocator_of<Container> : ::std::type_identity<typename Container::allocator_type>
-    {
-    };
-
     template<typename T, auto Size>
     struct allocator_of<::std::array<T, Size>>
     {
@@ -34,18 +28,18 @@ namespace stdsharp
         requires allocator_req<Allocator>;
         requires ::std::same_as<
             Allocator,
-            typename ::std::allocator_traits<Allocator>:: //
+            typename allocator_traits<Allocator>:: //
             template rebind_alloc<ValueType> // clang-format off
         >; // clang-format on
         requires ::std::destructible<ValueType>;
-        ::std::allocator_traits<Allocator>::destroy(allocator_instance, ptr);
+        allocator_traits<Allocator>::destroy(allocator_instance, ptr);
     };
 
     template<typename ValueType, typename Allocator>
     concept nothrow_erasable = requires(Allocator allocator_instance, ValueType* ptr) //
     {
         requires erasable<ValueType, Allocator>;
-        requires noexcept(::std::allocator_traits<Allocator>::destroy(allocator_instance, ptr));
+        requires noexcept(allocator_traits<Allocator>::destroy(allocator_instance, ptr));
     };
 
     template<typename Container>
@@ -70,14 +64,13 @@ namespace stdsharp
     concept move_insertable =
         requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv) //
     {
-        requires allocator_req<Allocator>;
         requires ::std::same_as<
             Allocator,
-            typename ::std::allocator_traits<Allocator>:: //
+            typename allocator_traits<Allocator>:: //
             template rebind_alloc<ValueType> // clang-format off
         >; // clang-format on
         requires ::std::move_constructible<ValueType>;
-        ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, ::std::move(rv));
+        allocator_traits<Allocator>::construct(allocator_instance, ptr, ::std::move(rv));
     };
 
     template<typename ValueType, typename Allocator>
@@ -87,7 +80,7 @@ namespace stdsharp
         requires move_insertable<ValueType, Allocator>;
         requires nothrow_move_constructible<ValueType>;
         requires noexcept(
-            ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, ::std::move(rv))
+            allocator_traits<Allocator>::construct(allocator_instance, ptr, ::std::move(rv))
         );
     };
 
@@ -113,7 +106,7 @@ namespace stdsharp
     concept copy_insertable = requires(Allocator allocator_instance, ValueType* ptr, ValueType v) //
     {
         requires move_insertable<ValueType, Allocator> && ::std::copy_constructible<ValueType>;
-        ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
+        allocator_traits<Allocator>::construct(allocator_instance, ptr, v);
     };
 
     template<typename ValueType, typename Allocator>
@@ -122,8 +115,7 @@ namespace stdsharp
     {
         requires nothrow_move_insertable<ValueType, Allocator>;
         requires nothrow_copy_constructible<ValueType>;
-        requires noexcept(
-            ::std::allocator_traits<Allocator>::construct(allocator_instance, ptr, v) //
+        requires noexcept(allocator_traits<Allocator>::construct(allocator_instance, ptr, v) //
         );
     };
 
@@ -151,11 +143,11 @@ namespace stdsharp
     {
         requires ::std::same_as<
             Allocator,
-            typename ::std::allocator_traits<Allocator>:: //
+            typename allocator_traits<Allocator>:: //
             template rebind_alloc<ValueType> // clang-format off
         >; // clang-format on
         requires ::std::constructible_from<ValueType, Args...>;
-        ::std::allocator_traits<Allocator>::construct(
+        allocator_traits<Allocator>::construct(
             allocator_instance,
             ptr,
             ::std::forward<Args>(args)...
@@ -167,7 +159,7 @@ namespace stdsharp
         requires(Allocator allocator_instance, ValueType* ptr, Args&&... args) //
     {
         requires nothrow_constructible_from<ValueType, Args...>;
-        requires noexcept(::std::allocator_traits<Allocator>::construct(
+        requires noexcept(allocator_traits<Allocator>::construct(
             allocator_instance,
             ptr,
             ::std::forward<Args>(args)...
@@ -334,14 +326,14 @@ namespace stdsharp
                 requires container_erasable<decltype(instance)>;
 
                 requires logical_imply(
-                             ::std::allocator_traits<decltype(alloc
+                             allocator_traits<decltype(alloc
                                  )>::propagate_on_container_move_assignment::value ||
                                  container_nothrow_move_insertable<decltype(instance)> &&
                                      (nothrow_move_assignable<Members> && ...),
                              nothrow_move_assignable<decltype(instance)> //
                          ) ||
                     logical_imply(
-                             ::std::allocator_traits<decltype(alloc
+                             allocator_traits<decltype(alloc
                                  )>::propagate_on_container_move_assignment::value ||
                                  container_move_insertable<decltype(instance)> &&
                                      (move_assignable<Members> && ...),
@@ -549,7 +541,7 @@ namespace stdsharp
         };
 
         template<typename Container, typename... Args>
-        struct optional_constructible
+        struct container_optional_constructible
         {
             template<typename... Optional>
             static constexpr auto value = []<::std::size_t... I>(const ::std::index_sequence<I...>)
@@ -670,19 +662,19 @@ namespace stdsharp
 
             requires logical_imply(
                 container_emplace_constructible<decltype(instance), decltype(value)>,
-                details::optional_constructible<
+                details::container_optional_constructible<
                     decltype(instance),
                     decltype(const_iter),
                     decltype(const_iter) // clang-format off
                 >::template value<decltype(key_cmp), decltype(alloc)> &&
-                details::optional_constructible<
+                details::container_optional_constructible<
                     decltype(instance),
                     decltype(v_list)
                 >::template value<decltype(key_cmp), decltype(alloc)>
             );
 
 #if (defined __cpp_lib_containers_ranges) && !(defined _MSVC_LANG)
-            requires details::optional_constructible<
+            requires details::container_optional_constructible<
                 decltype(instance),
                 ::std::from_range_t,
                 decltype(instance) // clang-format off
@@ -740,14 +732,14 @@ namespace stdsharp
             requires details::iterator_identical<decltype(iter), decltype(local_iter)>;
             requires details::iterator_identical<decltype(const_iter), decltype(const_local_iter)>;
 
-            requires details::optional_constructible<decltype(instance), decltype(size)>::
+            requires details::container_optional_constructible<decltype(instance), decltype(size)>::
                 template value<decltype(hasher), decltype(key_equal), decltype(alloc)>;
 
             requires logical_imply(
                 container_emplace_constructible<decltype(instance), decltype(value)>,
                 requires //
                 {
-                    requires details::optional_constructible<
+                    requires details::container_optional_constructible<
                         decltype(instance),
                         decltype(const_iter),
                         decltype(const_iter) // clang-format off
@@ -758,7 +750,7 @@ namespace stdsharp
                         decltype(alloc)
                     >; // clang-format on
 
-                    requires details::optional_constructible<
+                    requires details::container_optional_constructible<
                         decltype(instance),
                         decltype(v_list)>::template value< // clang-format off
                         decltype(size),
@@ -768,7 +760,7 @@ namespace stdsharp
                     >; // clang-format on
 
 #if(defined __cpp_lib_containers_ranges) && !(defined _MSVC_LANG)
-                    requires details::optional_constructible<
+                    requires details::container_optional_constructible<
                         decltype(instance),
                         ::std::from_range_t,
                         decltype(instance) // clang-format off
