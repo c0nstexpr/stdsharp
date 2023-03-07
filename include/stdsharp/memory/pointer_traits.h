@@ -7,7 +7,7 @@
 
 namespace stdsharp
 {
-    template<typename Ptr>
+    template<dereferenceable Ptr>
     struct pointer_traits : private ::std::pointer_traits<Ptr>
     {
     private:
@@ -147,4 +147,31 @@ namespace stdsharp
             return impl(ptr);
         }
     } to_void_pointer{};
+
+    template<typename T>
+    struct point_as_fn
+    {
+    private:
+        template<typename Pointer>
+            requires requires { pointer_traits<Pointer>{}; }
+        struct traits
+        {
+            static constexpr auto is_const = //
+                const_<typename pointer_traits<Pointer>::element_type>;
+            using ptr = ::std::conditional_t<is_const, const T*, T*>;
+            using ref = ::std::conditional_t<is_const, const T&, T&>;
+        };
+
+    public:
+        template<typename Pointer>
+            requires requires { traits<Pointer>{}; }
+        [[nodiscard]] constexpr typename traits<Pointer>::ref operator()(const Pointer& p) noexcept
+            requires ::std::invocable<to_void_pointer_fn, const Pointer&>
+        {
+            return *static_cast<typename traits<Pointer>::ptr>(to_void_pointer(p));
+        }
+    };
+
+    template<typename T>
+    inline constexpr point_as_fn<T> point_as{};
 }

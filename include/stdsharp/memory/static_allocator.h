@@ -2,6 +2,7 @@
 
 #include "static_memory_resource.h"
 #include "../cmath/cmath.h"
+#include "pointer_traits.h"
 
 namespace stdsharp
 {
@@ -45,7 +46,7 @@ namespace stdsharp
         constexpr void deallocate(T* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
-            resource().deallocate(generic_storage::from_ptr(ptr), to_generic_size(required_size));
+            resource().deallocate(point_as<generic_storage>(ptr), to_generic_size(required_size));
         }
 
         [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }
@@ -57,7 +58,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool contains(const T* const ptr) const noexcept
         {
-            return resource().contains(generic_storage::from_ptr(ptr));
+            return resource().contains(point_as<generic_storage>(ptr));
         }
 
     private:

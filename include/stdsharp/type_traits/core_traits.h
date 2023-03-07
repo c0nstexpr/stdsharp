@@ -20,6 +20,23 @@ namespace stdsharp
         rvalue
     };
 
+    enum class expr_req
+    {
+        ill_formed,
+        well_formed,
+        no_exception,
+    };
+
+    template<typename T, typename Ret, typename... Args>
+    inline constexpr auto invocable_r_req = ::std::is_invocable_r_v<T, Ret, Args...> ?
+        ::std::is_nothrow_invocable_r_v<T, Ret, Args...> ? //
+            expr_req::no_exception :
+            expr_req::well_formed :
+        expr_req::ill_formed;
+
+    template<typename T, typename... Args>
+    inline constexpr auto invocable_req = invocable_r_req<T, void, Args...>;
+
     template<typename T, bool Const>
     using apply_const = ::std::conditional_t<Const, ::std::add_const_t<T>, T>;
 

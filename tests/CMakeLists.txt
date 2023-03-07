@@ -20,7 +20,6 @@ set(src
     src/functional/symmetric_operations_test.cpp
     src/memory/composed_allocator_test.cpp
     src/memory/object_allocation_test.cpp
-    src/memory/scoped_memory_test.cpp
     src/memory/static_allocator_test.cpp
     src/tuple/tuple_test.cpp
     src/type_traits/member_test.cpp

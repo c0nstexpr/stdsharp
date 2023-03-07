@@ -14,63 +14,6 @@ namespace stdsharp
     {
     private:
         ::std::max_align_t v;
-
-        template<typename T>
-        [[nodiscard]] friend constexpr auto point_as(generic_storage* const t) noexcept
-        {
-            return static_cast<T*>(static_cast<void*>(t));
-        }
-
-        template<typename T>
-            requires explicitly_convertible<generic_storage*, T*>
-        [[nodiscard]] friend constexpr auto point_as(generic_storage* const t) //
-            noexcept(nothrow_explicitly_convertible<generic_storage*, T*>)
-        {
-            return static_cast<T*>(t);
-        }
-
-        template<typename T>
-        [[nodiscard]] friend constexpr auto point_as(const generic_storage* const t) noexcept
-        {
-            return static_cast<const T*>(static_cast<const void*>(t));
-        }
-
-        template<typename T>
-            requires explicitly_convertible<const generic_storage*, T*>
-        [[nodiscard]] friend constexpr auto point_as(const generic_storage* const t) //
-            noexcept(nothrow_explicitly_convertible<const generic_storage*, T*>)
-        {
-            return static_cast<const T*>(t);
-        }
-
-    public:
-        template<typename T>
-        [[nodiscard]] static constexpr auto from_ptr(T* const ptr) noexcept
-        {
-            return static_cast<generic_storage*>(static_cast<void*>(ptr));
-        }
-
-        template<typename T>
-            requires explicitly_convertible<T*, generic_storage*>
-        [[nodiscard]] static constexpr auto from_ptr(T* const t) //
-            noexcept(nothrow_explicitly_convertible<T*, generic_storage*>)
-        {
-            return static_cast<generic_storage*>(t);
-        }
-
-        template<typename T>
-        [[nodiscard]] static constexpr auto from_ptr(const T* const ptr) noexcept
-        {
-            return static_cast<const generic_storage*>(static_cast<const void*>(ptr));
-        }
-
-        template<typename T>
-            requires explicitly_convertible<const T*, const generic_storage*>
-        [[nodiscard]] static constexpr auto from_ptr(const T* const t) //
-            noexcept(nothrow_explicitly_convertible<const T*, const generic_storage*>)
-        {
-            return static_cast<const generic_storage*>(t);
-        }
     };
 
     template<::std::size_t Size>

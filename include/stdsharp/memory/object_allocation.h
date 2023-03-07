@@ -3,11 +3,83 @@
 #include "pointer_traits.h"
 #include "allocator_traits.h"
 #include "../type_traits/object.h"
+#include "../type_traits/special_member.h"
 
 namespace stdsharp
 {
     namespace details
     {
+        template<
+            special_mem_req Req,
+            typename Ptr,
+            typename pointer_traits = pointer_traits<Ptr>,
+            typename ConstPtr = typename pointer_traits:: //
+            template rebind<const typename pointer_traits::element_type> // clang-format off
+        > // clang-format on
+        struct special_member_traits
+        {
+            template<expr_req ExprReq, typename... Arg>
+            struct mem_ptr
+            {
+                static constexpr auto is_noexcept = ExprReq == expr_req::no_exception;
+
+                using ptr_t = void (*)(Arg&&...) noexcept(is_noexcept);
+
+                ptr_t value;
+
+                constexpr void operator()(Arg&&... args) const noexcept(is_noexcept)
+                {
+                    (*value)(::std::forward<Arg>(args)...);
+                }
+            };
+
+            template<typename... Arg>
+            struct mem_ptr<expr_req::ill_formed, Arg...>
+            {
+                mem_ptr(const auto) noexcept {}
+            };
+
+            template<typename Alloc>
+            class impl
+            {
+                using alloc_traits = allocator_traits<Alloc>;
+
+            public:
+                template<typename T>
+                    requires(Req <= special_mem_req::for_type<T>())
+                constexpr impl(const ::std::type_identity<T>) noexcept:
+                    curent_type_(type_id<T>),
+                    type_size_(sizeof(T)),
+                    move_ctor_( //
+                        [](Alloc& alloc, const Ptr& left, const Ptr& right) //
+                        noexcept(Req.move_construct == expr_req::no_exception) //
+                        {
+                            alloc_traits::construct(
+                                alloc,
+                                point_as<T>(left),
+                                ::std::move(point_as<T>(right))
+                            );
+                        }
+                    ),
+                {
+                }
+
+                [[nodiscard]] constexpr auto type() const noexcept { return curent_type_; }
+
+                [[nodiscard]] constexpr auto size() const noexcept { return type_size_; }
+
+            private:
+                ::std::string_view curent_type_{};
+                ::std::size_t type_size_{};
+
+                mem_ptr<Req.move_construct, Alloc&, const Ptr&> move_ctor_;
+                mem_ptr<Req.copy_construct, Alloc&, const ConstPtr&> copy_ctor_;
+                mem_ptr<Req.move_assign, Alloc&, const Ptr&> move_assign_;
+                mem_ptr<Req.copy_assign, Alloc&, const ConstPtr&> copy_assign_;
+                mem_ptr<Req.destroy, Alloc&, const Ptr&> destroy_;
+            };
+        };
+
         template<typename Alloc>
         struct basic_object_allocation
         {
