@@ -149,7 +149,7 @@ namespace stdsharp
     } to_void_pointer{};
 
     template<typename T>
-    struct point_as_fn
+    struct to_other_pointer_fn
     {
     private:
         template<typename Pointer>
@@ -159,19 +159,48 @@ namespace stdsharp
             static constexpr auto is_const = //
                 const_<typename pointer_traits<Pointer>::element_type>;
             using ptr = ::std::conditional_t<is_const, const T*, T*>;
-            using ref = ::std::conditional_t<is_const, const T&, T&>;
         };
 
     public:
         template<typename Pointer>
-            requires requires { traits<Pointer>{}; }
-        [[nodiscard]] constexpr typename traits<Pointer>::ref operator()(const Pointer& p) noexcept
-            requires ::std::invocable<to_void_pointer_fn, const Pointer&>
+            requires requires //
         {
-            return *static_cast<typename traits<Pointer>::ptr>(to_void_pointer(p));
+            traits<Pointer>{};
+            requires ::std::invocable<to_void_pointer_fn, const Pointer&>;
+            requires !explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
+        }
+        [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        {
+            return static_cast<typename traits<Pointer>::ptr>(to_void_pointer(p));
+        }
+
+        template<typename Pointer>
+            requires requires //
+        {
+            traits<Pointer>{};
+            requires explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
+        }
+        [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        {
+            return static_cast<typename traits<Pointer>::ptr>(p);
         }
     };
 
     template<typename T>
-    inline constexpr point_as_fn<T> point_as{};
+    inline constexpr to_other_pointer_fn<T> to_other_pointer{};
+
+    template<typename T>
+    struct dereference_to_fn
+    {
+    public:
+        template<typename Pointer>
+            requires ::std::invocable<to_other_pointer_fn<T>, Pointer>
+        [[nodiscard]] constexpr decltype(auto) operator()(const Pointer& p) const noexcept
+        {
+            return *to_other_pointer<T>(p);
+        }
+    };
+
+    template<typename T>
+    inline constexpr dereference_to_fn<T> dereference_to{};
 }

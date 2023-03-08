@@ -4,6 +4,6 @@
 using namespace stdsharp;
 using namespace std;
 
-SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
+SCENARIO("allocate memory", "[memory][object allocation]") // NOLINT
 {
 }

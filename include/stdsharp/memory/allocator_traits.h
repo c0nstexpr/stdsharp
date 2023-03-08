@@ -226,22 +226,29 @@ namespace stdsharp
             }
         }
 
-        static constexpr pointer try_allocate(
+        static constexpr auto try_allocate(
             allocator_type& alloc,
             const size_type count,
-            const const_void_pointer hint = nullptr
+            [[maybe_unused]] const const_void_pointer hint = nullptr
         ) noexcept
             requires requires // clang-format off
         {
-            { alloc.try_allocate(count, hint) } ->
-                ::std::same_as<pointer>;
-            requires noexcept(alloc.try_allocate(count, hint));
-            { alloc.try_allocate(count) } ->
-                ::std::same_as<pointer>; // clang-format on
+            { alloc.try_allocate(count) } -> ::std::same_as<pointer>; // clang-format on
             requires noexcept(alloc.try_allocate(count));
         }
         {
-            return hint == nullptr ? alloc.try_allocate(count) : alloc.try_allocate(count, hint);
+            if constexpr( // clang-format off
+                requires
+                {
+                    { alloc.try_allocate(count, hint) } ->
+                        ::std::same_as<pointer>; // clang-format on
+                    requires noexcept(alloc.try_allocate(count, hint));
+                } //
+            )
+                if(hint != nullptr) return alloc.try_allocate(count, hint);
+
+
+            return alloc.try_allocate(count);
         }
 
         static constexpr auto allocate_at_least(allocator_type& alloc, const size_type count)
@@ -327,6 +334,24 @@ namespace stdsharp
         constexpr decltype(auto) copy_construct(const allocator_type& alloc) noexcept
         {
             return select_on_container_copy_construction(alloc);
+        }
+
+        constexpr allocated get_allocated(
+            allocator_type& alloc,
+            const size_type size,
+            const const_void_pointer hint = nullptr
+        )
+        {
+            return {size > 0 ? allocate(alloc, size, hint) : nullptr, size};
+        }
+
+        constexpr allocated try_get_allocated(
+            allocator_type& alloc,
+            const size_type size,
+            const const_void_pointer hint = nullptr
+        ) noexcept
+        {
+            return {size > 0 ? try_allocate(alloc, size, hint) : nullptr, size};
         }
     };
 
