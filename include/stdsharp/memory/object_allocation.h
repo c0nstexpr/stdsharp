@@ -7,239 +7,235 @@
 
 namespace stdsharp
 {
-
-    template<expr_req ExprReq, typename... Arg>
-    struct special_mem_ptr
+    namespace details
     {
-        static constexpr auto is_noexcept = ExprReq == expr_req::no_exception;
-
-        using ptr_t = void (*)(Arg&&...) noexcept(is_noexcept);
-
-        ptr_t value;
-
-        constexpr special_mem_ptr(const ptr_t ptr = nullptr) noexcept: value(ptr) {}
-
-        constexpr void operator()(Arg&&... args) const noexcept(is_noexcept)
+        template<expr_req ExprReq, typename... Arg>
+        struct special_mem_ptr
         {
-            (*value)(::std::forward<Arg>(args)...);
-        }
-    };
+            static constexpr auto is_noexcept = ExprReq == expr_req::no_exception;
 
-    template<typename... Arg>
-    struct special_mem_ptr<expr_req::ill_formed, Arg...>
-    {
-        static constexpr auto is_noexcept = false;
+            using ptr_t = void (*)(Arg&&...) noexcept(is_noexcept);
 
-        special_mem_ptr(const auto) noexcept {}
-    };
+            ptr_t value;
 
-    template<special_mem_req Req, typename Ptr>
-    struct mov_assign : special_mem_ptr<Req.move_assign, const Ptr&, const Ptr&>
-    {
-        template<typename T>
-        static constexpr mov_assign for_type()
-        {
-            return [](const Ptr& left, const Ptr& right) //
-                noexcept(mov_assign::is_noexcept) //
-                requires(Req.move_assign >= expr_req::well_formed) //
+            constexpr special_mem_ptr(const ptr_t ptr = nullptr) noexcept: value(ptr) {}
+
+            constexpr void operator()(Arg&&... args) const noexcept(is_noexcept)
             {
-                dereference_to<T>(left) = ::std::move(dereference_to<T>(right));
+                (*value)(::std::forward<Arg>(args)...);
+            }
+        };
+
+        template<typename... Arg>
+        struct special_mem_ptr<expr_req::ill_formed, Arg...>
+        {
+            static constexpr auto is_noexcept = false;
+
+            special_mem_ptr(const auto) noexcept {}
+        };
+
+        template<special_mem_req Req, typename Ptr>
+        struct mov_assign : special_mem_ptr<Req.move_assign, const Ptr&, const Ptr&>
+        {
+            template<typename T>
+            static constexpr mov_assign for_type()
+            {
+                return [](const Ptr& left, const Ptr& right) //
+                    noexcept(mov_assign::is_noexcept) //
+                    requires(Req.move_assign >= expr_req::well_formed) //
+                {
+                    dereference_to<T>(left) = ::std::move(dereference_to<T>(right));
+                };
+            }
+        };
+
+        template<special_mem_req Req, typename Ptr, typename ConstPtr>
+        struct cp_assign : special_mem_ptr<Req.copy_assign, const Ptr&, const ConstPtr&>
+        {
+            template<typename T>
+            static constexpr cp_assign for_type()
+            {
+                return [](const Ptr& left, const ConstPtr& right) //
+                    noexcept(cp_assign::is_noexcept) //
+                    requires(Req.copy_assign >= expr_req::well_formed) //
+                {
+                    dereference_to<T>(left) = dereference_to<T>(right);
+                };
+            }
+        };
+
+        template<special_mem_req Req, typename Alloc>
+        struct special_member_traits
+        {
+            using pointer = typename allocator_traits<Alloc>::pointer;
+            using pointer_traits = pointer_traits<pointer>;
+            using const_pointer = typename allocator_traits<Alloc>::const_pointer;
+
+            struct mov_ctor :
+                special_mem_ptr<Req.move_construct, Alloc&, const pointer&, const pointer&>
+            {
+                template<typename T>
+                static constexpr mov_ctor for_type()
+                {
+                    return [](Alloc & alloc, const pointer& left, const pointer& right) //
+                        noexcept(mov_ctor::is_noexcept) //
+                        requires(Req.move_construct >= expr_req::well_formed) //
+                    {
+                        allocator_traits<Alloc>::construct(
+                            alloc,
+                            dereference_to<T>(left),
+                            ::std::move(dereference_to<T>(right))
+                        );
+                    };
+                }
             };
-        }
-    };
 
-    template<special_mem_req Req, typename Ptr, typename ConstPtr>
-    struct cp_assign : special_mem_ptr<Req.copy_assign, const Ptr&, const ConstPtr&>
-    {
-        template<typename T>
-        static constexpr cp_assign for_type()
-        {
-            return [](const Ptr& left, const ConstPtr& right) //
-                noexcept(cp_assign::is_noexcept) //
-                requires(Req.copy_assign >= expr_req::well_formed) //
+            struct cp_ctor :
+                special_mem_ptr<Req.copy_construct, Alloc&, const pointer&, const const_pointer&>
             {
-                dereference_to<T>(left) = dereference_to<T>(right);
+                template<typename T>
+                static constexpr cp_ctor for_type()
+                {
+                    return [](Alloc & alloc, const pointer& left, const const_pointer& right) //
+                        noexcept(cp_ctor::is_noexcept) //
+                        requires(Req.copy_construct >= expr_req::well_formed) //
+                    {
+                        allocator_traits<Alloc>::construct(
+                            alloc,
+                            dereference_to<T>(left),
+                            dereference_to<T>(right)
+                        );
+                    };
+                }
             };
-        }
-    };
+
+            struct dtor : special_mem_ptr<Req.destroy, Alloc&, const pointer&>
+            {
+                template<typename T>
+                static constexpr dtor for_type()
+                {
+                    return [](Alloc & alloc, const pointer& ptr) //
+                        noexcept(dtor::is_noexcept) //
+                        requires(Req.destroy >= expr_req::well_formed) //
+                    {
+                        allocator_traits<Alloc>::destroy(alloc, dereference_to<T>(ptr));
+                    };
+                }
+            };
+
+            using mov_assign = mov_assign<Req, pointer>;
+
+            using cp_assign = cp_assign<Req, pointer, const_pointer>;
+
+            class impl : mov_ctor, cp_ctor, mov_assign, cp_assign, dtor
+            {
+                using alloc_traits = allocator_traits<Alloc>;
+
+            public:
+                template<typename T>
+                    requires(Req <= special_mem_req::for_type<T>())
+                static const impl for_type;
+
+                impl() = default;
+
+                template<typename T>
+                    requires(Req <= special_mem_req::for_type<T>())
+                constexpr impl(const ::std::type_identity<T>) noexcept:
+                    current_type_(type_id<T>),
+                    type_size_(sizeof(T)),
+                    mov_ctor(mov_ctor::template for_type<T>()),
+                    cp_ctor(cp_ctor::template for_type<T>()),
+                    mov_assign(mov_assign::template for_type<T>()),
+                    cp_assign(cp_assign::template for_type<T>()),
+                    dtor(dtor::template for_type<T>())
+                {
+                }
+
+                template<special_mem_req OtherReq>
+                    requires(Req <= OtherReq)
+                constexpr impl( //
+                    const typename special_member_traits<OtherReq, Alloc>::impl& other
+                ) noexcept:
+                    current_type_(other.current_type_),
+                    type_size_(other.type_size_),
+                    mov_ctor(other.mov_ctor),
+                    cp_ctor(other.cp_ctor),
+                    mov_assign(other.mov_assign),
+                    cp_assign(other.cp_assign),
+                    dtor(other.dtor)
+                {
+                }
+
+                constexpr void
+                    construct(Alloc& alloc, const pointer& left, const pointer& right) const
+                    noexcept(mov_ctor::is_noexcept)
+                    requires(Req.move_construct >= expr_req::well_formed)
+                {
+                    static_cast<const mov_ctor&>(*this)(alloc, left, right);
+                }
+
+                constexpr void
+                    construct(Alloc& alloc, const pointer& left, const const_pointer& right) const
+                    noexcept(cp_ctor::is_noexcept)
+                    requires(Req.copy_construct >= expr_req::well_formed)
+                {
+                    static_cast<const mov_ctor&>(*this)(alloc, left, right);
+                }
+
+                constexpr void assign(const pointer& left, const pointer& right) const
+                    noexcept(mov_assign::is_noexcept)
+                    requires(Req.move_assign >= expr_req::well_formed)
+                {
+                    static_cast<const mov_assign&>(*this)(left, right);
+                }
+
+                constexpr void assign(const pointer& left, const const_pointer& right) const
+                    noexcept(cp_assign::is_noexcept)
+                    requires(Req.copy_assign >= expr_req::well_formed)
+                {
+                    static_cast<const cp_assign&>(*this)(left, right);
+                }
+
+                constexpr void destruct(Alloc& alloc, const pointer& ptr) const
+                    noexcept(dtor::is_noexcept)
+                    requires(Req.destroy >= expr_req::well_formed)
+                {
+                    static_cast<const dtor&>(*this)(alloc, ptr);
+                }
+
+                [[nodiscard]] constexpr auto type() const noexcept { return current_type_; }
+
+                [[nodiscard]] constexpr auto size() const noexcept { return type_size_; }
+
+                [[nodiscard]] constexpr auto has_value() const noexcept
+                {
+                    return !current_type_.empty();
+                }
+
+            private:
+                ::std::string_view current_type_ = type_id<void>;
+                ::std::size_t type_size_{};
+            };
+        };
+
+        template<special_mem_req Req, typename Alloc>
+        using special_member_traits_t = typename special_member_traits<Req, Alloc>::impl;
+
+        template<special_mem_req Req, typename Alloc>
+        template<typename T>
+            requires(Req <= special_mem_req::for_type<T>())
+        inline constexpr special_member_traits_t<Req, Alloc> special_member_traits<Req, Alloc>::
+            impl::for_type{::std::type_identity<T>{}};
+    }
 
     template<special_mem_req Req, typename Alloc>
-    struct special_member_traits
+    class basic_object_allocation
     {
-        using pointer = typename allocator_traits<Alloc>::pointer;
-        using pointer_traits = pointer_traits<pointer>;
-        using const_pointer = typename allocator_traits<Alloc>::const_pointer;
-
-        struct mov_ctor :
-            special_mem_ptr<Req.move_construct, Alloc&, const pointer&, const pointer&>
-        {
-            template<typename T>
-            static constexpr mov_ctor for_type()
-            {
-                return [](Alloc & alloc, const pointer& left, const pointer& right) //
-                    noexcept(mov_ctor::is_noexcept) //
-                    requires(Req.move_construct >= expr_req::well_formed) //
-                {
-                    allocator_traits<Alloc>::construct(
-                        alloc,
-                        dereference_to<T>(left),
-                        ::std::move(dereference_to<T>(right))
-                    );
-                };
-            }
-        };
-
-        struct cp_ctor :
-            special_mem_ptr<Req.copy_construct, Alloc&, const pointer&, const const_pointer&>
-        {
-            template<typename T>
-            static constexpr cp_ctor for_type()
-            {
-                return [](Alloc & alloc, const pointer& left, const const_pointer& right) //
-                    noexcept(cp_ctor::is_noexcept) //
-                    requires(Req.copy_construct >= expr_req::well_formed) //
-                {
-                    allocator_traits<Alloc>::construct(
-                        alloc,
-                        dereference_to<T>(left),
-                        dereference_to<T>(right)
-                    );
-                };
-            }
-        };
-
-        struct dtor : special_mem_ptr<Req.destroy, Alloc&, const pointer&>
-        {
-            template<typename T>
-            static constexpr dtor for_type()
-            {
-                return [](Alloc & alloc, const pointer& ptr) //
-                    noexcept(dtor::is_noexcept) //
-                    requires(Req.destroy >= expr_req::well_formed) //
-                {
-                    allocator_traits<Alloc>::destroy(alloc, dereference_to<T>(ptr));
-                };
-            }
-        };
-
-        using mov_assign = mov_assign<Req, pointer>;
-
-        using cp_assign = cp_assign<Req, pointer, const_pointer>;
-
-        class impl : mov_ctor, cp_ctor, mov_assign, cp_assign, dtor
-        {
-            using alloc_traits = allocator_traits<Alloc>;
-
-        public:
-            template<typename T>
-                requires(Req <= special_mem_req::for_type<T>())
-            static const impl for_type;
-
-            impl() = default;
-
-            template<typename T>
-                requires(Req <= special_mem_req::for_type<T>())
-            constexpr impl(const ::std::type_identity<T>) noexcept:
-                current_type_(type_id<T>),
-                type_size_(sizeof(T)),
-                mov_ctor(mov_ctor::template for_type<T>()),
-                cp_ctor(cp_ctor::template for_type<T>()),
-                mov_assign(mov_assign::template for_type<T>()),
-                cp_assign(cp_assign::template for_type<T>()),
-                dtor(dtor::template for_type<T>())
-            {
-            }
-
-            template<special_mem_req OtherReq>
-                requires(Req <= OtherReq)
-            constexpr impl( //
-                const typename special_member_traits<OtherReq, Alloc>::impl& other
-            ) noexcept:
-                current_type_(other.current_type_),
-                type_size_(other.type_size_),
-                mov_ctor(other.mov_ctor),
-                cp_ctor(other.cp_ctor),
-                mov_assign(other.mov_assign),
-                cp_assign(other.cp_assign),
-                dtor(other.dtor)
-            {
-            }
-
-            constexpr void construct(Alloc& alloc, const pointer& left, const pointer& right) const
-                noexcept(mov_ctor::is_noexcept)
-                requires(Req.move_construct >= expr_req::well_formed)
-            {
-                static_cast<const mov_ctor&>(*this)(alloc, left, right);
-            }
-
-            constexpr void
-                construct(Alloc& alloc, const pointer& left, const const_pointer& right) const
-                noexcept(cp_ctor::is_noexcept)
-                requires(Req.copy_construct >= expr_req::well_formed)
-            {
-                static_cast<const mov_ctor&>(*this)(alloc, left, right);
-            }
-
-            constexpr void assign(const pointer& left, const pointer& right) const
-                noexcept(mov_assign::is_noexcept)
-                requires(Req.move_assign >= expr_req::well_formed)
-            {
-                static_cast<const mov_assign&>(*this)(left, right);
-            }
-
-            constexpr void assign(const pointer& left, const const_pointer& right) const
-                noexcept(cp_assign::is_noexcept)
-                requires(Req.copy_assign >= expr_req::well_formed)
-            {
-                static_cast<const cp_assign&>(*this)(left, right);
-            }
-
-            constexpr void destruct(Alloc& alloc, const pointer& ptr) const
-                noexcept(dtor::is_noexcept)
-                requires(Req.destroy >= expr_req::well_formed)
-            {
-                static_cast<const dtor&>(*this)(alloc, ptr);
-            }
-
-            [[nodiscard]] constexpr auto type() const noexcept { return current_type_; }
-
-            [[nodiscard]] constexpr auto size() const noexcept { return type_size_; }
-
-            [[nodiscard]] constexpr auto has_value() const noexcept
-            {
-                return !current_type_.empty();
-            }
-
-        private:
-            ::std::string_view current_type_ = type_id<void>;
-            ::std::size_t type_size_{};
-        };
-    };
-
-    template<special_mem_req Req, typename Alloc>
-    using special_member_traits_t = typename special_member_traits<Req, Alloc>::impl;
-
-    template<special_mem_req Req, typename Alloc>
-    template<typename T>
-        requires(Req <= special_mem_req::for_type<T>())
-    inline constexpr special_member_traits_t<Req, Alloc> special_member_traits<Req, Alloc>::impl::
-        for_type{::std::type_identity<T>{}};
-
-    template<special_mem_req Req, typename Alloc>
-    struct basic_object_allocation
-    {
-        constexpr auto get_allocator() const noexcept { return allocator_; }
-
-    private:
         using alloc_traits = allocator_traits<Alloc>;
         using pointer = typename alloc_traits::pointer;
         using const_pointer = typename alloc_traits::const_pointer;
         using size_type = typename alloc_traits::size_type;
-        using mem_traits = special_member_traits_t<Req, Alloc>;
-
-        Alloc allocator_{};
-        typename alloc_traits::allocated allocated_{};
-        mem_traits traits_{};
+        using mem_traits = details::special_member_traits_t<Req, Alloc>;
 
         [[nodiscard]] constexpr auto& get_ptr() const noexcept { return allocated_.ptr; }
 
@@ -284,15 +280,15 @@ namespace stdsharp
         template<typename Ptr, special_mem_req OtherReq>
         constexpr void assign_or_construct(
             const Ptr& other_ptr,
-            const special_member_traits_t<OtherReq, Alloc>& other_traits
+            const details::special_member_traits_t<OtherReq, Alloc>& other_traits
         )
             requires ::std::assignable_from<
                          mem_traits&,
-                         const special_member_traits_t<OtherReq, Alloc>&> &&
+                         const details::special_member_traits_t<OtherReq, Alloc>&> &&
             requires //
         {
             this->reset();
-            traits_.construct(allocator_, get_ptr(), other_ptr);
+            this->traits_.construct(this->allocator_, get_ptr(), other_ptr);
         }
         {
             if(other_ptr == nullptr)
@@ -374,8 +370,9 @@ namespace stdsharp
 
         template<special_mem_req OtherReq>
             requires(Req.copy_construct == expr_req::well_formed) &&
-                        ::std::
-                            constructible_from<mem_traits, special_member_traits_t<OtherReq, Alloc>>
+                        ::std::constructible_from<
+                            mem_traits,
+                            details::special_member_traits_t<OtherReq, Alloc>>
         constexpr basic_object_allocation(
             const private_tag,
             const basic_object_allocation<OtherReq, Alloc>& other
@@ -469,7 +466,9 @@ namespace stdsharp
         basic_object_allocation(basic_object_allocation&&) noexcept = default;
 
         template<special_mem_req OtherReq>
-            requires ::std::constructible_from<mem_traits, special_member_traits_t<OtherReq, Alloc>>
+            requires ::std::constructible_from<
+                         mem_traits,
+                         details::special_member_traits_t<OtherReq, Alloc>>
         constexpr basic_object_allocation(basic_object_allocation<OtherReq, Alloc>&& other):
             allocator_(::std::move(other.allocator_)),
             allocated_(other.allocated_),
@@ -478,7 +477,7 @@ namespace stdsharp
         }
 
         constexpr basic_object_allocation& operator=(const basic_object_allocation& other)
-            requires requires { assign_or_construct(get_ptr(), traits_); }
+            requires requires { assign_or_construct(get_ptr(), this->traits_); }
         {
             if(this == &other) return *this;
 
@@ -522,7 +521,7 @@ namespace stdsharp
             requires requires //
         {
             alloc_traits::assign(
-                allocator_,
+                this->allocator_,
                 ::std::move(other.allocator_),
                 get_move_assign_op(other.allocator_)
             ); //
@@ -540,6 +539,8 @@ namespace stdsharp
         {
             reset();
         }
+
+        [[nodiscard]] constexpr auto get_allocator() const noexcept { return allocator_; }
 
         [[nodiscard]] constexpr auto type() const noexcept { return traits_.type(); }
 
@@ -590,5 +591,10 @@ namespace stdsharp
                 ::std::forward<Args>(args)...
             );
         }
+
+    private:
+        Alloc allocator_{};
+        typename alloc_traits::allocated allocated_{};
+        mem_traits traits_{};
     };
 }
