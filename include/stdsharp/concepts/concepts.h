@@ -248,8 +248,14 @@ namespace stdsharp
     template<typename T, typename U>
     concept decay_same_as = ::std::same_as<::std::decay_t<T>, U>;
 
+    template<typename T>
+    concept decay_constructible = ::std::constructible_from<::std::decay_t<T>, T>;
+
     template<typename T, typename... Args>
     concept nothrow_constructible_from = ::std::is_nothrow_constructible_v<T, Args...>;
+
+    template<typename T>
+    concept nothrow_decay_constructible = nothrow_constructible_from<::std::decay_t<T>, T>;
 
     template<typename T>
     concept nothrow_default_initializable =
@@ -277,10 +283,12 @@ namespace stdsharp
     concept nothrow_destructible = ::std::is_nothrow_destructible_v<T>;
 
     template<typename T>
-    concept nothrow_swappable = ::std::is_nothrow_swappable_v<T>;
+    concept nothrow_swappable =
+        requires(T& t1, T& t2) { requires noexcept(::std::ranges::swap(t1, t2)); };
 
     template<typename T, typename U>
-    concept nothrow_swappable_with = ::std::is_nothrow_swappable_with_v<T, U>;
+    concept nothrow_swappable_with =
+        requires(T& t, U& u) { requires noexcept(::std::ranges::swap(t, u)); };
 
     template<typename T>
     concept nothrow_movable = ::std::movable<T> && //

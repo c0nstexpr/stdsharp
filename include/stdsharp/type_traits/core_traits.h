@@ -88,7 +88,7 @@ namespace stdsharp
     static constexpr decltype(auto) invoke_result = ::std::invoke(Func, Args...);
 
     template<auto Value>
-    inline constexpr auto constant_v = Value;
+    inline constexpr constant<Value> constant_v{};
 
     template<typename T>
     constexpr const auto& static_const_v = ::ranges::static_const<T>::value;

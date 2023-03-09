@@ -14,7 +14,8 @@ namespace stdsharp
         expr_req copy_construct = expr_req::no_exception;
         expr_req move_assign = expr_req::no_exception;
         expr_req copy_assign = expr_req::no_exception;
-        expr_req destroy = expr_req::no_exception;
+        expr_req destruct = expr_req::no_exception;
+        expr_req swap = move_construct;
 
         template<typename T>
         static const special_mem_req for_type;
@@ -50,9 +51,13 @@ namespace stdsharp
 
             cmp = compatible(cmp, left.copy_assign <=> right.copy_assign);
 
-            return cmp == partial_ordering::unordered ?
+            if(cmp == partial_ordering::unordered) return cmp;
+
+            cmp = compatible(cmp, left.destruct <=> right.destruct);
+
+            return cmp == partial_ordering::unordered ? //
                 cmp :
-                compatible(cmp, left.destroy <=> right.destroy);
+                compatible(cmp, left.swap <=> right.swap);
         }
 
         friend constexpr auto
@@ -68,7 +73,9 @@ namespace stdsharp
                 ::std::min(left.move_construct, right.move_construct),
                 ::std::min(left.copy_construct, right.copy_construct),
                 ::std::min(left.move_assign, right.move_assign),
-                ::std::min(left.copy_assign, right.copy_assign) //
+                ::std::min(left.copy_assign, right.copy_assign),
+                ::std::min(left.destruct, right.destruct),
+                ::std::min(left.swap, right.swap) //
             };
         }
 
@@ -79,7 +86,9 @@ namespace stdsharp
                 ::std::max(left.move_construct, right.move_construct),
                 ::std::max(left.copy_construct, right.copy_construct),
                 ::std::max(left.move_assign, right.move_assign),
-                ::std::max(left.copy_assign, right.copy_assign) //
+                ::std::max(left.copy_assign, right.copy_assign),
+                ::std::max(left.destruct, right.destruct),
+                ::std::max(left.swap, right.swap) //
             };
         }
     };
@@ -87,37 +96,34 @@ namespace stdsharp
     template<typename T>
     inline constexpr special_mem_req special_mem_req::for_type{
         ::std::move_constructible<T> ?
-            (nothrow_move_constructible<T> ? expr_req::no_exception : expr_req::well_formed) :
+            nothrow_move_constructible<T> ? expr_req::no_exception : expr_req::well_formed :
             expr_req::ill_formed,
         ::std::copy_constructible<T> ?
-            (nothrow_copy_constructible<T> ? expr_req::no_exception : expr_req::well_formed) :
+            nothrow_copy_constructible<T> ? expr_req::no_exception : expr_req::well_formed :
             expr_req::ill_formed,
         move_assignable<T> ?
-            (nothrow_move_assignable<T> ? expr_req::no_exception : expr_req::well_formed) :
+            nothrow_move_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
             expr_req::ill_formed,
         copy_assignable<T> ?
-            (nothrow_copy_assignable<T> ? expr_req::no_exception : expr_req::well_formed) :
+            nothrow_copy_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
+            expr_req::ill_formed,
+        ::std::is_destructible_v<T> ?
+            ::std::is_nothrow_destructible_v<T> ? expr_req::no_exception : expr_req::well_formed :
+            expr_req::ill_formed,
+        ::std::swappable<T> ?
+            nothrow_swappable<T> ? expr_req::no_exception : expr_req::well_formed :
             expr_req::ill_formed //
     };
 
-    inline constexpr special_mem_req special_mem_req::trivial{
-        expr_req::no_exception,
-        expr_req::no_exception,
-        expr_req::no_exception,
-        expr_req::no_exception //
-    };
+    inline constexpr special_mem_req special_mem_req::trivial{};
 
     inline constexpr special_mem_req special_mem_req::normal{
-        expr_req::no_exception,
-        expr_req::well_formed,
-        expr_req::no_exception,
-        expr_req::well_formed,
+        .copy_construct = expr_req::well_formed,
+        .copy_assign = expr_req::well_formed,
     };
 
     inline constexpr special_mem_req special_mem_req::normal_movable{
-        expr_req::no_exception,
-        expr_req::ill_formed,
-        expr_req::no_exception,
-        expr_req::ill_formed,
+        .copy_construct = expr_req::ill_formed,
+        .copy_assign = expr_req::ill_formed,
     };
 }
