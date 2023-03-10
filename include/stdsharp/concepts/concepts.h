@@ -129,6 +129,9 @@ namespace stdsharp
     concept final = ::std::is_final_v<T>;
 
     template<typename T>
+    concept inheritable = class_<T> && !final<T>;
+
+    template<typename T>
     concept trivial = ::std::is_trivial_v<T>;
 
     template<typename T, typename U>

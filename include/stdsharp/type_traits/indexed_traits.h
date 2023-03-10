@@ -68,7 +68,7 @@ namespace stdsharp
         requires(I == Index)                                                                    \
     [[nodiscard]] friend constexpr decltype(auto) get(const_ indexed_value ref_ this_) noexcept \
     {                                                                                           \
-        return static_cast<const_ T ref_>(this_.value);                                         \
+        return this_.value();                                                                   \
     }
 
         STDSHARP_GET(, &)

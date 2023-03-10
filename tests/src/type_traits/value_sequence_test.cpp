@@ -1,4 +1,5 @@
 #include "stdsharp/functional/invocables.h"
+#include "stdsharp/type_traits/object.h"
 #include "stdsharp/type_traits/value_sequence.h"
 
 #include "test.h"
@@ -56,10 +57,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    constexpr sequenced_invocables find_if_functor_3{
+    constexpr inherited find_if_functor_3{
         [](const size_t v) { return v == 7; },
         only_false //
     };
+
+    void foo() { decltype(find_if_functor_3) v{}; }
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -88,8 +91,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    constexpr sequenced_invocables count_if_functor_3{
-        [](const size_t) { return true; },
+    constexpr inherited count_if_functor_3{
+        [](const integral auto) { return true; },
         only_false //
     };
 }

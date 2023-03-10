@@ -19,16 +19,17 @@ namespace stdsharp
             using args_t = regular_type_sequence<Args...>;
 
             using ptr_t = R (*)(Args...) noexcept(Noexcept);
+
+            using function_t = R(Args...) noexcept(Noexcept);
         };
     }
 
     template<typename T>
     struct function_traits : details::function_traits_helper<::std::decay_t<T>>
     {
+        using type = ::std::decay_t<T>;
     };
 
     template<auto Ptr>
-    struct function_pointer_traits : function_traits<::std::decay_t<decltype(Ptr)>>
-    {
-    };
+    using function_pointer_traits = function_traits<decltype(Ptr)>;
 }

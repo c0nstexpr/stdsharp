@@ -10,6 +10,7 @@
 #include "invocable.h"
 #include "pack_get.h"
 #include "value_wrapper.h"
+#include "implementation_reference.h"
 
 namespace stdsharp
 {
