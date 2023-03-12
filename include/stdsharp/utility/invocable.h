@@ -29,8 +29,16 @@ namespace stdsharp
 #undef STDSHARP_OPERATOR
     };
 
+    template<inheritable Func>
+    struct invocable_t<Func&> : Func
+    {
+        using Func::Func;
+        using Func::operator();
+    };
+
     template<typename Func>
     struct nodiscard_invocable : invocable_t<Func>
+
     {
         using base = invocable_t<Func>;
 

@@ -72,6 +72,8 @@ namespace stdsharp
         empty_t() = default;
 
         constexpr empty_t(const auto&...) noexcept {}
+
+        constexpr empty_t operator()(const auto&...) const noexcept { return {}; }
     } empty;
 
     template<typename T>
