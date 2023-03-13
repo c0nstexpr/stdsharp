@@ -2,6 +2,7 @@
 
 #include "core_traits.h"
 #include "../utility/invocable.h"
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -55,7 +56,7 @@ namespace stdsharp
     using indexed_type = typename details::indexed_type<T, I>::t;
 
     template<typename T, ::std::size_t I>
-    struct indexed_value : value_wrapper<T>, indexed_type<T, I>
+    struct STDSHARP_EBO indexed_value : value_wrapper<T>, indexed_type<T, I>
     {
         using base = value_wrapper<T>;
 
@@ -95,7 +96,7 @@ namespace stdsharp
         struct indexed_types
         {
             template<::std::size_t... Index>
-            struct inherited : Indexed<T, Index>...
+            struct STDSHARP_EBO inherited : Indexed<T, Index>...
             {
                 inherited() = default;
 
@@ -112,7 +113,7 @@ namespace stdsharp
             struct t;
 
             template<::std::size_t... Index>
-            struct t<::std::index_sequence<Index...>> : inherited<Index...>
+            struct STDSHARP_EBO t<::std::index_sequence<Index...>> : inherited<Index...>
             {
             private:
                 using m_base = inherited<Index...>;
@@ -162,3 +163,5 @@ namespace std
         using type = typename Seq::template type<I>;
     };
 }
+
+#include "../compilation_config_out.h"

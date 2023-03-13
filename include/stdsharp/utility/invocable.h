@@ -29,13 +29,6 @@ namespace stdsharp
 #undef STDSHARP_OPERATOR
     };
 
-    template<inheritable Func>
-    struct invocable_t<Func&> : Func
-    {
-        using Func::Func;
-        using Func::operator();
-    };
-
     template<typename Func>
     struct nodiscard_invocable : invocable_t<Func>
 
@@ -82,12 +75,10 @@ namespace stdsharp
         );                                                               \
     }
 
-        // NOLINTBEGIN(*-exception-escape)
         STDSHARP_OPERATOR(, &)
         STDSHARP_OPERATOR(const, &)
         STDSHARP_OPERATOR(, &&)
         STDSHARP_OPERATOR(const, &&)
-        // NOLINTEND(*-exception-escape)
 
 #undef STDSHARP_OPERATOR
     };

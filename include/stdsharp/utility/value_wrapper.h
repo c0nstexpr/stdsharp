@@ -1,20 +1,37 @@
 #pragma once
 
 #include "../concepts/concepts.h"
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
+    namespace details
+    {
+        template<typename T>
+        struct value_wrapper
+        {
+            T v;
+        };
+
+        template<empty_type T>
+        struct value_wrapper<T>
+        {
+            STDSHARP_NO_UNIQUE_ADDRESS T v;
+        };
+    }
+
     template<typename T>
-    struct value_wrapper
+    struct value_wrapper : details::value_wrapper<T>
     {
         using value_type = T;
+        using details::value_wrapper<T>::v;
 
         value_wrapper() = default;
 
         template<typename... U>
             requires ::std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            v(::std::forward<U>(u)...)
+            details::value_wrapper<T>{::std::forward<U>(u)...}
         {
         }
 
@@ -34,7 +51,7 @@ namespace stdsharp
         STDSHARP_OPERATOR(const, &&)
 
 #undef STDSHARP_OPERATOR
-
-        T v;
     };
 }
+
+#include "../compilation_config_out.h"

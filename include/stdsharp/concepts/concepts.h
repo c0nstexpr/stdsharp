@@ -56,6 +56,9 @@ namespace stdsharp
     concept signed_ = ::std::is_signed_v<T>;
 
     template<typename T>
+    concept empty_type = ::std::is_empty_v<T>;
+
+    template<typename T>
     concept unsigned_ = ::std::is_unsigned_v<T>;
 
     template<typename T>
