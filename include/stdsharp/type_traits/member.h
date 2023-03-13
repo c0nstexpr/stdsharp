@@ -31,16 +31,58 @@ namespace stdsharp
     {
     };
 
-#define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, qualifiers)                 \
-    template<typename R, typename ClassT, typename... Args, bool Noexcept>                   \
-    struct member_function_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)> :    \
-        function_traits<R (*)(Args...) noexcept(Noexcept)>,                                  \
-        member_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)>                  \
-    {                                                                                        \
-        static constexpr auto is_const = const_;                                             \
-        static constexpr auto is_volatile = volatile_;                                       \
-        static constexpr auto ref_type = ref_qualifier::ref_;                                \
-        using qualified_class_t = apply_qualifiers<ClassT, is_const, is_volatile, ref_type>; \
+    namespace details
+    {
+        template<typename, typename, bool, bool, ref_qualifier, bool, typename...>
+        struct member_function_traits;
+    }
+
+#define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, qualifiers)                     \
+    namespace details                                                                            \
+    {                                                                                            \
+        template<typename R, typename ClassT, bool Noexcept, typename... Args>                   \
+        struct member_function_traits<                                                           \
+            R,                                                                                   \
+            ClassT,                                                                              \
+            const_,                                                                              \
+            volatile_,                                                                           \
+            ref_qualifier::ref_,                                                                 \
+            Noexcept,                                                                            \
+            Args...> :                                                                           \
+            function_traits<R (*)(Args...) noexcept(Noexcept)>,                                  \
+            member_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)>                  \
+        {                                                                                        \
+            static constexpr auto is_const = const_;                                             \
+            static constexpr auto is_volatile = volatile_;                                       \
+            static constexpr auto ref_type = ref_qualifier::ref_;                                \
+            using qualified_class_t = apply_qualifiers<ClassT, is_const, is_volatile, ref_type>; \
+        };                                                                                       \
+    }                                                                                            \
+                                                                                                 \
+    template<typename R, typename ClassT, typename... Args>                                      \
+    struct member_function_traits<R (ClassT::*)(Args...) qualifiers noexcept(true)> :            \
+        details::member_function_traits<                                                         \
+            R,                                                                                   \
+            ClassT,                                                                              \
+            const_,                                                                              \
+            volatile_,                                                                           \
+            ref_qualifier::ref_,                                                                 \
+            true,                                                                                \
+            Args...>                                                                             \
+    {                                                                                            \
+    };                                                                                           \
+                                                                                                 \
+    template<typename R, typename ClassT, typename... Args>                                      \
+    struct member_function_traits<R (ClassT::*)(Args...) qualifiers noexcept(false)> :           \
+        details::member_function_traits<                                                         \
+            R,                                                                                   \
+            ClassT,                                                                              \
+            const_,                                                                              \
+            volatile_,                                                                           \
+            ref_qualifier::ref_,                                                                 \
+            false,                                                                               \
+            Args...>                                                                             \
+    {                                                                                            \
     };
 
 #define STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \

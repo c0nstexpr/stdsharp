@@ -1,8 +1,6 @@
 #pragma once
 
-#include <__concepts/constructible.h>
 #include <cassert>
-
 #include <concepts>
 
 namespace stdsharp

@@ -7,7 +7,7 @@
 
 namespace stdsharp
 {
-    template<dereferenceable Ptr>
+    template<typename Ptr>
     struct pointer_traits : private ::std::pointer_traits<Ptr>
     {
     private:

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utility/utility.h"
+#include "utility/auto_cast.h"
 #include "concepts/concepts.h"
 
 namespace stdsharp

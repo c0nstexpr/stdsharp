@@ -319,22 +319,23 @@ namespace stdsharp
                 ::std::equality_comparable<decltype(instance)> //
             );
 
-            requires requires(allocator_of_t<decltype(instance)> alloc) //
+            requires requires(
+                allocator_of_t<decltype(instance)> alloc,
+                allocator_traits<decltype(alloc)> traits,
+                ::std::bool_constant<decltype(traits):: //
+                                     propagate_on_container_move_assignment::value> propagate
+            ) //
             {
-                requires allocator_req<decltype(alloc)>;
-
                 requires container_erasable<decltype(instance)>;
 
                 requires logical_imply(
-                             allocator_traits<decltype(alloc
-                                 )>::propagate_on_container_move_assignment::value ||
+                             decltype(propagate)::value ||
                                  container_nothrow_move_insertable<decltype(instance)> &&
                                      (nothrow_move_assignable<Members> && ...),
                              nothrow_move_assignable<decltype(instance)> //
                          ) ||
                     logical_imply(
-                             allocator_traits<decltype(alloc
-                                 )>::propagate_on_container_move_assignment::value ||
+                             decltype(propagate)::value ||
                                  container_move_insertable<decltype(instance)> &&
                                      (move_assignable<Members> && ...),
                              move_assignable<decltype(instance)> //

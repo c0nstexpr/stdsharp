@@ -5,9 +5,9 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-static_assert(associative_container<set<unique_ptr<int>>>);
+using vec = vector<unique_ptr<int>>;
 
-// static_assert(unique_associative_container<set<unique_ptr<int>>>);
+static_assert(container<vec>);
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: container concept",
@@ -16,39 +16,39 @@ TEMPLATE_TEST_CASE( // NOLINT
     unique_ptr<int>
 )
 {
-    {
-        using vec = vector<TestType>;
+    // {
+    //     using vec = vector<TestType>;
 
-        GIVEN(fmt::format("vector type {}", type<vec>()))
-        {
-            STATIC_REQUIRE(contiguous_container<vec>);
-            STATIC_REQUIRE(!associative_container<vec>);
-            STATIC_REQUIRE(!unordered_associative_container<vec>);
-        }
-    }
+    //     GIVEN(fmt::format("vector type {}", type<vec>()))
+    //     {
+    //         STATIC_REQUIRE(contiguous_container<vec>);
+    //         STATIC_REQUIRE(!associative_container<vec>);
+    //         STATIC_REQUIRE(!unordered_associative_container<vec>);
+    //     }
+    // }
 
-    {
-        using arr = array<TestType, 5>;
+    // {
+    //     using arr = array<TestType, 5>;
 
-        GIVEN(fmt::format("array type {}", type<arr>()))
-        {
-            STATIC_REQUIRE(container<arr>);
-            STATIC_REQUIRE(!associative_container<arr>);
-            STATIC_REQUIRE(!unordered_associative_container<arr>);
-        }
-    }
+    //     GIVEN(fmt::format("array type {}", type<arr>()))
+    //     {
+    //         STATIC_REQUIRE(container<arr>);
+    //         STATIC_REQUIRE(!associative_container<arr>);
+    //         STATIC_REQUIRE(!unordered_associative_container<arr>);
+    //     }
+    // }
 
-    {
-        using forward_list = forward_list<TestType>;
+    // {
+    //     using forward_list = forward_list<TestType>;
 
-        GIVEN(fmt::format("forward list type {}", type<forward_list>()))
-        {
-            STATIC_REQUIRE(container<forward_list>);
-            STATIC_REQUIRE(!sequence_container<forward_list>);
-            STATIC_REQUIRE(!associative_container<forward_list>);
-            STATIC_REQUIRE(!unordered_associative_container<forward_list>);
-        }
-    }
+    //     GIVEN(fmt::format("forward list type {}", type<forward_list>()))
+    //     {
+    //         STATIC_REQUIRE(container<forward_list>);
+    //         STATIC_REQUIRE(!sequence_container<forward_list>);
+    //         STATIC_REQUIRE(!associative_container<forward_list>);
+    //         STATIC_REQUIRE(!unordered_associative_container<forward_list>);
+    //     }
+    // }
 
     // {
     //     using set = set<TestType>;

@@ -45,10 +45,10 @@ namespace stdsharp
 
     template<typename T, ref_qualifier ref>
     using apply_ref = ::std::conditional_t<
-        ref == ref_qualifier::lvalue,
+        ::std::ranges::equal_to{}(ref, ref_qualifier::lvalue),
         ::std::add_lvalue_reference_t<T>,
         ::std::conditional_t<
-            ref == ref_qualifier::rvalue,
+            ::std::ranges::equal_to{}(ref, ref_qualifier::rvalue),
             ::std::add_rvalue_reference_t<T>,
             T // clang-format off
         >

@@ -67,9 +67,9 @@ namespace stdsharp
     private:
         ::std::reference_wrapper<resource_type> src_;
 
-        static constexpr auto to_generic_size(const ::std::size_t size)
+        static constexpr auto to_generic_size(const ::std::size_t size_v)
         {
-            return ceil_reminder(size * sizeof(T), sizeof(generic_storage));
+            return ceil_reminder(size_v * sizeof(T), sizeof(generic_storage));
         }
     };
 

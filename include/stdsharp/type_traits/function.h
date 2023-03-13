@@ -7,20 +7,32 @@ namespace stdsharp
 {
     namespace details
     {
-        template<typename T>
-        struct function_traits_helper;
 
-        template<typename R, typename... Args, bool Noexcept>
-        struct function_traits_helper<R (*)(Args...) noexcept(Noexcept)>
+        template<typename R, bool Noexcept, typename... Args>
+        struct function_traits_helper_base
         {
             static auto constexpr is_noexcept = Noexcept;
 
             using result_t = R;
             using args_t = regular_type_sequence<Args...>;
-
-            using ptr_t = R (*)(Args...) noexcept(Noexcept);
-
             using function_t = R(Args...) noexcept(Noexcept);
+            using ptr_t = function_t*;
+        };
+
+
+        template<typename T>
+        struct function_traits_helper;
+
+        template<typename R, typename... Args>
+        struct function_traits_helper<R (*)(Args...) noexcept(false)> :
+            function_traits_helper_base<R, false, Args...>
+        {
+        };
+
+        template<typename R, typename... Args>
+        struct function_traits_helper<R (*)(Args...) noexcept(true)> :
+            function_traits_helper_base<R, true, Args...>
+        {
         };
     }
 

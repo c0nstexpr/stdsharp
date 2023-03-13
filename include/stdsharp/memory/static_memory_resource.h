@@ -94,9 +94,12 @@ namespace stdsharp
     private:
         [[nodiscard]] constexpr auto map_state(const generic_storage* const ptr) noexcept
         {
-            const auto diff = ::std::is_constant_evaluated() ? //
-                constexpr_map_state_impl(ptr) :
-                ptr - storage_.data();
+            const auto diff = [&, this]
+            {
+                return ::std::is_constant_evaluated() ? //
+                    constexpr_map_state_impl(ptr) :
+                    ptr - storage_.data();
+            }();
 
             return state_.begin() + ::std::ranges::min(diff, static_cast<decltype(diff)>(size));
         }
