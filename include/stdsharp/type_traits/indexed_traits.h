@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core_traits.h"
-#include "../utility/invocable.h"
+#include "../utility/value_wrapper.h"
 #include "../compilation_config_in.h"
 
 namespace stdsharp
@@ -45,43 +45,71 @@ namespace stdsharp
         return {};
     }
 
-    template<typename T, ::std::size_t I>
-    using indexed_type = typename details::indexed_type<T, I>::t;
-
-    template<typename T, ::std::size_t I>
-    struct STDSHARP_EBO indexed_value : value_wrapper<T>, indexed_type<T, I>
+    namespace details
     {
-        using base = value_wrapper<T>;
+        template<typename T>
+        struct indexed_type
+        {
+            template<::std::size_t I>
 
-        using base::value;
-        using base::base;
-
-    private:
-#define STDSHARP_GET(const_, ref_)                                                              \
-    template<::std::size_t Index = I>                                                           \
-        requires(I == Index)                                                                    \
-    [[nodiscard]] friend constexpr decltype(auto) get(const_ indexed_value ref_ this_) noexcept \
-    {                                                                                           \
-        return this_.value();                                                                   \
+            struct t : basic_indexed_type<T, I>
+            {
+            };
+        };
     }
 
-        STDSHARP_GET(, &)
-        STDSHARP_GET(const, &)
-        STDSHARP_GET(, &&)
-        STDSHARP_GET(const, &&)
+    template<typename T, ::std::size_t I>
+    using indexed_type = typename details::indexed_type<T>::template t<I>;
+
+    namespace details
+    {
+        template<typename T>
+        struct indexed_value
+        {
+            template<::std::size_t I>
+
+            struct STDSHARP_EBO t : value_wrapper<T>, stdsharp::indexed_type<T, I>
+            {
+                using base = value_wrapper<T>;
+
+                using base::value;
+                using base::base;
+            };
+        };
+
+    }
+
+    template<typename T, ::std::size_t I>
+    using indexed_value = typename details::indexed_value<T>::template t<I>;
+
+#define STDSHARP_GET(const_, ref_)                                                                 \
+    template<::std::size_t Index, typename T>                                                      \
+    [[nodiscard]] constexpr decltype(auto) get(const_ indexed_value<T, Index> ref_ this_) noexcept \
+    {                                                                                              \
+        return this_.value();                                                                      \
+    }
+
+    STDSHARP_GET(, &)
+    STDSHARP_GET(const, &)
+    STDSHARP_GET(, &&)
+    STDSHARP_GET(const, &&)
 
 #undef STDSHARP_GET
+
+    template<::std::size_t I>
+    struct make_indexed_value_fn
+    {
+        template<typename T>
+            requires ::std::constructible_from<indexed_value<::std::decay_t<T>, I>, T>
+        [[nodiscard]] constexpr indexed_value<::std::decay_t<T>, I> operator()(T&& t) //
+            noexcept(nothrow_constructible_from<indexed_value<::std::decay_t<T>, I>, T>)
+        {
+            return ::std::forward<T>(t);
+        }
     };
 
     template<::std::size_t I>
-    inline constexpr nodiscard_invocable make_indexed_value( //
-        []<typename T,
-           ::std::constructible_from<T> IndexedValue = indexed_value<::std::decay_t<T>, I>> //
-        (T&& t) noexcept(nothrow_constructible_from<IndexedValue, T>) //
-        {
-            return ::std::forward<T>(t); //
-        }
-    );
+    inline constexpr make_indexed_value_fn<I> make_indexed_value{};
 
     namespace details
     {
@@ -120,7 +148,8 @@ namespace stdsharp
         };
 
         template<typename... T>
-        using indexed_values = typename details::indexed_types<indexed_value, T...>::template t<>;
+        using indexed_values =
+            typename details::indexed_types<stdsharp::indexed_value, T...>::template t<>;
     }
 
     template<typename... T>
@@ -134,6 +163,12 @@ namespace stdsharp
 
     template<typename... T>
     indexed_values(T&&...) -> indexed_values<::std::decay_t<T>...>;
+
+    constexpr void foo()
+    {
+        indexed_values<int, float> indexed{};
+        auto v = get<0>(indexed);
+    }
 }
 
 namespace std
