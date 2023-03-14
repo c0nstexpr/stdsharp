@@ -32,24 +32,17 @@ namespace stdsharp
     template<template<auto> typename T, typename... Ts>
     using indexed_trait_for = make_indexed_trait<T, sizeof...(Ts)>;
 
-    namespace details
+    template<typename T, ::std::size_t I>
+    struct basic_indexed_type
     {
-        template<typename T, ::std::size_t I>
-        struct indexed_type
-        {
-            struct t
-            {
-                using type = T;
+        using type = T;
+    };
 
-            private:
-                template<::std::size_t Index = I>
-                    requires(I == Index)
-                [[nodiscard]] friend constexpr stdsharp::type_constant<T> get_type(const t) noexcept
-                {
-                    return {};
-                }
-            };
-        };
+    template<typename T, ::std::size_t Index>
+    [[nodiscard]] constexpr stdsharp::type_constant<T>
+        get_type(const basic_indexed_type<T, Index>) noexcept
+    {
+        return {};
     }
 
     template<typename T, ::std::size_t I>

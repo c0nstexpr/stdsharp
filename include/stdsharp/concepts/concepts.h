@@ -286,9 +286,6 @@ namespace stdsharp
     concept nothrow_move_assignable = ::std::is_nothrow_move_assignable_v<T>;
 
     template<typename T>
-    concept nothrow_destructible = ::std::is_nothrow_destructible_v<T>;
-
-    template<typename T>
     concept nothrow_swappable =
         requires(T& t1, T& t2) { requires noexcept(::std::ranges::swap(t1, t2)); };
 
@@ -389,4 +386,7 @@ namespace stdsharp
 
     template<typename T, template<typename...> typename Impl, typename... U>
     concept proxy_concept = Impl<T, U...>::value;
+
+    template<typename T, template<typename...> typename Impl, typename... U>
+    concept concept_not = (!Impl<T, U...>::value);
 }

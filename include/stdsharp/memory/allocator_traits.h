@@ -3,8 +3,8 @@
 #include <memory>
 #include <iterator>
 
-#include "../concepts/concepts.h"
-#include "../type_traits/core_traits.h"
+#include "../type_traits/special_member.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -26,15 +26,15 @@ namespace stdsharp
             nothrow_weakly_equality_comparable_with<T, ::std::nullptr_t>;
     }
 
-    template<typename T>
+    template<typename Alloc>
     concept allocator_req = requires //
     {
-        typename T::value_type;
-        nothrow_copyable<T>;
+        typename Alloc::value_type;
+        nothrow_copyable<Alloc>;
 
         requires requires(
-            T alloc,
-            ::std::allocator_traits<T> t_traits,
+            Alloc alloc,
+            ::std::allocator_traits<Alloc> t_traits,
             typename decltype(t_traits)::pointer p,
             typename decltype(t_traits)::const_pointer const_p,
             typename decltype(t_traits)::void_pointer void_p,
@@ -81,7 +81,7 @@ namespace stdsharp
             requires ::std::signed_integral<typename decltype(t_traits)::difference_type>;
 
             requires ::std::
-                same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, T>;
+                same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, Alloc>;
             // clang-format off
 
             { *p } -> ::std::same_as<::std::add_lvalue_reference_t<decltype(v)>>;
@@ -95,8 +95,8 @@ namespace stdsharp
                 typename decltype(t_traits)::allocator_type another_alloc // clang-format off
             )
             {
-                nothrow_constructible_from<T, const decltype(u_alloc)&>;
-                nothrow_constructible_from<T, decltype(u_alloc)>;
+                nothrow_constructible_from<Alloc, const decltype(u_alloc)&>;
+                nothrow_constructible_from<Alloc, decltype(u_alloc)>;
 
                 { other_p->v } -> ::std::same_as<decltype(((*other_p).v))>;
                 { other_const_p->v } -> ::std::same_as<decltype(((*other_const_p).v))>;
@@ -119,21 +119,36 @@ namespace stdsharp
                 ::std::derived_from<decltype(always_equal), ::std::false_type>;
 
             // clang-format off
-            { t_traits.select_on_container_copy_construction(alloc) } -> ::std::same_as<T>;
+            { t_traits.select_on_container_copy_construction(alloc) } -> ::std::same_as<Alloc>;
             // clang-format on
 
             requires ::std::derived_from<decltype(copy_assign), ::std::true_type> &&
-                    nothrow_copy_assignable<T> ||
+                    nothrow_copy_assignable<Alloc> ||
                     ::std::derived_from<decltype(copy_assign), ::std::false_type>;
 
             requires ::std::derived_from<decltype(move_assign), ::std::true_type> &&
-                    nothrow_move_assignable<T> ||
+                    nothrow_move_assignable<Alloc> ||
                     ::std::derived_from<decltype(move_assign), ::std::false_type>;
 
             requires ::std::derived_from<decltype(swap), ::std::true_type> &&
-                    nothrow_swappable<T> || ::std::derived_from<decltype(swap), ::std::false_type>;
+                    nothrow_swappable<Alloc> ||
+                    ::std::derived_from<decltype(swap), ::std::false_type>;
         };
     };
+
+    template<typename T, typename Alloc, typename... Args>
+    concept uses_allocator_constructible = ::std::uses_allocator<T, Alloc>
+    {} &&
+        (::std::is_constructible_v<T, ::std::allocator_arg_t, const Alloc&, Args...> ||
+         ::std::is_constructible_v<T, Args..., const Alloc&>);
+
+    template<typename T, typename Alloc, typename... Args>
+    concept nothrow_uses_allocator_constructible =
+        uses_allocator_constructible<T, Alloc, Args...> &&
+        (::std::is_constructible_v<T, ::std::allocator_arg_t, const Alloc&, Args...> ?
+             nothrow_constructible_from<T, ::std::allocator_arg_t, const Alloc&, Args...> :
+             nothrow_constructible_from<T, Args..., const Alloc&>);
+
 
     enum class allocator_assign_operation
     {
@@ -147,11 +162,90 @@ namespace stdsharp
         after_swap
     };
 
-    template<allocator_req T>
-    struct allocator_traits : private ::std::allocator_traits<T>
+    template<allocator_req Alloc>
+    struct allocator_traits : private ::std::allocator_traits<Alloc>
     {
     private:
-        using base = ::std::allocator_traits<T>;
+        using base = ::std::allocator_traits<Alloc>;
+
+        struct construct_fn
+        {
+            template<typename U, typename... Args>
+            static constexpr auto alloc_custom_construct =
+                requires(Alloc & a, U* const ptr, Args&&... args) {
+                    a.construct(ptr, ::std::declval<Args>()...);
+                };
+
+            template<typename U, typename... Args>
+                requires alloc_custom_construct<U, Args...>
+            constexpr decltype(auto) operator()(Alloc& a, U* const ptr, Args&&... args) const
+                noexcept(noexcept(a.construct(ptr, ::std::declval<Args>()...)))
+            {
+                return a.construct(ptr, ::std::forward<Args>(args)...);
+            }
+
+            template<typename... Args, uses_allocator_constructible<Alloc, Args...> U>
+                requires(!alloc_custom_construct<U, Args...>)
+            constexpr void operator()(Alloc& a, U* const ptr, Args&&... args) const
+                noexcept(nothrow_uses_allocator_constructible<U, Alloc, Args...>)
+            {
+                if constexpr(::std::is_constructible_v<U, Args..., const Alloc&>)
+                    ::std::construct_at(ptr, ::std::forward<Args>(args)..., a);
+                else
+                    ::std::construct_at(
+                        ptr,
+                        ::std::allocator_arg,
+                        a,
+                        ::std::forward<Args>(args)...
+                    );
+            }
+
+            template<typename... Args, typename U>
+                requires(!(alloc_custom_construct<U, Args...> ||
+                           uses_allocator_constructible<U, Alloc, Args...>)) &&
+                ::std::is_constructible_v<U, Args...>
+            constexpr void operator()(Alloc&, U* const ptr, Args&&... args) const
+                noexcept(stdsharp::nothrow_constructible_from<U, Args...>)
+            {
+                ::std::construct_at(ptr, ::std::forward<Args>(args)...);
+            }
+        };
+
+        template<typename T, typename... Args>
+        static constexpr auto constructible_from =
+            ::std::invocable<construct_fn, Alloc&, T*, Args...>;
+
+        template<typename T, typename... Args>
+        static constexpr auto nothrow_constructible_from =
+            nothrow_invocable<construct_fn, Alloc&, T*, Args...>;
+
+        struct destroy_fn
+        {
+            template<typename U>
+            static constexpr auto alloc_custom_destroy =
+                requires(Alloc & a, U* const ptr) { a.destroy(ptr); };
+
+            template<typename U>
+                requires alloc_custom_destroy<U>
+            constexpr void operator()(Alloc& a, U* const ptr) const
+                noexcept(noexcept(a.destroy(ptr)))
+            {
+                a.destroy(ptr);
+            }
+
+            template<typename U>
+                requires(::std::is_destructible_v<U> && !alloc_custom_destroy<U>)
+            constexpr void operator()(Alloc&, U* const ptr) const noexcept(::std::destructible<U>)
+            {
+                ::std::destroy_at(ptr);
+            }
+        };
+
+        template<typename T>
+        static constexpr auto destructible = ::std::invocable<destroy_fn, Alloc&, T*>;
+
+        template<typename T>
+        static constexpr auto nothrow_destructible = nothrow_invocable<destroy_fn, Alloc&, T*>;
 
     public:
         using typename base::allocator_type;
@@ -201,18 +295,9 @@ namespace stdsharp
             base::deallocate(alloc, ptr, count);
         }
 
-        template<typename U, typename... Args>
-            requires ::std::constructible_from<U, Args...>
-        static constexpr void construct(T& a, U* const ptr, Args&&... args)
-        {
-            base::construct(a, ptr, ::std::forward<Args>(args)...);
-        }
+        static constexpr construct_fn construct{};
 
-        template<::std::destructible U>
-        static constexpr void destroy(T& a, U* const ptr) noexcept
-        {
-            base::destroy(a, ptr);
-        }
+        static constexpr destroy_fn destroy{};
 
         static constexpr pointer try_allocate(
             allocator_type& alloc,
@@ -378,6 +463,30 @@ namespace stdsharp
         {
             return {size > 0 ? try_allocate(alloc, size, hint) : nullptr, size};
         }
+
+        template<typename T>
+        static constexpr special_mem_req mem_req_for{
+            constructible_from<T, T> ?
+                nothrow_constructible_from<T, T> ? expr_req::no_exception : expr_req::well_formed :
+                expr_req::ill_formed,
+            constructible_from<T, const T&> ? //
+                nothrow_constructible_from<T, const T&> ? //
+                    expr_req::no_exception :
+                    expr_req::well_formed :
+                expr_req::ill_formed,
+            move_assignable<T> ?
+                nothrow_move_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
+                expr_req::ill_formed,
+            copy_assignable<T> ?
+                nothrow_copy_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
+                expr_req::ill_formed,
+            destructible<T> ?
+                nothrow_destructible<T> ? expr_req::no_exception : expr_req::well_formed :
+                expr_req::ill_formed,
+            ::std::swappable<T> ?
+                nothrow_swappable<T> ? expr_req::no_exception : expr_req::well_formed :
+                expr_req::ill_formed //
+        };
     };
 
     template<typename>
