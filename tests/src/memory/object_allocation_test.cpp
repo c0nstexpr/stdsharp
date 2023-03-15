@@ -27,6 +27,12 @@ SCENARIO("object allocation default initializable", "[memory][object allocation]
     STATIC_REQUIRE(::std::is_constructible_v<basic_object_allocation<worst_req, allocator_t>>);
 }
 
+constexpr void foo()
+{
+    const indexed_type<int, 0> indexed{};
+    auto&& v = stdsharp::get_type<0>(indexed);
+}
+
 SCENARIO("object allocation emplace", "[memory][object allocation]") // NOLINT
 {
     GIVEN("a trivial object allocation")

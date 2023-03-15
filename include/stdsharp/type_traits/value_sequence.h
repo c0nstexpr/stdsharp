@@ -79,7 +79,7 @@ namespace stdsharp
     );
 
     template<typename Rng>
-    using rng_to_sequence_t = typename details::rng_to_sequence<Rng>::type;
+    using rng_to_sequence_t = ::meta::_t<details::rng_to_sequence<Rng>>;
 
     template<auto Rng>
     using rng_v_to_sequence_t = rng_to_sequence_t<constant<Rng>>;
@@ -157,10 +157,10 @@ namespace stdsharp
     } // clang-format on
 
     template<auto... Values>
-    using reverse_value_sequence_t = typename details::reverse_value_sequence<Values...>::type;
+    using reverse_value_sequence_t = ::meta::_t<details::reverse_value_sequence<Values...>>;
 
     template<auto... Values>
-    using unique_value_sequence_t = typename details::unique_value_sequence<Values...>::type;
+    using unique_value_sequence_t = ::meta::_t<details::unique_value_sequence<Values...>>;
 
     template<auto... Values>
     struct value_sequence : regular_value_sequence<Values...>
@@ -515,7 +515,7 @@ namespace stdsharp
         using insert_t = typename insert<Index>::template type<Other...>;
 
         template<::std::size_t... Index>
-        using remove_at_t = typename remove_at<Index...>::type;
+        using remove_at_t = ::meta::_t<remove_at<Index...>>;
 
         template<::std::size_t Index, auto Other>
         using replace_t = typename as_value_sequence_t<

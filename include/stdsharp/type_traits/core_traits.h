@@ -2,7 +2,6 @@
 
 #include <array>
 #include <string_view>
-#include <functional>
 
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
@@ -13,6 +12,26 @@ using namespace ::std::literals;
 
 namespace stdsharp
 {
+
+    template<template<typename...> typename T, typename... Args>
+    struct deduction;
+
+    template<template<typename...> typename T>
+    struct make_template_type_fn
+    {
+        template<typename... Args>
+            requires requires { typename deduction<T, Args...>::type; }
+        using type = typename deduction<T, Args...>::type;
+
+        template<typename... Args>
+            requires ::std::constructible_from<type<Args...>, Args...>
+        constexpr auto operator()(Args&&... args) const
+            noexcept(::std::is_nothrow_constructible_v<type<Args...>, Args...>)
+        {
+            return type<Args...>{::std::forward<Args>(args)...};
+        }
+    };
+
     enum class ref_qualifier
     {
         none,
@@ -58,7 +77,7 @@ namespace stdsharp
     using apply_qualifiers = apply_ref<apply_volatile<apply_const<T, Const>, Volatile>, ref>;
 
     template<typename...>
-    [[nodiscard]] constexpr auto always_false(const auto&...) noexcept
+    [[nodiscard]] constexpr auto dependent_false(const auto&...) noexcept
     {
         return false;
     }
@@ -77,23 +96,33 @@ namespace stdsharp
     } empty;
 
     template<typename T>
-    inline constexpr ::std::type_identity<T> type_identity_v{};
-
-    template<typename T>
     using add_const_lvalue_ref_t = ::std::add_lvalue_reference_t<::std::add_const_t<T>>;
+
+    template<typename T, typename U>
+    using ref_align_t = ::std::conditional_t<
+        ::std::is_lvalue_reference_v<T>,
+        ::std::add_lvalue_reference_t<U>, // clang-format off
+        ::std::conditional_t<::std::is_rvalue_reference_v<T>, ::std::add_rvalue_reference_t<U>, U>
+    >; // clang-format on
+
+    template<typename T, typename U>
+    using const_align_t = ::std::conditional_t<
+        ::std::is_const_v<::std::remove_reference_t<T>>,
+        ::std::add_const_t<U>, // clang-format off
+        U
+    >; // clang-format on
+
+    template<typename T, typename U>
+    using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
     template<auto Value>
     using constant = ::std::integral_constant<decltype(Value), Value>;
 
-    template<auto Func, auto... Args>
-        requires ::std::invocable<decltype(Func), decltype(Args)...>
-    static constexpr decltype(auto) invoke_result = ::std::invoke(Func, Args...);
-
     template<auto Value>
-    inline constexpr constant<Value> constant_v{};
+    using constant_value_type = typename constant<Value>::value_type;
 
     template<typename T>
-    constexpr const auto& static_const_v = ::ranges::static_const<T>::value;
+    inline constexpr const auto& static_const_v = ::ranges::static_const<T>::value;
 
     template<bool conditional, auto Left, auto>
     inline constexpr auto conditional_v = Left;
@@ -117,6 +146,9 @@ namespace stdsharp
         [[nodiscard]] static constexpr auto size() noexcept { return sizeof...(T); }
     };
 
+    template<typename... T>
+    using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
+
     template<auto... V>
     struct regular_value_sequence
     {
@@ -129,29 +161,111 @@ namespace stdsharp
     {
     };
 
-    namespace details
+    template<typename T>
+    struct basic_type_constant : ::std::type_identity<T>
     {
-        template<typename>
-        struct template_of;
-
-        template<template<typename...> typename Template, typename... T>
-        struct template_of<Template<T...>>
+    private:
+        template<typename U>
+        [[nodiscard]] friend constexpr bool
+            operator==(const basic_type_constant, const basic_type_constant<U>) noexcept
         {
-            template<typename... U>
-            using rebind = Template<U...>;
-        };
-
-        template<typename T>
-        struct get_type_id
-        {
-            static constexpr auto impl() noexcept { return ::std::to_array(__func__); }
-
-            static constexpr auto name = impl();
-        };
-    }
+            return ::std::same_as<T, U>;
+        }
+    };
 
     template<typename T>
-    inline constexpr ::std::string_view type_id = details::get_type_id<T>::name;
+    basic_type_constant(::std::type_identity<T>) -> basic_type_constant<T>;
+
+    template<typename T>
+    using type_constant = adl_proof_t<basic_type_constant, T>;
+
+    template<typename T>
+    struct deduction<type_constant, ::std::type_identity<T>>
+    {
+        using type = type_constant<T>;
+    };
+
+    template<typename T>
+    inline constexpr make_template_type_fn<type_constant> make_type_constant{};
+
+    template<template<typename> typename T, typename... Ts>
+    struct ttp_expend : T<Ts>...
+    {
+        ttp_expend() = default;
+
+        template<typename... Us>
+            requires(::std::constructible_from<T<Ts>, Us> && ...)
+        constexpr ttp_expend(Us&&... us) //
+            noexcept((::std::is_nothrow_constructible_v<T<Ts>, Us> && ...)):
+            T<Ts>(::std::forward<Us>(us))...
+        {
+        }
+    };
+
+    template<template<typename> typename T, typename... Ts>
+    ttp_expend(T<Ts>...) -> ttp_expend<T, Ts...>;
+
+    template<template<typename> typename T, typename Seq> // clang-format off
+    using make_ttp_expend_by = ::meta::_t<
+        constant_value_type<
+            []<template<typename...> typename Inner, typename... U>(const ::std::type_identity<Inner<U...>>)
+            {
+                return ::std::type_identity<ttp_expend<T, U...>>{};
+            }(::std::type_identity<Seq>{})
+        >
+    >; // clang-format on
+
+    template<template<auto> typename T, auto... V>
+    struct nttp_expend : T<V>...
+    {
+        nttp_expend() = default;
+
+        template<typename... Us>
+            requires(::std::constructible_from<T<V>, Us> && ...)
+        constexpr nttp_expend(Us&&... us) //
+            noexcept((::std::is_nothrow_constructible_v<T<V>, Us> && ...)):
+            T<V>(::std::forward<Us>(us))...
+        {
+        }
+    };
+
+    template<template<auto> typename T, auto... V>
+    nttp_expend(T<V>...) -> nttp_expend<T, V...>;
+
+    template<typename Seq> // clang-format off
+    using to_regular_value_sequence = constant_value_type<
+        []<template<auto...> typename T, auto... V>(const ::std::type_identity<T<V...>>)
+        {
+            return regular_value_sequence<V...>{};
+        }(::std::type_identity<Seq>{})
+    > ; // clang-format on
+
+    template<typename T, T Size>
+    using make_integer_sequence = to_regular_value_sequence<::std::make_integer_sequence<T, Size>>;
+
+    template<::std::size_t N>
+    using make_index_sequence = make_integer_sequence<::std::size_t, N>;
+
+    template<template<auto> typename T, ::std::size_t Size> // clang-format off
+    using make_nttp_expend = ::meta::_t<
+        constant_value_type<
+            []<template<auto...> typename Inner, auto... V>(const Inner<V...>)
+            {
+                return ::std::type_identity<nttp_expend<T, V...>>{};
+            }(make_index_sequence<Size>{})
+        >
+    >; // clang-format on
+
+    template<typename Template, typename... T>
+    using template_rebind = ::meta::_t< //
+        constant_value_type< //
+            []<template<typename...> typename Inner, typename... U> //
+            (const ::std::type_identity<Inner<U...>>)
+            {
+                return ::std::type_identity<Inner<U...>>{}; //
+            }(::std::type_identity<Template>{}) // clang-format off
+        >
+    >; // clang-format on
 
     namespace cpo
     {
@@ -187,83 +301,26 @@ namespace stdsharp
         inline namespace cpo_impl
         {
             template<::std::size_t I>
-            inline constexpr details::get_fn<I> get;
+            inline constexpr details::get_fn<I> get_element;
         }
     }
-
-    template<typename Template, typename... T>
-    using template_rebind = typename details::template_of<Template>::template rebind<T...>;
 
     namespace details
     {
         template<typename T>
-        struct type_constant
+        struct get_type_id
         {
-            using type = T;
+            static constexpr auto impl() noexcept { return ::std::to_array(__func__); }
 
-            type_constant() = default;
-
-            constexpr type_constant(const ::std::type_identity<T>) noexcept {}
-
-            [[nodiscard]] explicit constexpr operator ::std::type_identity<T>() const noexcept
-            {
-                return {};
-            }
-
-        private:
-            template<typename U>
-            [[nodiscard]] friend constexpr bool
-                operator==(const type_constant, const type_constant<U>) noexcept
-            {
-                return ::std::same_as<T, U>;
-            }
-        };
-
-        template<typename T>
-        struct nttp_check
-        {
-            template<T...>
-            struct nested
-            {
-            };
+            static constexpr auto name = impl();
         };
     }
 
     template<typename T>
-    using type_constant = adl_proof_t<details::type_constant, T>;
+    inline constexpr ::std::string_view type_id = details::get_type_id<T>::name;
 
     template<typename T>
-    [[nodiscard]] constexpr type_constant<T>
-        make_type_constant(const ::std::type_identity<T>) noexcept
-    {
-        return {};
-    }
-
-    template<typename T>
-    inline constexpr type_constant<T> type_constant_v{};
-
-    template<typename T, typename U>
-    using ref_align_t = ::std::conditional_t<
-        ::std::is_lvalue_reference_v<T>,
-        ::std::add_lvalue_reference_t<U>, // clang-format off
-        ::std::conditional_t<::std::is_rvalue_reference_v<T>, ::std::add_rvalue_reference_t<U>, U>
-    >; // clang-format on
-
-    template<typename T, typename U>
-    using const_align_t = ::std::conditional_t<
-        ::std::is_const_v<::std::remove_reference_t<T>>,
-        ::std::add_const_t<U>, // clang-format off
-        U
-    >; // clang-format on
-
-    template<typename T, typename U>
-    using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
-
-    template<typename... T>
-    using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
-
-    template<typename T>
-    concept nttp_able = requires { typename details::nttp_check<T>::template nested<>; };
+    concept nttp_able = requires { ::std::integer_sequence<T>{}; };
 
     inline namespace literals
     {
@@ -277,9 +334,13 @@ namespace stdsharp
             using base = ::std::array<char, Size>;
             using base::base;
 
-            constexpr ltr(array_t arr) noexcept: base(::std::to_array(arr)) {}
+            constexpr ltr(array_t arr) noexcept { ::std::ranges::copy(arr, base::begin()); }
 
-            constexpr ltr& operator=(array_t arr) noexcept { *this = ::std::to_array(arr); }
+            constexpr ltr& operator=(array_t arr) noexcept
+            {
+                ::std::ranges::copy(arr, base::begin());
+                return *this;
+            }
 
             [[nodiscard]] constexpr operator ::std::string_view() const noexcept
             {

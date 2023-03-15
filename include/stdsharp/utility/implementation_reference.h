@@ -10,7 +10,7 @@ namespace stdsharp
         ::std::reference_wrapper<Ret(Arg&&...) noexcept(ExprReq == expr_req::no_exception)>
     {
     private:
-        using func = typename implementation_reference::type;
+        using func = ::meta::_t<implementation_reference>;
 
     public:
         static constexpr auto requirement = ExprReq;

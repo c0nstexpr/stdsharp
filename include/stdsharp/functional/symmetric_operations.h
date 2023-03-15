@@ -44,7 +44,7 @@ namespace stdsharp::cpo::inline cpo_impl
             template<
                 typename... Args,
                 ::std::invocable<Args...> Operation,
-                typename SymOp = typename arithmetic_operation<Operation>::type // clang-format off
+                typename SymOp = ::meta::_t<arithmetic_operation<Operation>> // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(const Operation, Args&&... args) const
                 noexcept(noexcept(bind(SymOp{}, ::std::forward<Args>(args)...)))

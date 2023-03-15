@@ -31,9 +31,9 @@ namespace stdsharp::filesystem
     }
 
     template<typename Rep, ::std::uintmax_t Num, ::std::uintmax_t Denom>
-        requires(!::std::same_as<::std::ratio<Num, Denom>, typename ::std::ratio<Num, Denom>::type>)
+        requires(!::std::same_as < ::std::ratio<Num, Denom>, ::meta::_t<::std::ratio<Num, Denom>>)
     class space_size<Rep, ::std::ratio<Num, Denom>> :
-        public space_size<Rep, typename ::std::ratio<Num, Denom>::type>
+        public space_size<Rep, ::meta::_t<::std::ratio<Num, Denom>>>
     {
     };
 

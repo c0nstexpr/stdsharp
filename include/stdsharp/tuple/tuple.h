@@ -192,5 +192,5 @@ namespace stdsharp
     }
 
     template<typename Seq>
-    using tuple_elements = typename details::tuple_elements<Seq, type_size_seq_t<Seq>>::type;
+    using tuple_elements = ::meta::_t<details::tuple_elements<Seq, type_size_seq_t<Seq>>>;
 }

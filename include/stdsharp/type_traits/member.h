@@ -21,7 +21,7 @@ namespace stdsharp
     };
 
     template<auto Ptr>
-    using member_t = typename member_pointer_traits<Ptr>::type;
+    using member_t = ::meta::_t<member_pointer_traits<Ptr>>;
 
     template<typename>
     struct member_function_traits;

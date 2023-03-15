@@ -39,7 +39,7 @@ namespace stdsharp
 
         template<typename T>
             requires requires { member_function_traits<T>{}; }
-        using dispatch_traits_t = typename dispatch_traits<::std::decay_t<T>>::type;
+        using dispatch_traits_t = ::meta::_t<dispatch_traits<::std::decay_t<T>>>;
 
         template<typename ErasedT, typename... Func>
             requires requires { (dispatch_traits_t<Func>{}, ...); }
