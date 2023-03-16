@@ -5,19 +5,14 @@
 #include <algorithm>
 
 #include "../type_traits/indexed_traits.h"
+#include "../utility/invocable.h"
 
 namespace stdsharp
 {
-    namespace details
-    {
-        template<typename... Func>
-        using invocables = stdsharp::indexed_values<invocable_t<Func>...>;
-    }
-
     template<typename... Func>
-    struct invocables : details::invocables<Func...>
+    struct invocables : stdsharp::basic_indexed_values<invocable_t<Func>...>
     {
-        using details::invocables<Func...>::invocables;
+        using stdsharp::basic_indexed_values<invocable_t<Func>...>::basic_indexed_values;
 
         template<typename... Args>
         static constexpr ::std::array invoke_result{::std::invocable<Func, Args...>...};

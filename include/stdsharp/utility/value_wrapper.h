@@ -40,6 +40,7 @@ namespace stdsharp
     {                                                              \
         return static_cast<const_ T ref>(v);                       \
     }                                                              \
+                                                                   \
     constexpr explicit operator const_ T ref() const_ ref noexcept \
     {                                                              \
         return value();                                            \

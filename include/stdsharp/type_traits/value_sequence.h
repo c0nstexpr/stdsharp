@@ -12,92 +12,20 @@ namespace stdsharp
     template<auto...>
     struct value_sequence;
 
-    namespace details
-    {
-        template<auto From, auto PlusF, ::std::size_t... I>
-            requires requires { regular_value_sequence<::std::invoke(PlusF, From, I)...>{}; }
-        constexpr auto make_value_sequence(::std::index_sequence<I...>) noexcept
-        {
-            return regular_value_sequence<::std::invoke(PlusF, From, I)...>{};
-        }
-
-        struct as_value_sequence
-        {
-            template<typename... Constant>
-            using invoke = value_sequence<Constant::value...>;
-        };
-
-        template<::std::array Array, ::std::size_t... Index>
-            requires nttp_able<typename decltype(Array)::value_type>
-        consteval regular_value_sequence<Array[Index]...>
-            array_to_sequence(const ::std::index_sequence<Index...>)
-        {
-            return {};
-        }
-
-        template<
-            constant_value T,
-            typename Range = decltype(T::value),
-            nttp_able ValueType = ::std::ranges::range_value_t<Range> // clang-format off
-        > // clang-format on
-            requires requires //
-        {
-            index_constant<::std::ranges::size(T::value)>{};
-            ::std::array<ValueType, 1>{};
-            requires ::std::copyable<ValueType>;
-        }
-        struct rng_to_sequence
-        {
-            static constexpr auto rng = T::value;
-            static constexpr auto size = ::std::ranges::size(rng);
-
-            static constexpr auto array = []
-            {
-                if constexpr( //
-                    requires { array_to_sequence<rng>(::std::make_index_sequence<size>{}); } //
-                )
-                    return rng;
-                else
-                {
-                    ::std::array<ValueType, size> array{};
-                    ::std::ranges::copy(rng, array.begin());
-                    return array;
-                }
-            }();
-
-            using type =
-                decltype(array_to_sequence<array>(::std::make_index_sequence<array.size()>{}));
-        };
-    }
-
     template<typename T>
-    using as_value_sequence_t = ::meta::apply<details::as_value_sequence, T>;
-
-    template<auto From, ::std::size_t Size, auto PlusF = ::std::plus{}>
-    using make_value_sequence_t = decltype( //
-        details::make_value_sequence<From, PlusF>(::std::make_index_sequence<Size>{})
+    using to_value_sequence = decltype( //
+        []<template<auto...> typename Inner,
+           auto... Values>(const ::std::type_identity<Inner<Values...>>) //
+        {
+            return value_sequence<Values...>{}; //
+        }(T{})
     );
-
-    template<typename Rng>
-    using rng_to_sequence_t = ::meta::_t<details::rng_to_sequence<Rng>>;
-
-    template<auto Rng>
-    using rng_v_to_sequence_t = rng_to_sequence_t<constant<Rng>>;
 
     namespace details
     {
         template<auto... Values>
         struct reverse_value_sequence
         {
-            using seq = value_sequence<Values...>;
-
-            using type = typename as_value_sequence_t< //
-                make_value_sequence_t<
-                    seq::size() - 1,
-                    seq::size(),
-                    ::std::minus{} // clang-format off
-                >
-            >::template apply_t<seq::template at_t>; // clang-format on
         };
 
         template<auto... Values>
@@ -130,8 +58,8 @@ namespace stdsharp
                 return value;
             }();
 
-            using type = typename as_value_sequence_t<
-                rng_v_to_sequence_t<unique_indices_value> // clang-format off
+            using type = typename to_value_sequence<
+                rng_v_to_sequence<unique_indices_value> // clang-format off
             >::template apply_t<seq::template at_t>; // clang-format on
         };
 
@@ -157,10 +85,23 @@ namespace stdsharp
     } // clang-format on
 
     template<auto... Values>
-    using reverse_value_sequence_t = ::meta::_t<details::reverse_value_sequence<Values...>>;
+    using reverse_value_sequence = decltype(
+        []
+        {
+            using seq = value_sequence<Values...>;
+
+            return typename to_value_sequence< //
+                make_value_sequence_t<
+                    seq::size() - 1,
+                    seq::size(),
+                    ::std::minus{}
+                >
+            >::template apply_t<seq::template at_t>{};
+        }()
+    );
 
     template<auto... Values>
-    using unique_value_sequence_t = ::meta::_t<details::unique_value_sequence<Values...>>;
+    using unique_value_sequence = ::meta::_t<details::unique_value_sequence<Values...>>;
 
     template<auto... Values>
     struct value_sequence : regular_value_sequence<Values...>
@@ -169,9 +110,9 @@ namespace stdsharp
         using regular_value_sequence<Values...>::size;
 
     private:
-        using values_t = indexed_values<decltype(Values)...>;
+        static constexpr basic_indexed_values values{Values...};
 
-        static constexpr values_t values{Values...};
+        using values_t = ::std::decay_t<decltype(values)>;
 
         template<::std::size_t I>
             requires requires { requires I < size(); }
@@ -215,7 +156,7 @@ namespace stdsharp
         using apply_t = T<Values...>;
 
         template<::std::size_t I>
-        using value_type = typename values_t::template type<I>;
+        using value_type = typename values_t::template get_type_t<I>;
 
         template<::std::size_t I>
         static constexpr value_type<I> value = get<I>(values);
@@ -440,7 +381,7 @@ namespace stdsharp
         using transform_t = decltype(transform<Func...>());
 
         template<::std::size_t From, ::std::size_t Size>
-        using select_range_t = typename as_value_sequence_t<make_value_sequence_t<From, Size>>:: //
+        using select_range_t = typename to_value_sequence<make_value_sequence_t<From, Size>>:: //
             template apply_t<at_t>;
 
         template<::std::size_t Size>
@@ -518,8 +459,8 @@ namespace stdsharp
         using remove_at_t = ::meta::_t<remove_at<Index...>>;
 
         template<::std::size_t Index, auto Other>
-        using replace_t = typename as_value_sequence_t<
-            typename as_value_sequence_t<front_t<Index>>::template append_t<Other>
+        using replace_t = typename to_value_sequence<
+            typename to_value_sequence<front_t<Index>>::template append_t<Other>
             // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };

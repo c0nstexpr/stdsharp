@@ -35,7 +35,7 @@ namespace stdsharp
         static constexpr auto dtor_req = Req.destruct;
         static constexpr auto swp_req = Req.swap;
 
-        using mem_traits_base = indexed_values<
+        using mem_traits_base = basic_indexed_values<
             details::special_mem_reference<move_ctor_req, Alloc&, ptr_cref, ptr_cref>,
             details::special_mem_reference<cp_ctor_req, Alloc&, ptr_cref, cptr_cref>,
             details::special_mem_reference<mov_assign_req, ptr_cref, ptr_cref>,
@@ -78,8 +78,8 @@ namespace stdsharp
                     {
                         alloc_traits::construct(
                             alloc,
-                            to_other_pointer<T>(left),
-                            to_other_pointer<T>(right)
+                            pointer_cast<T>(left),
+                            pointer_cast<T>(right)
                         );
                     },
                     [](Alloc & alloc, ptr_cref left, cptr_cref right) //
@@ -88,33 +88,33 @@ namespace stdsharp
                     {
                         alloc_traits::construct(
                             alloc,
-                            to_other_pointer<T>(left),
-                            to_other_pointer<T>(right)
+                            pointer_cast<T>(left),
+                            pointer_cast<T>(right)
                         );
                     },
                     [](ptr_cref left, ptr_cref right) //
                     noexcept(mov_assign_req == expr_req::no_exception) //
                     requires(mov_assign_req >= expr_req::well_formed) //
                     {
-                        dereference_to<T>(left) = ::std::move(dereference_to<T>(right)); //
+                        *pointer_cast<T>(left) = ::std::move(*pointer_cast<T>(right)); //
                     },
                     [](ptr_cref left, cptr_cref right) //
                     noexcept(cp_assign_req == expr_req::no_exception) //
                     requires(cp_assign_req >= expr_req::well_formed) //
                     {
-                        dereference_to<T>(left) = dereference_to<T>(right); //
+                        *pointer_cast<T>(left) = *pointer_cast<T>(right); //
                     },
                     [](Alloc & alloc, ptr_cref left) //
                     noexcept(dtor_req == expr_req::no_exception) //
                     requires(dtor_req >= expr_req::well_formed) //
                     {
-                        alloc_traits::destroy(alloc, to_other_pointer<T>(left)); //
+                        alloc_traits::destroy(alloc, pointer_cast<T>(left)); //
                     },
                     [](ptr_cref left, ptr_cref right) //
                     noexcept(swp_req == expr_req::no_exception) //
                     requires(swp_req >= expr_req::well_formed) //
                     {
-                        ::std::ranges::swap(dereference_to<T>(left), dereference_to<T>(right)); //
+                        ::std::ranges::swap(*pointer_cast<T>(left), *pointer_cast<T>(right)); //
                     }
                 )
             {
@@ -135,34 +135,34 @@ namespace stdsharp
                 noexcept(move_ctor_req == expr_req::no_exception)
                 requires(move_ctor_req >= expr_req::well_formed)
             {
-                details::adl_get<0>(to_base())(alloc, left, right);
+                stdsharp::get<0>(to_base())(alloc, left, right);
             }
 
             constexpr void construct(Alloc& alloc, ptr_cref left, cptr_cref right) const
                 noexcept(cp_ctor_req == expr_req::no_exception)
                 requires(cp_ctor_req >= expr_req::well_formed)
             {
-                details::adl_get<1>(to_base())(alloc, left, right);
+                stdsharp::get<1>(to_base())(alloc, left, right);
             }
 
             constexpr void assign(ptr_cref left, ptr_cref right) const
                 noexcept(mov_assign_req == expr_req::no_exception)
                 requires(mov_assign_req >= expr_req::well_formed)
             {
-                details::adl_get<2>(to_base())(left, right);
+                stdsharp::get<2>(to_base())(left, right);
             }
 
             constexpr void assign(ptr_cref left, cptr_cref right) const
                 noexcept(cp_assign_req == expr_req::no_exception)
                 requires(cp_assign_req >= expr_req::well_formed)
             {
-                details::adl_get<3>(to_base())(left, right);
+                stdsharp::get<3>(to_base())(left, right);
             }
 
             constexpr void destruct(Alloc& alloc, ptr_cref ptr) const
                 noexcept(dtor_req == expr_req::no_exception)
             {
-                details::adl_get<4>(to_base())(alloc, ptr);
+                stdsharp::get<4>(to_base())(alloc, ptr);
             }
 
             // NOLINTBEGIN(*-magic-numbers)
@@ -170,7 +170,7 @@ namespace stdsharp
                 noexcept(swp_req == expr_req::no_exception)
                 requires(swp_req >= expr_req::well_formed)
             {
-                details::adl_get<5>(to_base())(left, right);
+                stdsharp::get<5>(to_base())(left, right);
             } // NOLINTEND(*-magic-numbers)
 
             [[nodiscard]] constexpr auto type() const noexcept { return current_type_; }
@@ -525,13 +525,13 @@ namespace stdsharp
         template<typename T>
         [[nodiscard]] constexpr auto& get() noexcept
         {
-            return dereference_to<T>(get_ptr());
+            return *pointer_cast<T>(get_ptr());
         }
 
         template<typename T>
         [[nodiscard]] constexpr auto& get() const noexcept
         {
-            return dereference_to<const T>(get_ptr());
+            return *pointer_cast<const T>(get_ptr());
         }
 
         constexpr void reset() noexcept(noexcept(destroy()))

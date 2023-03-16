@@ -225,7 +225,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            typename as_value_sequence_t<Seq>:: //
+            typename to_value_sequence<Seq>:: //
             template apply_t<unique_value_sequence_t>,
             Expect
         >
@@ -244,7 +244,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            typename as_value_sequence_t<Seq>:: //
+            typename to_value_sequence<Seq>:: //
             template apply_t<reverse_value_sequence_t>,
             Expect
         >

@@ -18,7 +18,7 @@ namespace stdsharp
     constexpr decltype(auto) operator()(Args&&... args)                     \
         const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)    \
     {                                                                       \
-        return ::std::invoke(base::value(), ::std::forward<Args>(args)...); \
+        return ::std::invoke(this->value(), ::std::forward<Args>(args)...); \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -31,12 +31,10 @@ namespace stdsharp
 
     template<typename Func>
     struct nodiscard_invocable : invocable_t<Func>
-
     {
         using base = invocable_t<Func>;
 
         using base::base;
-        using base::value;
 
 #define STDSHARP_OPERATOR(const_, ref)                                             \
     template<typename... Args>                                                     \

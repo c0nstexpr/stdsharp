@@ -149,7 +149,7 @@ namespace stdsharp
     } to_void_pointer{};
 
     template<typename T>
-    struct to_other_pointer_fn
+    struct pointer_cast_fn
     {
     private:
         template<typename Pointer>
@@ -187,20 +187,5 @@ namespace stdsharp
     };
 
     template<typename T>
-    inline constexpr to_other_pointer_fn<T> to_other_pointer{};
-
-    template<typename T>
-    struct dereference_to_fn
-    {
-    public:
-        template<typename Pointer>
-            requires ::std::invocable<to_other_pointer_fn<T>, Pointer>
-        [[nodiscard]] constexpr decltype(auto) operator()(const Pointer& p) const noexcept
-        {
-            return *to_other_pointer<T>(p);
-        }
-    };
-
-    template<typename T>
-    inline constexpr dereference_to_fn<T> dereference_to{};
+    inline constexpr pointer_cast_fn<T> pointer_cast{};
 }
