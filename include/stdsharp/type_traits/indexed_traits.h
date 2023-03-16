@@ -144,7 +144,7 @@ namespace stdsharp
             struct impl : base<>
             {
                 template<::std::size_t J>
-                using get_type_t = type_constant_t<get_type<J>(base{})>;
+                using get_type_t = ::meta::_t<decltype(get_type<J>(base{}))>;
             };
         };
     }

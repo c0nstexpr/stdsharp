@@ -165,7 +165,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     // STATIC_REQUIRE( //
     //     same_as<
-    //         typename Seq::template apply_t<unique_type_sequence_t>,
+    //         typename Seq::template apply_t<unique_type_sequence>,
     //         Expect // clang-format off
     //     > // clang-format on
     // );

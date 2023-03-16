@@ -118,9 +118,6 @@ namespace stdsharp
     using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
     template<auto Value>
-    using type_constant_t = ::meta::_t<decltype(Value)>;
-
-    template<auto Value>
     using constant = ::std::integral_constant<decltype(Value), Value>;
 
     template<auto Value>
@@ -344,14 +341,13 @@ namespace stdsharp
     ttp_expend(T<Ts>...) -> ttp_expend<T, Ts...>;
 
     template<template<typename> typename T, typename Seq>
-    using make_ttp_expend_by = type_constant_t< //
-        []<template<typename...> typename Inner, typename... U> //
-        (const ::std::type_identity<Inner<U...>>)
+    using make_ttp_expend_by = decltype( //
+        []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
         {
             return ::std::type_identity<ttp_expend<T, U...>>{}; //
-        }(::std::type_identity<Seq>{})
+        }(::std::declval<Seq>())
         // clang-format off
-    >; // clang-format on
+    ); // clang-format on
 
     template<template<auto> typename T, auto... V>
     struct nttp_expend : T<V>...
@@ -371,21 +367,21 @@ namespace stdsharp
     nttp_expend(T<V>...) -> nttp_expend<T, V...>;
 
     template<template<auto> typename T, ::std::size_t Size>
-    using make_nttp_expend = type_constant_t < // clang-format off
-        []<template<auto...> typename Inner, auto... V>(const Inner<V...>)
+    using make_nttp_expend = decltype( //
+        []<template<auto...> typename Inner, auto... V>(const Inner<V...>) //
         {
-            return ::std::type_identity<nttp_expend<T, V...>>{};
+            return ::std::type_identity<nttp_expend<T, V...>>{}; //
         }(make_index_sequence<Size>{})
-    >; // clang-format on
+    );
 
     template<typename Template, typename... T>
-    using template_rebind = type_constant_t< //
+    using template_rebind = decltype( //
         []<template<typename...> typename Inner, typename... U> //
-        (const ::std::type_identity<Inner<U...>>)
+        (const Inner<U...>)
         {
             return ::std::type_identity<Inner<U...>>{}; //
-        }(::std::type_identity<Template>{}) // clang-format off
-    >; // clang-format on
+        }(::std::declval<Template>())
+    );
 
     namespace cpo
     {
