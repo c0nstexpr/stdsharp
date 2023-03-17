@@ -7,15 +7,24 @@ namespace stdsharp
 {
     namespace details
     {
+        struct type_seq_conversion
+        {
+            template<typename ValueSeq>
+            using from_value_seq = decltype( //
+                []<typename... T>(const regular_value_sequence<basic_type_constant<T>{}...>)
+                {
+                    return regular_type_sequence<T...>{}; //
+                }(ValueSeq{})
+            );
+        };
+
         template<typename Base, typename... Types>
-        struct type_sequence : private Base, stdsharp::regular_type_sequence<Types...>
+        struct type_sequence : private Base, regular_type_sequence<Types...>, type_seq_conversion
+
         {
         private:
             template<typename... T>
-            using regular_type_sequence = stdsharp::regular_type_sequence<T...>;
-
-            template<typename T>
-            using type_constant = stdsharp::type_constant<T>;
+            using regular_type_sequence = regular_type_sequence<T...>;
 
             template<::std::size_t I>
                 requires requires { requires I < Base::size(); }
@@ -47,13 +56,13 @@ namespace stdsharp
             using type = typename Base::template value_type<I>::type;
 
             template<::std::size_t... I>
-            using at_t = stdsharp::regular_type_sequence<type<I>...>;
+            using at_t = regular_type_sequence<type<I>...>;
 
             template<::std::size_t Size>
-            using back_t = convert_from_value_sequence<typename Base::template back_t<Size>>;
+            using back_t = from_value_seq<typename Base::template back_t<Size>>;
 
             template<::std::size_t Size>
-            using front_t = convert_from_value_sequence<typename Base::template front_t<Size>>;
+            using front_t = from_value_seq<typename Base::template front_t<Size>>;
 
             template<typename... Others>
             using append_t = regular_type_sequence<Types..., Others...>;
@@ -68,33 +77,31 @@ namespace stdsharp
             using append_front_t = regular_type_sequence<Others..., Types...>;
 
             template<::std::size_t Index, typename... Other>
-            using insert_t = convert_from_value_sequence< //
+            using insert_t = from_value_seq< //
                 typename Base::template insert_t<
                     Index,
-                    static_const_v<type_constant<Other>>... // clang-format off
+                    basic_type_constant<Other>{}... // clang-format off
                 >
             >; // clang-format on
 
             template<::std::size_t... Index>
-            using remove_at_t =
-                convert_from_value_sequence<typename Base::template remove_at_t<Index...>>;
+            using remove_at_t = from_value_seq<typename Base::template remove_at_t<Index...>>;
 
             template<::std::size_t Index, typename Other>
-            using replace_t = convert_from_value_sequence<
-                typename Base::template replace_t<Index, type_constant<Other>{}>>;
+            using replace_t = from_value_seq<
+                typename Base::template replace_t<Index, basic_type_constant<Other>{}>>;
 
             template<::std::size_t From, ::std::size_t Size>
             using select_range_t =
-                convert_from_value_sequence<typename Base::template select_range_t<From, Size>>;
+                from_value_seq<typename Base::template select_range_t<From, Size>>;
         };
     }
 
     template<typename... Types>
     using type_sequence = adl_proof_t<
         details::type_sequence,
-        stdsharp::value_sequence<stdsharp::type_constant<Types>{}...>,
-        Types... // clang-format off
-    >; // clang-format on
+        value_sequence<basic_type_constant<Types>{}...>,
+        Types...>;
 
     template<typename T>
     using to_type_sequence = decltype( //
@@ -110,7 +117,7 @@ namespace stdsharp
 
     template<typename... T>
     using unique_type_sequence =
-        convert_from_value_sequence<unique_value_sequence<basic_type_constant<T>{}...>>;
+        convert_from_value_sequence<unique_value_sequence<::std::type_identity<T>{}...>>;
 }
 
 namespace std

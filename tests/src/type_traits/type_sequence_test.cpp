@@ -37,10 +37,10 @@ TEMPLATE_TEST_CASE( // NOLINT
     decltype( //
         []( //
             const stdsharp::same_as_any<
-                type_constant<int>,
-                type_constant<char>,
-                type_constant<unsigned>,
-                type_constant<float>> auto
+                basic_type_constant<int>,
+                basic_type_constant<char>,
+                basic_type_constant<unsigned>,
+                basic_type_constant<float>> auto
         ) {}
     )
 )
@@ -163,10 +163,10 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, test_seq, regular_type_sequence<int, float, char, unsigned>)
 )
 {
-    // STATIC_REQUIRE( //
-    //     same_as<
-    //         typename Seq::template apply_t<unique_type_sequence>,
-    //         Expect // clang-format off
-    //     > // clang-format on
-    // );
+    STATIC_REQUIRE( //
+        same_as<
+            typename Seq::template apply_t<unique_type_sequence>,
+            Expect // clang-format off
+        > // clang-format on
+    );
 }

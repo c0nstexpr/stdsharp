@@ -178,19 +178,4 @@ namespace stdsharp
             );
         }
     } tuple_cat{};
-
-    namespace details
-    {
-        template<typename, typename>
-        struct tuple_elements;
-
-        template<typename Seq, ::std::size_t... I>
-        struct tuple_elements<Seq, ::std::index_sequence<I...>>
-        {
-            using type = regular_type_sequence<::std::tuple_element_t<I, Seq>...>;
-        };
-    }
-
-    template<typename Seq>
-    using tuple_elements = ::meta::_t<details::tuple_elements<Seq, type_size_seq_t<Seq>>>;
 }

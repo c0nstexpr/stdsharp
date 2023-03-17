@@ -11,6 +11,7 @@ namespace stdsharp
         {
             struct t_ : Inner<T...>
             {
+                using Inner<T...>::Inner;
             };
         };
     }

@@ -16,84 +16,84 @@ TEMPLATE_TEST_CASE( // NOLINT
     unique_ptr<int>
 )
 {
-    // {
-    //     using vec = vector<TestType>;
+    {
+        using vec = vector<TestType>;
 
-    //     GIVEN(fmt::format("vector type {}", type<vec>()))
-    //     {
-    //         STATIC_REQUIRE(contiguous_container<vec>);
-    //         STATIC_REQUIRE(!associative_container<vec>);
-    //         STATIC_REQUIRE(!unordered_associative_container<vec>);
-    //     }
-    // }
+        GIVEN(fmt::format("vector type {}", type<vec>()))
+        {
+            STATIC_REQUIRE(contiguous_container<vec>);
+            STATIC_REQUIRE(!associative_container<vec>);
+            STATIC_REQUIRE(!unordered_associative_container<vec>);
+        }
+    }
 
-    // {
-    //     using arr = array<TestType, 5>;
+    {
+        using arr = array<TestType, 5>;
 
-    //     GIVEN(fmt::format("array type {}", type<arr>()))
-    //     {
-    //         STATIC_REQUIRE(container<arr>);
-    //         STATIC_REQUIRE(!associative_container<arr>);
-    //         STATIC_REQUIRE(!unordered_associative_container<arr>);
-    //     }
-    // }
+        GIVEN(fmt::format("array type {}", type<arr>()))
+        {
+            STATIC_REQUIRE(container<arr>);
+            STATIC_REQUIRE(!associative_container<arr>);
+            STATIC_REQUIRE(!unordered_associative_container<arr>);
+        }
+    }
 
-    // {
-    //     using forward_list = forward_list<TestType>;
+    {
+        using forward_list = forward_list<TestType>;
 
-    //     GIVEN(fmt::format("forward list type {}", type<forward_list>()))
-    //     {
-    //         STATIC_REQUIRE(container<forward_list>);
-    //         STATIC_REQUIRE(!sequence_container<forward_list>);
-    //         STATIC_REQUIRE(!associative_container<forward_list>);
-    //         STATIC_REQUIRE(!unordered_associative_container<forward_list>);
-    //     }
-    // }
+        GIVEN(fmt::format("forward list type {}", type<forward_list>()))
+        {
+            STATIC_REQUIRE(container<forward_list>);
+            STATIC_REQUIRE(!sequence_container<forward_list>);
+            STATIC_REQUIRE(!associative_container<forward_list>);
+            STATIC_REQUIRE(!unordered_associative_container<forward_list>);
+        }
+    }
 
-    // {
-    //     using set = set<TestType>;
+    {
+        using set = set<TestType>;
 
-    //     GIVEN(fmt::format("set type {}", type<set>()))
-    //     {
-    //         STATIC_REQUIRE(!sequence_container<set>);
-    //         STATIC_REQUIRE(unique_associative_container<set>);
-    //         STATIC_REQUIRE(!unordered_associative_container<set>);
-    //     }
-    // }
+        GIVEN(fmt::format("set type {}", type<set>()))
+        {
+            STATIC_REQUIRE(!sequence_container<set>);
+            STATIC_REQUIRE(unique_associative_container<set>);
+            STATIC_REQUIRE(!unordered_associative_container<set>);
+        }
+    }
 
-    // {
-    //     using set = multiset<TestType>;
+    {
+        using set = multiset<TestType>;
 
 
-    //     GIVEN(fmt::format("set type {}", type<set>()))
-    //     {
-    //         STATIC_REQUIRE(!sequence_container<set>);
-    //         STATIC_REQUIRE(!unique_associative_container<set>);
-    //         STATIC_REQUIRE(multikey_associative_container<set>);
-    //         STATIC_REQUIRE(!unordered_associative_container<set>);
-    //     }
-    // }
+        GIVEN(fmt::format("set type {}", type<set>()))
+        {
+            STATIC_REQUIRE(!sequence_container<set>);
+            STATIC_REQUIRE(!unique_associative_container<set>);
+            STATIC_REQUIRE(multikey_associative_container<set>);
+            STATIC_REQUIRE(!unordered_associative_container<set>);
+        }
+    }
 
-    // {
-    //     using map = unordered_map<int, TestType>;
+    {
+        using map = unordered_map<int, TestType>;
 
-    //     GIVEN(fmt::format("unordered map type {}", type<map>()))
-    //     {
-    //         STATIC_REQUIRE(!sequence_container<map>);
-    //         STATIC_REQUIRE(!associative_container<map>);
-    //         STATIC_REQUIRE(unique_unordered_associative_container<map>);
-    //     }
-    // }
+        GIVEN(fmt::format("unordered map type {}", type<map>()))
+        {
+            STATIC_REQUIRE(!sequence_container<map>);
+            STATIC_REQUIRE(!associative_container<map>);
+            STATIC_REQUIRE(unique_unordered_associative_container<map>);
+        }
+    }
 
-    // {
-    //     using map = unordered_multimap<int, TestType>;
+    {
+        using map = unordered_multimap<int, TestType>;
 
-    //     GIVEN(fmt::format("unordered map type {}", type<map>()))
-    //     {
-    //         STATIC_REQUIRE(!sequence_container<map>);
-    //         STATIC_REQUIRE(!associative_container<map>);
-    //         STATIC_REQUIRE(!unique_unordered_associative_container<map>);
-    //         STATIC_REQUIRE(multikey_unordered_associative_container<map>);
-    //     }
-    // }
+        GIVEN(fmt::format("unordered map type {}", type<map>()))
+        {
+            STATIC_REQUIRE(!sequence_container<map>);
+            STATIC_REQUIRE(!associative_container<map>);
+            STATIC_REQUIRE(!unique_unordered_associative_container<map>);
+            STATIC_REQUIRE(multikey_unordered_associative_container<map>);
+        }
+    }
 }

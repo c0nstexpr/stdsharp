@@ -144,7 +144,7 @@ namespace stdsharp
             struct impl : base<>
             {
                 template<::std::size_t J>
-                using get_type_t = ::meta::_t<decltype(get_type<J>(base{}))>;
+                using get_t = ::meta::_t<decltype(get_type<J>(base{}))>;
             };
         };
     }
@@ -228,23 +228,11 @@ namespace stdsharp
 
 namespace std
 {
-    template<typename... T>
-    struct tuple_size<::stdsharp::basic_indexed_values<T...>> :
-        ::stdsharp::index_constant<sizeof...(T)>
-    {
-    };
-
-    template<::std::size_t I, typename... T>
-    struct tuple_element<I, ::stdsharp::basic_indexed_values<T...>>
-    {
-        using type = typename ::stdsharp::basic_indexed_values<T...>::template type<I>;
-    };
-
     template<::std::size_t I, typename Seq>
-        requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::indexed_types<>>
+        requires derived_from<::stdsharp::template_rebind<Seq>, ::stdsharp::basic_indexed_types<>>
     struct tuple_element<I, Seq>
     {
-        using type = typename Seq::template type<I>;
+        using type = typename Seq::template get_t<I>;
     };
 }
 

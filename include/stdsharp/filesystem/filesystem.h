@@ -31,13 +31,6 @@ namespace stdsharp::filesystem
     }
 
     template<typename Rep, ::std::uintmax_t Num, ::std::uintmax_t Denom>
-        requires(!::std::same_as < ::std::ratio<Num, Denom>, ::meta::_t<::std::ratio<Num, Denom>>)
-    class space_size<Rep, ::std::ratio<Num, Denom>> :
-        public space_size<Rep, ::meta::_t<::std::ratio<Num, Denom>>>
-    {
-    };
-
-    template<typename Rep, ::std::uintmax_t Num, ::std::uintmax_t Denom>
     class space_size<Rep, ::std::ratio<Num, Denom>> :
         default_arithmetic_assign_operation<
             space_size<Rep, ::std::ratio<Num, Denom>>,
@@ -47,6 +40,12 @@ namespace stdsharp::filesystem
     {
     public:
         using rep = Rep;
+
+        using period = ::meta::_t<::std::ratio<Num, Denom>>;
+
+        static constexpr auto num = period::num;
+
+        static constexpr auto denom = period::den;
 
     private:
         friend struct details::space_size_delegate;
@@ -59,12 +58,10 @@ namespace stdsharp::filesystem
         template<auto N, auto D>
         static constexpr auto cast_from(const auto factor, const ::std::ratio<N, D>) noexcept
         {
-            return static_cast<rep>(factor * Denom * N / (Num * D)); // NOLINT(*-integer-division)
+            return static_cast<rep>(factor * denom * N / (num * D)); // NOLINT(*-integer-division)
         }
 
     public:
-        using period = ::std::ratio<Num, Denom>;
-
         static constexpr space_size zero() noexcept { return {}; }
 
         static constexpr space_size max() noexcept { return ::std::numeric_limits<rep>::max(); }
@@ -96,8 +93,8 @@ namespace stdsharp::filesystem
         }
 
         template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto operator!=(const space_size<OtherRep, Period> other
-        ) const noexcept
+        [[nodiscard]] constexpr auto operator!=(const space_size<OtherRep, Period> other) const //
+            noexcept
         {
             return !(*this == other);
         }

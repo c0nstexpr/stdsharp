@@ -301,7 +301,7 @@ namespace stdsharp
             alloc_traits::assign(
                 allocator_,
                 other.allocator_,
-                make_trivial_invocables(
+                make_invocables(
                     [this](const Alloc& left, const Alloc& right, const constant<alloc_traits::before_assign>)
                     {
                         if(left != right) reset();

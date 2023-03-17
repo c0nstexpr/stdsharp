@@ -25,25 +25,22 @@ namespace stdsharp
         template<typename Fn>
             requires requires //
         {
-            requires ::std::invocable<make_trivial_invocables_fn, Fn>;
+            requires ::std::invocable<make_invocables_fn, Fn>;
             requires ::std::invocable<
                 make_inherited_fn,
                 pipeable_base<Mode>,
-                ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
+                ::std::invoke_result_t<make_invocables_fn, Fn> // clang-format off
             >; // clang-format on
         }
         constexpr auto operator()(Fn&& fun) const noexcept( //
             nothrow_invocable<
                 make_inherited_fn,
                 pipeable_base<Mode>,
-                ::std::invoke_result_t<make_trivial_invocables_fn, Fn> // clang-format off
+                ::std::invoke_result_t<make_invocables_fn, Fn> // clang-format off
             > // clang-format on
         )
         {
-            return make_inherited(
-                pipeable_base<Mode>{},
-                make_trivial_invocables(::std::forward<Fn>(fun))
-            );
+            return make_inherited(pipeable_base<Mode>{}, make_invocables(::std::forward<Fn>(fun)));
         }
     };
 

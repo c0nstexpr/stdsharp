@@ -15,10 +15,10 @@ namespace stdsharp
     template<typename T>
     using to_value_sequence = decltype( //
         []<template<auto...> typename Inner,
-           auto... Values>(const ::std::type_identity<Inner<Values...>>) //
+           auto... Values>(const Inner<Values...>) //
         {
             return value_sequence<Values...>{}; //
-        }(T{})
+        }(::std::declval<T>())
     );
 
     namespace details
@@ -156,7 +156,7 @@ namespace stdsharp
         using apply_t = T<Values...>;
 
         template<::std::size_t I>
-        using value_type = typename values_t::template get_type_t<I>;
+        using value_type = typename values_t::template get_t<I>;
 
         template<::std::size_t I>
         static constexpr value_type<I> value = get<I>(values);

@@ -198,10 +198,10 @@ namespace stdsharp
     template<typename ValueSeq, template<typename> typename Converter = ::std::type_identity>
     using convert_from_value_sequence = decltype( //
         []<template<auto...> typename Inner, typename... T> //
-        (const ::std::type_identity<Inner<Converter<T>{}...>>) //
+        (const Inner<Converter<T>{}...>&) //
         {
             return regular_type_sequence<T...>{}; //
-        }(::std::type_identity<ValueSeq>{})
+        }(::std::declval<ValueSeq>())
     );
 
     template<auto... V>
@@ -390,7 +390,7 @@ namespace stdsharp
             void get() = delete;
 
             template<::std::size_t I>
-            struct get_fn
+            struct get_element_fn
             {
                 template<typename T>
                     requires requires { ::std::get<I>(::std::declval<T>()); }
@@ -416,10 +416,15 @@ namespace stdsharp
 
         inline namespace cpo_impl
         {
+            using details::get_element_fn;
+
             template<::std::size_t I>
-            inline constexpr details::get_fn<I> get_element;
+            inline constexpr get_element_fn<I> get_element;
         }
     }
+
+    template<::std::size_t I, typename T>
+    using get_element_t = decltype(cpo::get_element<I>(::std::declval<T>()));
 
     namespace details
     {

@@ -16,7 +16,8 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
     };
 
     GIVEN(
-        R"(enum class has three values: "one", "two", "three" and three cases matches separate value)"
+        R"(enum class has three values: "one", "two", "three" and three cases matches separate
+        value)"
     )
     {
         THEN("case 1 match one, case 2 match two, case 3 match three")
