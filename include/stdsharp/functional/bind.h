@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../tuple/tuple.h"
+#include "../type_traits/indexed_traits.h"
 
 namespace stdsharp
 {
@@ -14,32 +14,36 @@ namespace stdsharp
     concept nothrow_std_bindable = noexcept(::std::bind(::std::declval<T>()...));
 
     template<typename Func, typename... T>
-    class bind_t : ::std::tuple<Func, T...>
+    class bind_t : indexed_values<Func, T...>
     {
-        using base = ::std::tuple<Func, T...>;
+        using base = indexed_values<Func, T...>;
 
     public:
         using base::base;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                     \
-                                                                                           \
-private:                                                                                   \
-    template<::std::size_t... I, typename... Args>                                         \
-    constexpr decltype(auto) operator()(const ::std::index_sequence<I...>, Args&&... args) \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, const_ T ref..., Args...>)  \
-    {                                                                                      \
-        decltype(auto) tuple = static_cast<const_ base ref>(*this);                        \
-        return ::std::invoke(::std::get<I>(tuple)..., ::std::forward<Args>(args)...);      \
-    }                                                                                      \
-                                                                                           \
-public:                                                                                    \
-    template<typename... Args>                                                             \
-        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>               \
-    constexpr decltype(auto) operator()(Args&&... args)                                    \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, const_ T ref..., Args...>)  \
-    {                                                                                      \
-        return static_cast<const_ bind_t ref>(*this                                        \
-        )(::std::index_sequence_for<Func, T...>{}, ::std::forward<Args>(args)...);         \
+#define STDSHARP_OPERATOR(const_, ref)                                                    \
+                                                                                          \
+public:                                                                                   \
+    template<typename... Args>                                                            \
+        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>              \
+    constexpr decltype(auto) operator()(Args&&... args)                                   \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, const_ T ref..., Args...>) \
+    {                                                                                     \
+        return []<::std::size_t... I>(                                                    \
+                   const ::std::index_sequence<I...>,                                     \
+                   const_ base ref indexed,                                               \
+                   Args&&... args                                                         \
+        )                                                                                 \
+            ->decltype(auto)                                                              \
+        {                                                                                 \
+            return ::std::invoke(                                                         \
+                stdsharp::get<I>(static_cast<const_ base ref>(indexed))...,               \
+                ::std::forward<Args>(args)...                                             \
+            );                                                                            \
+        }                                                                                 \
+        (::std::index_sequence_for<Func, T...>{},                                         \
+         static_cast<const_ base ref>(*this),                                             \
+         ::std::forward<Args>(args)...);                                                  \
     }
 
         STDSHARP_OPERATOR(, &)

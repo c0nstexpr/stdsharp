@@ -7,20 +7,8 @@ namespace stdsharp
 {
     namespace details
     {
-        struct type_seq_conversion
-        {
-            template<typename ValueSeq>
-            using from_value_seq = decltype( //
-                []<typename... T>(const regular_value_sequence<basic_type_constant<T>{}...>)
-                {
-                    return regular_type_sequence<T...>{}; //
-                }(ValueSeq{})
-            );
-        };
-
         template<typename Base, typename... Types>
-        struct type_sequence : private Base, regular_type_sequence<Types...>, type_seq_conversion
-
+        struct type_sequence : private Base, regular_type_sequence<Types...>
         {
         private:
             template<typename... T>
@@ -59,10 +47,10 @@ namespace stdsharp
             using at_t = regular_type_sequence<type<I>...>;
 
             template<::std::size_t Size>
-            using back_t = from_value_seq<typename Base::template back_t<Size>>;
+            using back_t = convert_from_value_sequence<typename Base::template back_t<Size>>;
 
             template<::std::size_t Size>
-            using front_t = from_value_seq<typename Base::template front_t<Size>>;
+            using front_t = convert_from_value_sequence<typename Base::template front_t<Size>>;
 
             template<typename... Others>
             using append_t = regular_type_sequence<Types..., Others...>;
@@ -77,7 +65,7 @@ namespace stdsharp
             using append_front_t = regular_type_sequence<Others..., Types...>;
 
             template<::std::size_t Index, typename... Other>
-            using insert_t = from_value_seq< //
+            using insert_t = convert_from_value_sequence< //
                 typename Base::template insert_t<
                     Index,
                     basic_type_constant<Other>{}... // clang-format off
@@ -85,15 +73,16 @@ namespace stdsharp
             >; // clang-format on
 
             template<::std::size_t... Index>
-            using remove_at_t = from_value_seq<typename Base::template remove_at_t<Index...>>;
+            using remove_at_t =
+                convert_from_value_sequence<typename Base::template remove_at_t<Index...>>;
 
             template<::std::size_t Index, typename Other>
-            using replace_t = from_value_seq<
+            using replace_t = convert_from_value_sequence<
                 typename Base::template replace_t<Index, basic_type_constant<Other>{}>>;
 
             template<::std::size_t From, ::std::size_t Size>
             using select_range_t =
-                from_value_seq<typename Base::template select_range_t<From, Size>>;
+                convert_from_value_sequence<typename Base::template select_range_t<From, Size>>;
         };
     }
 
@@ -117,7 +106,7 @@ namespace stdsharp
 
     template<typename... T>
     using unique_type_sequence =
-        convert_from_value_sequence<unique_value_sequence<::std::type_identity<T>{}...>>;
+        convert_from_value_sequence<unique_value_sequence<basic_type_constant<T>{}...>>;
 }
 
 namespace std

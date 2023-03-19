@@ -195,12 +195,19 @@ namespace stdsharp
     template<typename... T>
     using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
 
-    template<typename ValueSeq, template<typename> typename Converter = ::std::type_identity>
+    namespace details
+    {
+        template<auto V>
+        using value_seq_default_converter = ::meta::_t<decltype(V)>;
+    }
+
+    template<
+        typename ValueSeq,
+        template<auto> typename Converter = details::value_seq_default_converter>
     using convert_from_value_sequence = decltype( //
-        []<template<auto...> typename Inner, typename... T> //
-        (const Inner<Converter<T>{}...>&) //
+        []<template<auto...> typename Inner, auto... V>(const Inner<V...>&) //
         {
-            return regular_type_sequence<T...>{}; //
+            return regular_type_sequence<Converter<V>...>{}; //
         }(::std::declval<ValueSeq>())
     );
 

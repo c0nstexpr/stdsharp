@@ -6,6 +6,13 @@
 
 namespace stdsharp
 {
+    namespace details
+    {
+        struct stdsharp_indexed_tag
+        {
+        };
+    }
+
     template<typename T, ::std::size_t I>
     struct basic_indexed_type : type_constant<T>
     {
@@ -139,6 +146,8 @@ namespace stdsharp
                     : stdsharp::indexed_type<T, I>(::std::forward<U>(u))...
                 {
                 }
+
+                static constexpr auto size() noexcept { return sizeof...(T); }
             };
 
             struct impl : base<>
@@ -150,7 +159,9 @@ namespace stdsharp
     }
 
     template<typename... T>
-    struct basic_indexed_types : details::basic_indexed_types<T...>::impl
+    struct basic_indexed_types :
+        details::basic_indexed_types<T...>::impl,
+        details::stdsharp_indexed_tag
     {
     };
 
@@ -224,15 +235,61 @@ namespace stdsharp
     };
 
     inline constexpr make_template_type_fn<indexed_values> make_indexed_values{};
+
+    template<typename Indexed>
+    using index_sequence_by =
+        ::std::make_index_sequence<::std::tuple_size_v<::std::decay_t<Indexed>>>;
+
+    inline constexpr struct indexed_apply_fn
+    {
+    private:
+        template<
+            ::std::size_t... I,
+            typename Indexed,
+            ::std::invocable<get_element_t<I, Indexed>...> Fn>
+        static constexpr decltype(auto) impl(
+            Fn&& fn,
+            Indexed&& indexed,
+            const ::std::index_sequence<I...> //
+        ) noexcept(nothrow_invocable<Fn, get_element_t<I, Indexed>...>)
+        {
+            return ::std::invoke(
+                ::std::forward<Fn>(fn),
+                cpo::get_element<I>(::std::forward<Indexed>(indexed))...
+            );
+        }
+
+    public:
+        template<typename Indexed, typename Fn>
+            requires requires //
+        { impl(::std::declval<Fn>(), ::std::declval<Indexed>(), index_sequence_by<Indexed>{}); }
+        constexpr decltype(auto) operator()(Fn&& fn, Indexed&& indexed) const noexcept( //
+            noexcept( //
+                impl(::std::declval<Fn>(), ::std::declval<Indexed>(), index_sequence_by<Indexed>{})
+            )
+        )
+        {
+            return impl(
+                ::std::forward<Fn>(fn),
+                ::std::forward<Indexed>(indexed),
+                ::std::make_index_sequence<::std::tuple_size_v<Indexed>>{}
+            );
+        }
+    } indexed_apply{};
 }
 
 namespace std
 {
-    template<::std::size_t I, typename Seq>
-        requires derived_from<::stdsharp::template_rebind<Seq>, ::stdsharp::basic_indexed_types<>>
-    struct tuple_element<I, Seq>
+    template<::std::size_t I, derived_from<::stdsharp::details::stdsharp_indexed_tag> Indexed>
+    struct tuple_element<I, Indexed>
     {
-        using type = typename Seq::template get_t<I>;
+        using type = typename Indexed::template get_t<I>;
+    };
+
+    template<derived_from<::stdsharp::details::stdsharp_indexed_tag> Indexed>
+    struct tuple_size<Indexed>
+    {
+        static constexpr auto value = Indexed::size();
     };
 }
 

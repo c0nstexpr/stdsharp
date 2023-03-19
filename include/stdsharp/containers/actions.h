@@ -2,7 +2,6 @@
 
 #include <range/v3/action.hpp>
 
-#include "../tuple/tuple.h"
 #include "concepts.h"
 
 namespace stdsharp::actions
@@ -179,10 +178,10 @@ namespace stdsharp::actions
                         const_iterator_t<Container> // clang-format off
                     >; // clang-format on
                 }
-                constexpr auto operator()(Container& container, Predicate predicate_fn) const
+                constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                 {
                     const auto& it = static_cast<const_iterator_t<Container>>(
-                        ::ranges::remove_if(container, predicate_fn)
+                        ::ranges::remove_if(container, ::std::forward<Predicate>(predicate_fn))
                     );
                     const auto r = ::std::ranges::distance(it, container.cend());
                     cpo::erase(container, it, container.cend());
@@ -298,22 +297,23 @@ namespace stdsharp::actions
         template<typename Container>
         struct make_container_from_tuple_fn
         {
-            template<
-                typename... Tuples,
-                typename ValueType = ::std::ranges::range_value_t<Container>,
-                ::std::invocable<regular_make_container_fn<Container>, Tuples...> ApplyFn =
-                    tuples_each_apply_fn<::std::conditional_t<true, ValueType, Tuples>...>
-                // clang-format off
-            > // clang-format on
-            constexpr auto operator()(const ::std::piecewise_construct_t, Tuples&&... tuples) const
-                noexcept(nothrow_invocable<
-                         ApplyFn,
-                         regular_make_container_fn<Container>,
-                         Tuples...>)
+            template<typename Tuple, typename ValueType = ::std::ranges::range_value_t<Container>>
+                requires requires //
             {
-                return ApplyFn{}(
+                ::std::apply(regular_make_container_fn<Container>{}, ::std::declval<Tuple>()); //
+            }
+            constexpr auto operator()(
+                const ::std::piecewise_construct_t,
+                Tuple&& tuple
+            ) const noexcept( //
+                noexcept( //
+                    ::std::apply(regular_make_container_fn<Container>{}, ::std::declval<Tuple>())
+                )
+            )
+            {
+                return ::std::apply(
                     regular_make_container_fn<Container>{},
-                    ::std::forward<Tuples>(tuples)...
+                    ::std::forward<Tuple>(tuple)
                 );
             }
         };

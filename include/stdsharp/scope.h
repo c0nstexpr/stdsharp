@@ -2,7 +2,8 @@
 
 #include <optional>
 
-#include "stdsharp/type_traits/object.h"
+#include "enumeration.h"
+#include "type_traits/object.h"
 
 namespace stdsharp::scope
 {
@@ -13,13 +14,17 @@ namespace stdsharp::scope
         on_exit = on_success | on_failure
     };
 
-    template<exit_fn_policy Policy, nothrow_invocable Fn>
+    template<flag<exit_fn_policy> Policy, nothrow_invocable Fn>
     struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
         private ::std::optional<Fn>,
         unique_object
     {
     private:
-        constexpr void execute() noexcept { ::std::invoke(::std::move(this->value())); };
+        constexpr void execute() noexcept
+        {
+            ::std::invoke(::std::move(this->value()));
+            this->reset();
+        };
 
     public:
         using exit_fn_t = Fn;
@@ -40,11 +45,11 @@ namespace stdsharp::scope
             if constexpr(policy == exit_fn_policy::on_exit) execute();
             else if(::std::is_constant_evaluated() || ::std::uncaught_exceptions() == 0)
             {
-                if constexpr(policy == exit_fn_policy::on_success) execute();
+                if constexpr(policy.contains(exit_fn_policy::on_success)) execute();
             }
             else
             {
-                if constexpr(policy == exit_fn_policy::on_failure) execute();
+                if constexpr(policy.contains(exit_fn_policy::on_failure)) execute();
             }
         }
     };

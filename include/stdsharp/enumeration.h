@@ -37,11 +37,20 @@ namespace stdsharp
         using base = enumeration<T>;
         using base::base;
         using base::value;
+        using typename base::underlying_type;
 
         template<typename U>
         constexpr flag(const U t) noexcept: base{t}
         {
         }
+
+        constexpr bool contains(const T other) const noexcept
+        {
+            const underlying_type v = auto_cast(*this);
+            return (v & static_cast<underlying_type>(other)) == v;
+        }
+
+        constexpr bool contains(const flag other) const noexcept { return contains(other.value); }
 
         // NOLINTBEGIN(hicpp-signed-bitwise)
         constexpr auto operator|(const T other) const noexcept { return flag{value | other}; }

@@ -18,13 +18,13 @@ namespace stdsharp
 
             using base::base;
 
-#define STDSHARP_OPERATOR(const_, ref)                                \
-    template<typename... Args, typename Fn = const_ T ref>            \
-        requires ::std::invocable<Fn, Args...>                        \
-    constexpr decltype(auto) operator()(Args&&... args)               \
-        const_ ref noexcept(nothrow_invocable<Fn, Args...>)           \
-    {                                                                 \
-        return static_cast<Fn>(*this)(::std::forward<Args>(args)...); \
+#define STDSHARP_OPERATOR(const_, ref)                       \
+    template<typename... Args, typename Fn = const_ T ref>   \
+        requires ::std::invocable<Fn, Args...>               \
+    constexpr decltype(auto) operator()(Args&&... args)      \
+        const_ ref noexcept(nothrow_invocable<Fn, Args...>)  \
+    {                                                        \
+        return base::value()(::std::forward<Args>(args)...); \
     }
 
             STDSHARP_OPERATOR(, &)
@@ -46,6 +46,8 @@ namespace stdsharp
             template<::std::size_t... I>
             struct impl<::std::index_sequence<I...>> : indexed_invocable<Func, I>...
             {
+                impl() = default;
+
                 template<typename... Args>
                     requires(::std::constructible_from<Func, Args> && ...)
                 constexpr impl(Args&&... args) //
@@ -53,15 +55,6 @@ namespace stdsharp
                     indexed_invocable<Func, I>(::std::forward<Args>(args))...
                 {
                 }
-
-                template<typename... Args>
-                static constexpr ::std::array invoke_result{( //
-                    ::std::invocable<Func, Args...> ? //
-                        nothrow_invocable<Func, Args...> ? //
-                            expr_req::no_exception :
-                            expr_req::well_formed :
-                        expr_req::ill_formed
-                )...};
             };
         };
 
@@ -78,6 +71,34 @@ namespace stdsharp
     template<typename... Func>
     invocables(Func&&...) -> invocables<::std::decay_t<Func>...>;
 
+    namespace details
+    {
+        template<typename...>
+        struct invocables_req;
+
+#define STDSHARP_INVOCABLES_REQ(const_, ref)                                            \
+    template<template<typename...> typename Inner, typename... Func, typename... Args>  \
+        requires ::std::derived_from<Inner<Func...>, invocables<Func...>>               \
+    struct invocables_req<const_ Inner<Func...> ref, Args...>                           \
+    {                                                                                   \
+        static constexpr ::std::array value{                                            \
+            (::std::invocable<const_ Func ref, Args...> ?                               \
+                 nothrow_invocable<const_ Func ref, Args...> ? expr_req::no_exception : \
+                                                               expr_req::well_formed :  \
+                 expr_req::ill_formed)...};                                             \
+    };
+
+        STDSHARP_INVOCABLES_REQ(, &)
+        STDSHARP_INVOCABLES_REQ(const, &)
+        STDSHARP_INVOCABLES_REQ(, &&)
+        STDSHARP_INVOCABLES_REQ(const, &&)
+
+#undef STDSHARP_INVOCABLES_REQ
+    }
+
+    template<typename... Args>
+    inline constexpr auto invocables_req = details::invocables_req<Args...>::value;
+
     inline constexpr struct make_invocables_fn
     {
         template<typename... Invocable>
@@ -89,7 +110,7 @@ namespace stdsharp
         }
     } make_invocables{};
 
-    template<auto Index>
+    template<::std::size_t Index>
     struct invoke_at_fn
     {
         template<
@@ -112,18 +133,19 @@ namespace stdsharp
     {
         using invocables<Func...>::invocables;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                         \
-    template<                                                                                  \
-        typename... Args,                                                                      \
-        auto InvokeResult = sequenced_invocables::template invoke_result<Args...>,             \
-        typename InvokeAt = invoke_at_fn<                                                      \
-            ::std::ranges::find(InvokeResult, expr_req::well_formed) - InvokeResult.cbegin()>, \
-        typename This = const_ sequenced_invocables ref>                                       \
-        requires ::std::invocable<InvokeAt, This, Args...>                                     \
-    constexpr decltype(auto) operator()(Args&&... args)                                        \
-        const_ ref noexcept(nothrow_invocable<InvokeAt, This, Args...>)                        \
-    {                                                                                          \
-        return InvokeAt{}(static_cast<This>(*this), ::std::forward<Args>(args)...);            \
+#define STDSHARP_OPERATOR(const_, ref)                                                      \
+    template<                                                                               \
+        typename... Args,                                                                   \
+        typename This = const_ invocables<Func...> ref,                                     \
+        auto InvokeResult = invocables_req<This, Args...>(),                                \
+        ::std::invocable<This, Args...> InvokeAt = invoke_at_fn<static_cast<::std::size_t>( \
+            ::std::ranges::lower_bound(InvokeResult, expr_req::well_formed) -               \
+            InvokeResult.cbegin()                                                           \
+        )>>                                                                                 \
+    constexpr decltype(auto) operator()(Args&&... args)                                     \
+        const_ ref noexcept(nothrow_invocable<InvokeAt, This, Args...>)                     \
+    {                                                                                       \
+        return InvokeAt{}(static_cast<This>(*this), ::std::forward<Args>(args)...);         \
     }
 
         STDSHARP_OPERATOR(, &)
