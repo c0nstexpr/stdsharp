@@ -126,12 +126,13 @@ namespace stdsharp::actions
             }                                                                                   \
         };                                                                                      \
     }                                                                                           \
+    inline constexpr auto emplace_##where = make_sequenced_invoke(                              \
+        details::emplace_##where##_mem_fn{},                                                    \
+        details::emplace_##where##_default_fn{}                                                 \
+    );                                                                                          \
                                                                                                 \
-    using emplace_##where##_fn = sequenced_invocables<                                          \
-        details::emplace_##where##_mem_fn,                                                      \
-        details::emplace_##where##_default_fn>;                                                 \
-                                                                                                \
-    inline constexpr emplace_##where##_fn emplace_##where{};
+    using emplace_##where##_fn = decltype(emplace_##where);
+
 
     STDSHARP_EMPLACE_WHERE_ACTION(back, end)
     STDSHARP_EMPLACE_WHERE_ACTION(front, begin)
@@ -181,7 +182,7 @@ namespace stdsharp::actions
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                 {
                     const auto& it = static_cast<const_iterator_t<Container>>(
-                        ::ranges::remove_if(container, ::std::forward<Predicate>(predicate_fn))
+                        ::std::ranges::remove_if(container, ::std::forward<Predicate>(predicate_fn))
                     );
                     const auto r = ::std::ranges::distance(it, container.cend());
                     cpo::erase(container, it, container.cend());
@@ -190,10 +191,10 @@ namespace stdsharp::actions
             };
         }
 
-        using erase_if_fn =
-            sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
+        inline constexpr auto erase_if =
+            make_sequenced_invoke(details::adl_erase_if_fn{}, details::default_erase_if_fn{});
 
-        inline constexpr erase_if_fn erase_if{};
+        using erase_if_fn = decltype(erase_if);
     }
 
     inline constexpr struct resize_fn
@@ -236,10 +237,12 @@ namespace stdsharp::actions
         };                                                                                        \
     }                                                                                             \
                                                                                                   \
-    using pop_##where##_fn =                                                                      \
-        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>;   \
+    inline constexpr auto pop_##where = make_sequenced_invoke(                                    \
+        details::pop_##where##_mem_fn{},                                                          \
+        details::pop_##where##_default_fn{}                                                       \
+    );                                                                                            \
                                                                                                   \
-    inline constexpr pop_##where##_fn pop_##where{};
+    using pop_##where##_fn = decltype(pop_##where);
 
     STDSHARP_POP_WHERE_ACTION(front, begin)
     STDSHARP_POP_WHERE_ACTION(back, end)
@@ -289,10 +292,13 @@ namespace stdsharp::actions
         };
 
         template<typename Container>
-        using regular_make_container_fn = sequenced_invocables<
-            construct_fn<Container>,
-            details::emplace_make_container_fn<Container> // clang-format off
-        >; // clang-format on
+        static constexpr auto regular_make_container = make_sequenced_invoke(
+            construct_fn<Container>{},
+            details::emplace_make_container_fn<Container>{} // clang-format off
+        ); // clang-format on
+
+        template<typename Container>
+        using regular_make_container_fn = decltype(regular_make_container<Container>);
 
         template<typename Container>
         struct make_container_from_tuple_fn

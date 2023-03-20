@@ -46,21 +46,22 @@ void foo(set<int> v, const set<int>::const_iterator iter, bool (&predicate)(int)
         actions::cpo::cpo_impl::details::adl_erase_if_fn,
         actions::cpo::cpo_impl::details::default_erase_if_fn>;
 
-    constexpr auto f = []<template<typename...> typename Inner, typename... Func, typename... Args>
-        requires ::std::derived_from<Inner<Func...>, invocables<Func...>>(
-            const Inner<Func...>&,
-            Args && ... args
-        )
-    {
+    static_assert(invocable<
+                  actions::cpo::cpo_impl::details::adl_erase_if_fn,
+                  decltype(v)&,
+                  decltype(predicate)>);
 
-    };
+    using t = forward_like_t<const int&, int>;
 
-    static_assert(requires(const fn& f) { f(f, v, predicate); });
+    constexpr auto res = fn::test_invocables<const fn&, decltype(v)&, decltype(predicate)>;
+    constexpr auto i0 = res[0];
+    constexpr auto i1 = res[1];
 
-    constexpr auto res = details::invocables_req<const fn, decltype(v), decltype(predicate)>(){};
-    // constexpr auto i0 = res[0];
-    // constexpr auto i1 = res[1];
-    // constexpr auto i = ::std::ranges::lower_bound(res, expr_req::well_formed) - res.cbegin();
+    constexpr auto i = ::std::ranges::find_if(
+                           res,
+                           ::std::bind_front(::std::ranges::greater_equal{}, expr_req::well_formed)
+                       ) -
+        res.cbegin();
     // fn{}(v, predicate);
 }
 
@@ -74,7 +75,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 )
 {
     CAPTURE(type<TestType>());
-    // STATIC_REQUIRE(erase_req<TestType>);
+    STATIC_REQUIRE(erase_req<TestType>);
 }
 
 template<typename Container>

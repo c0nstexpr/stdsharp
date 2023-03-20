@@ -4,15 +4,6 @@
 
 namespace stdsharp
 {
-    template<typename... T>
-    using std_bind_t = decltype(::std::bind(::std::declval<T>()...));
-
-    template<typename... T>
-    concept std_bindable = requires { ::std::bind(::std::declval<T>()...); };
-
-    template<typename... T>
-    concept nothrow_std_bindable = noexcept(::std::bind(::std::declval<T>()...));
-
     template<typename Func, typename... T>
     class bind_t : indexed_values<Func, T...>
     {

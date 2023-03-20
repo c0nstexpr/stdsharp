@@ -228,12 +228,6 @@ namespace stdsharp
     template<typename... T>
     using indexed_values = adl_proof_t<basic_indexed_values, T...>;
 
-    template<typename... T>
-    struct deduction<indexed_values, T...>
-    {
-        using type = indexed_values<::std::decay_t<T>...>;
-    };
-
     inline constexpr make_template_type_fn<indexed_values> make_indexed_values{};
 
     template<typename Indexed>

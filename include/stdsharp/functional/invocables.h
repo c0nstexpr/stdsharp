@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "../type_traits/indexed_traits.h"
-#include "../utility/invocable.h"
+#include "../utility/utility.h"
 
 namespace stdsharp
 {
@@ -44,7 +44,9 @@ namespace stdsharp
             using type = impl<>;
 
             template<::std::size_t... I>
-            struct impl<::std::index_sequence<I...>> : indexed_invocable<Func, I>...
+            struct impl<::std::index_sequence<I...>> :
+                indexed_invocable<Func, I>...,
+                indexed_types<Func...>
             {
                 impl() = default;
 
@@ -58,57 +60,26 @@ namespace stdsharp
             };
         };
 
-        template<typename... Func>
-        using invocables_t = ::meta::_t<invocables<Func...>>;
-    }
-
-    template<typename... Func>
-    struct invocables : details::invocables_t<Func...>
-    {
-        using details::invocables_t<Func...>::invocables_t;
-    };
-
-    template<typename... Func>
-    invocables(Func&&...) -> invocables<::std::decay_t<Func>...>;
-
-    namespace details
-    {
-        template<typename...>
-        struct invocables_req;
-
-#define STDSHARP_INVOCABLES_REQ(const_, ref)                                            \
-    template<template<typename...> typename Inner, typename... Func, typename... Args>  \
-        requires ::std::derived_from<Inner<Func...>, invocables<Func...>>               \
-    struct invocables_req<const_ Inner<Func...> ref, Args...>                           \
-    {                                                                                   \
-        static constexpr ::std::array value{                                            \
-            (::std::invocable<const_ Func ref, Args...> ?                               \
-                 nothrow_invocable<const_ Func ref, Args...> ? expr_req::no_exception : \
-                                                               expr_req::well_formed :  \
-                 expr_req::ill_formed)...};                                             \
-    };
-
-        STDSHARP_INVOCABLES_REQ(, &)
-        STDSHARP_INVOCABLES_REQ(const, &)
-        STDSHARP_INVOCABLES_REQ(, &&)
-        STDSHARP_INVOCABLES_REQ(const, &&)
-
-#undef STDSHARP_INVOCABLES_REQ
-    }
-
-    template<typename... Args>
-    inline constexpr auto invocables_req = details::invocables_req<Args...>::value;
-
-    inline constexpr struct make_invocables_fn
-    {
-        template<typename... Invocable>
-            requires requires { invocables{::std::declval<Invocable>()...}; }
-        [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const
-            noexcept(noexcept(invocables{::std::declval<Invocable>()...}))
+        struct sequenced_invocables_predicate
         {
-            return invocables{::std::forward<Invocable>(invocable)...};
-        }
-    } make_invocables{};
+            static constexpr auto value =
+                ::std::bind_front(::std::ranges::greater_equal{}, expr_req::well_formed);
+        };
+    }
+
+    template<typename... Func>
+    using invocables = ::meta::_t<details::invocables<Func...>>;
+
+    inline constexpr make_template_type_fn<invocables> make_invocables{};
+
+    template<typename T, typename... Args>
+    inline constexpr auto invocables_test = []<::std::size_t... I>
+        requires requires(get_element_t<I, T>... v) { (v, ...); } //
+    (const ::std::index_sequence<I...>)
+    {
+        return ::std::array{invocable_test<get_element_t<I, T>, Args...>...};
+    }
+    (index_sequence_by<T>{});
 
     template<::std::size_t Index>
     struct invoke_at_fn
@@ -126,47 +97,50 @@ namespace stdsharp
     };
 
     template<auto Index>
-    static constexpr invoke_at_fn<Index> invoke_at{};
+    inline constexpr invoke_at_fn<Index> invoke_at{};
 
-    template<typename... Func>
-    struct sequenced_invocables : invocables<Func...>
+    template<constant_value PredicateConstant>
+    struct invoke_first_fn
     {
-        using invocables<Func...>::invocables;
+    private:
+        template<typename T, typename... Args>
+        struct invoke_at
+        {
+            static constexpr auto test_res = invocables_test<T, Args...>;
+            using fn = invoke_at_fn<auto_cast(
+                ::std::ranges::find_if(test_res, PredicateConstant::value) - test_res.cbegin()
+            )>;
+        };
 
-#define STDSHARP_OPERATOR(const_, ref)                                                      \
-    template<                                                                               \
-        typename... Args,                                                                   \
-        typename This = const_ invocables<Func...> ref,                                     \
-        auto InvokeResult = invocables_req<This, Args...>(),                                \
-        ::std::invocable<This, Args...> InvokeAt = invoke_at_fn<static_cast<::std::size_t>( \
-            ::std::ranges::lower_bound(InvokeResult, expr_req::well_formed) -               \
-            InvokeResult.cbegin()                                                           \
-        )>>                                                                                 \
-    constexpr decltype(auto) operator()(Args&&... args)                                     \
-        const_ ref noexcept(nothrow_invocable<InvokeAt, This, Args...>)                     \
-    {                                                                                       \
-        return InvokeAt{}(static_cast<This>(*this), ::std::forward<Args>(args)...);         \
-    }
-
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-
-#undef STDSHARP_OPERATOR
+    public:
+        template<
+            typename T,
+            typename... Args,
+            ::std::invocable<T, Args...> InvokeAt = typename invoke_at<T, Args...>::fn>
+        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
+            noexcept(nothrow_invocable<InvokeAt, T, Args...>)
+        {
+            return InvokeAt{}(::std::forward<T>(t), ::std ::forward<Args>(args)...);
+        }
     };
 
-    template<typename... Func>
-    sequenced_invocables(Func&&...) -> sequenced_invocables<::std::decay_t<Func>...>;
+    template<constant_value PredicateConstant>
+    inline constexpr invoke_first_fn<PredicateConstant> invoke_first{};
 
-    inline constexpr struct make_sequenced_invocables_fn
+    inline constexpr struct make_sequenced_invoke_fn
     {
-        template<typename... Invocable>
-            requires requires { sequenced_invocables{::std::declval<Invocable>()...}; }
+        template<typename... Invocable, typename MakeInvocables = decltype(make_invocables)>
+            requires ::std::invocable<MakeInvocables, Invocable...>
         [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const
-            noexcept(noexcept(sequenced_invocables{::std::declval<Invocable>()...}))
+            noexcept(//
+                nothrow_invocable<MakeInvocables, Invocable...>&&
+                         nothrow_move_constructible<
+                             ::std::invoke_result_t<MakeInvocables, Invocable...>>)
         {
-            return sequenced_invocables{::std::forward<Invocable>(invocable)...};
+            return ::std::bind_front(
+                invoke_first<details::sequenced_invocables_predicate>,
+                make_invocables(::std::forward<Invocable>(invocable)...)
+            );
         }
-    } make_sequenced_invocables{};
+    } make_sequenced_invoke;
 }

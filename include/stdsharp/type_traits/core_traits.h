@@ -16,7 +16,10 @@ namespace stdsharp
     concept nttp_able = requires { ::std::integer_sequence<T>{}; };
 
     template<template<typename...> typename T, typename... Args>
-    struct deduction;
+    struct deduction
+    {
+        using type = T<::std::decay_t<Args>...>;
+    };
 
     template<template<typename...> typename T>
     struct make_template_type_fn
@@ -49,14 +52,14 @@ namespace stdsharp
     };
 
     template<typename T, typename Ret, typename... Args>
-    inline constexpr auto invocable_r_req = ::std::is_invocable_r_v<T, Ret, Args...> ?
+    inline constexpr auto invocable_r_test = ::std::is_invocable_r_v<T, Ret, Args...> ?
         ::std::is_nothrow_invocable_r_v<T, Ret, Args...> ? //
             expr_req::no_exception :
             expr_req::well_formed :
         expr_req::ill_formed;
 
     template<typename T, typename... Args>
-    inline constexpr auto invocable_req = invocable_r_req<T, void, Args...>;
+    inline constexpr auto invocable_test = invocable_r_test<T, void, Args...>;
 
     template<typename T, bool Const>
     using apply_const = ::std::conditional_t<Const, ::std::add_const_t<T>, T>;
