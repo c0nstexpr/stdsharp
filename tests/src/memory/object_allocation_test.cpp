@@ -29,10 +29,10 @@ SCENARIO("object allocation default initializable", "[memory][object allocation]
 
 constexpr void foo()
 {
-    using fn = void (&)() noexcept;
+    using fn = void() noexcept;
     auto lambda = []() noexcept {};
-    fn v = *+lambda;
-    // ::std::reference_wrapper<void() noexcept> v{+[]() {}};
+    // ::std::reference_wrapper<fn> v = *lambda;
+    implementation_reference<expr_req::no_exception, void> v{lambda};
 }
 
 SCENARIO("object allocation emplace", "[memory][object allocation]") // NOLINT
@@ -43,9 +43,9 @@ SCENARIO("object allocation emplace", "[memory][object allocation]") // NOLINT
 
         WHEN("emplace an int value")
         {
-            // auto value = alloc.emplace<int>(1);
+            auto value = alloc.emplace<int>(1);
 
-            // THEN("the return value should correct") { REQUIRE(value == 1); }
+            THEN("the return value should correct") { REQUIRE(value == 1); }
         }
     }
 }

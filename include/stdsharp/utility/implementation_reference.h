@@ -17,6 +17,11 @@ namespace stdsharp
 
         using ::std::reference_wrapper<func>::reference_wrapper;
 
+        constexpr implementation_reference(func* const ptr) noexcept:
+            ::std::reference_wrapper<func>(*ptr)
+        {
+        }
+
         constexpr implementation_reference() noexcept
             requires ::std::same_as<void, Ret>
             : ::std::reference_wrapper<func>(*+[](const Arg&...) noexcept {})
