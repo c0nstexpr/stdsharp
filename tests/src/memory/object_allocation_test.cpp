@@ -29,8 +29,10 @@ SCENARIO("object allocation default initializable", "[memory][object allocation]
 
 constexpr void foo()
 {
-    const indexed_type<int, 0> indexed{};
-    auto&& v = stdsharp::get_type<0>(indexed);
+    using fn = void (&)() noexcept;
+    auto lambda = []() noexcept {};
+    fn v = *+lambda;
+    // ::std::reference_wrapper<void() noexcept> v{+[]() {}};
 }
 
 SCENARIO("object allocation emplace", "[memory][object allocation]") // NOLINT

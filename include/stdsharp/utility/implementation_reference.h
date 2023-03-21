@@ -15,6 +15,8 @@ namespace stdsharp
     public:
         static constexpr auto requirement = ExprReq;
 
+        using ::std::reference_wrapper<func>::reference_wrapper;
+
         constexpr implementation_reference() noexcept
             requires ::std::same_as<void, Ret>
             : ::std::reference_wrapper<func>(*+[](const Arg&...) noexcept {})

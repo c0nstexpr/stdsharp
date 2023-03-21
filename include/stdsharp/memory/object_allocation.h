@@ -35,7 +35,7 @@ namespace stdsharp
         static constexpr auto dtor_req = Req.destruct;
         static constexpr auto swp_req = Req.swap;
 
-        using mem_traits_base = basic_indexed_values<
+        using mem_traits_base = indexed_values<
             details::special_mem_reference<move_ctor_req, Alloc&, ptr_cref, ptr_cref>,
             details::special_mem_reference<cp_ctor_req, Alloc&, ptr_cref, cptr_cref>,
             details::special_mem_reference<mov_assign_req, ptr_cref, ptr_cref>,
@@ -43,12 +43,6 @@ namespace stdsharp
             details::special_mem_reference<dtor_req, Alloc&, ptr_cref>,
             details::special_mem_reference<swp_req, ptr_cref, ptr_cref> // clang-format off
         >; // clang-format on
-
-        template<auto I>
-        static constexpr decltype(auto) adl_get(const mem_traits_base& v)
-        {
-            return stdsharp::get<I>(v);
-        }
 
         template<typename T>
         using is_compatible = constant<Req <= alloc_traits::template mem_req_for<T>>;
@@ -79,7 +73,7 @@ namespace stdsharp
                         alloc_traits::construct(
                             alloc,
                             pointer_cast<T>(left),
-                            pointer_cast<T>(right)
+                            *pointer_cast<T>(right)
                         );
                     },
                     [](Alloc & alloc, ptr_cref left, cptr_cref right) //
@@ -89,7 +83,7 @@ namespace stdsharp
                         alloc_traits::construct(
                             alloc,
                             pointer_cast<T>(left),
-                            pointer_cast<T>(right)
+                            *pointer_cast<T>(right)
                         );
                     },
                     [](ptr_cref left, ptr_cref right) //
@@ -549,11 +543,12 @@ namespace stdsharp
             requires ::std::constructible_from<ValueType, Args...> &&
             requires //
         {
-            try_same_type_emplace(::std::declval<Args>()...);
-            this->assign_traits(mem_traits_for<ValueType>);
+            try_same_type_emplace<ValueType>(::std::declval<Args>()...);
+            // this->assign_traits(mem_traits_for<ValueType>);
         }
         {
-            if(type_id<T>() == type() && try_same_type_emplace(::std::forward<Args>(args)...))
+            if(type_id<T> == type() &&
+               try_same_type_emplace<ValueType>(::std::forward<Args>(args)...))
                 return;
 
             assign_traits(mem_traits_for<T>);
