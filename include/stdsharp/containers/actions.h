@@ -126,13 +126,11 @@ namespace stdsharp::actions
             }                                                                                   \
         };                                                                                      \
     }                                                                                           \
-    inline constexpr auto emplace_##where = make_sequenced_invoke(                              \
-        details::emplace_##where##_mem_fn{},                                                    \
-        details::emplace_##where##_default_fn{}                                                 \
-    );                                                                                          \
+    using emplace_##where##_fn = sequenced_invocables<                                          \
+        details::emplace_##where##_mem_fn,                                                      \
+        details::emplace_##where##_default_fn>;                                                 \
                                                                                                 \
-    using emplace_##where##_fn = decltype(emplace_##where);
-
+    inline constexpr emplace_##where##_fn emplace_##where{};
 
     STDSHARP_EMPLACE_WHERE_ACTION(back, end)
     STDSHARP_EMPLACE_WHERE_ACTION(front, begin)
@@ -191,10 +189,10 @@ namespace stdsharp::actions
             };
         }
 
-        inline constexpr auto erase_if =
-            make_sequenced_invoke(details::adl_erase_if_fn{}, details::default_erase_if_fn{});
+        using erase_if_fn =
+            sequenced_invocables<details::adl_erase_if_fn, details::default_erase_if_fn>;
 
-        using erase_if_fn = decltype(erase_if);
+        inline constexpr erase_if_fn erase_if{};
     }
 
     inline constexpr struct resize_fn
@@ -237,12 +235,10 @@ namespace stdsharp::actions
         };                                                                                        \
     }                                                                                             \
                                                                                                   \
-    inline constexpr auto pop_##where = make_sequenced_invoke(                                    \
-        details::pop_##where##_mem_fn{},                                                          \
-        details::pop_##where##_default_fn{}                                                       \
-    );                                                                                            \
+    using pop_##where##_fn =                                                                      \
+        sequenced_invocables<details::pop_##where##_mem_fn, details::pop_##where##_default_fn>;   \
                                                                                                   \
-    using pop_##where##_fn = decltype(pop_##where);
+    inline constexpr pop_##where##_fn pop_##where{};
 
     STDSHARP_POP_WHERE_ACTION(front, begin)
     STDSHARP_POP_WHERE_ACTION(back, end)
@@ -327,11 +323,10 @@ namespace stdsharp::actions
 
     template<typename Container>
     using make_container_fn = sequenced_invocables<
-        construct_fn<Container>,
         details::emplace_make_container_fn<Container>,
         details::make_container_from_tuple_fn<Container> // clang-format off
     >; // clang-format on
 
     template<typename Container>
-    inline constexpr make_container_fn<Container> make_container{};
+    inline constexpr make_container_fn<Container> make_container;
 }

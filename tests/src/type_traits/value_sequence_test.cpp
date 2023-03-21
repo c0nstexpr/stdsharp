@@ -56,10 +56,10 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    inline constexpr sequenced_invocables find_if_functor_3{
+    inline constexpr auto find_if_functor_3 = make_sequenced_invocables(
         [](const size_t v) { return v == 7; },
         only_false //
-    };
+    );
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -88,10 +88,10 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    inline constexpr sequenced_invocables count_if_functor_3{
+    inline constexpr auto count_if_functor_3 = make_sequenced_invocables(
         [](const size_t) { return true; },
         only_false //
-    };
+    );
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

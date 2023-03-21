@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "../type_traits/indexed_traits.h"
-#include "../utility/utility.h"
+#include "../utility/auto_cast.h"
 
 namespace stdsharp
 {
@@ -58,12 +58,6 @@ namespace stdsharp
                 {
                 }
             };
-        };
-
-        struct sequenced_invocables_predicate
-        {
-            static constexpr auto value =
-                ::std::bind_front(::std::ranges::greater_equal{}, expr_req::well_formed);
         };
     }
 
@@ -127,20 +121,56 @@ namespace stdsharp
     template<constant_value PredicateConstant>
     inline constexpr invoke_first_fn<PredicateConstant> invoke_first{};
 
-    inline constexpr struct make_sequenced_invoke_fn
+    namespace details
     {
-        template<typename... Invocable, typename MakeInvocables = decltype(make_invocables)>
-            requires ::std::invocable<MakeInvocables, Invocable...>
-        [[nodiscard]] constexpr auto operator()(Invocable&&... invocable) const
-            noexcept(//
-                nothrow_invocable<MakeInvocables, Invocable...>&&
-                         nothrow_move_constructible<
-                             ::std::invoke_result_t<MakeInvocables, Invocable...>>)
+        struct sequenced_invocables_predicate
         {
-            return ::std::bind_front(
-                invoke_first<details::sequenced_invocables_predicate>,
-                make_invocables(::std::forward<Invocable>(invocable)...)
-            );
-        }
-    } make_sequenced_invoke;
+            static constexpr auto value =
+                ::std::bind_front(::std::ranges::greater_equal{}, expr_req::well_formed);
+        };
+
+        inline constexpr auto sequenced_invoke =
+            invoke_first<details::sequenced_invocables_predicate>;
+    }
+
+    template<typename... Invocable>
+    struct basic_sequenced_invocables : invocables<Invocable...>
+    {
+        using base = invocables<Invocable...>;
+
+        using base::base;
+
+#define STDSHARP_OPERATOR(const_, ref)                                            \
+    template<                                                                     \
+        typename... Args,                                                         \
+        typename Base = const_ base ref,                                          \
+        ::std::invocable<Base, Args...> Fn = decltype(details::sequenced_invoke)> \
+    constexpr decltype(auto) operator()(Args&&... args)                           \
+        const_ ref noexcept(nothrow_invocable<Fn, Base, Args...>)                 \
+    {                                                                             \
+        return details::sequenced_invoke(                                         \
+            static_cast<const_ base ref>(*this),                                  \
+            ::std::forward<Args>(args)...                                         \
+        );                                                                        \
+    }
+
+        STDSHARP_OPERATOR(, &)
+        STDSHARP_OPERATOR(const, &)
+        STDSHARP_OPERATOR(, &&)
+        STDSHARP_OPERATOR(const, &&)
+
+#undef STDSHARP_OPERATOR
+    };
+
+    template<typename... T>
+    basic_sequenced_invocables(T&&...) -> basic_sequenced_invocables<::std::decay_t<T>...>;
+
+    namespace details
+    {
+    }
+
+    template<typename... Invocable>
+    using sequenced_invocables = adl_proof_t<basic_sequenced_invocables, Invocable...>;
+
+    inline constexpr make_template_type_fn<sequenced_invocables> make_sequenced_invocables{};
 }

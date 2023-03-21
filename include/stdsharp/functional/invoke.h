@@ -11,7 +11,8 @@ namespace stdsharp
         constexpr empty_t operator()(const auto&...) const noexcept { return {}; }
     } empty_invoke{};
 
-    inline constexpr sequenced_invocables optional_invoke{::ranges::invoke, empty_invoke};
+    inline constexpr auto optional_invoke =
+        make_sequenced_invocables(::ranges::invoke, empty_invoke);
 
     template<typename... Args>
     concept nothrow_optional_invocable = noexcept(optional_invoke(::std::declval<Args>()...));

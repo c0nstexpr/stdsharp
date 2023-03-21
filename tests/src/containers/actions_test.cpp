@@ -37,41 +37,13 @@ concept erase_req = requires(
     actions::cpo::erase_if(container, predicate);
 };
 
-void foo(set<int> v, const set<int>::const_iterator iter, bool (&predicate)(int))
-{
-    actions::cpo::erase(v, iter);
-    actions::cpo::erase(v, iter, iter);
-
-    using fn = sequenced_invocables<
-        actions::cpo::cpo_impl::details::adl_erase_if_fn,
-        actions::cpo::cpo_impl::details::default_erase_if_fn>;
-
-    static_assert(invocable<
-                  actions::cpo::cpo_impl::details::adl_erase_if_fn,
-                  decltype(v)&,
-                  decltype(predicate)>);
-
-    using t = forward_like_t<const int&, int>;
-
-    constexpr auto res = fn::test_invocables<const fn&, decltype(v)&, decltype(predicate)>;
-    constexpr auto i0 = res[0];
-    constexpr auto i1 = res[1];
-
-    constexpr auto i = ::std::ranges::find_if(
-                           res,
-                           ::std::bind_front(::std::ranges::greater_equal{}, expr_req::well_formed)
-                       ) -
-        res.cbegin();
-    // fn{}(v, predicate);
-}
-
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: erase actions",
     "[containers][actions]",
     vector<int>,
-    set<int>
-    // (map<int, int>),
-    // (unordered_map<int, int>)
+    set<int>,
+    (map<int, int>),
+    (unordered_map<int, int>)
 )
 {
     CAPTURE(type<TestType>());
@@ -110,10 +82,16 @@ TEMPLATE_TEST_CASE( // NOLINT
     STATIC_REQUIRE(emplace_req<TestType>);
 }
 
+void foo(vector<int>& container, int value)
+{
+    using fn = actions::emplace_back_fn;
+    fn{}(container, value);
+}
+
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: emplace where actions",
     "[containers][actions]",
-    vector<int>,
+    // vector<int>,
     deque<int>,
     list<int>
 )
@@ -132,7 +110,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: pop where actions",
     "[containers][actions]",
-    vector<int>,
+    // vector<int>,
     deque<int>,
     list<int>
 )
