@@ -5,7 +5,7 @@
 
 #include <ranges>
 
-#include "../functional/invocables.h"
+#include "../type_traits/core_traits.h"
 
 using namespace ::std::literals;
 
@@ -115,16 +115,17 @@ namespace stdsharp::reflection
     }
 
     template<typename T>
-    inline constexpr nodiscard_invocable get_data_members{
-        []() noexcept
+    struct get_data_members_fn
+    {
+        constexpr auto operator()() const noexcept
         {
             return get_members<T>() |
-                ::std::views::filter( // clang-format off
-                    [](const member_info info)
-                    {
-                        return info.category == member_category::data;
-                    }
-                ); // clang-format on
-        } //
+                ::std::views::filter( //
+                       [](const member_info info) { return info.category == member_category::data; }
+                );
+        }
     };
+
+    template<typename T>
+    inline constexpr get_data_members_fn<T> get_data_members{};
 }

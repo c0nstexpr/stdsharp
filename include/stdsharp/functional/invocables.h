@@ -64,7 +64,9 @@ namespace stdsharp
     template<typename... Func>
     using invocables = ::meta::_t<details::invocables<Func...>>;
 
-    inline constexpr make_template_type_fn<invocables> make_invocables{};
+    using make_invocables_fn = make_template_type_fn<invocables>;
+
+    inline constexpr make_invocables_fn make_invocables{};
 
     template<typename T, typename... Args>
     inline constexpr auto invocables_test = []<::std::size_t... I>
@@ -126,7 +128,7 @@ namespace stdsharp
         struct sequenced_invocables_predicate
         {
             static constexpr auto value =
-                ::std::bind_front(::std::ranges::greater_equal{}, expr_req::well_formed);
+                ::std::bind_front(::std::ranges::less_equal{}, expr_req::well_formed);
         };
 
         inline constexpr auto sequenced_invoke =

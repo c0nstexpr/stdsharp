@@ -91,7 +91,7 @@ void foo(vector<int>& container, int value)
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: emplace where actions",
     "[containers][actions]",
-    // vector<int>,
+    vector<int>,
     deque<int>,
     list<int>
 )

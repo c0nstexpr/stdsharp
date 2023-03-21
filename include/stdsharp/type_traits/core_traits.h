@@ -59,7 +59,11 @@ namespace stdsharp
         expr_req::ill_formed;
 
     template<typename T, typename... Args>
-    inline constexpr auto invocable_test = invocable_r_test<T, void, Args...>;
+    inline constexpr auto invocable_test = ::std::is_invocable_v<T, Args...> ? //
+        ::std::is_nothrow_invocable_r_v<T, Args...> ? //
+            expr_req::no_exception :
+            expr_req::well_formed :
+        expr_req::ill_formed;
 
     template<typename T, bool Const>
     using apply_const = ::std::conditional_t<Const, ::std::add_const_t<T>, T>;

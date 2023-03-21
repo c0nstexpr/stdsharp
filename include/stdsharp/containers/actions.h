@@ -170,7 +170,8 @@ namespace stdsharp::actions
                 > // clang-format on
                     requires requires //
                 {
-                    requires ::std::invocable<decltype(::ranges::remove_if), Container, Predicate>;
+                    requires ::std::
+                        invocable<decltype(::std::ranges::remove_if), Container, Predicate>;
                     requires ::std::invocable<
                         decltype(::std::ranges::distance),
                         ::std::ranges::iterator_t<Container>,
@@ -179,12 +180,13 @@ namespace stdsharp::actions
                 }
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                 {
-                    const auto& it = static_cast<const_iterator_t<Container>>(
-                        ::std::ranges::remove_if(container, ::std::forward<Predicate>(predicate_fn))
+                    const auto& it = ::std::ranges::remove_if(
+                        container,
+                        ::std::forward<Predicate>(predicate_fn)
                     );
-                    const auto r = ::std::ranges::distance(it, container.cend());
-                    cpo::erase(container, it, container.cend());
-                    return r;
+                    const auto removed_size = it.size();
+                    cpo::erase(container, it.begin(), it.end());
+                    return removed_size;
                 }
             };
         }

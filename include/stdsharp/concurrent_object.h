@@ -100,9 +100,9 @@ namespace stdsharp
 
         concurrent_object() = default;
 
-        template<typename... TArg>
-            requires ::std::constructible_from<T, TArg...>
-        explicit concurrent_object(TArg&&... t_arg): object_(::std::forward<TArg>(t_arg)...)
+        template<typename... Args>
+            requires ::std::constructible_from<T, Args...>
+        explicit concurrent_object(Args&&... t_arg): object_(::std::forward<Args>(t_arg)...)
         {
         }
 
