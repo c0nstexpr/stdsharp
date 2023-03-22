@@ -5,6 +5,7 @@
 
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
+#include <nameof.hpp>
 
 #include "../utility/adl_proof.h"
 
@@ -440,19 +441,8 @@ namespace stdsharp
     template<::std::size_t I, typename T>
     using get_element_t = decltype(cpo::get_element<I>(::std::declval<T>()));
 
-    namespace details
-    {
-        template<typename T>
-        struct get_type_id
-        {
-            static constexpr auto invoke() noexcept { return ::std::to_array(__func__); }
-
-            static constexpr auto name = invoke();
-        };
-    }
-
     template<typename T>
-    inline constexpr ::std::string_view type_id = details::get_type_id<T>::name;
+    inline constexpr ::std::string_view type_id = ::nameof::nameof_full_type<T>();
 
     inline namespace literals
     {

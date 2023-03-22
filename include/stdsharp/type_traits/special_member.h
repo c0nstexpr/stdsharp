@@ -30,9 +30,14 @@ namespace stdsharp
         static constexpr auto
             compatible(const partial_ordering left, const partial_ordering right) noexcept
         {
-            return is_gt(left) || (is_eq(left) && is_lteq(right)) || is_lt(right) ?
-                left :
-                partial_ordering::unordered;
+            if(left == right) return left;
+            if(is_eq(left)) return right;
+            if(is_eq(right)) return left;
+
+            return is_gt(left) ?
+                is_gt(right) ? partial_ordering::greater : partial_ordering::unordered :
+                is_lt(right) ? partial_ordering::less :
+                               partial_ordering::unordered;
         }
 
         friend constexpr partial_ordering

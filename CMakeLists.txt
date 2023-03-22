@@ -19,6 +19,7 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(ctre CONFIG REQUIRED)
+find_package(nameof CONFIG REQUIRED)
 
 target_compile_options(
   ${PROJECT_NAME} INTERFACE $<$<CXX_COMPILER_ID:MSVC>: /external:anglebrackets>
@@ -28,7 +29,7 @@ target_compile_definitions(${PROJECT_NAME} INTERFACE $<$<CXX_COMPILER_ID:Clang>:
                                                      _LIBCPP_ENABLE_NODISCARD>)
 
 target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt range-v3::range-v3
-                                                ctre::ctre)
+                                                ctre::ctre nameof::nameof)
 
 verbose_message("Successfully added all dependencies and linked against them.")
 

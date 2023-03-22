@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include <catch2/matchers/catch_matchers_range_equals.hpp>
-
 #include "test.h"
 
 #include "stdsharp/memory/pointer_traits.h"

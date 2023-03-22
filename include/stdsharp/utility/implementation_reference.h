@@ -17,14 +17,15 @@ namespace stdsharp
 
         using ::std::reference_wrapper<func>::reference_wrapper;
 
-        constexpr implementation_reference(func* const ptr) noexcept:
-            ::std::reference_wrapper<func>(*ptr)
+        template<nothrow_convertible_to<func*> Closure>
+        constexpr implementation_reference(Closure&& closure) noexcept:
+            ::std::reference_wrapper<func>(*static_cast<func*>(closure))
         {
         }
 
         constexpr implementation_reference() noexcept
             requires ::std::same_as<void, Ret>
-            : ::std::reference_wrapper<func>(*+[](const Arg&...) noexcept {})
+            : implementation_reference([](const Arg&...) noexcept {})
         {
         }
 
@@ -35,8 +36,8 @@ namespace stdsharp
             requires !(ExprReq == expr_req::no_exception) || noexcept(Ret{});
         }
             :
-            ::std::reference_wrapper<func>(
-                *+[](const Arg&...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
+            implementation_reference( //
+                [](const Arg&...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
             )
         {
         }

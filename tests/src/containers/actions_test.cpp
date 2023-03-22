@@ -46,7 +46,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     (unordered_map<int, int>)
 )
 {
-    CAPTURE(type<TestType>());
+    CAPTURE(type_id<TestType>);
     STATIC_REQUIRE(erase_req<TestType>);
 }
 
@@ -78,7 +78,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     (unordered_map<int, int>)
 )
 {
-    CAPTURE(type<TestType>());
+    CAPTURE(type_id<TestType>);
     STATIC_REQUIRE(emplace_req<TestType>);
 }
 
@@ -96,7 +96,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     list<int>
 )
 {
-    CAPTURE(type<TestType>());
+    CAPTURE(type_id<TestType>);
 
     STATIC_REQUIRE( //
         requires(TestType v, typename TestType::value_type value) //
@@ -115,7 +115,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     list<int>
 )
 {
-    CAPTURE(type<TestType>());
+    CAPTURE(type_id<TestType>);
 
     STATIC_REQUIRE( //
         requires(TestType v) //
@@ -133,7 +133,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     list<int>
 )
 {
-    CAPTURE(type<TestType>());
+    CAPTURE(type_id<TestType>);
 
     STATIC_REQUIRE(requires(TestType v) { actions::resize(v, 5); });
 }

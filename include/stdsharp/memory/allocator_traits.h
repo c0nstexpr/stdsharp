@@ -4,7 +4,6 @@
 #include <iterator>
 
 #include "../type_traits/special_member.h"
-#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -165,9 +164,6 @@ namespace stdsharp
     template<allocator_req Alloc>
     struct allocator_traits : private ::std::allocator_traits<Alloc>
     {
-    private:
-        using base = ::std::allocator_traits<Alloc>;
-
         struct construct_fn
         {
             template<typename U, typename... Args>
@@ -211,14 +207,6 @@ namespace stdsharp
             }
         };
 
-        template<typename T, typename... Args>
-        static constexpr auto constructible_from =
-            ::std::invocable<construct_fn, Alloc&, T*, Args...>;
-
-        template<typename T, typename... Args>
-        static constexpr auto nothrow_constructible_from =
-            nothrow_invocable<construct_fn, Alloc&, T*, Args...>;
-
         struct destroy_fn
         {
             template<typename U>
@@ -240,6 +228,17 @@ namespace stdsharp
                 ::std::destroy_at(ptr);
             }
         };
+
+    private:
+        using base = ::std::allocator_traits<Alloc>;
+
+        template<typename T, typename... Args>
+        static constexpr auto constructible_from =
+            ::std::invocable<construct_fn, Alloc&, T*, Args...>;
+
+        template<typename T, typename... Args>
+        static constexpr auto nothrow_constructible_from =
+            nothrow_invocable<construct_fn, Alloc&, T*, Args...>;
 
         template<typename T>
         static constexpr auto destructible = ::std::invocable<destroy_fn, Alloc&, T*>;
@@ -347,22 +346,46 @@ namespace stdsharp
             return ::std::allocate_at_least(alloc, count);
         }
 
-        template<
-            ::std::invocable<constant<before_assign>, allocator_type&, allocator_type> Operation>
-            requires ::std::invocable<
-                         Operation,
-                         constant<after_assign>,
-                         allocator_type&,
-                         allocator_type> &&
+    private:
+        template<bool IsCopy>
+        using other_allocator_type =
+            ::std::conditional_t<IsCopy, const allocator_type&, allocator_type>;
+
+        template<typename Op, bool IsCopy>
+        static constexpr auto assign_op_invocable = //
+            ::std::invocable<
+                Op,
+                constant<before_assign>,
+                allocator_type&,
+                other_allocator_type<IsCopy>> &&
+            ::std::invocable<
+                Op,
+                constant<after_assign>,
+                allocator_type&,
+                other_allocator_type<IsCopy>>;
+
+        template<typename Op, bool IsCopy>
+        static constexpr auto nothrow_assign_op_invocable = //
+            nothrow_invocable<
+                Op,
+                constant<before_assign>,
+                allocator_type&,
+                other_allocator_type<IsCopy>> &&
+            nothrow_invocable<
+                Op,
+                constant<after_assign>,
+                allocator_type&,
+                other_allocator_type<IsCopy>>;
+
+    public:
+        template<typename Operation>
+            requires assign_op_invocable<Operation, false> &&
             propagate_on_container_move_assignment::value
-        constexpr void assign(allocator_type& left, allocator_type&& right, Operation op) noexcept(
-            nothrow_invocable<Operation, constant<before_assign>, allocator_type&, allocator_type>&&
-                nothrow_invocable<
-                    Operation,
-                    constant<after_assign>,
-                    allocator_type&,
-                    allocator_type> //
-        )
+        static constexpr void assign(
+            allocator_type& left,
+            allocator_type&& right,
+            Operation op //
+        ) noexcept(nothrow_assign_op_invocable<Operation, false>)
         {
             ::std::invoke(op, constant<before_assign>{}, left, ::std::move(right));
             left = ::std::move(right);
@@ -370,34 +393,21 @@ namespace stdsharp
         }
 
         template<::std::invocable<allocator_type&, allocator_type> Operation>
-        constexpr void assign(allocator_type& left, allocator_type&& right, Operation&& op) //
-            noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type>)
+        static constexpr void assign(
+            allocator_type& left,
+            allocator_type&& right,
+            Operation&& op //
+        ) noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type>)
         {
             ::std::invoke(::std::forward<Operation>(op), left, ::std::move(right));
         }
 
-        template<::std::invocable<constant<before_assign>, allocator_type&, const allocator_type&>
-                     Operation>
-            requires ::std::invocable<
-                         Operation,
-                         constant<after_assign>,
-                         allocator_type&,
-                         const allocator_type&> && propagate_on_container_copy_assignment::value
-        constexpr void assign(allocator_type& left, const allocator_type& right, Operation op) //
-            noexcept( // clang-format off
-                nothrow_invocable<
-                    Operation,
-                    constant<before_assign>,
-                    allocator_type&,
-                    const allocator_type&
-                >&&
-                    nothrow_invocable<
-                        Operation,
-                        constant<after_assign>,
-                        allocator_type&,
-                        const allocator_type&
-                    >
-            ) // clang-format on
+        template<typename Operation>
+            requires assign_op_invocable<Operation, true> &&
+            propagate_on_container_copy_assignment::value
+        static constexpr void
+            assign(allocator_type& left, const allocator_type& right, Operation op) //
+            noexcept(nothrow_assign_op_invocable<Operation, true>)
         {
             ::std::invoke(op, constant<before_assign>{}, left, right);
             left = right;
@@ -405,7 +415,8 @@ namespace stdsharp
         }
 
         template<::std::invocable<allocator_type&, const allocator_type&> Operation>
-        constexpr void assign(allocator_type& left, const allocator_type& right, Operation&& op) //
+        static constexpr void
+            assign(allocator_type& left, const allocator_type& right, Operation&& op) //
             noexcept(nothrow_invocable<Operation, allocator_type&, const allocator_type&>)
         {
             ::std::invoke(::std::forward<Operation>(op), left, right);
@@ -419,15 +430,20 @@ namespace stdsharp
                          allocator_type&,
                          allocator_type&> &&
             propagate_on_container_swap::value
-        constexpr void swap(allocator_type& left, allocator_type& right, Operation op) noexcept(
-            nothrow_invocable<Operation, constant<before_swap>, allocator_type&, allocator_type>&&
+        static constexpr void
+            swap(allocator_type& left, allocator_type& right, Operation op) noexcept(
                 nothrow_invocable<
                     Operation,
-                    constant<after_swap>,
+                    constant<before_swap>,
                     allocator_type&,
-                    allocator_type& // clang-format off
+                    allocator_type>&&
+                    nothrow_invocable<
+                        Operation,
+                        constant<after_swap>,
+                        allocator_type&,
+                        allocator_type& // clang-format off
                 > // clang-format on
-        )
+            )
         {
             ::std::invoke(op, constant<before_swap>{}, left, right);
             ::std::ranges::swap(left, right);
@@ -435,18 +451,18 @@ namespace stdsharp
         }
 
         template<::std::invocable<allocator_type&, allocator_type&> Operation>
-        constexpr void swap(allocator_type& left, allocator_type& right, Operation&& op) //
+        static constexpr void swap(allocator_type& left, allocator_type& right, Operation&& op) //
             noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type&>)
         {
             ::std::invoke(::std::forward<Operation>(op), left, right);
         }
 
-        constexpr decltype(auto) copy_construct(const allocator_type& alloc) noexcept
+        static constexpr decltype(auto) copy_construct(const allocator_type& alloc) noexcept
         {
             return select_on_container_copy_construction(alloc);
         }
 
-        constexpr allocated get_allocated(
+        static constexpr allocated get_allocated(
             allocator_type& alloc,
             const size_type size,
             const const_void_pointer hint = nullptr
@@ -455,7 +471,7 @@ namespace stdsharp
             return {size > 0 ? allocate(alloc, size, hint) : nullptr, size};
         }
 
-        constexpr allocated try_get_allocated(
+        static constexpr allocated try_get_allocated(
             allocator_type& alloc,
             const size_type size,
             const const_void_pointer hint = nullptr
