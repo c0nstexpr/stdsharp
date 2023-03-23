@@ -18,13 +18,12 @@ namespace stdsharp
 
             using base::base;
 
-#define STDSHARP_OPERATOR(const_, ref)                       \
-    template<typename... Args, typename Fn = const_ T ref>   \
-        requires ::std::invocable<Fn, Args...>               \
-    constexpr decltype(auto) operator()(Args&&... args)      \
-        const_ ref noexcept(nothrow_invocable<Fn, Args...>)  \
-    {                                                        \
-        return base::value()(::std::forward<Args>(args)...); \
+#define STDSHARP_OPERATOR(const_, ref)                                      \
+    template<typename... Args, ::std::invocable<Args...> Fn = const_ T ref> \
+    constexpr decltype(auto) operator()(Args&&... args)                     \
+        const_ ref noexcept(nothrow_invocable<Fn, Args...>)                 \
+    {                                                                       \
+        return base::value()(::std::forward<Args>(args)...);                \
     }
 
             STDSHARP_OPERATOR(, &)
@@ -68,15 +67,6 @@ namespace stdsharp
 
     inline constexpr make_invocables_fn make_invocables{};
 
-    template<typename T, typename... Args>
-    inline constexpr auto invocables_test = []<::std::size_t... I>
-        requires requires(get_element_t<I, T>... v) { (v, ...); } //
-    (const ::std::index_sequence<I...>)
-    {
-        return ::std::array{invocable_test<get_element_t<I, T>, Args...>...};
-    }
-    (index_sequence_by<T>{});
-
     template<::std::size_t Index>
     struct invoke_at_fn
     {
@@ -96,27 +86,37 @@ namespace stdsharp
     inline constexpr invoke_at_fn<Index> invoke_at{};
 
     template<constant_value PredicateConstant>
+        requires ::std::predicate<decltype(PredicateConstant::value), expr_req>
     struct invoke_first_fn
     {
     private:
-        template<typename T, typename... Args>
-        struct invoke_at
+        template<typename T, typename... Args, ::std::size_t I = 0>
+        static constexpr ::std::size_t find_first(const index_constant<I> = {}) noexcept
         {
-            static constexpr auto test_res = invocables_test<T, Args...>;
-            using fn = invoke_at_fn<auto_cast(
-                ::std::ranges::find_if(test_res, PredicateConstant::value) - test_res.cbegin()
-            )>;
-        };
+            if constexpr(requires { typename get_element_t<I, T>; })
+            {
+                if constexpr(::std::
+                                 invoke(PredicateConstant::value, invocable_test<get_element_t<I, T>, Args...>))
+                    return I;
+                else return find_first<T, Args...>(index_constant<I + 1>{});
+            }
+            else return -1;
+        }
+
+        template<typename T, typename... Args>
+        static constexpr auto index = find_first<T, Args...>();
+
+        template<typename T, typename... Args>
+            requires(index<T, Args...> != -1)
+        using invoke_at_t = invoke_at_fn<index<T, Args...>>;
 
     public:
-        template<
-            typename T,
-            typename... Args,
-            ::std::invocable<T, Args...> InvokeAt = typename invoke_at<T, Args...>::fn>
+        template<typename T, typename... Args>
+            requires requires { typename invoke_at_t<T, Args...>; }
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
-            noexcept(nothrow_invocable<InvokeAt, T, Args...>)
+            noexcept(nothrow_invocable<invoke_at_t<T, Args...>, T, Args...>)
         {
-            return InvokeAt{}(::std::forward<T>(t), ::std ::forward<Args>(args)...);
+            return invoke_at_t<T, Args...>{}(::std::forward<T>(t), ::std ::forward<Args>(args)...);
         }
     };
 

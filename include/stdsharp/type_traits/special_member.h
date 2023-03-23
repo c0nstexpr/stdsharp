@@ -21,7 +21,8 @@ namespace stdsharp
         static const special_mem_req for_type;
         static const special_mem_req trivial;
         static const special_mem_req normal;
-        static const special_mem_req normal_movable;
+        static const special_mem_req unique;
+        static const special_mem_req ill_formed;
 
     private:
         using partial_ordering = ::std::partial_ordering;
@@ -127,8 +128,17 @@ namespace stdsharp
         .copy_assign = expr_req::well_formed,
     };
 
-    inline constexpr special_mem_req special_mem_req::normal_movable{
+    inline constexpr special_mem_req special_mem_req::unique{
         .copy_construct = expr_req::ill_formed,
         .copy_assign = expr_req::ill_formed,
+    };
+
+    inline constexpr special_mem_req special_mem_req::ill_formed{
+        expr_req::ill_formed,
+        expr_req::ill_formed,
+        expr_req::ill_formed,
+        expr_req::ill_formed,
+        expr_req::no_exception,
+        expr_req::ill_formed,
     };
 }

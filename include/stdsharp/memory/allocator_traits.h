@@ -393,6 +393,7 @@ namespace stdsharp
         }
 
         template<::std::invocable<allocator_type&, allocator_type> Operation>
+            requires(!propagate_on_container_move_assignment::value)
         static constexpr void assign(
             allocator_type& left,
             allocator_type&& right,
@@ -415,8 +416,12 @@ namespace stdsharp
         }
 
         template<::std::invocable<allocator_type&, const allocator_type&> Operation>
-        static constexpr void
-            assign(allocator_type& left, const allocator_type& right, Operation&& op) //
+            requires(!propagate_on_container_copy_assignment::value)
+        static constexpr void assign(
+            allocator_type& left,
+            const allocator_type& right,
+            Operation&& op
+        ) //
             noexcept(nothrow_invocable<Operation, allocator_type&, const allocator_type&>)
         {
             ::std::invoke(::std::forward<Operation>(op), left, right);
@@ -451,6 +456,7 @@ namespace stdsharp
         }
 
         template<::std::invocable<allocator_type&, allocator_type&> Operation>
+            requires(!propagate_on_container_swap::value)
         static constexpr void swap(allocator_type& left, allocator_type& right, Operation&& op) //
             noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type&>)
         {
