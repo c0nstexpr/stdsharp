@@ -124,6 +124,7 @@ namespace stdsharp
                 ::std::basic_string_view{begin, ctx.end()},
                 FORMAT_NS::format(
                     "{}^ Unexpected character here",
+                    // TODO: c++23 ::std::ranges::views::repeat
                     ::ranges::views::repeat_n(' ', begin - ctx.begin())
                 )
             ) //

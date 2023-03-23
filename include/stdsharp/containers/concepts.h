@@ -12,7 +12,6 @@
 #include "../memory/allocator_traits.h"
 #include "../ranges/ranges.h"
 #include "../functional/operations.h"
-#include "../utility/pack_get.h"
 
 namespace stdsharp
 {
@@ -552,17 +551,18 @@ namespace stdsharp
                 if constexpr(count == 0) return ::std::constructible_from<Container, Args...>;
                 else
                 {
-                    using last_t = pack_get_t<count - 1, Optional...>;
+                    using last_t = typename indexed_types<Optional...>::template get_t<count - 1>;
 
                     constexpr auto res = ::std::constructible_from<
                         Container,
                         Args...,
-                        pack_get_t<I, Optional...>...,
+                        typename indexed_types<Optional...>::template get_t<I>...,
                         last_t // clang-format off
                     >; // clang-format on
 
                     if constexpr(::std::default_initializable<last_t>)
-                        return res && value<pack_get_t<I, Optional...>...>();
+                        return res &&
+                            value<typename indexed_types<Optional...>::template get_t<I>...>;
                     else return res;
                 }
             }

@@ -411,7 +411,7 @@ namespace stdsharp
         {
             using value_t = ::std::decay_t<T>;
 
-            if(type_id<T> == type() &&
+            if(type_id<value_t> == type() &&
                try_same_type_emplace<value_t>(::std::forward<Args>(args)...))
                 return get<value_t>();
 
@@ -594,7 +594,7 @@ namespace stdsharp
             return *this;
         }
 
-        template<typename T, typename U, typename... Args>
+        template<typename T, typename... Args, typename U>
         constexpr decltype(auto) emplace(const ::std::initializer_list<U> il, Args&&... args)
             requires emplace_able<::std::decay_t<T>, decltype(il), Args...>
         {

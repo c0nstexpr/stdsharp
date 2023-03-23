@@ -2,8 +2,6 @@
 #include "stdsharp/memory/object_allocation.h"
 #include "stdsharp/memory/static_memory_resource.h"
 
-#include <any>
-
 using namespace stdsharp;
 using namespace std;
 
@@ -27,7 +25,8 @@ SCENARIO("object allocation basic requirements", "[memory][object allocation]") 
             req.destruct = expr_req::no_exception;
             return req;
         }(),
-        allocator_t>;
+        allocator_t // clang-format off
+    >; // clang-format on
 
     STATIC_REQUIRE(default_initializable<worst_allocation>);
     STATIC_REQUIRE(nothrow_movable<worst_allocation>);
@@ -63,6 +62,60 @@ SCENARIO("object allocation assign value", "[memory][object allocation]") // NOL
             allocation = 1;
 
             THEN("the return value should correct") { REQUIRE(allocation.get<int>() == 1); }
+
+            AND_THEN("type should be expected") { REQUIRE(allocation.type() == type_id<int>); }
+        }
+
+        struct local
+        {
+            bool invoked = false;
+
+            local() = default;
+            local(const local&) = default;
+            local(local&&) = default;
+
+            local& operator=(local&&) noexcept
+            {
+                invoked = true;
+                return *this;
+            }
+
+            local& operator=(const local&) noexcept
+            {
+                invoked = true;
+                return *this;
+            }
+
+            ~local() = default;
+        };
+
+        WHEN("assign custom type twice")
+        {
+            INFO(fmt::format("custom type: {}", type_id<local>));
+
+            auto& l = allocation.emplace<local>();
+            allocation.emplace<local>();
+
+            THEN("assign operator should be invoked") { REQUIRE(l.invoked); }
+
+            AND_THEN("reset allocation and check content")
+            {
+                allocation.reset();
+                REQUIRE(!allocation.has_value());
+            }
         }
     }
+}
+
+SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
+{
+    STATIC_REQUIRE( // TODO: use generic storage type for inner storage
+        []
+        {
+            trivial_object_allocation<allocator<int>> allocation{};
+            auto& value = allocation.emplace<int>(1);
+            value = 42;
+            return allocation.get<int>();
+        }() == 42
+    );
 }
