@@ -263,7 +263,7 @@ namespace stdsharp
             {
                 ::std::swap(this_.allocated_, other.allocated_);
                 ::std::swap(this_.traits_, other.traits_);
-            };
+            }
 
             constexpr void operator()(const constant<before_swap>, const Alloc&, const Alloc&) //
                 noexcept
@@ -312,36 +312,108 @@ namespace stdsharp
             ::std::invocable<alloc_construct_fn, Alloc&, T*, Args...> &&
             details::req_compatible_for<T, Alloc, Req>;
 
+        template<special_mem_req OtherReq>
+            requires details::req_compatible<Req, OtherReq>
+        constexpr basic_object_allocation(
+            const ::std::allocator_arg_t,
+            const Alloc& alloc,
+            const ::std::size_t size,
+            const details::special_mem_traits<OtherReq, Alloc>& other
+        ):
+            allocator_(alloc),
+            allocated_(alloc_traits::get_allocated(allocator_, size)),
+            traits_(other)
+        {
+        }
+
     public:
+        using allocator_type = Alloc;
+
         static constexpr auto req = Req;
 
         basic_object_allocation() = default;
 
+        template<
+            typename... Args,
+            typename T,
+            typename ValueType = ::std::decay_t<T>,
+            typename IdentityT = ::std::type_identity<ValueType> // clang-format off
+        > // clang-format on
+            requires ::std::constructible_from<mem_traits, IdentityT> &&
+            ::std::invocable<alloc_construct_fn, Alloc&, ValueType*, Args...>
+        constexpr basic_object_allocation(const ::std::in_place_type_t<T>, Args&&... args):
+            basic_object_allocation(::std::allocator_arg, Alloc{}, sizeof(ValueType), IdentityT{})
+        {
+            alloc_traits::construct(allocator_, ptr_cast<T>(), ::std::forward<Args>(args)...);
+        }
+
         template<special_mem_req OtherReq>
             requires details::req_compatible<Req, OtherReq>
-        constexpr basic_object_allocation(const basic_object_allocation<OtherReq, Alloc>& other)
+        constexpr basic_object_allocation(
+            const ::std::allocator_arg_t tag,
+            const Alloc& alloc,
+            const basic_object_allocation<OtherReq, Alloc>& other
+        )
             requires(Req.copy_construct == expr_req::well_formed) &&
-                        ::std::constructible_from<mem_traits, decltype(other.traits_)>
-            :
-            allocator_(alloc_traits::copy_construct(other.allocator_)),
-            allocated_( //
-                {
-                    other.has_value() ? alloc_traits::allocate(allocator_, other.size()) : nullptr,
-                    other.size() //
-                }
-            ),
-            traits_(other.traits_)
+            ::std::constructible_from<mem_traits, decltype(other.traits_)>
+            : basic_object_allocation(tag, alloc, other.size(), other.traits_)
         {
             if(other.has_value()) traits_.construct(allocator_, get_ptr(), other.get_ptr());
+        }
+
+        template<special_mem_req OtherReq>
+        constexpr basic_object_allocation(const basic_object_allocation<OtherReq, Alloc>& other)
+            requires ::std::constructible_from<
+                basic_object_allocation,
+                ::std::allocator_arg_t,
+                const Alloc&,
+                decltype(other)>
+            :
+            basic_object_allocation(
+                ::std::allocator_arg,
+                alloc_traits::copy_construct(other.allocator_),
+                other
+            )
+        {
+        }
+
+        template<special_mem_req OtherReq>
+            requires details::req_compatible<Req, OtherReq> &&
+                         (Req.move_construct == expr_req::well_formed)
+        constexpr basic_object_allocation(
+            const ::std::allocator_arg_t,
+            const Alloc& alloc,
+            basic_object_allocation<OtherReq, Alloc>&& other
+        ) noexcept(Req.move_construct == expr_req::no_exception):
+            allocator_(other.allocator_), traits_(other.traits_)
+        {
+            if(other.has_value())
+            {
+                if(alloc == other.allocator_) allocated_ = other.allocated_;
+                else
+                {
+                    allocated_ = alloc_traits::get_allocated(allocator_, other.size());
+                    traits_.construct(allocator_, get_ptr(), ::std::move(other.get()));
+                }
+            }
         }
 
         template<special_mem_req OtherReq>
             requires details::req_compatible<Req, OtherReq>
         constexpr basic_object_allocation(basic_object_allocation<OtherReq, Alloc>&& other) noexcept
             :
-            allocator_(::std::move(other.allocator_)),
-            allocated_(other.allocated_),
-            traits_(other.traits_)
+            allocator_(other.allocator_), allocated_(other.allocated_), traits_(other.traits_)
+        {
+        }
+
+        template<typename... Args>
+            requires ::std::constructible_from<basic_object_allocation, Args...>
+        constexpr basic_object_allocation(
+            const ::std::allocator_arg_t,
+            const Alloc& alloc,
+            Args&&... args
+        ) noexcept(nothrow_constructible_from<basic_object_allocation, Args...>):
+            allocator_(alloc), basic_object_allocation(::std::forward<Args>(args)...)
         {
         }
 
@@ -351,29 +423,7 @@ namespace stdsharp
         basic_object_allocation(basic_object_allocation&&) noexcept
             requires false;
 
-        constexpr basic_object_allocation(const Alloc& alloc) noexcept: allocator_(alloc) {}
-
-        template<
-            typename... Args,
-            typename T,
-            typename ValueType = ::std::decay_t<T>,
-            typename IdentityT = ::std::type_identity<ValueType> // clang-format off
-        > // clang-format on
-            requires ::std::constructible_from<mem_traits, IdentityT> &&
-                         ::std::invocable<alloc_construct_fn, Alloc&, ValueType*, Args...>
-        constexpr basic_object_allocation(
-            const ::std::in_place_type_t<T>,
-            Args&&... args,
-            const Alloc& alloc = Alloc{}
-        ):
-            basic_object_allocation(alloc),
-            allocated_(alloc_traits::get_allocated(allocator_, sizeof(ValueType))),
-            traits_(IdentityT{})
-        {
-            alloc_traits::construct(allocator_, pt_cast<T>(), ::std::forward<Args>(args)...);
-        }
-
-        constexpr ~basic_object_allocation() noexcept(noexcept(destroy())) { reset(); }
+        constexpr ~basic_object_allocation() noexcept { reset(); }
 
         [[nodiscard]] constexpr auto get_allocator() const noexcept { return allocator_; }
 
@@ -420,6 +470,12 @@ namespace stdsharp
             alloc_traits::construct(allocator_, ptr_cast<value_t>(), ::std::forward<Args>(args)...);
 
             return get<value_t>();
+        }
+
+        template<::std::same_as<void> = void>
+        constexpr void emplace() noexcept
+        {
+            destroy();
         }
 
     private:
@@ -545,10 +601,12 @@ namespace stdsharp
                 basic_object_allocation& left,
                 basic_object_allocation<OtherReq, Alloc>&& right
             ) const noexcept( //
-                noexcept(
-                    // alloc_traits::assign(allocator_, ::std::move(allocator_),
-                    // ::std::declval<Op>())
-                    true
+                noexcept( //
+                    alloc_traits::assign(
+                        allocator_,
+                        ::std::move(allocator_),
+                        ::std::declval<Op>()
+                    )
                 )
             )
                 requires requires //
