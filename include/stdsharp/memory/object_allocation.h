@@ -348,27 +348,25 @@ namespace stdsharp
         }
 
         template<special_mem_req OtherReq>
-            requires details::req_compatible<Req, OtherReq>
+            requires details::req_compatible<Req, OtherReq> &&
+            (Req.copy_construct == expr_req::well_formed)
         constexpr basic_object_allocation(
             const ::std::allocator_arg_t tag,
             const Alloc& alloc,
             const basic_object_allocation<OtherReq, Alloc>& other
-        )
-            requires(Req.copy_construct == expr_req::well_formed) &&
-            ::std::constructible_from<mem_traits, decltype(other.traits_)>
-            : basic_object_allocation(tag, alloc, other.size(), other.traits_)
+        ):
+            basic_object_allocation(tag, alloc, other.size(), other.traits_)
         {
             if(other.has_value()) traits_.construct(allocator_, get_ptr(), other.get_ptr());
         }
 
         template<special_mem_req OtherReq>
-        constexpr basic_object_allocation(const basic_object_allocation<OtherReq, Alloc>& other)
             requires ::std::constructible_from<
                 basic_object_allocation,
                 ::std::allocator_arg_t,
                 const Alloc&,
-                decltype(other)>
-            :
+                const basic_object_allocation<OtherReq, Alloc>&>
+        constexpr basic_object_allocation(const basic_object_allocation<OtherReq, Alloc>& other):
             basic_object_allocation(
                 ::std::allocator_arg,
                 alloc_traits::copy_construct(other.allocator_),

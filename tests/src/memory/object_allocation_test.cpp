@@ -7,6 +7,14 @@ using namespace std;
 
 using allocator_t = allocator<generic_storage>;
 
+void foo()
+{
+    using t = normal_movable_object_allocation<allocator_t>;
+
+    static_assert(::std::move_constructible<t>);
+    // static_assert(nothrow_move_constructible<t>);
+}
+
 SCENARIO("object allocation basic requirements", "[memory][object allocation]") // NOLINT
 {
     STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
