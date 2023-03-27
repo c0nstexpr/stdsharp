@@ -201,6 +201,7 @@ namespace stdsharp
         using const_pointer = typename alloc_traits::const_pointer;
         using size_type = typename alloc_traits::size_type;
         using alloc_construct_fn = typename alloc_traits::construct_fn;
+        using allocated = typename alloc_traits::allocated;
 
         using ptr_cref = const pointer&;
         using cptr_cref = const const_pointer&;
@@ -208,7 +209,7 @@ namespace stdsharp
         using mem_traits = typename details::special_mem_traits<Req, Alloc>;
 
         Alloc allocator_{};
-        typename alloc_traits::allocated allocated_{};
+        allocated allocated_{};
         mem_traits traits_{};
 
         [[nodiscard]] constexpr auto& get_ptr() const noexcept { return allocated_.ptr; }
@@ -317,12 +318,27 @@ namespace stdsharp
         constexpr basic_object_allocation(
             const ::std::allocator_arg_t,
             const Alloc& alloc,
+            const allocated& allocated,
+            const details::special_mem_traits<OtherReq, Alloc>& other
+        ):
+            allocator_(alloc), allocated_(allocated), traits_(other)
+        {
+        }
+
+        template<special_mem_req OtherReq>
+            requires details::req_compatible<Req, OtherReq>
+        constexpr basic_object_allocation(
+            const ::std::allocator_arg_t tag,
+            const Alloc& alloc,
             const ::std::size_t size,
             const details::special_mem_traits<OtherReq, Alloc>& other
         ):
-            allocator_(alloc),
-            allocated_(alloc_traits::get_allocated(allocator_, size)),
-            traits_(other)
+            basic_object_allocation(
+                tag,
+                alloc,
+                alloc_traits::get_allocated(allocator_, size),
+                other
+            )
         {
         }
 
@@ -342,7 +358,12 @@ namespace stdsharp
             requires ::std::constructible_from<mem_traits, IdentityT> &&
             ::std::invocable<alloc_construct_fn, Alloc&, ValueType*, Args...>
         constexpr basic_object_allocation(const ::std::in_place_type_t<T>, Args&&... args):
-            basic_object_allocation(::std::allocator_arg, Alloc{}, sizeof(ValueType), IdentityT{})
+            basic_object_allocation(
+                ::std::allocator_arg,
+                Alloc{},
+                sizeof(ValueType),
+                mem_traits{IdentityT{}}
+            )
         {
             alloc_traits::construct(allocator_, ptr_cast<T>(), ::std::forward<Args>(args)...);
         }

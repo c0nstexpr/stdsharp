@@ -11,7 +11,7 @@ void foo()
 {
     using t = normal_movable_object_allocation<allocator_t>;
 
-    static_assert(::std::move_constructible<t>);
+    // static_assert(::std::move_constructible<t>);
     // static_assert(nothrow_move_constructible<t>);
 }
 

@@ -164,7 +164,7 @@ namespace stdsharp
     template<allocator_req Alloc>
     struct allocator_traits : private ::std::allocator_traits<Alloc>
     {
-        struct construct_fn
+        static constexpr struct construct_fn
         {
             template<typename U, typename... Args>
             static constexpr auto alloc_custom_construct =
@@ -205,9 +205,16 @@ namespace stdsharp
             {
                 ::std::construct_at(ptr, ::std::forward<Args>(args)...);
             }
-        };
+        } construct{};
 
-        struct destroy_fn
+        template<typename T, typename... Args>
+        static constexpr auto construct_req = ::std::invocable<construct_fn, Alloc&, T*, Args...> ?
+            nothrow_invocable<construct_fn, Alloc&, T*, Args...> ? //
+                expr_req::no_exception :
+                expr_req::well_formed :
+            expr_req::ill_formed;
+
+        static constexpr struct destroy_fn
         {
             template<typename U>
             static constexpr auto alloc_custom_destroy =
@@ -227,7 +234,14 @@ namespace stdsharp
             {
                 ::std::destroy_at(ptr);
             }
-        };
+        } destroy{};
+
+        template<typename T>
+        static constexpr auto destroy_req = ::std::invocable<destroy_fn, Alloc&, T*> ?
+            nothrow_invocable<destroy_fn, Alloc&, T*> ? //
+                expr_req::no_exception :
+                expr_req::well_formed :
+            expr_req::ill_formed;
 
     private:
         using base = ::std::allocator_traits<Alloc>;
@@ -293,10 +307,6 @@ namespace stdsharp
         {
             base::deallocate(alloc, ptr, count);
         }
-
-        static constexpr construct_fn construct{};
-
-        static constexpr destroy_fn destroy{};
 
         static constexpr pointer try_allocate(
             allocator_type& alloc,
@@ -378,90 +388,112 @@ namespace stdsharp
                 other_allocator_type<IsCopy>>;
 
     public:
-        template<typename Operation>
-            requires assign_op_invocable<Operation, false> &&
-            propagate_on_container_move_assignment::value
-        static constexpr void assign(
-            allocator_type& left,
-            allocator_type&& right,
-            Operation op //
-        ) noexcept(nothrow_assign_op_invocable<Operation, false>)
+        static constexpr struct assign_fn
         {
-            ::std::invoke(op, constant<before_assign>{}, left, ::std::move(right));
-            left = ::std::move(right);
-            ::std::invoke(op, constant<after_assign>{}, left, ::std::move(right));
-        }
+            template<typename Operation>
+                requires assign_op_invocable<Operation, false> &&
+                propagate_on_container_move_assignment::value
+            constexpr void operator()(
+                allocator_type& left,
+                allocator_type&& right,
+                Operation op //
+            ) const noexcept(nothrow_assign_op_invocable<Operation, false>)
+            {
+                ::std::invoke(op, constant<before_assign>{}, left, ::std::move(right));
+                left = ::std::move(right);
+                ::std::invoke(op, constant<after_assign>{}, left, ::std::move(right));
+            }
 
-        template<::std::invocable<allocator_type&, allocator_type> Operation>
-            requires(!propagate_on_container_move_assignment::value)
-        static constexpr void assign(
-            allocator_type& left,
-            allocator_type&& right,
-            Operation&& op //
-        ) noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type>)
+            template<::std::invocable<allocator_type&, allocator_type> Operation>
+                requires(!propagate_on_container_move_assignment::value)
+            constexpr void operator()(
+                allocator_type& left,
+                allocator_type&& right,
+                Operation&& op //
+            ) const noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type>)
+            {
+                ::std::invoke(::std::forward<Operation>(op), left, ::std::move(right));
+            }
+
+            template<typename Operation>
+                requires assign_op_invocable<Operation, true> &&
+                propagate_on_container_copy_assignment::value
+            constexpr void
+                operator()(allocator_type& left, const allocator_type& right, Operation op) const
+                noexcept(nothrow_assign_op_invocable<Operation, true>)
+            {
+                ::std::invoke(op, constant<before_assign>{}, left, right);
+                left = right;
+                ::std::invoke(op, constant<after_assign>{}, left, right);
+            }
+
+            template<::std::invocable<allocator_type&, const allocator_type&> Operation>
+                requires(!propagate_on_container_copy_assignment::value)
+            constexpr void
+                operator()(allocator_type& left, const allocator_type& right, Operation&& op) const
+                noexcept(nothrow_invocable<Operation, allocator_type&, const allocator_type&>)
+            {
+                ::std::invoke(::std::forward<Operation>(op), left, right);
+            }
+        } assign;
+
+        template<typename... Args>
+        static constexpr auto assign_req = //
+            ::std::invocable<assign_fn, allocator_type&, Args...> ?
+            nothrow_invocable<assign_fn, allocator_type&, Args...> ? //
+                expr_req::no_exception :
+                expr_req::well_formed :
+            expr_req::ill_formed;
+
+        static constexpr struct swap_fn
         {
-            ::std::invoke(::std::forward<Operation>(op), left, ::std::move(right));
-        }
-
-        template<typename Operation>
-            requires assign_op_invocable<Operation, true> &&
-            propagate_on_container_copy_assignment::value
-        static constexpr void
-            assign(allocator_type& left, const allocator_type& right, Operation op) //
-            noexcept(nothrow_assign_op_invocable<Operation, true>)
-        {
-            ::std::invoke(op, constant<before_assign>{}, left, right);
-            left = right;
-            ::std::invoke(op, constant<after_assign>{}, left, right);
-        }
-
-        template<::std::invocable<allocator_type&, const allocator_type&> Operation>
-            requires(!propagate_on_container_copy_assignment::value)
-        static constexpr void assign(
-            allocator_type& left,
-            const allocator_type& right,
-            Operation&& op
-        ) //
-            noexcept(nothrow_invocable<Operation, allocator_type&, const allocator_type&>)
-        {
-            ::std::invoke(::std::forward<Operation>(op), left, right);
-        }
-
-        template<
-            ::std::invocable<constant<before_swap>, allocator_type&, allocator_type&> Operation>
-            requires ::std::invocable<
-                         Operation,
-                         constant<after_swap>,
-                         allocator_type&,
-                         allocator_type&> &&
-            propagate_on_container_swap::value
-        static constexpr void
-            swap(allocator_type& left, allocator_type& right, Operation op) noexcept(
-                nothrow_invocable<
-                    Operation,
-                    constant<before_swap>,
-                    allocator_type&,
-                    allocator_type>&&
+            template<
+                ::std::invocable<constant<before_swap>, allocator_type&, allocator_type&> Operation>
+                requires ::std::invocable<
+                             Operation,
+                             constant<after_swap>,
+                             allocator_type&,
+                             allocator_type&> &&
+                propagate_on_container_swap::value
+            constexpr void
+                operator()(allocator_type& left, allocator_type& right, Operation op) const
+                noexcept( //
                     nothrow_invocable<
                         Operation,
-                        constant<after_swap>,
+                        constant<before_swap>,
                         allocator_type&,
-                        allocator_type& // clang-format off
-                > // clang-format on
-            )
-        {
-            ::std::invoke(op, constant<before_swap>{}, left, right);
-            ::std::ranges::swap(left, right);
-            ::std::invoke(op, constant<after_swap>{}, left, right);
-        }
+                        allocator_type // clang-format off
+                    >&& // clang-format on
+                        nothrow_invocable<
+                            Operation,
+                            constant<after_swap>,
+                            allocator_type&,
+                            allocator_type& // clang-format off
+                        > // clang-format on
+                )
+            {
+                ::std::invoke(op, constant<before_swap>{}, left, right);
+                ::std::ranges::swap(left, right);
+                ::std::invoke(op, constant<after_swap>{}, left, right);
+            }
 
-        template<::std::invocable<allocator_type&, allocator_type&> Operation>
-            requires(!propagate_on_container_swap::value)
-        static constexpr void swap(allocator_type& left, allocator_type& right, Operation&& op) //
-            noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type&>)
-        {
-            ::std::invoke(::std::forward<Operation>(op), left, right);
-        }
+            template<::std::invocable<allocator_type&, allocator_type&> Operation>
+                requires(!propagate_on_container_swap::value)
+            constexpr void
+                operator()(allocator_type& left, allocator_type& right, Operation&& op) const
+                noexcept(nothrow_invocable<Operation, allocator_type&, allocator_type&>)
+            {
+                ::std::invoke(::std::forward<Operation>(op), left, right);
+            }
+        } swap{};
+
+        template<typename... Args>
+        static constexpr auto swap_req = //
+            ::std::invocable<swap_fn, allocator_type&, Args...> ?
+            nothrow_invocable<swap_fn, allocator_type&, Args...> ? //
+                expr_req::no_exception :
+                expr_req::well_formed :
+            expr_req::ill_formed;
 
         static constexpr decltype(auto) copy_construct(const allocator_type& alloc) noexcept
         {
@@ -522,4 +554,12 @@ namespace stdsharp
 
     template<typename T>
     using allocator_of_t = ::meta::_t<allocator_of<T>>;
+
+    template<typename Alloc>
+    struct basic_allocator_aware
+    {
+        Alloc allocator;
+
+        basic_allocator_aware() = default;
+    };
 }
