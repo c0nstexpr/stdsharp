@@ -4,6 +4,7 @@
 #include <iterator>
 
 #include "../type_traits/special_member.h"
+#include "../functional/bind.h"
 
 namespace stdsharp
 {
@@ -554,12 +555,4 @@ namespace stdsharp
 
     template<typename T>
     using allocator_of_t = ::meta::_t<allocator_of<T>>;
-
-    template<typename Alloc>
-    struct basic_allocator_aware
-    {
-        Alloc allocator;
-
-        basic_allocator_aware() = default;
-    };
 }
