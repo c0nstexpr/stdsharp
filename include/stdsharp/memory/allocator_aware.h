@@ -4,37 +4,125 @@
 
 namespace stdsharp
 {
-    template<allocator_req Alloc, typename Data>
-    struct basic_allocator_aware
+    namespace details
     {
-        using traits = allocator_traits<Alloc>;
-
-        Alloc allocator;
-        Data data;
-
-    private:
-        static constexpr struct get_alloc_fn
+        template<typename Alloc, typename Data>
+        struct alloc_aware_data : Data
         {
             template<typename... Args>
-            constexpr Alloc operator()(Data& d, Args&&... args) const
-                noexcept(noexcept(d.get_default_allocator(::std::declval<Args>()...)))
-                requires requires // clang-format off
+                requires ::std::constructible_from<Data, Alloc&, Args...> &&
+                ::std::constructible_from<Alloc>
+            constexpr alloc_aware_data(
+                const ::std::allocator_arg_t,
+                Alloc& alloc,
+                Args&&... args
+            ) noexcept(nothrow_constructible_from<Data, Alloc&, Args...>):
+                Data(alloc, ::std::forward<Args>(args)...)
             {
-                { d.get_default_allocator(::std::declval<Args>()...) } -> // clang-format on
-                        ::std::same_as<Alloc>;
-            }
-            {
-                return d.get_default_allocator(::std::forward<Args>(args)...);
             }
 
-            constexpr auto operator()(const auto&...) const
-                noexcept(nothrow_constructible_from<Alloc>)
-                requires ::std::constructible_from<Alloc>
+            template<typename... Args>
+                requires ::std::constructible_from<Data, Args...>
+            constexpr alloc_aware_data(const Alloc&, Args&&... args) //
+                noexcept(nothrow_constructible_from<Data, Args...>):
+                Data(::std::forward<Args>(args)...)
             {
-                return Alloc{};
             }
-        } get_alloc{};
 
+            template<typename... Args>
+                requires ::std::constructible_from<Data, Alloc&, Args...> &&
+                (!::std::constructible_from<Data, Args...>)
+            constexpr alloc_aware_data(Alloc& alloc, Args&&... args) //
+                noexcept(nothrow_constructible_from<Data, Alloc&, Args...>):
+                Data(alloc, ::std::forward<Args>(args)...)
+            {
+            }
+        };
+    }
+
+    template<allocator_req Alloc, typename Data>
+    class basic_allocator_aware
+    {
+    public:
+        using traits = allocator_traits<Alloc>;
+        using allocator_type = Alloc;
+        using data_t = Data;
+
+    private:
+        allocator_type allocator_{};
+        details::alloc_aware_data<allocator_type, Data> data_;
+
+        template<bool UseAllocator, typename... Args>
+        static constexpr auto ctor_req = ::std::constructible_from<Data, Alloc&, Args...> &&
+                (UseAllocator || ::std::constructible_from<Alloc>) ?
+            nothrow_constructible_from<Data, Alloc&, Args...> &&
+                    (UseAllocator || nothrow_constructible_from<Alloc>) ? //
+                expr_req::no_exception :
+                expr_req::well_formed :
+            expr_req::ill_formed;
+
+
+    public:
+        basic_allocator_aware() = default;
+
+        template<typename... Args>
+            requires(ctor_req<false, Args...> > expr_req::ill_formed)
+        constexpr basic_allocator_aware(Args&&... args) //
+            noexcept(ctor_req<false, Args...> == expr_req::no_exception):
+            data_(allocator_, ::std::forward<Args>(args)...)
+        {
+        }
+
+        template<typename... Args>
+            requires(ctor_req<true, Args...> > expr_req::ill_formed)
+        constexpr basic_allocator_aware(
+            const ::std::allocator_arg_t,
+            const Alloc& alloc,
+            Args&&... args
+        ) noexcept(ctor_req<true, Args...> == expr_req::no_exception):
+            allocator_(alloc), data_(allocator_, ::std::forward<Args>(args)...)
+        {
+        }
+
+        template<typename OtherData>
+        constexpr basic_allocator_aware(
+            const ::std::allocator_arg_t,
+            const Alloc& alloc,
+            const basic_allocator_aware<Alloc, OtherData>& other
+        ) noexcept(ctor_req<true, decltype(other)> == expr_req::no_exception)
+            requires(ctor_req<true, decltype(other)> > expr_req::ill_formed)
+            : allocator_(alloc), data_(allocator_, other.data_)
+        {
+        }
+
+        template<typename OtherData>
+        constexpr basic_allocator_aware(const basic_allocator_aware<Alloc, OtherData>& other) //
+            noexcept(ctor_req<false, decltype(other)> == expr_req::no_exception)
+            requires(ctor_req<false, decltype(other)> > expr_req::ill_formed)
+            : data_(allocator_, other.data_)
+        {
+        }
+
+        template<typename OtherData>
+        constexpr basic_allocator_aware(
+            const ::std::allocator_arg_t,
+            const Alloc& alloc,
+            basic_allocator_aware<Alloc, OtherData>&& other
+        ) noexcept(ctor_req<true, decltype(other)> == expr_req::no_exception)
+            requires(ctor_req<true, decltype(other)> > expr_req::ill_formed)
+            : allocator_(alloc), data_(allocator_, ::std::move(other.data_))
+        {
+        }
+
+        template<typename OtherData>
+        constexpr basic_allocator_aware(basic_allocator_aware<Alloc, OtherData>&& other) //
+            noexcept(ctor_req<false, decltype(other)> == expr_req::no_exception)
+            requires(ctor_req<false, decltype(other)> > expr_req::ill_formed)
+            : data_(allocator_, ::std::move(other.data_))
+        {
+        }
+
+    private:
         static constexpr struct assign_op_fn
         {
             template<typename OtherData, allocator_assign_operation assign, typename OtherAlloc>
@@ -98,6 +186,56 @@ namespace stdsharp
             }
         } assign_op{};
 
+        template<typename OtherAlloc, typename OtherData>
+        constexpr basic_allocator_aware&
+            assign_impl(OtherAlloc&& other_alloc, OtherData&& other_data) noexcept( //
+                noexcept( //
+                    traits::assign(
+                        allocator_,
+                        ::std::forward<OtherData>(other_alloc),
+                        bind(assign_op, data_, ::std::forward<OtherData>(other_data))
+                    )
+                )
+            )
+            requires requires //
+        {
+            traits::assign(
+                allocator_,
+                ::std::forward<OtherData>(other_alloc),
+                bind(assign_op, data_, ::std::forward<OtherData>(other_data))
+            );
+        }
+        {
+            if(&other_data == this) return *this;
+            traits::assign(
+                allocator_,
+                ::std::forward<OtherData>(other_alloc),
+                bind(assign_op, data_, ::std::forward<OtherData>(other_data))
+            );
+            return *this;
+        }
+
+    public:
+        template<typename OtherData>
+        basic_allocator_aware& operator=(const basic_allocator_aware<Alloc, OtherData>& other) //
+            noexcept(noexcept(assign_impl(other.allocator_, other.data_)))
+            requires requires { assign_impl(other.allocator_, other.data_); }
+        {
+            return assign_impl(other.allocator_, other.data_);
+        }
+
+        template<typename OtherData>
+        basic_allocator_aware& operator=(basic_allocator_aware<Alloc, OtherData>&& other) //
+            noexcept(noexcept(assign_impl(::std::move(other.allocator_), ::std::move(other.data_))))
+            requires requires //
+        {
+            assign_impl(::std::move(other.allocator_), ::std::move(other.data_)); //
+        }
+        {
+            return assign_impl(::std::move(other.allocator_), ::std::move(other.data_));
+        }
+
+    private:
         static constexpr struct swap_op_fn
         {
             template<typename OtherData, allocator_swap_operation swap>
@@ -123,153 +261,35 @@ namespace stdsharp
         } swap_op{};
 
     public:
-        basic_allocator_aware() = default;
-
-        template<typename... Args>
-            requires ::std::constructible_from<Data, Alloc&, Args...> &&
-                         ::std::invocable<
-                             get_alloc_fn,
-                             Data&,
-                             Args...>
-        constexpr basic_allocator_aware(Args&&... args) //
-            noexcept(nothrow_constructible_from<Data, Alloc&, Args...>&&
-                         nothrow_invocable<get_alloc_fn, Data&, Args...>):
-            allocator(get_alloc(::std::forward<Args>(args)...)),
-            data(allocator, ::std::forward<Args>(args)...)
-        {
-        }
-
-        template<typename... Args>
-            requires ::std::constructible_from<Data, Alloc&, Args...>
-        constexpr basic_allocator_aware(
-            const ::std::allocator_arg_t,
-            const Alloc& alloc,
-            Args&&... args
-        ) //
-            noexcept(nothrow_constructible_from<Data, Alloc&, Args...>):
-            allocator(alloc), data(allocator, ::std::forward<Args>(args)...)
-        {
-        }
-
-        template<typename OtherData>
-            requires ::std::constructible_from<Data, Alloc&, const OtherData&>
-        constexpr basic_allocator_aware(
-            const ::std::allocator_arg_t,
-            const Alloc& alloc,
-            const basic_allocator_aware<Alloc, OtherData>& other
-        ) //
-            noexcept(nothrow_constructible_from<Data, Alloc&, const OtherData&>):
-            allocator(alloc), data(allocator, other.data)
-        {
-        }
-
-        template<typename OtherData>
-            requires ::std::constructible_from<Data, Alloc&, const OtherData&>
-        constexpr basic_allocator_aware(const basic_allocator_aware<Alloc, OtherData>& other) //
-            noexcept(nothrow_constructible_from<Data, Alloc&, const OtherData&>):
-            basic_allocator_aware(
-                ::std::allocator_arg,
-                traits::copy_construct(other.allocator),
-                other
-            )
-        {
-        }
-
-        template<typename OtherData>
-            requires ::std::constructible_from<Data, Alloc&, OtherData>
-        constexpr basic_allocator_aware(
-            const ::std::allocator_arg_t,
-            const Alloc& alloc,
-            basic_allocator_aware<Alloc, OtherData>&& other
-        ) //
-            noexcept(nothrow_constructible_from<Data, Alloc&, OtherData>):
-            allocator(alloc), data(allocator, ::std::move(other.data))
-        {
-        }
-
-        template<typename OtherData>
-            requires ::std::constructible_from<Data, Alloc&, OtherData>
-        constexpr basic_allocator_aware(basic_allocator_aware<Alloc, OtherData>&& other) //
-            noexcept(nothrow_constructible_from<Data, Alloc&, OtherData>):
-            basic_allocator_aware(
-                ::std::allocator_arg,
-                ::std::move(other.allocator),
-                ::std::move(other)
-            )
-        {
-        }
-
-    private:
-        template<typename OtherAlloc, typename OtherData>
-        constexpr basic_allocator_aware&
-            assign_impl(OtherAlloc&& other_alloc, OtherData&& other_data) noexcept( //
-                noexcept( //
-                    traits::assign(
-                        allocator,
-                        ::std::forward<OtherData>(other_alloc),
-                        bind(assign_op, data, ::std::forward<OtherData>(other_data))
-                    )
-                )
-            )
-            requires requires //
-        {
-            traits::assign(
-                allocator,
-                ::std::forward<OtherData>(other_alloc),
-                bind(assign_op, data, ::std::forward<OtherData>(other_data))
-            );
-        }
-        {
-            if(&other_data == this) return *this;
-            traits::assign(
-                allocator,
-                ::std::forward<OtherData>(other_alloc),
-                bind(assign_op, data, ::std::forward<OtherData>(other_data))
-            );
-            return *this;
-        }
-
-    public:
-        template<typename OtherData>
-        basic_allocator_aware& operator=(const basic_allocator_aware<Alloc, OtherData>& other) //
-            noexcept(noexcept(assign_impl(other.allocator, other.data)))
-            requires requires { assign_impl(other.allocator, other.data); }
-        {
-            return assign_impl(other.allocator, other.data);
-        }
-
-        template<typename OtherData>
-        basic_allocator_aware& operator=(basic_allocator_aware<Alloc, OtherData>&& other) //
-            noexcept(noexcept(assign_impl(::std::move(other.allocator), ::std::move(other.data))))
-            requires requires //
-        {
-            assign_impl(::std::move(other.allocator), ::std::move(other.data)); //
-        }
-        {
-            return assign_impl(::std::move(other.allocator), ::std::move(other.data));
-        }
-
         template<typename OtherData>
         constexpr void swap(basic_allocator_aware<Alloc, OtherData>& other) noexcept(
-            noexcept(traits::swap(allocator, other.allocator, bind(swap_op, data, other.data)))
+            noexcept(traits::swap(allocator_, other.allocator_, bind(swap_op, data_, other.data_)))
         )
             requires requires //
         {
-            traits::swap(allocator, other.allocator, bind(swap_op, data, other.data)); //
+            traits::swap(allocator_, other.allocator_, bind(swap_op, data_, other.data_)); //
         }
         {
-            traits::swap(allocator, other.allocator, bind(swap_op, data, other.data));
+            traits::swap(allocator_, other.allocator_, bind(swap_op, data_, other.data_));
         }
 
         basic_allocator_aware(const basic_allocator_aware&)
             requires false;
         basic_allocator_aware(basic_allocator_aware&&) noexcept
             requires false;
-        basic_allocator_aware& operator=(const basic_allocator_aware&) = default;
-        basic_allocator_aware& operator=(basic_allocator_aware&&) noexcept = default;
+        basic_allocator_aware& operator=(const basic_allocator_aware&)
+            requires false;
+        basic_allocator_aware& operator=(basic_allocator_aware&&) noexcept
+            requires false;
         ~basic_allocator_aware() = default;
 
-        [[nodiscard]] constexpr auto get_allocator() const noexcept { return allocator; }
+        [[nodiscard]] constexpr auto& allocator() const noexcept { return allocator_; }
+
+        [[nodiscard]] constexpr auto& allocator() noexcept { return allocator_; }
+
+        [[nodiscard]] constexpr const data_t& data() const noexcept { return data_; }
+
+        [[nodiscard]] constexpr data_t& data() noexcept { return data_; }
     };
 
 }
