@@ -4,37 +4,122 @@
 
 namespace stdsharp
 {
+    template<allocator_req Alloc, typename ValueType = typename Alloc::value_type>
+    class typed_allocated
+    {
+    public:
+        using traits = allocator_traits<Alloc>;
+        using allocator_type = Alloc;
+        using value_type = ValueType;
+        using pointer = typename traits::pointer;
+        using const_pointer = typename traits::const_pointer;
+        using size_type = typename traits::size_type;
+        using allocated = typename traits::allocated;
+
+    private:
+        bool has_value_ = false;
+        allocated allocated_{};
+
+        template<typename... Args>
+        constexpr void construct_unchecked(allocator_type& alloc, Args&&... args)
+        {
+            traits::construct(alloc, allocated_.ptr, ::std::forward<Args>(args)...);
+            has_value_ = true;
+        }
+
+    public:
+        typed_allocated() = default;
+
+        constexpr typed_allocated(allocator_type& alloc):
+            allocated_(traits::get_allocated(alloc, sizeof(value_type)))
+        {
+        }
+
+        template<typename First, typename... Args>
+            requires ::std::constructible_from<value_type, First, Args...>
+        constexpr typed_allocated(allocator_type& alloc, First&& first, Args&&... args):
+            typed_allocated(alloc)
+        {
+            construct_unchecked(alloc, ::std::forward<First>(first), ::std::forward<Args>(args)...);
+        }
+
+        template<typename... Args>
+            requires ::std::constructible_from<value_type, Args...>
+        constexpr value_type& construct(allocator_type& alloc, Args&&... args) //
+            noexcept(nothrow_constructible_from<value_type, Args...>)
+        {
+            if(has_value_) traits::destroy(alloc, allocated_.ptr);
+            else allocated_ = traits::get_allocated(alloc, sizeof(value_type));
+
+            construct_unchecked(alloc, ::std::forward<Args>(args)...);
+            return *allocated_.ptr;
+        }
+
+        constexpr void destroy(allocator_type& alloc) noexcept
+        {
+            traits::destroy(alloc, allocated_.ptr);
+            has_value_ = false;
+        }
+
+        constexpr value_type& get() const noexcept { return *allocated_.ptr; }
+
+        explicit constexpr operator bool() const noexcept { return has_value_; }
+
+        constexpr void deallocate(allocator_type& alloc) const noexcept
+        {
+            destroy(alloc);
+            allocated_.deallocate(alloc);
+            allocated_ = {};
+        }
+
+        constexpr typed_allocated memcpy(allocator_type& alloc) const
+        {
+            return has_value_ ? typed_allocated{alloc, get()} : typed_allocated{};
+        }
+
+        constexpr typed_allocated memmove() const { return *this; }
+
+        constexpr typed_allocated memmove(allocator_type& alloc) const
+        {
+            return has_value_ ? typed_allocated{alloc, ::std::move(get())} : typed_allocated{};
+        }
+    };
+
     namespace details
     {
-        template<typename Alloc, typename Data>
-        struct alloc_aware_data : Data
+        template<typename Alloc, typename Allocated>
+        struct allocated_traits : Allocated
         {
             template<typename... Args>
-                requires ::std::constructible_from<Data, Alloc&, Args...> &&
-                ::std::constructible_from<Alloc>
-            constexpr alloc_aware_data(
-                const ::std::allocator_arg_t,
-                Alloc& alloc,
-                Args&&... args
-            ) noexcept(nothrow_constructible_from<Data, Alloc&, Args...>):
-                Data(alloc, ::std::forward<Args>(args)...)
+                requires ::std::constructible_from<Allocated, Args...>
+            constexpr allocated_traits(const Alloc&, Args&&... args) //
+                noexcept(nothrow_constructible_from<Allocated, Args...>):
+                Allocated(::std::forward<Args>(args)...)
             {
             }
 
             template<typename... Args>
-                requires ::std::constructible_from<Data, Args...>
-            constexpr alloc_aware_data(const Alloc&, Args&&... args) //
-                noexcept(nothrow_constructible_from<Data, Args...>):
-                Data(::std::forward<Args>(args)...)
+                requires ::std::constructible_from<Allocated, Alloc&, Args...> &&
+                (!::std::constructible_from<Allocated, Args...>)
+            constexpr allocated_traits(Alloc& alloc, Args&&... args) //
+                noexcept(nothrow_constructible_from<Allocated, Alloc&, Args...>):
+                Allocated(alloc, ::std::forward<Args>(args)...)
             {
             }
 
-            template<typename... Args>
-                requires ::std::constructible_from<Data, Alloc&, Args...> &&
-                (!::std::constructible_from<Data, Args...>)
-            constexpr alloc_aware_data(Alloc& alloc, Args&&... args) //
-                noexcept(nothrow_constructible_from<Data, Alloc&, Args...>):
-                Data(alloc, ::std::forward<Args>(args)...)
+            template<typename Other>
+                requires ::std::constructible_from<Allocated, Alloc&, const Other&>
+            constexpr allocated_traits(Alloc& alloc, const Other& other) //
+                noexcept(nothrow_constructible_from<Allocated, Alloc&, const Other&>):
+                Allocated(alloc, other)
+            {
+            }
+
+            template<typename Other>
+                requires ::std::constructible_from<Allocated, Alloc&, const Other&>
+            constexpr allocated_traits(Alloc& alloc, const Other& other) //
+                noexcept(nothrow_constructible_from<Allocated, Alloc&, const Other&>):
+                Allocated(alloc, other)
             {
             }
         };
@@ -50,7 +135,7 @@ namespace stdsharp
 
     private:
         allocator_type allocator_{};
-        details::alloc_aware_data<allocator_type, Data> data_;
+        details::allocated_traits<allocator_type, Data> data_;
 
         template<bool UseAllocator, typename... Args>
         static constexpr auto ctor_req = ::std::constructible_from<Data, Alloc&, Args...> &&
@@ -91,7 +176,7 @@ namespace stdsharp
             const basic_allocator_aware<Alloc, OtherData>& other
         ) noexcept(ctor_req<true, decltype(other)> == expr_req::no_exception)
             requires(ctor_req<true, decltype(other)> > expr_req::ill_formed)
-            : allocator_(alloc), data_(allocator_, other.data_)
+            : allocator_(alloc), data_(allocator_, other.allocator_, other.data_)
         {
         }
 
@@ -110,7 +195,7 @@ namespace stdsharp
             basic_allocator_aware<Alloc, OtherData>&& other
         ) noexcept(ctor_req<true, decltype(other)> == expr_req::no_exception)
             requires(ctor_req<true, decltype(other)> > expr_req::ill_formed)
-            : allocator_(alloc), data_(allocator_, ::std::move(other.data_))
+            : allocator_(alloc), data_(allocator_, other.allocator_, ::std::move(other.data_))
         {
         }
 

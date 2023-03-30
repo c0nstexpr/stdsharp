@@ -282,6 +282,11 @@ namespace stdsharp
         {
             pointer ptr{};
             size_type size{};
+
+            constexpr void deallocate(allocator_type& alloc) const noexcept
+            {
+                allocator_traits::deallocate(alloc, ptr, size);
+            }
         };
 
         template<typename U>
