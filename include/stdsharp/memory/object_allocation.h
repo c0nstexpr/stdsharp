@@ -206,7 +206,7 @@ namespace stdsharp
             using const_pointer = typename alloc_traits::const_pointer;
             using size_type = typename alloc_traits::size_type;
             using alloc_construct_fn = typename alloc_traits::construct_fn;
-            using allocated = typename alloc_traits::allocated;
+            using allocated = typename alloc_traits::allocation;
 
             using ptr_cref = const pointer&;
             using cptr_cref = const const_pointer&;

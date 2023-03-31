@@ -278,7 +278,7 @@ namespace stdsharp
         using enum allocator_assign_operation;
         using enum allocator_swap_operation;
 
-        struct allocated
+        struct allocation
         {
             pointer ptr{};
             size_type size{};
@@ -506,7 +506,7 @@ namespace stdsharp
             return select_on_container_copy_construction(alloc);
         }
 
-        static constexpr allocated get_allocated(
+        static constexpr allocation get_allocated(
             allocator_type& alloc,
             const size_type size,
             const const_void_pointer hint = nullptr
@@ -515,7 +515,7 @@ namespace stdsharp
             return {size > 0 ? allocate(alloc, size, hint) : nullptr, size};
         }
 
-        static constexpr allocated try_get_allocated(
+        static constexpr allocation try_get_allocated(
             allocator_type& alloc,
             const size_type size,
             const const_void_pointer hint = nullptr
