@@ -287,6 +287,8 @@ namespace stdsharp
             {
                 allocator_traits::deallocate(alloc, ptr, size);
             }
+
+            [[nodiscard]] constexpr operator bool() const noexcept { return ptr != nullptr; }
         };
 
         template<typename U>
@@ -506,7 +508,7 @@ namespace stdsharp
             return select_on_container_copy_construction(alloc);
         }
 
-        static constexpr allocation get_allocated(
+        static constexpr allocation get_allocation(
             allocator_type& alloc,
             const size_type size,
             const const_void_pointer hint = nullptr
@@ -515,7 +517,7 @@ namespace stdsharp
             return {size > 0 ? allocate(alloc, size, hint) : nullptr, size};
         }
 
-        static constexpr allocation try_get_allocated(
+        static constexpr allocation try_get_allocation(
             allocator_type& alloc,
             const size_type size,
             const const_void_pointer hint = nullptr

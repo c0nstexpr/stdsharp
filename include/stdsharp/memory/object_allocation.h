@@ -358,7 +358,7 @@ namespace stdsharp
                 if(other)
                 {
                     if(alloc == other_alloc) return other.allocated_;
-                    const auto& allocated = alloc_traits::get_allocated(alloc, other.size());
+                    const auto& allocated = alloc_traits::get_allocation(alloc, other.size());
                     other.traits_.construct(alloc, allocated.ptr, other.ptr);
 
                     return allocated;

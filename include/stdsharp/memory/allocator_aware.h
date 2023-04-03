@@ -1,78 +1,41 @@
 #pragma once
 
+#include <numeric>
+
 #include "allocator_traits.h"
-#include "stdsharp/concepts/concepts.h"
+#include "../cassert/cassert.h"
+#include "../containers/actions.h"
 
 namespace stdsharp
 {
-    template<typename Allocation, typename Alloc>
-    concept allocation_req = requires(
-        Allocation allocation,
-        const Allocation const_allocation,
-        Alloc alloc,
-        const Alloc const_alloc
-    ) //
-    {
-        requires allocator_req<Alloc>;
-        requires nothrow_default_initializable<Allocation>;
-        requires boolean_testable<Allocation>;
-
-        requires nothrow_copyable<Allocation>;
-
-        allocation.deallocate(alloc);
-        allocation.destroy(alloc); // clang-format off
-
-        { const_allocation.has_value() } -> ::std::convertible_to<bool>;
-
-        { const_allocation.size() } -> // clang-format on
-                ::std::same_as<typename allocator_traits<Alloc>::size_type>;
-
-        allocation.move_from(alloc, const_alloc, const_allocation);
-        allocation.copy_from(alloc, const_alloc, const_allocation);
-    };
-
-    template<allocator_req Alloc, allocation_req<Alloc> Allocation>
+    template<allocator_req Alloc, typename Allocations>
+        requires container<Allocations> &&
+        ::std::
+            same_as<typename allocator_traits<Alloc>::allocation, typename Allocations::value_type>
     class basic_allocator_aware
     {
     public:
         using traits = allocator_traits<Alloc>;
         using allocator_type = Alloc;
-        using allocation_t = Allocation;
+        using allocations_type = Allocations;
+        using allocation = typename allocations_type::value_type;
+        using size_type = typename traits::size_type;
 
     private:
+        using iter = typename allocations_type::iterator;
+        using const_iter = typename allocations_type::const_iterator;
         using const_alloc_ref = const allocator_type&;
         using this_t = basic_allocator_aware;
 
         allocator_type allocator_{};
-        allocation_t allocation_{};
-
-        constexpr void move_from(this_t&& other) noexcept( //
-            noexcept(allocation_.move_from(allocator_, other.allocator_, other.allocation_))
-        )
-            requires requires //
-        {
-            allocation_.move_from(allocator_, other.allocator_, other.allocation_); //
-        }
-        {
-            if(allocator_ == other.allocator_) allocation_ = other.allocation_;
-            else allocation_.move_from(allocator_, other.allocator_, other.allocation_);
-        }
-
-        constexpr void copy_from(const this_t& other) noexcept( //
-            noexcept(allocation_.copy_from(allocator_, other.allocator_, other.allocation_))
-        )
-            requires requires //
-        {
-            allocation_.copy_from(allocator_, other.allocator_, other.allocation_); //
-        }
-        {
-            allocation_.copy_from(allocator_, other.allocator_, other.allocation_);
-        }
+        allocations_type allocations_{};
 
     public:
         basic_allocator_aware() = default;
 
         constexpr basic_allocator_aware(const Alloc& alloc) noexcept: allocator_(alloc) {}
+
+        // TODO: implement
 
         constexpr basic_allocator_aware(const this_t& other, const Alloc& alloc) //
             noexcept(noexcept(copy_from(other)))
@@ -99,84 +62,77 @@ namespace stdsharp
 
         basic_allocator_aware(this_t&& other) noexcept = default;
 
-        // TODO: implement
-
         basic_allocator_aware& operator=(const basic_allocator_aware& other)
         {
             if(this == &other) return;
 
-            if(*this) destroy();
+            destroy();
 
-            allocation_.copy_from(allocator_, other.allocation_);
+            allocations_.copy_from(allocator_, other.allocations_);
 
             return *this;
         }
 
         basic_allocator_aware& operator=(this_t&& other) //
-            noexcept(noexcept(allocation_.move_assign(allocator_, other.allocation_)))
+            noexcept(noexcept(allocations_.move_assign(allocator_, other.allocations_)))
         {
             if(this == &other) return;
 
-            if(*this) destroy();
+            destroy();
 
-            if(allocator_ == other.allocator_) allocation_ = other.allocation_;
-            else allocation_.move_from(allocator_, other.allocation_);
+            if(allocator_ == other.allocator_) allocations_ = other.allocations_;
+            else allocations_.move_from(allocator_, other.allocations_);
 
             return *this;
         }
 
         constexpr ~basic_allocator_aware() { deallocate(); }
 
-        [[nodiscard]] constexpr auto& allocator() const noexcept { return allocator_; }
-
-        [[nodiscard]] constexpr auto& allocator() noexcept { return allocator_; }
-
-        template<typename... Args>
-            requires requires { allocation_.allocate(allocator_, ::std::declval<Args>()...); }
-        constexpr void allocate(Args&&... args)
+        template<::std::invocable<allocations_type&, allocation> Func = actions::emplace_back_fn>
+        constexpr void allocate(const size_type size, Func&& func = {})
         {
-            deallocate();
-            allocation_.allocate(allocator_, ::std::forward<Args>(args)...);
+            ::std::invoke(func, allocations_, traits::get_allocation(allocator_, size));
+            ::ranges::back(allocations_);
         }
 
-        template<typename... Args>
-            requires requires { allocation_.construct(allocator_, ::std::declval<Args>()...); }
-        constexpr decltype(auto) construct(Args&&... args)
+        constexpr void deallocate(const const_iter iter) noexcept
         {
-            if(*this) destroy();
-
-            return allocation_.construct(allocator_, ::std::forward<Args>(args)...);
+            iter->deallocate(allocator_);
+            actions::cpo::erase(iter);
         }
 
-        template<typename T, typename... Args>
-            requires requires //
+        constexpr void deallocate(const const_iter begin, const const_iter end) noexcept
         {
-            allocation_.template construct<T>(allocator_, ::std::declval<Args>()...); //
-        }
-        constexpr decltype(auto) construct(Args&&... args)
-        {
-            if(*this) destroy();
+            for(auto it = begin; it != end; ++it) it->deallocate(allocator_);
 
-            return allocation_.template construct<T>(allocator_, ::std::forward<Args>(args)...);
-        }
-
-        constexpr void destroy() noexcept
-        {
-            if(!*this) return;
-            allocation_.destroy(allocator_);
+            actions::cpo::erase(begin, end);
         }
 
         constexpr void deallocate() noexcept
         {
-            if(!*this) return;
-            allocation_.deallocate(allocator_);
-            allocation_ = {};
+            deallocate(allocations_.cbegin(), allocations_.cend());
         }
 
-        [[nodiscard]] constexpr explicit operator bool() const noexcept { return allocation_; }
+        [[nodiscard]] constexpr auto& allocator() const noexcept { return allocator_; }
 
-        [[nodiscard]] constexpr auto size() const noexcept { return allocation_.size(); }
+        [[nodiscard]] constexpr auto& allocator() noexcept { return allocator_; }
 
-        [[nodiscard]] constexpr auto has_value() const noexcept { return allocation_.has_value(); }
+        [[nodiscard]] constexpr explicit operator bool() const noexcept
+        {
+            return ::std::ranges::any_of(allocations_);
+        }
+
+        [[nodiscard]] constexpr auto size() const noexcept
+        {
+            return ::std::accumulate(
+                allocations_.cbegin(),
+                allocations_.cend(),
+                [](const allocation& v) noexcept { return v.size; }
+            );
+        }
+
+        [[nodiscard]] constexpr auto has_value() const noexcept { return allocations_.has_value(); }
+
+        [[nodiscard]] constexpr auto& allocations() const noexcept { return allocations_; }
     };
 }
