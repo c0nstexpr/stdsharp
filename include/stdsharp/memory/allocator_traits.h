@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <iterator>
+#include <memory>
 
-#include "../type_traits/special_member.h"
 #include "../functional/bind.h"
+#include "../type_traits/special_member.h"
 
 namespace stdsharp
 {
@@ -24,7 +24,7 @@ namespace stdsharp
             nullable_pointer<T> && nothrow_default_initializable<T> && nothrow_movable<T> &&
             nothrow_swappable<T> && nothrow_copyable<T> && nothrow_weakly_equality_comparable<T> &&
             nothrow_weakly_equality_comparable_with<T, ::std::nullptr_t>;
-    }
+    } // namespace details
 
     template<typename Alloc>
     concept allocator_req = requires //
@@ -70,7 +70,9 @@ namespace stdsharp
             requires nothrow_convertible_to<decltype(p), decltype(const_void_p)> &&
                 nothrow_convertible_to<decltype(const_p), decltype(const_void_p)> &&
                 nothrow_explicitly_convertible<decltype(const_void_p), decltype(const_p)> &&
-                nothrow_convertible_to<decltype(void_p), decltype(const_void_p)> &&
+                nothrow_convertible_to<
+                         decltype(void_p),
+                         decltype(const_void_p)> &&
                 ::std::same_as< // clang-format off
                     decltype(const_void_p),
                     typename decltype(u_traits)::const_void_pointer
@@ -136,19 +138,54 @@ namespace stdsharp
         };
     };
 
-    template<typename T, typename Alloc, typename... Args>
-    concept uses_allocator_constructible = ::std::uses_allocator<T, Alloc>
-    {} &&
-        (::std::is_constructible_v<T, ::std::allocator_arg_t, const Alloc&, Args...> ||
-         ::std::is_constructible_v<T, Args..., const Alloc&>);
+    template<typename T>
+    struct make_obj_uses_allocator_fn
+    {
+    private:
+        static constexpr struct using_allocator_fn
+        {
+            template<typename Alloc, typename... Args>
+                requires ::std::constructible_from<T, Args..., const Alloc&>
+            constexpr T operator()(const Alloc& alloc, Args&&... args) const
+                noexcept(nothrow_constructible_from<T, Args..., const Alloc&>)
+            {
+                return T{::std::forward<Args>(args)..., alloc};
+            }
 
-    template<typename T, typename Alloc, typename... Args>
-    concept nothrow_uses_allocator_constructible =
-        uses_allocator_constructible<T, Alloc, Args...> &&
-        (::std::is_constructible_v<T, ::std::allocator_arg_t, const Alloc&, Args...> ?
-             nothrow_constructible_from<T, ::std::allocator_arg_t, const Alloc&, Args...> :
-             nothrow_constructible_from<T, Args..., const Alloc&>);
+            template<typename Alloc, typename... Args>
+                requires ::std::constructible_from<T, ::std::allocator_arg_t, const Alloc&, Args...>
+            constexpr T operator()(const Alloc& alloc, Args&&... args) const
+                noexcept(nothrow_constructible_from<
+                         T,
+                         ::std::allocator_arg_t,
+                         const Alloc&,
+                         Args...>)
+            {
+                return T{::std::allocator_arg, alloc, ::std::forward<Args>(args)...};
+            }
+        } using_allocator{};
 
+    public:
+        template<typename Alloc, typename... Args>
+            requires ::std::uses_allocator_v<T, Alloc>
+        constexpr T operator()(const Alloc& alloc, Args&&... args) const
+            noexcept(nothrow_invocable<using_allocator_fn, const Alloc&, Args...>)
+        {
+            return using_allocator(alloc, ::std::forward<Args>(args)...);
+        }
+
+        template<typename Alloc, typename... Args>
+            requires ::std::constructible_from<T, Args...> && (!::std::uses_allocator<T, Alloc>{})
+        constexpr T operator()(const Alloc&, Args&&... args) const
+            noexcept(nothrow_constructible_from<T, Args...>)
+
+        {
+            return T{::std::forward<Args>(args)...};
+        }
+    };
+
+    template<typename T>
+    inline constexpr make_obj_uses_allocator_fn<T> make_obj_uses_allocator{};
 
     enum class allocator_assign_operation
     {
@@ -263,32 +300,45 @@ namespace stdsharp
 
     public:
         using typename base::allocator_type;
-        using typename base::value_type;
-        using typename base::pointer;
         using typename base::const_pointer;
-        using typename base::void_pointer;
         using typename base::const_void_pointer;
         using typename base::difference_type;
-        using typename base::size_type;
+        using typename base::is_always_equal;
+        using typename base::pointer;
         using typename base::propagate_on_container_copy_assignment;
         using typename base::propagate_on_container_move_assignment;
         using typename base::propagate_on_container_swap;
-        using typename base::is_always_equal;
+        using typename base::size_type;
+        using typename base::value_type;
+        using typename base::void_pointer;
 
         using enum allocator_assign_operation;
         using enum allocator_swap_operation;
 
         struct allocation
         {
-            pointer ptr{};
-            size_type size{};
+        private:
+            pointer ptr_{};
+            size_type size_{};
+
+        public:
+            [[nodiscard]] constexpr auto& ptr() const noexcept { return ptr_; }
+
+            [[nodiscard]] constexpr auto size() const noexcept { return size_; }
 
             constexpr void deallocate(allocator_type& alloc) const noexcept
             {
-                allocator_traits::deallocate(alloc, ptr, size);
+                allocator_traits::deallocate(alloc, ptr_, size_);
             }
 
-            [[nodiscard]] constexpr operator bool() const noexcept { return ptr != nullptr; }
+            constexpr void allocate(allocator_type& alloc, const size_type size) const noexcept
+            {
+                if(ptr_ != nullptr) allocator_traits::deallocate(alloc, ptr_, size);
+
+                *this = allocator_traits::get_allocation(size);
+            }
+
+            [[nodiscard]] constexpr operator bool() const noexcept { return ptr_ != nullptr; }
         };
 
         template<typename U>
@@ -354,7 +404,6 @@ namespace stdsharp
                 } //
             )
                 if(hint != nullptr) return alloc.try_allocate(count, hint);
-
 
             return alloc.try_allocate(count);
         }
@@ -463,22 +512,24 @@ namespace stdsharp
                              allocator_type&,
                              allocator_type&> &&
                 propagate_on_container_swap::value
-            constexpr void
-                operator()(allocator_type& left, allocator_type& right, Operation op) const
-                noexcept( //
+            constexpr void operator()(
+                allocator_type& left,
+                allocator_type& right,
+                Operation op
+            ) const noexcept( //
+                nothrow_invocable<
+                    Operation,
+                    constant<before_swap>,
+                    allocator_type&,
+                    allocator_type // clang-format off
+                    >&& // clang-format on
                     nothrow_invocable<
                         Operation,
-                        constant<before_swap>,
+                        constant<after_swap>,
                         allocator_type&,
-                        allocator_type // clang-format off
-                    >&& // clang-format on
-                        nothrow_invocable<
-                            Operation,
-                            constant<after_swap>,
-                            allocator_type&,
-                            allocator_type& // clang-format off
+                        allocator_type& // clang-format off
                         > // clang-format on
-                )
+            )
             {
                 ::std::invoke(op, constant<before_swap>{}, left, right);
                 ::std::ranges::swap(left, right);
@@ -562,4 +613,4 @@ namespace stdsharp
 
     template<typename T>
     using allocator_of_t = ::meta::_t<allocator_of<T>>;
-}
+} // namespace stdsharp

@@ -8,10 +8,16 @@
 
 namespace stdsharp
 {
-    template<allocator_req Alloc, typename Allocations>
-        requires container<Allocations> &&
-        ::std::
-            same_as<typename allocator_traits<Alloc>::allocation, typename Allocations::value_type>
+    template<
+        allocator_req Alloc,
+        sequence_container Allocations =
+            ::std::vector<typename allocator_traits<Alloc>::allocation> // clang-format off
+        > // clang-format on
+        requires requires(
+            Allocations allocations,
+            typename Allocations::value_type value,
+            typename allocator_traits<Alloc>::allocation allocation
+        ) { requires ::std::same_as<decltype(value), decltype(allocation)>; }
     class basic_allocator_aware
     {
     public:
@@ -35,6 +41,13 @@ namespace stdsharp
 
         constexpr basic_allocator_aware(const Alloc& alloc) noexcept: allocator_(alloc) {}
 
+        constexpr basic_allocator_aware(const Alloc& alloc) //
+            noexcept(nothrow_constructible_from<allocations_type, allocator_type>)
+            requires ::std::constructible_from<allocations_type, allocator_type>
+            : allocator_(alloc), allocations_(make_obj_uses_allocator<allocations_type>(alloc))
+        {
+        }
+
         // TODO: implement
 
         constexpr basic_allocator_aware(const this_t& other, const Alloc& alloc) //
@@ -42,7 +55,6 @@ namespace stdsharp
             requires requires { copy_from(other); }
             : allocator_(alloc)
         {
-            copy_from(other);
         }
 
         constexpr basic_allocator_aware(this_t&& other, const Alloc& alloc) //
@@ -50,7 +62,6 @@ namespace stdsharp
             requires requires { move_from(other); }
             : allocator_(alloc)
         {
-            move_from(other);
         }
 
         constexpr basic_allocator_aware(const this_t& other) //
@@ -89,16 +100,27 @@ namespace stdsharp
         constexpr ~basic_allocator_aware() { deallocate(); }
 
         template<::std::invocable<allocations_type&, allocation> Func = actions::emplace_back_fn>
-        constexpr void allocate(const size_type size, Func&& func = {})
+        [[nodiscard]] constexpr const auto& allocate(const size_type size, Func&& func = {})
         {
             ::std::invoke(func, allocations_, traits::get_allocation(allocator_, size));
-            ::ranges::back(allocations_);
+            return ::ranges::back(allocations_);
+        }
+
+        [[nodiscard]] constexpr const auto& reallocate(const const_iter iter, const size_type size)
+        {
+            if constexpr(is_debug)
+                if(::std::ranges::distance(iter, allocations_.cbegin()) >= allocations_.size())
+                    throw std::out_of_range{"iterator out of range"};
+
+            auto& value = const_cast<allocation&>(*iter); // NOLINT(*-const-cast)
+            value.deallocate(allocator_);
+            value = traits::get_allocation(allocator_, size);
         }
 
         constexpr void deallocate(const const_iter iter) noexcept
         {
             iter->deallocate(allocator_);
-            actions::cpo::erase(iter);
+            actions::cpo::erase(allocations_, iter);
         }
 
         constexpr void deallocate(const const_iter begin, const const_iter end) noexcept
@@ -111,6 +133,7 @@ namespace stdsharp
         constexpr void deallocate() noexcept
         {
             deallocate(allocations_.cbegin(), allocations_.cend());
+            allocations_.clear();
         }
 
         [[nodiscard]] constexpr auto& allocator() const noexcept { return allocator_; }
