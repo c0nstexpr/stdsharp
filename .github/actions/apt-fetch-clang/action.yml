@@ -3,7 +3,7 @@ name: Fetch Clang toolchain on Linux
 inputs:
   llvm-ver:
     required: false
-    default: 15
+    default: 16
 runs:
   using: composite
 
@@ -18,6 +18,14 @@ runs:
 
     - run: |
         sudo apt-get install clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev;
+        sudo update-alternatives --remove-all clang;
+        sudo update-alternatives --remove-all clang++;
+        sudo update-alternatives --remove-all clang-tidy;
+        sudo update-alternatives --remove-all llvm-cov;
+        sudo update-alternatives --remove-all llvm-profdata;
+        sudo update-alternatives --remove-all ld.lld;
+        sudo update-alternatives --remove-all cc;
+        sudo update-alternatives --remove-all c++;
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${{ inputs.llvm-ver }} 1000;

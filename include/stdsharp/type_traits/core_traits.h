@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string_view>
+#include <algorithm>
 
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
@@ -248,9 +249,8 @@ namespace stdsharp
         }(::std::type_identity<TypeSeq>{})
     );
 
-    template<typename T, T... V>
-        requires(!::std::same_as<T, void>)
-    struct regular_value_sequence<V...> : ::std::integer_sequence<T, V...>
+    template<::std::integral T, T First, T... V>
+    struct regular_value_sequence<First, V...> : ::std::integer_sequence<T, V...>
     {
     };
 
@@ -298,7 +298,7 @@ namespace stdsharp
             static constexpr auto array = []
             {
                 if constexpr( //
-                    requires { array_to_sequence<rng>(::std::make_index_sequence<size>{}); } //
+                    requires { array_to_sequence<rng>(::std::make_index_sequence<size>{}); }
                 )
                     return rng;
                 else
