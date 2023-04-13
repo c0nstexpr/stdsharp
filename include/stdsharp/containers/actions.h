@@ -118,9 +118,9 @@ namespace stdsharp::actions
             constexpr typename ::std::decay_t<Container>::reference                             \
                 operator()(Container& container, Args&&... args) const                          \
                 requires requires {                                                             \
-                             requires stdsharp::container<Container>;                           \
-                             container.emplace_##where(::std::declval<Args>()...);              \
-                         }                                                                      \
+                    requires stdsharp::container<Container>;                                    \
+                    container.emplace_##where(::std::declval<Args>()...);                       \
+                }                                                                               \
             {                                                                                   \
                 return container.emplace_##where(::std::forward<Args>(args)...);                \
             }                                                                                   \
@@ -228,9 +228,9 @@ namespace stdsharp::actions
             template<typename Container>                                                          \
             constexpr void operator()(Container& container) const                                 \
                 requires requires {                                                               \
-                             requires sequence_container<Container>;                              \
-                             requires ::std::same_as<decltype(container.pop_##where()), void>;    \
-                         }                                                                        \
+                    requires sequence_container<Container>;                                       \
+                    requires ::std::same_as<decltype(container.pop_##where()), void>;             \
+                }                                                                                 \
             {                                                                                     \
                 return container.pop_##where();                                                   \
             }                                                                                     \
@@ -291,7 +291,7 @@ namespace stdsharp::actions
 
         template<typename Container>
         static constexpr auto regular_make_container = make_sequenced_invoke(
-            construct_fn<Container>{},
+            constructor<Container>{},
             details::emplace_make_container_fn<Container>{} // clang-format off
         ); // clang-format on
 

@@ -3,8 +3,6 @@
 //
 #pragma once
 
-#include <functional>
-
 #include "../iterator/iterator.h"
 #include "invocables.h"
 
@@ -91,9 +89,9 @@ namespace stdsharp
     inline constexpr struct direction##_shift                                            \
     {                                                                                    \
         template<typename T, typename U>                                                 \
-            requires requires(T && left, U&& right) {                                    \
-                         ::std::forward<T>(left) operate ::std::forward<U>(right);       \
-                     }                                                                   \
+            requires requires(T&& left, U&& right) {                                     \
+                ::std::forward<T>(left) operate ::std::forward<U>(right);                \
+            }                                                                            \
         [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const     \
             noexcept(noexcept(::std::forward<T>(left) operate ::std::forward<U>(right))) \
         {                                                                                \
@@ -110,7 +108,7 @@ namespace stdsharp
                                                                                                   \
     template<typename T, typename U>                                                              \
     concept operator_type##_assignable_from =                                                     \
-        requires(T l, U && u) { l op## = ::std::forward<U>(u); };                                 \
+        requires(T l, U&& u) { l op## = ::std::forward<U>(u); };                                  \
                                                                                                   \
     namespace details                                                                             \
     {                                                                                             \

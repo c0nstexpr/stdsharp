@@ -34,7 +34,7 @@ runs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v10
       with:
-        vcpkgGitCommitId: 91dd61bd441a68b4017b61011d0350b2e6aeeccf
+        vcpkgGitCommitId: 4f9d25a7f299db656c376af402637819ee2caba0
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
 
     - name: Run before cmake build

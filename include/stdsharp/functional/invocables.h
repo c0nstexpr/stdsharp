@@ -3,6 +3,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 
 #include "../type_traits/indexed_traits.h"
 #include "../utility/auto_cast.h"

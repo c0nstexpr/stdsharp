@@ -5,7 +5,7 @@
 namespace stdsharp
 {
     template<typename T>
-    struct construct_fn
+    struct constructor
     {
         template<typename... Args>
             requires ::std::constructible_from<T, Args...>
@@ -25,5 +25,5 @@ namespace stdsharp
     };
 
     template<typename T>
-    inline constexpr construct_fn<T> construct{};
+    inline constexpr constructor<T> construct{};
 }
