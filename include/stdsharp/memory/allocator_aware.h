@@ -1,6 +1,9 @@
 #pragma once
 
+#include <span>
+
 #include "allocator_traits.h"
+#include "pointer_traits.h"
 #include "../cassert/cassert.h"
 #include "../cstdint/cstdint.h"
 
@@ -38,44 +41,168 @@ namespace stdsharp
         struct allocation
         {
         private:
+            template<
+                typename T,
+                auto Impl,
+                typename Fn = decltype(Impl),
+                typename ValueType = ::std::conditional_t<::std::is_void_v<T>, value_type, T>>
+            struct do_as_fn
+            {
+                static constexpr bool is_invocable = ::std::invocable<
+                    Fn,
+                    allocator_type&,
+                    const allocation&,
+                    const ::std::span<ValueType>&>;
+
+                static constexpr bool is_noexcept = nothrow_invocable<
+                    Fn,
+                    allocator_type&,
+                    const allocation&,
+                    const ::std::span<ValueType>&>;
+
+                constexpr void operator()(
+                    allocator_type& alloc,
+                    const allocation& dest,
+                    const allocation& src,
+                    const size_type count
+                ) const noexcept(is_noexcept)
+                    requires is_invocable
+                {
+                    Impl(alloc, dest, src.template as_span<ValueType>(count));
+                }
+
+                constexpr void
+                    operator()(allocator_type& alloc, const allocation& dest, const allocation& src)
+                        const noexcept(is_noexcept)
+                    requires is_invocable
+                {
+                    Impl(alloc, dest, src.template as_span<ValueType>());
+                }
+            };
+
+            template<typename T = void>
+            struct copy_as_impl_fn
+            {
+                using value_t = ::std::conditional_t<::std::is_void_v<T>, value_type, T>;
+
+                constexpr void operator()(
+                    allocator_type& alloc,
+                    const allocation& dest,
+                    const ::std::span<value_t>& src_span
+                ) const
+                {
+                    const auto& dest_span = dest.template as_span<value_t>();
+                    auto d_first = dest_span.begin();
+
+                    for(const auto& v : src_span) allocator_traits::construct(alloc, d_first++, v);
+                }
+            };
+
+            template<typename T = void>
+            struct assign_as_impl_fn
+            {
+                using value_t = ::std::conditional_t<::std::is_void_v<T>, value_type, T>;
+
+                constexpr void
+                    operator()(const allocation& dest, const ::std::span<value_t>& src_span) const
+                    noexcept(nothrow_copy_constructible<value_t>)
+                {
+                    const auto& dest_span = dest.template as_span<value_t>();
+                    auto d_first = dest_span.begin();
+
+                    for(const auto& v : src_span) *(d_first++) = v;
+                }
+            };
+
+        public:
+            template<typename T = void>
+            using copy_as_fn = do_as_fn<T, copy_as_impl_fn<T>{}>;
+
+            template<typename T = void>
+            static constexpr copy_as_fn copy_as{};
+
+            template<typename T = void>
+            using assign_as_fn = do_as_fn<T, assign_as_impl_fn<T>{}>;
+
+            template<typename T = void>
+            static constexpr assign_as_fn assign_as{};
+
+        private:
             pointer ptr_{};
             size_type size_{};
 
         public:
-            [[nodiscard]] constexpr auto& ptr() const noexcept { return ptr_; }
-
             [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+
+            [[nodiscard]] constexpr auto begin() const noexcept { return ptr_; }
+
+            [[nodiscard]] constexpr auto end() const noexcept { return ptr_ + size_; }
+
+            [[nodiscard]] constexpr auto& operator[](const size_type index) const noexcept
+            {
+                return ptr_[index];
+            }
+
+            constexpr void allocate(allocator_type& alloc, const size_type size) const noexcept
+            {
+                if(size_ >= size) return;
+
+                if(ptr_ != nullptr) deallocate(alloc);
+
+                *this = allocator_traits::get_allocation(size);
+            }
 
             constexpr void deallocate(allocator_type& alloc) const noexcept
             {
                 allocator_traits::deallocate(alloc, ptr_, size_);
             }
 
-            constexpr void allocate(allocator_type& alloc, const size_type size) const noexcept
+            constexpr void destroy(allocator_type& alloc) const noexcept
             {
-                if(ptr_ != nullptr) allocator_traits::deallocate(alloc, ptr_, size);
+                const auto end_ptr = end();
 
-                *this = allocator_traits::get_allocation(size);
+                for(auto ptr = begin(); ptr != end_ptr; ++ptr)
+                    allocator_traits::destroy(alloc, ptr);
             }
 
-            static constexpr allocation copy_construct(
-                allocator_type& alloc,
-                const allocation& other,
-                ::std::invocable<const allocation&, const allocation&> auto&& copy_from
-            )
+            template<typename T>
+            constexpr void destroy(allocator_type& alloc, const size_type count) const noexcept
+            {
+                const auto& span = as_span<T>();
+                const auto end_ptr = span.end();
+
+                for(auto ptr = span.begin(); ptr != end_ptr; ++ptr)
+                    allocator_traits::destroy(alloc, ptr);
+            }
+
+            template<::std::invocable<const allocation&, const allocation&> Copy>
+            static constexpr allocation
+                construct(allocator_type& alloc, const allocation& other, Copy&& copy = copy_as<>)
             {
                 const auto& res = get_allocation(alloc, other.size());
-                ::std::invoke(::std::forward<decltype(copy_from)>(copy_from), res.ptr_, other.ptr_);
+                ::std::invoke(::std::forward<Copy>(copy), res, other);
                 return res;
             }
 
-            static constexpr allocation
-                move_construct(const allocator_type&, const allocation& other)
+            static constexpr allocation&&
+                construct(const allocator_type&, allocation&& other) noexcept
             {
                 return other;
             }
 
             [[nodiscard]] constexpr operator bool() const noexcept { return ptr_ != nullptr; }
+
+            template<typename T>
+            [[nodiscard]] constexpr ::std::span<T> as_span(const size_type count) const noexcept
+            {
+                return {pointer_cast<T>(ptr_), count};
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr ::std::span<T> as_span() const noexcept
+            {
+                return as_span<T>(size_ * sizeof(value_type) / sizeof(T));
+            }
         };
 
     private:

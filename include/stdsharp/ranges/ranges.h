@@ -4,11 +4,10 @@
 #pragma once
 
 #include <ranges>
+
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
 #include <fmt/ranges.h>
-
-#include <functional>
 
 #include "../utility/utility.h"
 

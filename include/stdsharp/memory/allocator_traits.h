@@ -244,9 +244,8 @@ namespace stdsharp
         struct custom_destructor
         {
             template<typename U>
-            constexpr void operator()(Alloc& a, U* const ptr) const
-                noexcept(noexcept(a.destroy(ptr)))
-                requires requires { a.destroy(ptr); }
+            constexpr void operator()(Alloc& a, U* const ptr) const noexcept
+                requires(noexcept(a.destroy(ptr)))
             {
                 a.destroy(ptr);
             }
@@ -254,7 +253,7 @@ namespace stdsharp
 
         struct default_destructor
         {
-            template<::std::destructible U>
+            template<typename U>
             constexpr void operator()(const Alloc&, U* const ptr) const noexcept
             {
                 ::std::ranges::destroy_at(ptr);
@@ -265,13 +264,6 @@ namespace stdsharp
         using destructor = sequenced_invocables<custom_destructor, default_destructor>;
 
         static constexpr destructor destroy{};
-
-        template<typename T>
-        static constexpr auto destroy_req = ::std::invocable<destructor, Alloc&, T*> ?
-            nothrow_invocable<destructor, Alloc&, T*> ? //
-                expr_req::no_exception :
-                expr_req::well_formed :
-            expr_req::ill_formed;
 
     private:
         using base = ::std::allocator_traits<Alloc>;
