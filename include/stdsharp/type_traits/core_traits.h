@@ -3,6 +3,7 @@
 #include <array>
 #include <string_view>
 #include <algorithm>
+#include <version>
 
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>

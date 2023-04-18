@@ -9,16 +9,16 @@
 #include <ctre.hpp>
 #include <unicode-db.hpp>
 
-#if __cpp_lib_format >= 201907L
+#include "../cstdint/cstdint.h"
+#include "../concepts/concepts.h"
+
+#if(__cpp_lib_format >= 201907L) || (_LIBCPP_VERSION >= 160002)
     #include <format>
     #define FORMAT_NS ::std
 #else
     #include <fmt/xchar.h>
     #define FORMAT_NS ::fmt
 #endif
-
-#include "../cstdint/cstdint.h"
-#include "../concepts/concepts.h"
 
 namespace stdsharp
 {

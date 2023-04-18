@@ -544,7 +544,8 @@ namespace stdsharp
         struct container_optional_constructible
         {
             template<typename... Optional>
-            static constexpr auto value = []<::std::size_t... I>(const ::std::index_sequence<I...>)
+            static constexpr auto value =
+                []<::std::size_t... I>(const ::std::index_sequence<I...>)
             {
                 constexpr ::std::size_t count = sizeof...(Optional);
 
@@ -565,11 +566,10 @@ namespace stdsharp
                             value<typename indexed_types<Optional...>::template get_t<I>...>;
                     else return res;
                 }
-            }
-            ( //
-                ::std::make_index_sequence<
-                    sizeof...(Optional) == 0 ? sizeof...(Optional) :
-                                               sizeof...(Optional) - 1 // clang-format off
+            }( //
+                ::std::make_index_sequence < sizeof...(Optional) == 0 ?
+                    sizeof...(Optional) :
+                    sizeof...(Optional) - 1 // clang-format off
                 >{} // clang-format on
             );
         };
