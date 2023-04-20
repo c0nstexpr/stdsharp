@@ -19,7 +19,7 @@ namespace stdsharp
     {
         struct allocation_access
         {
-            template<allocator_req allocator_type>
+            template<typename allocator_type>
             static constexpr allocation<allocator_type> make_allocation(
                 allocator_type& alloc,
                 const allocator_size_type<allocator_type> size,
@@ -32,7 +32,7 @@ namespace stdsharp
                 return {allocator_traits<allocator_type>::allocate(alloc, size, hint), size};
             }
 
-            template<allocator_req allocator_type>
+            template<typename allocator_type>
             static constexpr allocation<allocator_type> try_make_allocation(
                 allocator_type& alloc,
                 const allocator_size_type<allocator_type> size,
@@ -47,24 +47,24 @@ namespace stdsharp
         };
     }
 
-    template<typename... Args>
-        requires requires //
+    template<allocator_req allocator_type>
+    constexpr allocation<allocator_type> make_allocation(
+        allocator_type& alloc,
+        const allocator_size_type<allocator_type> size,
+        const allocator_cvp<allocator_type>& hint = nullptr
+    )
     {
-        details::allocation_access::make_allocation(::std::declval<Args>()...); //
-    }
-    constexpr auto make_allocation(Args&&... args)
-    {
-        return details::allocation_access::make_allocation(::std::forward<Args>(args)...);
+        return details::allocation_access::make_allocation(alloc, size, hint);
     }
 
-    template<typename... Args>
-        requires requires //
+    template<allocator_req allocator_type>
+    constexpr allocation<allocator_type> try_make_allocation(
+        allocator_type& alloc,
+        const allocator_size_type<allocator_type> size,
+        const allocator_cvp<allocator_type>& hint = nullptr
+    ) noexcept
     {
-        details::allocation_access::try_make_allocation(::std::declval<Args>()...); //
-    }
-    constexpr auto try_make_allocation(Args&&... args) noexcept
-    {
-        return details::allocation_access::try_make_allocation(::std::forward<Args>(args)...);
+        return details::allocation_access::try_make_allocation(alloc, size, hint);
     }
 
     template<typename Alloc>
@@ -78,6 +78,9 @@ namespace stdsharp
         using typename traits::size_type;
         using typename traits::difference_type;
         using typename traits::allocator_type;
+        using typename traits::propagate_on_container_copy_assignment;
+        using typename traits::propagate_on_container_move_assignment;
+        using typename traits::propagate_on_container_swap;
 
         class [[nodiscard]] allocation
         {
@@ -213,7 +216,7 @@ namespace stdsharp
         static constexpr allocation
             copy_construct(allocator_type& alloc, const allocation& other, Copy&& copy = {})
         {
-            const auto& res = get_allocation(alloc, other.size());
+            const auto& res = make_allocation(alloc, other.size());
             ::std::invoke(::std::forward<Copy>(copy), res, other);
             return res;
         }
@@ -227,11 +230,26 @@ namespace stdsharp
         template<
             ::std::invocable<const allocation&, const allocation&> AssignFn = copy_assign_as_fn<>>
         static constexpr void copy_assign(
-            const allocation& dest,
+            allocator_type& alloc,
+            allocation& dest,
             const allocation& src,
             AssignFn&& assign = {}
-        ) noexcept(nothrow_invocable<AssignFn, const allocation&, const allocation&>)
+        )
         {
+            dest.allocate(alloc, src.size());
+            ::std::invoke(::std::forward<AssignFn>(assign), dest, src);
+        }
+
+        template<
+            ::std::invocable<const allocation&, const allocation&> AssignFn = copy_assign_as_fn<>>
+        static constexpr void move_assign(
+            allocator_type& alloc,
+            allocation& dest,
+            const allocation& src,
+            AssignFn&& assign = {}
+        )
+        {
+            dest.allocate(alloc, src.size());
             ::std::invoke(::std::forward<AssignFn>(assign), dest, src);
         }
     };
