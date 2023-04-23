@@ -197,11 +197,11 @@ namespace stdsharp
         };
 
         template<special_mem_req Req, allocator_req Alloc>
-        class basic_object_allocation
+        class basic_object_allocation : allocator_aware_traits<Alloc>
         {
-            friend class basic_allocator_aware<Alloc, basic_object_allocation>;
+            using m_base = allocator_aware_traits<Alloc>;
 
-            using alloc_traits = allocator_traits<Alloc>;
+            using alloc_traits = typename m_base::traits;
             using pointer = typename alloc_traits::pointer;
             using const_pointer = typename alloc_traits::const_pointer;
             using size_type = typename alloc_traits::size_type;
@@ -415,7 +415,8 @@ namespace stdsharp
 
             template<special_mem_req OtherReq, allocator_assign_operation op = after_assign>
                 requires(op == after_assign) && assignable_from_ptr<true, OtherReq>
-            constexpr void assign_allocator(const basic_object_allocation<OtherReq, Alloc>& other, Alloc& left, const Alloc&)
+            constexpr void
+                assign_allocator(const basic_object_allocation<OtherReq, Alloc>& other, Alloc& left, const Alloc&)
             {
                 assign_ptr(left, other.get_const_ptr(), other.traits);
             }
@@ -431,7 +432,8 @@ namespace stdsharp
 
             template<special_mem_req OtherReq, allocator_assign_operation op>
                 requires(op == before_assign)
-            constexpr void assign_allocator(basic_object_allocation<OtherReq, Alloc>&&, Alloc& left, const Alloc&) //
+            constexpr void
+                assign_allocator(basic_object_allocation<OtherReq, Alloc>&&, Alloc& left, const Alloc&) //
                 noexcept
             {
                 reset(left);
@@ -439,7 +441,8 @@ namespace stdsharp
 
             template<special_mem_req OtherReq, allocator_assign_operation op>
                 requires(op == after_assign) && details::req_compatible<Req, OtherReq>
-            constexpr void assign_allocator(basic_object_allocation<OtherReq, Alloc>&& other, const Alloc&, const Alloc&) noexcept
+            constexpr void
+                assign_allocator(basic_object_allocation<OtherReq, Alloc>&& other, const Alloc&, const Alloc&) noexcept
             {
                 copy_allocated(other);
             }
