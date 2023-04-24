@@ -67,6 +67,28 @@ namespace stdsharp
         return details::allocation_access::try_make_allocation(alloc, size, hint);
     }
 
+    template<typename T>
+    struct make_allocation_by_obj_fn
+    {
+        template<allocator_req allocator_type, typename... Args>
+        [[nodiscard]] constexpr allocation<allocator_type>
+            operator()(allocator_type& alloc, Args&&... args)
+        {
+            using traits = allocator_traits<allocator_type>;
+
+            const auto& allocation = make_allocation(alloc, sizeof(T));
+            traits::construct(
+                alloc,
+                pointer_cast<T>(allocation.begin()),
+                ::std::forward<Args>(args)...
+            );
+            return allocation;
+        }
+    };
+
+    template<typename T>
+    inline constexpr make_allocation_by_obj_fn<T> make_allocation_by_obj{};
+
     template<typename Alloc>
     struct allocator_aware_traits : allocator_traits<Alloc>
     {
@@ -158,12 +180,21 @@ namespace stdsharp
             static constexpr bool is_noexcept =
                 nothrow_invocable<fn, allocator_type&, span_t, span_t>;
 
+            template<typename Rng>
+            constexpr void
+                operator()(allocator_type& alloc, const allocation& dest, span_t src) const
+                noexcept(is_noexcept)
+                requires is_invocable
+            {
+                Impl(alloc, dest.template as_span<T>(), src);
+            }
+
             constexpr void
                 operator()(allocator_type& alloc, const allocation& dest, const allocation& src)
                     const noexcept(is_noexcept)
                 requires is_invocable
             {
-                Impl(alloc, dest.template as_span<T>(), src.template as_span<T>());
+                (*this)(alloc, dest, src.template as_span<T>());
             }
 
             constexpr void operator()(
@@ -187,11 +218,18 @@ namespace stdsharp
 
             static constexpr bool is_noexcept = nothrow_invocable<Fn, span_t, span_t>;
 
+            constexpr void operator()(const allocation& dest, span_t src) const
+                noexcept(is_noexcept)
+                requires is_invocable
+            {
+                Impl(dest.template as_span<T>(), src);
+            }
+
             constexpr void operator()(const allocation& dest, const allocation& src) const
                 noexcept(is_noexcept)
                 requires is_invocable
             {
-                Impl(dest.template as_span<T>(), src.template as_span<T>());
+                (*this)(dest, src.template as_span<T>());
             }
 
             constexpr void

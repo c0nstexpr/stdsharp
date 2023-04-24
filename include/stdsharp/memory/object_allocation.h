@@ -202,38 +202,99 @@ namespace stdsharp
             using m_base = allocator_aware_traits<Alloc>;
 
             using alloc_traits = typename m_base::traits;
-            using pointer = typename alloc_traits::pointer;
-            using const_pointer = typename alloc_traits::const_pointer;
-            using size_type = typename alloc_traits::size_type;
+            using typename m_base::allocator_type;
+            using typename alloc_traits::pointer;
+            using typename alloc_traits::const_pointer;
+            using typename alloc_traits::size_type;
             using alloc_construct_fn = typename alloc_traits::construct_fn;
-            using allocated = typename alloc_traits::allocation;
+            using typename alloc_traits::allocation;
 
             using ptr_cref = const pointer&;
             using cptr_cref = const const_pointer&;
 
             using mem_traits = typename details::special_mem_traits<Req, Alloc>;
 
-            allocated allocated_{};
+            allocator_type allocator_{};
+            allocation allocation_{};
             mem_traits traits_{};
 
             template<special_mem_req OtherReq>
                 requires details::req_compatible<Req, OtherReq>
             constexpr basic_object_allocation(
-                const allocated& allocated,
+                const allocator_type& allocator,
+                const allocation& allocation,
                 const details::special_mem_traits<OtherReq, Alloc>& other
             ) noexcept:
-                allocated_(allocated), traits_(other)
+                allocator_(allocator), allocation_(allocation), traits_(other)
+            {
+            }
+
+            template<
+                typename... Args,
+                typename T,
+                typename ValueType = ::std::decay_t<T>,
+                typename IdentityT = ::std::type_identity<ValueType> // clang-format off
+            > // clang-format on
+                requires ::std::constructible_from<mem_traits, IdentityT> &&
+                ::std::invocable<alloc_construct_fn, Alloc&, ValueType*, Args...>
+            constexpr basic_object_allocation(
+                const allocator_type& alloc,
+                const ::std::in_place_type_t<T>,
+                Args&&... args
+            ):
+                basic_object_allocation(sizeof(ValueType), mem_traits{IdentityT{}})
+            {
+                alloc_traits::construct(alloc, ptr_cast<T>(), ::std::forward<Args>(args)...);
+            }
+
+            template<special_mem_req OtherReq>
+                requires details::req_compatible<Req, OtherReq> &&
+                (Req.copy_construct == expr_req::well_formed)
+            constexpr basic_object_allocation(
+                Alloc& alloc,
+                const basic_object_allocation<OtherReq, Alloc>& other
+            ):
+                basic_object_allocation(alloc, other.size(), other.traits_)
+            {
+                if(other.has_value()) traits_.construct(alloc, get_ptr(), other.get_const_ptr());
+            }
+
+            template<special_mem_req OtherReq>
+            static constexpr allocation move_allocated(
+                Alloc& alloc,
+                const Alloc& other_alloc,
+                const basic_object_allocation<OtherReq, Alloc>& other
+            )
+            {
+                if(other)
+                {
+                    if(alloc == other_alloc) return other.allocation_;
+                    const auto& allocated = alloc_traits::get_allocation(alloc, other.size());
+                    other.traits_.construct(alloc, allocated.ptr, other.ptr);
+
+                    return allocated;
+                }
+                return {};
+            }
+
+        public:
+            template<special_mem_req OtherReq>
+                requires details::req_compatible<Req, OtherReq> &&
+                             (Req.move_construct == expr_req::well_formed)
+            constexpr basic_object_allocation(
+                Alloc& alloc,
+                const Alloc& other_alloc,
+                basic_object_allocation<OtherReq, Alloc>&& other
+            ) noexcept(Req.move_construct == expr_req::no_exception):
+                allocation_(move_allocated(alloc, other_alloc, other)), traits_(other.traits_)
             {
             }
 
             template<special_mem_req OtherReq>
                 requires details::req_compatible<Req, OtherReq>
-            constexpr basic_object_allocation(
-                Alloc& alloc,
-                const ::std::size_t size,
-                const details::special_mem_traits<OtherReq, Alloc>& other
-            ):
-                basic_object_allocation(alloc_traits::get_allocated(alloc, size), other)
+            constexpr basic_object_allocation(basic_object_allocation<OtherReq, Alloc>&& other) //
+                noexcept(Req.move_construct == expr_req::no_exception):
+                allocation_(other.allocation_), traits_(other.traits_)
             {
             }
 
@@ -248,10 +309,10 @@ namespace stdsharp
 
             constexpr void deallocate(Alloc& alloc) noexcept
             {
-                if(allocated_.ptr == nullptr) return;
+                if(allocation_.ptr == nullptr) return;
 
-                alloc_traits::deallocate(alloc, get_ptr(), allocated_.size);
-                allocated_ = {};
+                alloc_traits::deallocate(alloc, get_ptr(), allocation_.size);
+                allocation_ = {};
             }
 
             template<special_mem_req OtherReq>
@@ -268,10 +329,10 @@ namespace stdsharp
 
                 destroy(alloc);
 
-                if(allocated_.size < size)
+                if(allocation_.size < size)
                 {
                     deallocate(alloc);
-                    allocated_ = alloc_traits::get_allocated(alloc, size);
+                    allocation_ = alloc_traits::get_allocated(alloc, size);
                 }
 
                 traits_ = other_traits;
@@ -303,11 +364,11 @@ namespace stdsharp
                 traits_.construct(alloc, get_ptr(), other_ptr);
             }
 
-            [[nodiscard]] constexpr auto& get_ptr() const noexcept { return allocated_.ptr; }
+            [[nodiscard]] constexpr auto& get_ptr() const noexcept { return allocation_.ptr; }
 
             [[nodiscard]] constexpr const_pointer& get_const_ptr() const noexcept
             {
-                return allocated_.ptr;
+                return allocation_.ptr;
             }
 
             template<typename T>
@@ -317,75 +378,6 @@ namespace stdsharp
             }
 
         public:
-            template<
-                typename... Args,
-                typename T,
-                typename ValueType = ::std::decay_t<T>,
-                typename IdentityT = ::std::type_identity<ValueType> // clang-format off
-            > // clang-format on
-                requires ::std::constructible_from<mem_traits, IdentityT> &&
-                ::std::invocable<alloc_construct_fn, Alloc&, ValueType*, Args...>
-            constexpr basic_object_allocation(
-                Alloc& alloc,
-                const ::std::in_place_type_t<T>,
-                Args&&... args
-            ):
-                basic_object_allocation(sizeof(ValueType), mem_traits{IdentityT{}})
-            {
-                alloc_traits::construct(alloc, ptr_cast<T>(), ::std::forward<Args>(args)...);
-            }
-
-            template<special_mem_req OtherReq>
-                requires details::req_compatible<Req, OtherReq> &&
-                (Req.copy_construct == expr_req::well_formed)
-            constexpr basic_object_allocation(
-                Alloc& alloc,
-                const basic_object_allocation<OtherReq, Alloc>& other
-            ):
-                basic_object_allocation(alloc, other.size(), other.traits_)
-            {
-                if(other.has_value()) traits_.construct(alloc, get_ptr(), other.get_const_ptr());
-            }
-
-        private:
-            template<special_mem_req OtherReq>
-            static constexpr allocated move_allocated(
-                Alloc& alloc,
-                const Alloc& other_alloc,
-                const basic_object_allocation<OtherReq, Alloc>& other
-            )
-            {
-                if(other)
-                {
-                    if(alloc == other_alloc) return other.allocated_;
-                    const auto& allocated = alloc_traits::get_allocation(alloc, other.size());
-                    other.traits_.construct(alloc, allocated.ptr, other.ptr);
-
-                    return allocated;
-                }
-                return {};
-            }
-
-        public:
-            template<special_mem_req OtherReq>
-                requires details::req_compatible<Req, OtherReq> &&
-                             (Req.move_construct == expr_req::well_formed)
-            constexpr basic_object_allocation(
-                Alloc& alloc,
-                const Alloc& other_alloc,
-                basic_object_allocation<OtherReq, Alloc>&& other
-            ) noexcept(Req.move_construct == expr_req::no_exception):
-                allocated_(move_allocated(alloc, other_alloc, other)), traits_(other.traits_)
-            {
-            }
-
-            template<special_mem_req OtherReq>
-                requires details::req_compatible<Req, OtherReq>
-            constexpr basic_object_allocation(basic_object_allocation<OtherReq, Alloc>&& other) //
-                noexcept(Req.move_construct == expr_req::no_exception):
-                allocated_(other.allocated_), traits_(other.traits_)
-            {
-            }
 
         private:
             template<bool IsCopy, special_mem_req OtherReq>
@@ -467,7 +459,7 @@ namespace stdsharp
 
             constexpr void swap_allocated(basic_object_allocation& other) noexcept
             {
-                ::std::swap(allocated_, other.allocated_);
+                ::std::swap(allocation_, other.allocation_);
                 ::std::swap(traits_, other.traits_);
             }
 
@@ -500,7 +492,7 @@ namespace stdsharp
 
             [[nodiscard]] constexpr auto size() const noexcept { return traits_.size(); }
 
-            [[nodiscard]] constexpr auto reserved() const noexcept { return allocated_.size; }
+            [[nodiscard]] constexpr auto reserved() const noexcept { return allocation_.size; }
 
             template<typename T>
             [[nodiscard]] constexpr auto& get() noexcept

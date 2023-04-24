@@ -204,16 +204,16 @@ namespace stdsharp
         {
             template<typename T, typename... Args>
                 requires ::std::constructible_from<T, Args..., const Alloc&>
-            constexpr T operator()(const Alloc& alloc, T* const ptr, Args&&... args) const
-                noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
+            constexpr decltype(auto) operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
+                const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
                 return ::std::ranges::construct_at(ptr, ::std::forward<Args>(args)..., alloc);
             }
 
             template<typename T, typename... Args, typename Tag = ::std::allocator_arg_t>
                 requires ::std::constructible_from<T, Tag, const Alloc&, Args...>
-            constexpr T operator()(const Alloc& alloc, T* const ptr, Args&&... args) const
-                noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
+            constexpr decltype(auto) operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
+                const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
                 return ::std::ranges::construct_at(
                     ptr,
@@ -225,7 +225,7 @@ namespace stdsharp
 
             template<typename T, typename... Args>
                 requires ::std::constructible_from<T, Args..., const Alloc&>
-            constexpr T operator()(
+            constexpr decltype(auto) operator()(
                 const Alloc& alloc,
                 void* const ptr,
                 const ::std::in_place_type_t<T>,
@@ -237,7 +237,7 @@ namespace stdsharp
 
             template<typename T, typename... Args, typename Tag = ::std::allocator_arg_t>
                 requires ::std::constructible_from<T, Tag, const Alloc&, Args...>
-            constexpr T operator()(
+            constexpr decltype(auto) operator()(
                 const Alloc& alloc,
                 void* const ptr,
                 const ::std::in_place_type_t<T>,

@@ -5,6 +5,8 @@
 #include "../functional/invocables.h"
 #include "../utility/auto_cast.h"
 
+#include "../compilation_config_in.h"
+
 namespace stdsharp
 {
     template<typename Ptr>
@@ -126,25 +128,15 @@ namespace stdsharp
 
     inline constexpr struct to_void_pointer_fn
     {
-    private:
-        template<typename T, typename Traits = pointer_traits<T>>
-        static constexpr auto impl(const T& ptr) noexcept
-        {
-            return static_cast< //
-                ::std::conditional_t<
-                    const_lvalue_ref<typename Traits::reference>,
-                    const void*,
-                    void* // clang-format off
-                >
-            >(Traits::to_address(ptr)); // clang-format on
-        }
-
-    public:
         template<typename T>
             requires requires { typename pointer_traits<T>; }
-        constexpr auto operator()(const T& ptr) const noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(const T& ptr) const noexcept
         {
-            return impl(ptr);
+            using traits = pointer_traits<T>;
+            using ret =
+                ::std::conditional_t<const_<typename traits::element_type>, const void*, void*>;
+
+            return static_cast<ret>(traits::to_address(ptr));
         }
     } to_void_pointer{};
 
@@ -156,9 +148,8 @@ namespace stdsharp
             requires requires { pointer_traits<Pointer>{}; }
         struct traits
         {
-            static constexpr auto is_const = //
-                const_<typename pointer_traits<Pointer>::element_type>;
-            using ptr = ::std::conditional_t<is_const, const T*, T*>;
+            using ptr = ::std::
+                conditional_t<const_<typename pointer_traits<Pointer>::element_type>, const T*, T*>;
         };
 
     public:
@@ -169,7 +160,7 @@ namespace stdsharp
             requires ::std::invocable<to_void_pointer_fn, const Pointer&>;
             requires !explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
         }
-        [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
         {
             return static_cast<typename traits<Pointer>::ptr>(to_void_pointer(p));
         }
@@ -180,7 +171,7 @@ namespace stdsharp
             traits<Pointer>{};
             requires explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
         }
-        [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
         {
             return static_cast<typename traits<Pointer>::ptr>(p);
         }
@@ -189,3 +180,5 @@ namespace stdsharp
     template<typename T>
     inline constexpr pointer_cast_fn<T> pointer_cast{};
 }
+
+#include "../compilation_config_out.h"
