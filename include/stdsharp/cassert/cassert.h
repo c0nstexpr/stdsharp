@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cassert>
-#include <concepts>
+#include <functional>
+
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -13,16 +15,19 @@ namespace stdsharp
 #endif
         ;
 
-    template<typename>
-    constexpr void precondition(const auto&...)
-    {
-    }
-
     template<typename Exception, ::std::predicate Predicate, typename... Args>
-        requires is_debug && ::std::constructible_from<Exception, Args...>
-    constexpr void precondition(Predicate&& predicate, Args&&... args)
+        requires ::std::constructible_from<Exception, Args...>
+    constexpr void precondition(
+        Predicate&& predicate,
+        Args&&... args
+    ) noexcept(!is_debug && ::std::is_nothrow_invocable_r_v<bool, Predicate>)
     {
-        if(!static_cast<bool>(::std::invoke(static_cast<Predicate&&>(predicate))))
-            throw Exception{static_cast<Args&&>(args)...};
+        if constexpr(is_debug)
+            ::std::invoke(static_cast<Predicate&&>(predicate)) ?
+                void() :
+                throw Exception{static_cast<Args&&>(args)...};
+        else STDSHARP_ASSUME(::std::invoke(static_cast<Predicate&&>(predicate)));
     }
 }
+
+#include "../compilation_config_out.h"

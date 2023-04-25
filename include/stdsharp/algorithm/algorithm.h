@@ -1,16 +1,9 @@
 #pragma once
 
 #include <algorithm>
-
-#ifdef NDEBUG
-    #define INVALID_ARGUMENT void
-#else
-    #include <stdexcept>
-    #define INVALID_ARGUMENT ::std::invalid_argument
-#endif
+#include <stdexcept>
 
 #include "../cassert/cassert.h"
-
 #include "../functional/operations.h"
 
 namespace stdsharp
@@ -76,7 +69,7 @@ namespace stdsharp
             const auto& proj_min = ::std::invoke(proj, min);
             const auto& proj_t = ::std::invoke(proj, t);
 
-            precondition<INVALID_ARGUMENT>(
+            precondition<::std::invalid_argument>(
                 [&] { return !::std::invoke(cmp, proj_max, proj_min); },
                 "max value should not less than min value"
             );

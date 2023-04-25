@@ -22,3 +22,11 @@
 #else
     #define STDSHARP_EBO
 #endif
+
+#if __has_cpp_attribute(assume)
+    #define STDSHARP_ASSUME(...) [[assume(__VA_ARGS__)]]
+#elif defined(__GNUG__)
+    #define STDSHARP_ASSUME(...) __builtin_assume(__VA_ARGS__)
+#elif defined(_MSC_VER)
+    #define STDSHARP_ASSUME(...) __assume(__VA_ARGS__)
+#endif

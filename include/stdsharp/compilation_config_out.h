@@ -2,7 +2,8 @@
     #pragma clang diagnostic pop
 #endif
 
-#undef STDSHARP_EBO
 #undef STDSHARP_NO_UNIQUE_ADDRESS
 #undef STDSHARP_INTRINSIC
 #undef STDSHARP_ALWAYS_INLINE
+#undef STDSHARP_EBO
+#undef STDSHARP_ASSUME

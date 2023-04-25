@@ -6,13 +6,14 @@
 
 namespace stdsharp
 {
+    using ::ranges::invoke;
+
     inline constexpr struct empty_invoke_fn
     {
         constexpr empty_t operator()(const auto&...) const noexcept { return {}; }
     } empty_invoke{};
 
-    inline constexpr auto optional_invoke =
-        make_sequenced_invocables(::ranges::invoke, empty_invoke);
+    inline constexpr auto optional_invoke = make_sequenced_invocables(invoke, empty_invoke);
 
     template<typename... Args>
     concept nothrow_optional_invocable = noexcept(optional_invoke(::std::declval<Args>()...));
@@ -53,18 +54,15 @@ namespace stdsharp
         [[nodiscard]] constexpr ReturnT operator()(Func&& func, Args&&... args) const
             noexcept(nothrow_invocable_r<Func, ReturnT, Args...>)
         {
-            return ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...);
-        };
-    };
-
-    template<decay_same_as<void> ReturnT>
-    struct invoke_r_fn<ReturnT>
-    {
-        template<typename... Args, ::std::invocable<Args...> Func>
-        constexpr void operator()(Func&& func, Args&&... args) const
-            noexcept(nothrow_invocable<Func, Args...>)
-        {
-            ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...);
+            return
+#if __cpp_lib_invoke_r >= 202106L
+                ::std::invoke_r<ReturnT>(::std::forward<Func>(func), ::std::forward<Args>(args)...)
+#else
+                static_cast<ReturnT>(
+                    ::std::invoke(::std::forward<Func>(func), ::std::forward<Args>(args)...)
+                )
+#endif
+                    ;
         };
     };
 
