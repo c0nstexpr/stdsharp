@@ -19,7 +19,7 @@ namespace stdsharp
         requires ::std::constructible_from<Exception, Args...>
     constexpr void precondition(
         Predicate&& predicate,
-        Args&&... args
+        [[maybe_unused]] Args&&... args
     ) noexcept(!is_debug && ::std::is_nothrow_invocable_r_v<bool, Predicate>)
     {
         if constexpr(is_debug)

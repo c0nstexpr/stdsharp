@@ -183,10 +183,17 @@ namespace stdsharp
             constexpr void deallocate(allocator_type& alloc) noexcept
             {
                 traits::deallocate(alloc, ptr_, size_);
-                ptr_ = nullptr;
-                size_ = 0;
+                *this = {};
             }
         };
+
+        struct allocation_info
+        {
+            ::std::reference_wrapper<allocator_type> allocator;
+            allocation allocation;
+            size_type used_size = allocation.size();
+        };
+
 
     private:
         template<typename T, auto Impl>
@@ -389,14 +396,32 @@ namespace stdsharp
         template<typename T = value_type>
         static constexpr swap_as_fn<T> swap_as{};
 
-        using allocation_ref = const allocation&;
-        using allocation_pair = ::std::pair<allocator_type&, allocation&>;
-        using const_allocation_pair = const ::std::pair<const allocator_type&, allocation_ref>;
+        using allocation_cref = const allocation&;
 
+    private:
+        static constexpr void release(const allocation_info& dest, auto& fn) noexcept
+        {
+            ::std::invoke(fn, dest.allocator, dest.allocation);
+            traits::deallocate(dest.allocator, dest.allocation.begin(), dest.allocation.size());
+        }
+
+        static constexpr void
+            assign(const allocation_info& dest, const allocation_info& src, auto& fn) noexcept
+        {
+            ::std::invoke(fn, dest.allocation, src.allocation);
+        }
+
+        static constexpr void
+            construct(const allocation_info& dest, const allocation_info& src, auto& fn) noexcept
+        {
+            ::std::invoke(fn, dest.allocator, dest.allocation, src.allocation);
+        }
+
+    public:
         template<
-            ::std::invocable<allocator_type&, allocation_ref, allocation_ref> Copy = copy_as_fn<>>
+            ::std::invocable<allocator_type&, allocation_cref, allocation_cref> Copy = copy_as_fn<>>
         static constexpr allocation
-            copy_construct(allocator_type& alloc, allocation_ref other, Copy&& copy = {})
+            copy_construct(allocator_type& alloc, allocation_cref other, Copy&& copy = {})
         {
             if(!other) [[unlikely]]
                 return {};
@@ -406,53 +431,49 @@ namespace stdsharp
             return res;
         }
 
-        static constexpr allocation move_construct(allocation_ref other) noexcept { return other; }
-
-    private:
-        static constexpr void release(const allocation_pair dest, auto& fn) noexcept
+        static constexpr allocation move_construct(allocation& other) noexcept
         {
-            ::std::invoke(fn, dest.first, dest.second);
-            dest.second.deallocate(dest.first);
+            return ::std::exchange(other, {});
         }
 
-    public:
         template<
-            ::std::invocable<allocation_ref, allocation_ref> CopyFn =
+            ::std::invocable<allocation_cref, allocation_cref> CopyFn =
                 invocables<copy_assign_as_fn<>, delete_as_fn<>, copy_as_fn<>>>
-            requires ::std::invocable<CopyFn, allocator_type&, allocation_ref> &&
-            ::std::invocable<CopyFn, allocator_type&, allocation_ref, allocation_ref>
+            requires ::std::invocable<CopyFn, allocator_type&, allocation_cref> &&
+            ::std::invocable<CopyFn, allocator_type&, allocation_cref, allocation_cref>
         static constexpr void
-            copy_assign(allocation_pair dest, const_allocation_pair src, CopyFn copy = {})
+            copy_assign(allocation_info& dest, const allocation_info& src, CopyFn copy = {})
         {
-            if(!src) [[unlikely]]
+            if(!src.allocation) [[unlikely]]
             {
                 release(dest, copy);
                 return;
             }
 
-            if(dest.second.size() >= src.second.size())
+            if(dest.allocation.size() >= src.allocation.size())
             {
-                ::std::invoke(copy, dest.second, src.second);
+                ::std::invoke(copy, dest.allocation, src.allocation);
                 return;
             }
 
             release(dest, copy);
-            dest.second = copy_construct(dest.first, src, ::std::move(copy));
+            dest.allocation = copy_construct(dest.allocator, src.allocation, ::std::move(copy));
         }
 
         template<
-            ::std::invocable<allocation_ref, allocation_ref> CopyFn =
+            ::std::invocable<allocation_cref, allocation_cref> CopyFn =
                 invocables<copy_assign_as_fn<>, delete_as_fn<>, copy_as_fn<>>>
-            requires ::std::invocable<CopyFn, allocator_type&, allocation_ref> &&
-            ::std::invocable<CopyFn, allocator_type&, allocation_ref, allocation_ref> &&
+            requires ::std::invocable<CopyFn, allocator_type&, allocation_cref> &&
+            ::std::invocable<CopyFn, allocator_type&, allocation_cref, allocation_cref> &&
             propagate_on_container_copy_assignment::value
         static constexpr void
-            copy_assign(const allocation_pair dest, const_allocation_pair src, CopyFn copy = {})
+            copy_assign(allocation_info& dest, const allocation_info& src, CopyFn copy = {})
         {
-            if(!src) [[unlikely]]
+            if(!src.allocation) [[unlikely]]
             {
                 release(dest, copy);
-                dest.first = src.first;
+                dest.allocation = {};
+                dest.allocator.get() = src.allocator;
                 return;
             }
 
@@ -470,47 +491,52 @@ namespace stdsharp
         }
 
         template<
-            ::std::invocable<allocation_ref, allocation_ref> MoveFn =
+            ::std::invocable<allocation_cref, allocation_cref> MoveFn =
                 invocables<move_assign_as_fn<>, delete_as_fn<>, move_as_fn<>>>
-            requires ::std::invocable<MoveFn, allocator_type&, allocation_ref> &&
-            ::std::invocable<MoveFn, allocator_type&, allocation_ref, allocation_ref>
+            requires ::std::invocable<MoveFn, allocator_type&, allocation_cref> &&
+            ::std::invocable<MoveFn, allocator_type&, allocation_cref, allocation_cref>
         static constexpr void
-            move_assign(const allocation_pair dest, allocation_pair src, MoveFn move = {})
+            move_assign(const allocation_info dest, const allocation_info src, MoveFn move = {})
         {
-            if(!src) [[unlikely]]
+            auto& [src_alloc, src_allocation] = src.pair;
+
+            if(!src_allocation) [[unlikely]]
             {
                 release(dest, move);
+                dest.second = {};
                 return;
             }
 
-            if(dest.first == src.first)
+            if(dest.first == src_alloc)
             {
                 release(dest, move);
-                dest.second = src.second;
+                dest.second = ::std::exchange(src_allocation, {});
                 return;
             }
 
-            if(dest.second.size() >= src.second.size())
+            if(dest.second.size() >= src.used_size)
             {
-                ::std::invoke(move, dest.second, src.second);
+                ::std::invoke(move, dest.second, src_allocation);
+                release(src.pair, move);
+                src_allocation = {};
                 return;
             }
 
             release(dest, move);
 
-            dest.second = make_allocation(dest.first, src.size());
-            ::std::invoke(::std::move(move), dest.first, dest.second, src.second);
+            dest.second = make_allocation(dest.first, src.used_size);
+            ::std::invoke(::std::move(move), dest.first, dest.second, src_allocation);
         }
 
-        template<::std::invocable<allocator_type&, allocation_ref> MoveFn = delete_as_fn<>>
+        template<::std::invocable<allocator_type&, allocation_cref> MoveFn = delete_as_fn<>>
             requires propagate_on_container_move_assignment::value
         static constexpr void move_assign(
-            const allocation_pair dest,
-            const allocation_pair src,
+            const allocation_info dest,
+            const allocation_info src,
             MoveFn&& move = {}
         ) noexcept
         {
-            if(!src) [[unlikely]]
+            if(!src.second) [[unlikely]]
             {
                 release(dest, move);
                 dest.first = ::std::move(src.first);
@@ -529,7 +555,7 @@ namespace stdsharp
 
     private:
         static constexpr void
-            swap_impl(const allocation_pair lhs, const allocation_pair rhs, auto& swap)
+            swap_impl(const allocation_info lhs, const allocation_info rhs, auto& swap)
         {
             STDSHARP_ASSUME(lhs.second.size() > rhs.second.size());
 
@@ -546,11 +572,11 @@ namespace stdsharp
 
     public:
         template<
-            ::std::invocable<allocation_ref, allocation_ref> SwapFn =
+            ::std::invocable<allocation_cref, allocation_cref> SwapFn =
                 invocables<move_assign_as_fn<>, move_as_fn<>, delete_as_fn<>>>
-            requires ::std::invocable<SwapFn, allocator_type&, allocation_ref, allocation_ref>
+            requires ::std::invocable<SwapFn, allocator_type&, allocation_cref, allocation_cref>
         static constexpr void
-            swap(const allocation_pair lhs, const allocation_pair rhs, SwapFn swap = {})
+            swap(const allocation_info lhs, const allocation_info rhs, SwapFn swap = {})
         {
             if(is_always_equal::value || lhs.first == rhs.first)
             {
@@ -566,12 +592,80 @@ namespace stdsharp
         }
 
         static constexpr void
-            swap(const allocation_pair lhs, const allocation_pair rhs, const auto& = 0)
+            swap(const allocation_info lhs, const allocation_info rhs, const auto& = 0)
             requires propagate_on_container_swap::value
         {
             ::std::swap(lhs.second, rhs.second);
             ::std::ranges::swap(lhs.first, rhs.first);
         }
+    };
+
+    template<typename T>
+        requires requires(const T t, typename T::allocator_type alloc) //
+    {
+        requires ::std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
+        // clang-format off
+        { t.get_allocator() } noexcept ->
+            ::std::same_as<decltype(alloc)>; // clang-format on
+    }
+    struct allocator_aware_ctor : T
+    {
+        using T::T;
+        using typename T::allocator_type;
+        using allocator_traits = allocator_traits<allocator_type>;
+
+        template<typename... Args>
+            requires ::std::constructible_from<T, Args..., allocator_type> &&
+            ::std::constructible_from<allocator_type>
+        constexpr allocator_aware_ctor(Args&&... args
+        ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>):
+            T(::std::forward<Args>(args)..., allocator_type{})
+        {
+        }
+
+        template<typename... Args>
+            requires ::std::
+                         constructible_from<T, ::std::allocator_arg_t, allocator_type, Args...> &&
+            ::std::constructible_from<allocator_type>
+        constexpr allocator_aware_ctor(Args&&... args
+        ) noexcept(nothrow_constructible_from<T, ::std::allocator_arg_t, allocator_type, Args...>):
+            T(::std::allocator_arg, allocator_type{}, ::std::forward<Args>(args)...)
+        {
+        }
+
+        template<typename... Args>
+            requires ::std::constructible_from<T, Args..., allocator_type>
+        constexpr allocator_aware_ctor(
+            const ::std::allocator_arg_t,
+            const allocator_type& alloc,
+            Args&&... args
+        ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>):
+            T(::std::forward<Args>(args)..., alloc)
+        {
+        }
+
+        constexpr allocator_aware_ctor(const allocator_aware_ctor& other) //
+            noexcept(nothrow_constructible_from<T, const T&, allocator_type>)
+            requires ::std::constructible_from<T, const T&, allocator_type>
+            :
+            T( //
+                static_cast<const T&>(other),
+                allocator_traits::select_on_container_copy_construction(other.get_allocator())
+            )
+        {
+        }
+
+        constexpr allocator_aware_ctor(allocator_aware_ctor&& other) //
+            noexcept(nothrow_constructible_from<T, T, allocator_type>)
+            requires ::std::constructible_from<T, T, allocator_type>
+            : T(static_cast<T&&>(other), ::std::move(other.get_allocator()))
+        {
+        }
+
+        allocator_aware_ctor& operator=(const allocator_aware_ctor&) = default;
+        allocator_aware_ctor&
+            operator=(allocator_aware_ctor&&) = default; // NOLINT(*-noexcept-move-constructor)
+        ~allocator_aware_ctor() = default;
     };
 }
 

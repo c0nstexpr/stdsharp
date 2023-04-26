@@ -2,13 +2,14 @@
 #pragma once
 
 #include "value_sequence.h"
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
     namespace details
     {
         template<typename Base, typename... Types>
-        struct type_sequence : private Base, regular_type_sequence<Types...>
+        struct STDSHARP_EBO type_sequence : private Base, regular_type_sequence<Types...>
         {
         private:
             template<typename... T>
@@ -124,3 +125,5 @@ namespace std
         using type = typename Seq::template type<I>;
     };
 }
+
+#include "../compilation_config_out.h"

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "pointer_traits.h"
 #include "allocator_aware.h"
 #include "../utility/implementation_reference.h"
-#include "../cassert/cassert.h"
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -158,13 +157,12 @@ namespace stdsharp
                     stdsharp::get<4>(to_base())(alloc, ptr);
                 }
 
-                // NOLINTBEGIN(*-magic-numbers)
                 constexpr void do_swap(ptr_cref left, ptr_cref right) const
                     noexcept(swp_req == expr_req::no_exception)
                     requires(swp_req >= expr_req::well_formed)
                 {
-                    stdsharp::get<5>(to_base())(left, right);
-                } // NOLINTEND(*-magic-numbers)
+                    stdsharp::get<5>(to_base())(left, right); // NOLINT(*-magic-numbers)
+                }
 
                 [[nodiscard]] constexpr auto type() const noexcept { return current_type_; }
 
@@ -197,32 +195,40 @@ namespace stdsharp
         };
 
         template<special_mem_req Req, allocator_req Alloc>
-        class basic_object_allocation : allocator_aware_traits<Alloc>
+        class STDSHARP_EBO basic_object_allocation : public allocator_aware_traits<Alloc>, Alloc
         {
             using this_t = basic_object_allocation;
 
             using m_base = allocator_aware_traits<Alloc>;
 
             using alloc_traits = typename m_base::traits;
+
+        private:
             using typename m_base::allocator_type;
+
+            constexpr allocator_type get_allocator() const noexcept { return *this; }
+
+        public:
             using typename alloc_traits::pointer;
             using typename alloc_traits::const_pointer;
             using typename alloc_traits::size_type;
             using alloc_construct_fn = typename alloc_traits::construct_fn;
             using typename alloc_traits::allocation;
 
-            using ptr_cref = const pointer&;
-            using cptr_cref = const const_pointer&;
+            using allocation_ref = const allocation&;
 
             using mem_traits = special_mem_traits<Req, Alloc>;
 
-            allocator_type allocator_{};
-            allocation allocation_{};
             mem_traits traits_{};
+            allocation allocation_{};
+
+            constexpr Alloc& get_allocator() noexcept { return *this; }
+
+            constexpr auto& get_allocation() noexcept { return allocation_; }
 
             constexpr auto valid_allocation() const noexcept
             {
-                return allocation_.sub(traits_.size());
+                return get_allocation().sub(traits_.size());
             }
 
         public:
@@ -240,38 +246,108 @@ namespace stdsharp
                 const ::std::in_place_type_t<T>,
                 Args&&... args
             ):
-                allocator_(alloc),
+                Alloc(alloc),
+                traits_(::std::type_identity<ValueType>{}),
                 allocation_( //
                     make_allocation_by_obj<T>(
-                        allocator_,
+                        get_allocator(),
                         ptr_cast<T>(),
                         ::std::forward<Args>(args)...
                     )
-                ),
-                traits_(::std::type_identity<ValueType>{})
+                )
             {
             }
 
             template<special_mem_req OtherReq>
+                requires req_compatible<Req, OtherReq>
             constexpr basic_object_allocation(
                 const basic_object_allocation<OtherReq, allocator_type>& other,
                 const allocator_type& alloc
             ):
-                allocator_(alloc),
-                allocation_(
-                    other ? //
-                        allocation{} :
-                        alloc_traits::copy_construct(
-                            alloc,
-                            other.valid_allocation(),
-                            [traits = &other.traits_](auto& alloc, auto& dest, auto& src)
-                            {
-                                traits.construct(dest.begin(), src.cbegin()); //
-                            }
-                        )
-                ),
-                traits_(other.traits_)
+                Alloc(alloc),
+                traits_(other.traits_),
+                allocation_( //
+                    m_base::copy_construct(
+                        get_allocator(),
+                        other.valid_allocation(),
+                        [traits = &traits_](auto& alloc, auto& dest, auto& src)
+                        {
+                            traits.construct(alloc, dest.begin(), src.cbegin()); //
+                        }
+                    )
+                )
             {
+            }
+
+            basic_object_allocation(const this_t&)
+                requires false;
+
+            template<special_mem_req OtherReq>
+                requires req_compatible<Req, OtherReq>
+            constexpr basic_object_allocation(
+                basic_object_allocation<OtherReq, allocator_type>&& other,
+                const allocator_type& alloc
+            ):
+                Alloc(alloc),
+                traits_(other.traits_),
+                allocation_(m_base::move_construct(other.valid_allocation()))
+            {
+                if constexpr(is_debug)
+                {
+                    other.traits_ = {};
+                    other.allocation_ = {};
+                }
+            }
+
+            basic_object_allocation(this_t&&)
+                requires false;
+
+            template<special_mem_req OtherReq>
+                requires req_compatible<Req, OtherReq> &&
+                (Req.copy_assign >= expr_req::well_formed &&
+                 Req.copy_construct >= expr_req::well_formed)
+            constexpr this_t&
+                operator=(const basic_object_allocation<OtherReq, allocator_type>& other)
+            {
+                if(this == &other) return *this;
+
+                struct fn
+                {
+                    this_t& this_;
+                    const basic_object_allocation<OtherReq, allocator_type>& other;
+
+                    constexpr const auto& traits() const noexcept { return this_.traits_; }
+
+                    constexpr void
+                        operator()(allocator_type& alloc, allocation_ref allocation) noexcept
+                    {
+                        traits().destruct(alloc, allocation.begin());
+                    }
+
+                    constexpr void
+                        operator()(allocator_type& alloc, allocation_ref dest, allocation_ref src)
+                            const noexcept
+                    {
+                        traits().construct(alloc, dest.begin(), src.cbegin());
+                    }
+
+                    constexpr void
+                        operator()(allocation_ref dest, allocation_ref src) const noexcept
+                    {
+                        traits().assign(dest.begin(), src.cbegin());
+                    }
+                };
+
+                m_base::copy_assign(
+                    ::std::pair{get_allocator(), get_allocation()},
+                    ::std::pair{other.get_allocator(), other.valid_allocation()},
+                    allocation_,
+                    fn{*this, other}
+                );
+
+                traits_ = other.traits_;
+
+                return *this;
             }
 
             constexpr void destroy(Alloc& alloc) noexcept
@@ -352,9 +428,6 @@ namespace stdsharp
             {
                 return pointer_cast<T>(get_ptr());
             }
-
-        public:
-            using allocator_type = Alloc;
 
             static constexpr auto req = Req;
 
@@ -521,3 +594,5 @@ namespace stdsharp
         },
         Alloc>;
 }
+
+#include "../compilation_config_out.h"

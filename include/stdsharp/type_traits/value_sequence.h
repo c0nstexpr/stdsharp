@@ -2,8 +2,8 @@
 #pragma once
 
 #include <ranges>
-#include <numeric>
 #include <algorithm>
+#include <functional>
 
 #include "indexed_traits.h"
 
