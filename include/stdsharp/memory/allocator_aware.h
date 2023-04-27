@@ -101,10 +101,11 @@ namespace stdsharp
         using typename traits::size_type;
         using typename traits::difference_type;
         using typename traits::allocator_type;
-        using typename traits::propagate_on_container_copy_assignment;
-        using typename traits::propagate_on_container_move_assignment;
-        using typename traits::propagate_on_container_swap;
-        using typename traits::is_always_equal;
+
+        using traits::propagate_on_copy_v;
+        using traits::propagate_on_move_v;
+        using traits::propagate_on_swap_v;
+        using traits::always_equal_v;
 
         class [[nodiscard]] allocation
         {
@@ -405,16 +406,107 @@ namespace stdsharp
             traits::deallocate(dest.allocator, dest.allocation.begin(), dest.allocation.size());
         }
 
-        static constexpr void
-            assign(const allocation_info& dest, const allocation_info& src, auto& fn) noexcept
+        static constexpr bool check_empty_allocation(
+            const allocation_info& dest,
+            const allocation_info& src,
+            auto& fn
+        ) noexcept
         {
-            ::std::invoke(fn, dest.allocation, src.allocation);
+            if(src.allocation) [[likely]]
+                return false;
+
+            release(dest, fn);
+
+            if constexpr(propagate_on_copy_v) dest.allocator.get() = src.allocator;
+            else if constexpr(propagate_on_move_v)
+                dest.allocator.get() = ::std::move(src.allocator);
+
+            dest.allocation = {};
+            return true;
         }
 
         static constexpr void
-            construct(const allocation_info& dest, const allocation_info& src, auto& fn) noexcept
+            assign_value(const allocation_info& dest, const allocation_info& src, auto&& fn)
         {
-            ::std::invoke(fn, dest.allocator, dest.allocation, src.allocation);
+            ::std::invoke(::std::forward<decltype(fn)>(fn), dest.allocation, src.allocation);
+        }
+
+        static constexpr void
+            construct_value(const allocation_info& dest, const allocation_info& src, auto&& fn)
+        {
+            ::std::invoke(
+                ::std::forward<decltype(fn)>(fn),
+                dest.allocator,
+                dest.allocation,
+                src.allocation
+            );
+        }
+
+        static constexpr void
+            copy_assign_impl(allocation_info& dest, const allocation_info& src, auto&& fn)
+        {
+            const auto assign_alloc = [&] { dest.allocator.get() = src.allocator; };
+
+            if(dest.allocation.size() >= src.allocation.size())
+            {
+                if constexpr(propagate_on_copy_v)
+                {
+                    if constexpr(!always_equal_v)
+                    {
+                        if(dest.allocator != src.allocator) {}
+                    }
+                    else
+                    {
+                        assign_value(dest, src, fn);
+                        assign_alloc();
+                        return;
+                    }
+                }
+                else
+                {
+                    assign_value(dest, src, fn);
+                    return;
+                }
+            }
+
+            release(dest, fn);
+            if constexpr(propagate_on_copy_v) assign_alloc();
+
+            dest.allocation =
+                copy_construct(dest.allocator, src.allocation, ::std::forward<decltype(fn)>(fn));
+        }
+
+        static constexpr void
+            move_assign_impl(allocation_info& dest, const allocation_info& src, auto&& fn)
+        {
+            const auto assign_alloc = [&]
+            {
+                release(dest, fn);
+                if constexpr(propagate_on_move_v) dest.allocator.get() = ::std::move(src.allocator);
+            };
+
+            if constexpr(!(always_equal_v || propagate_on_move_v))
+                if(dest.allocator != src.allocator)
+                {
+                    if(dest.allocation.size() >= src.used_size)
+                    {
+                        assign_value(dest, src, ::std::forward<decltype(fn)>(fn));
+                        release(src, fn);
+                        src.allocation = {};
+                        return;
+                    }
+
+                    assign_alloc();
+
+                    dest.allocation = make_allocation(dest.allocator, src.used_size);
+                    construct_value(dest, src, ::std::forward<decltype(fn)>(fn));
+
+                    return;
+                }
+
+
+            assign_alloc();
+            dest.allocation = ::std::exchange(src.allocation, {});
         }
 
     public:
@@ -427,7 +519,7 @@ namespace stdsharp
                 return {};
 
             const auto& res = make_allocation(alloc, other.size());
-            ::std::invoke(::std::forward<Copy>(copy), alloc, res, other);
+            construct_value(res, other, ::std::forward<Copy>(copy));
             return res;
         }
 
@@ -444,50 +536,8 @@ namespace stdsharp
         static constexpr void
             copy_assign(allocation_info& dest, const allocation_info& src, CopyFn copy = {})
         {
-            if(!src.allocation) [[unlikely]]
-            {
-                release(dest, copy);
-                return;
-            }
-
-            if(dest.allocation.size() >= src.allocation.size())
-            {
-                ::std::invoke(copy, dest.allocation, src.allocation);
-                return;
-            }
-
-            release(dest, copy);
-            dest.allocation = copy_construct(dest.allocator, src.allocation, ::std::move(copy));
-        }
-
-        template<
-            ::std::invocable<allocation_cref, allocation_cref> CopyFn =
-                invocables<copy_assign_as_fn<>, delete_as_fn<>, copy_as_fn<>>>
-            requires ::std::invocable<CopyFn, allocator_type&, allocation_cref> &&
-            ::std::invocable<CopyFn, allocator_type&, allocation_cref, allocation_cref> &&
-            propagate_on_container_copy_assignment::value
-        static constexpr void
-            copy_assign(allocation_info& dest, const allocation_info& src, CopyFn copy = {})
-        {
-            if(!src.allocation) [[unlikely]]
-            {
-                release(dest, copy);
-                dest.allocation = {};
-                dest.allocator.get() = src.allocator;
-                return;
-            }
-
-            if((is_always_equal::value || dest.first == src.first) &&
-               dest.second.size() >= src.second.size())
-            {
-                dest.first = src.first;
-                ::std::invoke(copy, dest.second, src.second);
-                return;
-            }
-
-            release(dest, copy);
-            dest.first = src.first;
-            dest.second = copy_construct(dest.first, src.second, ::std::move(copy));
+            if(check_empty_allocation(dest, src, copy)) return;
+            copy_assign_impl(dest, src, ::std::move(copy));
         }
 
         template<
@@ -496,61 +546,11 @@ namespace stdsharp
             requires ::std::invocable<MoveFn, allocator_type&, allocation_cref> &&
             ::std::invocable<MoveFn, allocator_type&, allocation_cref, allocation_cref>
         static constexpr void
-            move_assign(const allocation_info dest, const allocation_info src, MoveFn move = {})
+            move_assign(allocation_info& dest, allocation_info& src, MoveFn move = {}) //
+            noexcept(propagate_on_move_v)
         {
-            auto& [src_alloc, src_allocation] = src.pair;
-
-            if(!src_allocation) [[unlikely]]
-            {
-                release(dest, move);
-                dest.second = {};
-                return;
-            }
-
-            if(dest.first == src_alloc)
-            {
-                release(dest, move);
-                dest.second = ::std::exchange(src_allocation, {});
-                return;
-            }
-
-            if(dest.second.size() >= src.used_size)
-            {
-                ::std::invoke(move, dest.second, src_allocation);
-                release(src.pair, move);
-                src_allocation = {};
-                return;
-            }
-
-            release(dest, move);
-
-            dest.second = make_allocation(dest.first, src.used_size);
-            ::std::invoke(::std::move(move), dest.first, dest.second, src_allocation);
-        }
-
-        template<::std::invocable<allocator_type&, allocation_cref> MoveFn = delete_as_fn<>>
-            requires propagate_on_container_move_assignment::value
-        static constexpr void move_assign(
-            const allocation_info dest,
-            const allocation_info src,
-            MoveFn&& move = {}
-        ) noexcept
-        {
-            if(!src.second) [[unlikely]]
-            {
-                release(dest, move);
-                dest.first = ::std::move(src.first);
-                return;
-            }
-
-            if(!(is_always_equal::value || dest.first == src.first))
-            {
-                ::std::invoke(::std::forward<MoveFn>(move), dest.first, dest.second);
-                dest.second.deallocate(dest.first);
-            }
-
-            dest.first = ::std::move(src.first);
-            dest.second = src.second;
+            if(check_empty_allocation(dest, src, move)) return;
+            move_assign_impl(dest, src, ::std::move(move));
         }
 
     private:
@@ -578,7 +578,7 @@ namespace stdsharp
         static constexpr void
             swap(const allocation_info lhs, const allocation_info rhs, SwapFn swap = {})
         {
-            if(is_always_equal::value || lhs.first == rhs.first)
+            if(always_equal_v || lhs.first == rhs.first)
             {
                 ::std::swap(lhs.second, rhs.second);
                 return;
@@ -592,11 +592,11 @@ namespace stdsharp
         }
 
         static constexpr void
-            swap(const allocation_info lhs, const allocation_info rhs, const auto& = 0)
-            requires propagate_on_container_swap::value
+            swap(const allocation_info lhs, const allocation_info rhs, const auto& = 0) noexcept
+            requires propagate_on_swap_v
         {
-            ::std::swap(lhs.second, rhs.second);
-            ::std::ranges::swap(lhs.first, rhs.first);
+            ::std::swap(lhs.allocation, rhs.allocation);
+            ::std::ranges::swap(lhs.allocator, rhs.allocator);
         }
     };
 

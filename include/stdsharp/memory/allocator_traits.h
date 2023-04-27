@@ -328,6 +328,14 @@ namespace stdsharp
         using typename base::value_type;
         using typename base::void_pointer;
 
+        static constexpr auto propagate_on_copy_v = propagate_on_container_copy_assignment::value;
+
+        static constexpr auto propagate_on_move_v = propagate_on_container_move_assignment::value;
+
+        static constexpr auto propagate_on_swap_v = propagate_on_container_swap::value;
+
+        static constexpr auto always_equal_v = is_always_equal::value;
+
         template<typename U>
         using rebind_alloc = typename base::template rebind_alloc<U>;
 
