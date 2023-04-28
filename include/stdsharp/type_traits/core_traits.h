@@ -68,6 +68,13 @@ namespace stdsharp
             expr_req::well_formed :
         expr_req::ill_formed;
 
+    template<typename T, typename... Args>
+    inline constexpr auto constructible_from_test = ::std::constructible_from<T, Args...> ? //
+        ::std::is_nothrow_constructible_v<T, Args...> ? //
+            expr_req::no_exception :
+            expr_req::well_formed :
+        expr_req::ill_formed;
+
     template<typename T, bool Const>
     using apply_const = ::std::conditional_t<Const, ::std::add_const_t<T>, T>;
 

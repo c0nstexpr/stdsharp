@@ -195,7 +195,6 @@ namespace stdsharp
             size_type used_size = allocation.size();
         };
 
-
     private:
         template<typename T, auto Impl>
         struct use_alloc_do_as_fn
@@ -442,6 +441,10 @@ namespace stdsharp
             );
         }
 
+        static constexpr auto simple_movable = propagate_on_move_v || always_equal_v;
+
+        static constexpr auto simple_swappable = propagate_on_swap_v || always_equal_v;
+
         static constexpr void
             copy_assign_impl(allocation_info& dest, const allocation_info& src, auto&& fn)
         {
@@ -485,14 +488,12 @@ namespace stdsharp
                 if constexpr(propagate_on_move_v) dest.allocator.get() = ::std::move(src.allocator);
             };
 
-            if constexpr(!(always_equal_v || propagate_on_move_v))
+            if constexpr(!simple_movable)
                 if(dest.allocator != src.allocator)
                 {
                     if(dest.allocation.size() >= src.used_size)
                     {
                         assign_value(dest, src, ::std::forward<decltype(fn)>(fn));
-                        release(src, fn);
-                        src.allocation = {};
                         return;
                     }
 
@@ -504,22 +505,25 @@ namespace stdsharp
                     return;
                 }
 
-
             assign_alloc();
             dest.allocation = ::std::exchange(src.allocation, {});
         }
 
     public:
-        template<
-            ::std::invocable<allocator_type&, allocation_cref, allocation_cref> Copy = copy_as_fn<>>
+        template<typename T>
+        static constexpr auto construct_fn_req =
+            ::std::invocable<T, allocator_type&, allocation_cref, allocation_cref>;
+
+        template<typename Copy = copy_as_fn<>>
+            requires construct_fn_req<Copy>
         static constexpr allocation
             copy_construct(allocator_type& alloc, allocation_cref other, Copy&& copy = {})
         {
             if(!other) [[unlikely]]
                 return {};
 
-            const auto& res = make_allocation(alloc, other.size());
-            construct_value(res, other, ::std::forward<Copy>(copy));
+            const auto& res = make_allocation(alloc, other.used_size);
+            construct_value({alloc, res}, other, ::std::forward<Copy>(copy));
             return res;
         }
 
@@ -528,11 +532,18 @@ namespace stdsharp
             return ::std::exchange(other, {});
         }
 
-        template<
-            ::std::invocable<allocation_cref, allocation_cref> CopyFn =
-                invocables<copy_assign_as_fn<>, delete_as_fn<>, copy_as_fn<>>>
-            requires ::std::invocable<CopyFn, allocator_type&, allocation_cref> &&
-            ::std::invocable<CopyFn, allocator_type&, allocation_cref, allocation_cref>
+        template<typename T>
+        static constexpr auto assign_fn_req =
+            ::std::invocable<T, allocator_type&, allocation_cref> &&
+            ::std::invocable<T, allocation_cref, allocation_cref> && //
+            construct_fn_req<T>;
+
+        template<typename Fn>
+        static constexpr auto copy_assignable_test =
+            assign_fn_req<Fn> ? expr_req::well_formed : expr_req::ill_formed;
+
+        template<typename CopyFn = invocables<copy_assign_as_fn<>, delete_as_fn<>, copy_as_fn<>>>
+            requires(copy_assignable_test<CopyFn> >= expr_req::well_formed)
         static constexpr void
             copy_assign(allocation_info& dest, const allocation_info& src, CopyFn copy = {})
         {
@@ -540,14 +551,16 @@ namespace stdsharp
             copy_assign_impl(dest, src, ::std::move(copy));
         }
 
-        template<
-            ::std::invocable<allocation_cref, allocation_cref> MoveFn =
-                invocables<move_assign_as_fn<>, delete_as_fn<>, move_as_fn<>>>
-            requires ::std::invocable<MoveFn, allocator_type&, allocation_cref> &&
-            ::std::invocable<MoveFn, allocator_type&, allocation_cref, allocation_cref>
+        template<typename Fn>
+        static constexpr auto move_assignable_test = simple_movable ? //
+            expr_req::no_exception :
+            assign_fn_req<Fn> ? expr_req::well_formed : expr_req::ill_formed;
+
+        template<typename MoveFn = invocables<move_assign_as_fn<>, delete_as_fn<>, move_as_fn<>>>
+            requires(move_assignable_test<MoveFn> >= expr_req::well_formed)
         static constexpr void
             move_assign(allocation_info& dest, allocation_info& src, MoveFn move = {}) //
-            noexcept(propagate_on_move_v)
+            noexcept(move_assignable_test<MoveFn> >= expr_req::no_exception)
         {
             if(check_empty_allocation(dest, src, move)) return;
             move_assign_impl(dest, src, ::std::move(move));
@@ -557,46 +570,47 @@ namespace stdsharp
         static constexpr void
             swap_impl(const allocation_info lhs, const allocation_info rhs, auto& swap)
         {
-            STDSHARP_ASSUME(lhs.second.size() > rhs.second.size());
+            STDSHARP_ASSUME(lhs.allocation.size() >= rhs.used_size);
 
-            const auto& rhs_allocation = make_allocation(rhs.first, lhs.second.size());
-            ::std::invoke(swap, rhs.first, rhs_allocation, lhs.second);
+            const auto& rhs_allocation = make_allocation(rhs.allocator, lhs.used_size);
+            construct_value({rhs.allocator, rhs_allocation}, lhs, swap);
 
-            ::std::invoke(swap, lhs.first, lhs.second);
-            ::std::invoke(swap, lhs.first, lhs.second, rhs.second);
+            ::std::invoke(swap, lhs.allocator, lhs.allocation);
+            construct_value(lhs, rhs, swap);
 
             release(rhs, swap);
 
-            rhs.second = rhs_allocation;
+            rhs.allocation = rhs_allocation;
         }
 
     public:
-        template<
-            ::std::invocable<allocation_cref, allocation_cref> SwapFn =
-                invocables<move_assign_as_fn<>, move_as_fn<>, delete_as_fn<>>>
-            requires ::std::invocable<SwapFn, allocator_type&, allocation_cref, allocation_cref>
+        template<typename Fn>
+        static constexpr auto swappable_test = simple_swappable ? //
+            expr_req::no_exception :
+            assign_fn_req<Fn> ? expr_req::well_formed : expr_req::ill_formed;
+
+        template<typename SwapFn = invocables<move_assign_as_fn<>, move_as_fn<>, delete_as_fn<>>>
+            requires(swappable_test<SwapFn> >= expr_req::well_formed)
         static constexpr void
-            swap(const allocation_info lhs, const allocation_info rhs, SwapFn swap = {})
+            swap(const allocation_info lhs, const allocation_info rhs, SwapFn swap = {}) //
+            noexcept(swappable_test<SwapFn> >= expr_req::no_exception)
         {
-            if(always_equal_v || lhs.first == rhs.first)
-            {
-                ::std::swap(lhs.second, rhs.second);
-                return;
-            }
+            if constexpr(!simple_swappable)
+                if(lhs.allocator != rhs.allocator)
+                {
+                    const auto is_lhs_capable = lhs.allocation.size() >= rhs.used_size;
 
-            const auto cmp = lhs.second.size() <=> rhs.second.size();
+                    if(is_lhs_capable && (rhs.allocation.size() >= lhs.used_size))
+                        assign_value(lhs, rhs, swap);
+                    else if(is_lhs_capable) swap_impl(lhs, rhs, swap);
+                    else swap_impl(rhs, lhs, swap);
 
-            if(cmp == 0) ::std::invoke(swap, lhs.second, rhs.second);
-            else if(cmp > 0) swap_impl(lhs, rhs, swap);
-            else swap_impl(rhs, lhs, swap);
-        }
+                    return;
+                }
 
-        static constexpr void
-            swap(const allocation_info lhs, const allocation_info rhs, const auto& = 0) noexcept
-            requires propagate_on_swap_v
-        {
             ::std::swap(lhs.allocation, rhs.allocation);
-            ::std::ranges::swap(lhs.allocator, rhs.allocator);
+
+            if constexpr(propagate_on_swap_v) ::std::ranges::swap(lhs.allocator, rhs.allocator);
         }
     };
 
@@ -614,21 +628,29 @@ namespace stdsharp
         using typename T::allocator_type;
         using allocator_traits = allocator_traits<allocator_type>;
 
+    private:
         template<typename... Args>
-            requires ::std::constructible_from<T, Args..., allocator_type> &&
-            ::std::constructible_from<allocator_type>
-        constexpr allocator_aware_ctor(Args&&... args
-        ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>):
+        static constexpr auto alloc_last_ctor = constructible_from_test<T, Args..., allocator_type>;
+
+        template<typename... Args>
+        static constexpr auto alloc_arg_ctor =
+            constructible_from_test<T, ::std::allocator_arg_t, allocator_type, Args...>;
+
+    public:
+        template<typename... Args>
+            requires ::std::constructible_from<allocator_type> &&
+            (alloc_last_ctor<Args...> >= expr_req::well_formed)
+        constexpr allocator_aware_ctor(Args&&... args) //
+            noexcept(alloc_last_ctor<Args...> >= expr_req::no_exception):
             T(::std::forward<Args>(args)..., allocator_type{})
         {
         }
 
         template<typename... Args>
-            requires ::std::
-                         constructible_from<T, ::std::allocator_arg_t, allocator_type, Args...> &&
-            ::std::constructible_from<allocator_type>
-        constexpr allocator_aware_ctor(Args&&... args
-        ) noexcept(nothrow_constructible_from<T, ::std::allocator_arg_t, allocator_type, Args...>):
+            requires ::std::constructible_from<allocator_type> &&
+            (alloc_arg_ctor<Args...> >= expr_req::well_formed)
+        constexpr allocator_aware_ctor(Args&&... args) //
+            noexcept(alloc_arg_ctor<Args...> >= expr_req::no_exception):
             T(::std::allocator_arg, allocator_type{}, ::std::forward<Args>(args)...)
         {
         }
@@ -658,7 +680,7 @@ namespace stdsharp
         constexpr allocator_aware_ctor(allocator_aware_ctor&& other) //
             noexcept(nothrow_constructible_from<T, T, allocator_type>)
             requires ::std::constructible_from<T, T, allocator_type>
-            : T(static_cast<T&&>(other), ::std::move(other.get_allocator()))
+            : T(static_cast<T&&>(other), other.get_allocator())
         {
         }
 
