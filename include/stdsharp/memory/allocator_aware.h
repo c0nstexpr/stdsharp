@@ -107,6 +107,7 @@ namespace stdsharp
         using traits::propagate_on_swap_v;
         using traits::always_equal_v;
 
+        template<typename ValueType = value_type>
         class [[nodiscard]] allocation
         {
             friend details::allocation_access;
@@ -115,6 +116,8 @@ namespace stdsharp
             size_type size_ = 0;
 
         public:
+            using value_type = ValueType;
+
             template<typename T>
             [[nodiscard]] constexpr ::std::span<T>
                 as_span(const difference_type offset, const size_type count) const noexcept
@@ -128,7 +131,7 @@ namespace stdsharp
                 return {pointer_cast<T>(ptr_ + offset), count};
             }
 
-            template<typename T>
+            template<typename T = ValueType>
             [[nodiscard]] constexpr auto as_span(const difference_type offset = 0) const noexcept
             {
                 precondition<::std::out_of_range>(
@@ -185,6 +188,21 @@ namespace stdsharp
             {
                 traits::deallocate(alloc, ptr_, size_);
                 *this = {};
+            }
+
+            template<typename... Args>
+            constexpr decltype(auto) construct(allocator_type& alloc, Args&&... args) noexcept
+            {
+                return traits::construct(
+                    alloc,
+                    pointer_cast<ValueType>(ptr_),
+                    ::std::forward<Args>(args)...
+                );
+            }
+
+            constexpr void destroy(allocator_type& alloc) noexcept
+            {
+                traits::destroy(alloc, pointer_cast<ValueType>(ptr_));
             }
         };
 
