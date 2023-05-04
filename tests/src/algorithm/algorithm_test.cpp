@@ -57,12 +57,3 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         }
     }
 }
-
-void foo()
-{
-    struct ref_test
-    {
-        auto test(auto& value) -> decltype(value);
-        auto test(auto&& value) -> decltype(value);
-    };
-}

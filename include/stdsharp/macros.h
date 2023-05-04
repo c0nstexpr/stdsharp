@@ -10,4 +10,4 @@ namespace stdsharp::details
 }
 
 #define cpp_forward(v) static_cast<decltype(v)>(v)
-#define cpp_move(v) static_cast<stdsharp::details::remove_ref(v))&&>(v)
+#define cpp_move(v) static_cast<decltype(stdsharp::details::remove_ref(v))&&>(v)
