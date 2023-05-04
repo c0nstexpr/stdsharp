@@ -5,7 +5,6 @@
 #include "allocator_traits.h"
 #include "pointer_traits.h"
 #include "../cassert/cassert.h"
-#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -110,10 +109,6 @@ namespace stdsharp
 
         template<typename ValueType = value_type>
         class allocation_for;
-
-        static constexpr auto simple_movable = propagate_on_move_v || always_equal_v;
-
-        static constexpr auto simple_swappable = propagate_on_swap_v || always_equal_v;
 
         template<typename ValueType>
         static constexpr allocation_for<ValueType>
@@ -315,7 +310,9 @@ namespace stdsharp
     public:
         allocation_for() = default;
 
-        allocation_for(const allocation& allocation) noexcept(!is_debug): allocation_(allocation)
+        allocation_for(const allocation& allocation, const bool has_value = false) //
+            noexcept(!is_debug):
+            allocation_(allocation), has_value_(has_value)
         {
             precondition<::std::invalid_argument>( //
                 [condition = allocation_.size() >= sizeof(value_type)] { return condition; }
@@ -324,7 +321,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr decltype(auto) get() const noexcept
         {
-            return pointer_cast<value_type>(base::begin());
+            return pointer_cast<value_type>(allocation_.begin());
         }
 
         [[nodiscard]] constexpr const auto& get_const() const noexcept { return get(); }
@@ -344,7 +341,7 @@ namespace stdsharp
         constexpr void deallocate(traits::allocator_type& alloc) noexcept
         {
             if(!allocation_) return;
-            if(has_value()) destroy(alloc);
+            destroy(alloc);
             allocation_.deallocate(alloc);
         }
 
@@ -356,7 +353,7 @@ namespace stdsharp
             noexcept(Req >= expr_req::no_exception) // clang-format on
         {
             if(!allocation_) allocate(alloc);
-            else if(has_value()) destroy(alloc);
+            else destroy(alloc);
 
             decltype(auto) res = traits::construct(alloc, get(), cpp_forward(args)...);
             has_value_ = true;
@@ -372,7 +369,7 @@ namespace stdsharp
     };
 
     template<typename T>
-        requires requires(const T t, typename T::allocator_type alloc) //
+        requires requires(const T t, T::allocator_type alloc) //
     {
         requires ::std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
         // clang-format off
@@ -447,5 +444,3 @@ namespace stdsharp
         ~allocator_aware_ctor() = default;
     };
 }
-
-#include "../compilation_config_out.h"

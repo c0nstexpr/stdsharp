@@ -2,7 +2,6 @@
 
 #include "allocator_aware.h"
 #include "../utility/implementation_reference.h"
-#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -195,7 +194,7 @@ namespace stdsharp
         };
 
         template<special_mem_req Req, allocator_req Alloc>
-        class STDSHARP_EBO basic_object_allocation : public allocator_aware_traits<Alloc>, Alloc
+        class basic_object_allocation : public allocator_aware_traits<Alloc>
         {
             using this_t = basic_object_allocation;
 
@@ -211,12 +210,13 @@ namespace stdsharp
             using other_this_t = basic_object_allocation<OtherReq, allocator_type>;
 
         public:
-            using typename alloc_traits::pointer;
-            using typename alloc_traits::const_pointer;
-            using typename alloc_traits::size_type;
-            using alloc_construct_fn = typename alloc_traits::construct_fn;
-            using typename alloc_traits::allocation;
-            using typename alloc_traits::allocation_info;
+            using typename m_base::pointer;
+            using typename m_base::const_pointer;
+            using typename m_base::size_type;
+            using typename m_base::allocation;
+
+            template<typename T>
+            using allocation_for = typename m_base::template allocation_for<T>;
 
             using allocation_ref = const allocation&;
 
@@ -236,11 +236,6 @@ namespace stdsharp
             }
 
             constexpr auto& get_allocation() noexcept { return allocation_; }
-
-            constexpr allocation_info get_allocation_info() const noexcept
-            {
-                return {get_allocation(), compressed_.size()};
-            }
 
         public:
             template<
@@ -649,5 +644,3 @@ namespace stdsharp
         },
         Alloc>;
 }
-
-#include "../compilation_config_out.h"
