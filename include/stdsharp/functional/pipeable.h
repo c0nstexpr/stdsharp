@@ -40,7 +40,7 @@ namespace stdsharp
             > // clang-format on
         )
         {
-            return make_inherited(pipeable_base<Mode>{}, make_invocables(::std::forward<Fn>(fun)));
+            return make_inherited(pipeable_base<Mode>{}, make_invocables(cpp_forward(fun)));
         }
     };
 
@@ -64,7 +64,7 @@ namespace stdsharp
             friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe) //
                 noexcept(nothrow_invocable<Pipe, Arg>)
             {
-                return ::std::invoke(::std::forward<Pipe>(pipe), ::std::forward<Arg>(arg));
+                return ::std::invoke(cpp_forward(arg));
             }
 
             template<pipeable<pipe_mode::right> Pipe, typename Arg>
@@ -72,7 +72,7 @@ namespace stdsharp
             friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg) //
                 noexcept(nothrow_invocable<Pipe, Arg>)
             {
-                return ::std::invoke(::std::forward<Pipe>(pipe), ::std::forward<Arg>(arg));
+                return ::std::invoke(cpp_forward(arg));
             }
         };
     }

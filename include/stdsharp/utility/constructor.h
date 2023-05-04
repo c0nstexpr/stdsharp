@@ -12,7 +12,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto operator()(Args&&... args) const
             noexcept(nothrow_constructible_from<T, Args...>)
         {
-            return T(::std::forward<Args>(args)...);
+            return T(cpp_forward(args)...);
         }
 
         template<typename... Args>
@@ -20,7 +20,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto operator()(Args&&... args) const
             noexcept(nothrow_list_initializable_from<T, Args...>)
         {
-            return T{::std::forward<Args>(args)...};
+            return T{cpp_forward(args)...};
         }
     };
 

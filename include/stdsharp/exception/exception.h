@@ -32,7 +32,7 @@ namespace stdsharp
         {
             try
             {
-                ::std::invoke(::std::forward<T>(t));
+                ::std::invoke(cpp_forward(t));
             }
             catch(...)
             {
@@ -46,12 +46,12 @@ namespace stdsharp
         {
             try
             {
-                ::std::invoke(::std::forward<T>(t));
+                ::std::invoke(cpp_forward(t));
             }
             catch(...)
             {
                 exceptions[I] = ::std::current_exception();
-                aggregate_try<I + 1, U...>(exceptions, ::std::forward<U>(u)...);
+                aggregate_try<I + 1, U...>(exceptions, cpp_forward(u)...);
             }
         }
     }
@@ -60,6 +60,6 @@ namespace stdsharp
     constexpr void aggregate_try(T&&... t)
     {
         ::std::array<::std::exception_ptr, sizeof...(T)> exceptions;
-        details::aggregate_try<0, T...>(exceptions, ::std::forward<T>(t)...);
+        details::aggregate_try<0, T...>(exceptions, cpp_forward(t)...);
     }
 }

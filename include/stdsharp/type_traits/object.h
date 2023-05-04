@@ -41,7 +41,7 @@ namespace stdsharp
         constexpr explicit inherited(U&&... u) noexcept(
             nothrow_constructible_from<Base, U...> &&
             (nothrow_constructible_from<T> && ...) // clang-format off
-        ): Base(::std::forward<U>(u)...) // clang-format on
+        ): Base(cpp_forward(u)...) // clang-format on
         {
         }
 
@@ -54,7 +54,7 @@ namespace stdsharp
         constexpr explicit inherited(BaseT&& base, U&&... u) noexcept(
             nothrow_constructible_from<Base, BaseT> &&
             (nothrow_constructible_from<T, U> && ...) // clang-format off
-        ): Base(::std::forward<BaseT>(base)), T(::std::forward<U>(u))... // clang-format on
+        ): Base(cpp_forward(base)), T(cpp_forward(u))... // clang-format on
         {
         }
 
@@ -62,7 +62,7 @@ namespace stdsharp
             requires ::std::assignable_from<Base, U>
         constexpr inherited& operator=(U&& u) noexcept(nothrow_assignable_from<Base, U>)
         {
-            Base::operator=(::std::forward<U>(u));
+            Base::operator=(cpp_forward(u));
             return *this;
         }
     };
@@ -80,7 +80,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto operator()(Base&& base, U&&... u) const
             noexcept(noexcept(inherited{::std::declval<Base>(), ::std::declval<U>()...}))
         {
-            return inherited{::std::forward<Base>(base), ::std::forward<U>(u)...};
+            return inherited{cpp_forward(base), cpp_forward(u)...};
         }
     };
 

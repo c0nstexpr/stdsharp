@@ -627,7 +627,7 @@ namespace fmt
                         do_format();
                     }
 
-                return ::std::move(ss).str();
+                return cpp_move(ss).str();
             }();
 
             if(

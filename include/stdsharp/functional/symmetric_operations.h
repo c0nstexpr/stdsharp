@@ -48,9 +48,9 @@ namespace stdsharp::cpo::inline cpo_impl
                 typename SymOp = ::meta::_t<arithmetic_operation<Operation>> // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(const Operation, Args&&... args) const
-                noexcept(noexcept(bind(SymOp{}, ::std::forward<Args>(args)...)))
+                noexcept(noexcept(bind(SymOp{}, cpp_forward(args)...)))
             {
-                return bind(SymOp{}, ::std::forward<Args>(args)...);
+                return bind(SymOp{}, cpp_forward(args)...);
             }
         };
 
@@ -64,7 +64,7 @@ namespace stdsharp::cpo::inline cpo_impl
             [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
                 noexcept(symmetric_operation(::std::declval<Args>()...))
             {
-                return symmetric_operation(::std::forward<Args>(args)...);
+                return symmetric_operation(cpp_forward(args)...);
             }
         };
 

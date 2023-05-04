@@ -31,7 +31,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(T& left, U&& right) const
                 noexcept(nothrow_assignable<T&, U>)
             {
-                return left = ::std::forward<U>(right);
+                return left = cpp_forward(right);
             }
         };
 
@@ -40,9 +40,9 @@ namespace stdsharp
             template<typename T, typename... U, typename ActualT = ::std::remove_reference_t<T>>
                 requires ::std::constructible_from<ActualT, U...>
             constexpr decltype(auto) operator()(T& left, U&&... right) const
-                noexcept(noexcept(left = ActualT{::std::forward<U>(right)...}))
+                noexcept(noexcept(left = ActualT{cpp_forward(right)...}))
             {
-                return left = ActualT{::std::forward<U>(right)...};
+                return left = ActualT{cpp_forward(right)...};
             }
         };
     }
@@ -81,22 +81,20 @@ namespace stdsharp
         constexpr decltype(auto) operator()(T&& t, U&& u) const
             noexcept(noexcept(bit_not_v(bit_xor_v(::std::declval<T>(), ::std::declval<U>()))))
         {
-            return bit_not_v(bit_xor_v(::std::forward<T>(t), ::std::forward<U>(u)));
+            return bit_not_v(bit_xor_v(cpp_forward(u)));
         }
     } bit_xnor_v{};
 
-#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                        \
-    inline constexpr struct direction##_shift                                            \
-    {                                                                                    \
-        template<typename T, typename U>                                                 \
-            requires requires(T&& left, U&& right) {                                     \
-                ::std::forward<T>(left) operate ::std::forward<U>(right);                \
-            }                                                                            \
-        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const     \
-            noexcept(noexcept(::std::forward<T>(left) operate ::std::forward<U>(right))) \
-        {                                                                                \
-            return ::std::forward<T>(left) operate ::std::forward<U>(right);             \
-        }                                                                                \
+#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                    \
+    inline constexpr struct direction##_shift                                        \
+    {                                                                                \
+        template<typename T, typename U>                                             \
+            requires requires(T&& left, U&& right) { cpp_forward(right); }           \
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const \
+            noexcept(noexcept(cpp_forward(right)))                                   \
+        {                                                                            \
+            return cpp_forward(right);                                               \
+        }                                                                            \
     } direction##_shift_v{};
 
     BS_UTIL_SHIFT_OPERATE(left, <<)
@@ -104,43 +102,42 @@ namespace stdsharp
 
 #undef BS_UTIL_SHIFT_OPERATE
 
-#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                                 \
-                                                                                                  \
-    template<typename T, typename U>                                                              \
-    concept operator_type##_assignable_from =                                                     \
-        requires(T l, U&& u) { l op## = ::std::forward<U>(u); };                                  \
-                                                                                                  \
-    namespace details                                                                             \
-    {                                                                                             \
-        struct operator_type##_assign                                                             \
-        {                                                                                         \
-            template<typename T, typename U>                                                      \
-                requires operator_type                                                            \
-            ##_assignable_from<T, U> constexpr decltype(auto) operator()(T& l, U&& u) const       \
-                noexcept(noexcept((l op## = ::std::forward<U>(u))))                               \
-            {                                                                                     \
-                return l op## = ::std::forward<U>(u);                                             \
-            }                                                                                     \
-        };                                                                                        \
-                                                                                                  \
-                                                                                                  \
-        struct indirect_##operator_type##_assign                                                  \
-        {                                                                                         \
-            template<typename T, typename U>                                                      \
-                requires requires(T l, U&& u) { l = operator_type##_v(l, ::std::forward<U>(u)); } \
-            constexpr decltype(auto) operator()(T& l, U&& u) const                                \
-                noexcept(noexcept((l = operator_type##_v(l, ::std::forward<U>(u)))))              \
-            {                                                                                     \
-                return l = operator_type##_v(l, ::std::forward<U>(u));                            \
-            }                                                                                     \
-        };                                                                                        \
-    }                                                                                             \
-                                                                                                  \
-    inline constexpr struct operator_type##_assign :                                              \
-        sequenced_invocables<                                                                     \
-            details::operator_type##_assign,                                                      \
-            details::indirect_##operator_type##_assign>                                           \
-    {                                                                                             \
+#define BS_UTIL_ASSIGN_OPERATE(operator_type, op)                                                \
+                                                                                                 \
+    template<typename T, typename U>                                                             \
+    concept operator_type##_assignable_from = requires(T l, U&& u) { l op## = cpp_forward(u); }; \
+                                                                                                 \
+    namespace details                                                                            \
+    {                                                                                            \
+        struct operator_type##_assign                                                            \
+        {                                                                                        \
+            template<typename T, typename U>                                                     \
+                requires operator_type                                                           \
+            ##_assignable_from<T, U> constexpr decltype(auto) operator()(T& l, U&& u) const      \
+                noexcept(noexcept((l op## = cpp_forward(u))))                                    \
+            {                                                                                    \
+                return l op## = cpp_forward(u);                                                  \
+            }                                                                                    \
+        };                                                                                       \
+                                                                                                 \
+                                                                                                 \
+        struct indirect_##operator_type##_assign                                                 \
+        {                                                                                        \
+            template<typename T, typename U>                                                     \
+                requires requires(T l, U&& u) { l = operator_type##_v(l, cpp_forward(u)); }      \
+            constexpr decltype(auto) operator()(T& l, U&& u) const                               \
+                noexcept(noexcept((l = operator_type##_v(l, cpp_forward(u)))))                   \
+            {                                                                                    \
+                return l = operator_type##_v(l, cpp_forward(u));                                 \
+            }                                                                                    \
+        };                                                                                       \
+    }                                                                                            \
+                                                                                                 \
+    inline constexpr struct operator_type##_assign :                                             \
+        sequenced_invocables<                                                                    \
+            details::operator_type##_assign,                                                     \
+            details::indirect_##operator_type##_assign>                                          \
+    {                                                                                            \
     } operator_type##_assign_v{};
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
@@ -156,16 +153,16 @@ namespace stdsharp
 
 #undef BS_UTIL_ASSIGN_OPERATE
 
-#define BS_UTIL_ASSIGN_OPERATE(operator_type)                                                 \
-    inline constexpr struct operator_type##_assign                                            \
-    {                                                                                         \
-        template<typename T, typename U>                                                      \
-            requires requires(T l, U&& u) { l = operator_type##_v(l, ::std::forward<U>(u)); } \
-        constexpr decltype(auto) operator()(T& l, U&& u) const                                \
-            noexcept(noexcept((l = operator_type##_v(l, ::std::forward<U>(u)))))              \
-        {                                                                                     \
-            return l = operator_type##_v(l, ::std::forward<U>(u));                            \
-        }                                                                                     \
+#define BS_UTIL_ASSIGN_OPERATE(operator_type)                                           \
+    inline constexpr struct operator_type##_assign                                      \
+    {                                                                                   \
+        template<typename T, typename U>                                                \
+            requires requires(T l, U&& u) { l = operator_type##_v(l, cpp_forward(u)); } \
+        constexpr decltype(auto) operator()(T& l, U&& u) const                          \
+            noexcept(noexcept((l = operator_type##_v(l, cpp_forward(u)))))              \
+        {                                                                               \
+            return l = operator_type##_v(l, cpp_forward(u));                            \
+        }                                                                               \
     } operator_type##_assign_v{};
 
     BS_UTIL_ASSIGN_OPERATE(negate)

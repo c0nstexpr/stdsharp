@@ -64,7 +64,7 @@ namespace stdsharp::reflection
             [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
                 noexcept(noexcept(get_member<Literal>(::std::declval<T>())))
             {
-                return get_member<Literal>(::std::forward<T>(t));
+                return get_member<Literal>(cpp_forward(t));
             }
 
             template<typename T>
@@ -75,7 +75,7 @@ namespace stdsharp::reflection
             }
             [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
             {
-                return ::std::forward<T>(p).first;
+                return cpp_forward(p).first;
             }
 
             template<typename T>
@@ -86,7 +86,7 @@ namespace stdsharp::reflection
             }
             [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
             {
-                return ::std::forward<T>(p).second;
+                return cpp_forward(p).second;
             }
         };
 

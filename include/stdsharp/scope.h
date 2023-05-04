@@ -22,7 +22,7 @@ namespace stdsharp::scope
     private:
         constexpr void execute() noexcept
         {
-            ::std::invoke(::std::move(this->value()));
+            ::std::invoke(cpp_move(this->value()));
             this->reset();
         };
 
@@ -32,7 +32,7 @@ namespace stdsharp::scope
         template<typename... Args>
             requires ::std::constructible_from<Fn, Args...>
         constexpr explicit scoped(Args&&... args) noexcept(nothrow_constructible_from<Fn, Args...>):
-            ::std::optional<Fn>(::std::in_place, ::std::forward<Args>(args)...)
+            ::std::optional<Fn>(::std::in_place, cpp_forward(args)...)
         {
         }
 
@@ -67,7 +67,7 @@ namespace stdsharp::scope
         constexpr scoped_t<Fn> operator()(Fn&& fn) const
             noexcept(nothrow_constructible_from<scoped_t<Fn>, Fn>)
         {
-            return ::std::forward<Fn>(fn);
+            return cpp_forward(fn);
         }
     };
 

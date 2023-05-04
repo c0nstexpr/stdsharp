@@ -27,7 +27,7 @@ namespace stdsharp
         }
         friend void swap(concurrent_object& left, Other&& right)
         {
-            left.swap(::std::forward<Other>(right)); //
+            left.swap(cpp_forward(right)); //
         }
 
         template<typename OtherLockable>
@@ -44,7 +44,7 @@ namespace stdsharp
             requires move_assignable<value_type>
         static void assign_value(value_type& object, concurrent_object<T, OtherLockable>&& other)
         {
-            ::std::move(other).write([&object](value_type&& obj) { object = ::std::move(obj); });
+            cpp_move(other).write([&object](value_type&& obj) { object = cpp_move(obj); });
         }
 
         template<typename Other>
@@ -58,14 +58,14 @@ namespace stdsharp
             requires(other_assignable<Other>)
         concurrent_object(const empty_t, Other&& other)
         {
-            assign_value(object_, ::std::forward<Other>(other));
+            assign_value(object_, cpp_forward(other));
         }
 
         template<typename Other>
             requires(other_assignable<Other>)
         concurrent_object& assign_impl(Other&& other)
         {
-            write([&other](value_type& obj) { assign_value(obj, ::std::forward<Other>(other)); });
+            write([&other](value_type& obj) { assign_value(obj, cpp_forward(other)); });
             return *this;
         }
 
@@ -75,7 +75,7 @@ namespace stdsharp
             constexpr void operator()(This&& instance, Func&& func) const
             {
                 const ::std::shared_lock lock{instance.lockable_};
-                ::std::invoke(::std::forward<Func>(func), ::std::forward<This>(instance).object_);
+                ::std::invoke(cpp_forward(func), cpp_forward(instance).object_);
             }
         };
 
@@ -84,14 +84,14 @@ namespace stdsharp
             template<typename Func>
             constexpr void operator()(concurrent_object&& instance, Func&& func) const
             {
-                ::std::invoke(::std::forward<Func>(func), ::std::move(instance).object_);
+                ::std::invoke(cpp_forward(func), cpp_move(instance).object_);
             }
 
             template<typename Func>
             constexpr void operator()(concurrent_object& instance, Func&& func) const
             {
                 const ::std::unique_lock lock{instance.lockable_};
-                ::std::invoke(::std::forward<Func>(func), instance.object_);
+                ::std::invoke(cpp_forward(func), instance.object_);
             }
         };
 
@@ -102,13 +102,13 @@ namespace stdsharp
 
         template<typename... Args>
             requires ::std::constructible_from<T, Args...>
-        explicit concurrent_object(Args&&... t_arg): object_(::std::forward<Args>(t_arg)...)
+        explicit concurrent_object(Args&&... t_arg): object_(cpp_forward(t_arg)...)
         {
         }
 
         template<typename Other>
             requires(other_assignable<Other>)
-        concurrent_object(Other&& other): concurrent_object(empty, ::std::forward<Other>(other))
+        concurrent_object(Other&& other): concurrent_object(empty, cpp_forward(other))
         {
         }
 
@@ -120,7 +120,7 @@ namespace stdsharp
 
         concurrent_object(concurrent_object&& other) noexcept(false)
             requires move_assignable
-            : concurrent_object(empty, ::std::move(other))
+            : concurrent_object(empty, cpp_move(other))
         {
         }
 
@@ -128,7 +128,7 @@ namespace stdsharp
             requires(other_assignable<Other>)
         concurrent_object& operator=(Other&& other)
         {
-            assign_impl(::std::forward<Other>(other));
+            assign_impl(cpp_forward(other));
             return *this;
         }
 
@@ -142,7 +142,7 @@ namespace stdsharp
         concurrent_object& operator=(concurrent_object&& other) noexcept(false)
             requires move_assignable
         {
-            if(this != &other) assign_impl(::std::move(other));
+            if(this != &other) assign_impl(cpp_move(other));
             return *this;
         }
 
@@ -166,25 +166,25 @@ namespace stdsharp
         template<::std::invocable<const value_type&> Func>
         void read(Func&& func) const&
         {
-            read_fn{}(*this, ::std::forward<Func>(func));
+            read_fn{}(*this, cpp_forward(func));
         }
 
         template<::std::invocable<const value_type> Func>
         void read(Func&& func) const&&
         {
-            read_fn{}(static_cast<const concurrent_object&&>(*this), ::std::forward<Func>(func));
+            read_fn{}(static_cast<const concurrent_object&&>(*this), cpp_forward(func));
         }
 
         template<::std::invocable<value_type&> Func>
         void write(Func&& func) &
         {
-            write_fn{}(*this, ::std::forward<Func>(func));
+            write_fn{}(*this, cpp_forward(func));
         }
 
         template<::std::invocable<value_type> Func>
         void write(Func&& func) &&
         {
-            write_fn{}(::std::move(*this), ::std::forward<Func>(func));
+            write_fn{}(cpp_move(*this), cpp_forward(func));
         }
 
         constexpr const auto& lockable() const noexcept { return lockable_; }
@@ -197,14 +197,14 @@ namespace stdsharp
             requires requires { requires Name == "write"sv; }
         [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
-            return bind(write_fn{}, ::std::forward<This>(instance));
+            return bind(write_fn{}, cpp_forward(instance));
         }
 
         template<auto Name, decay_same_as<concurrent_object> This>
             requires requires { requires Name == "read"sv; }
         [[nodiscard]] friend constexpr auto get_member(This&& instance) noexcept
         {
-            return bind(read_fn{}, ::std::forward<This>(instance));
+            return bind(read_fn{}, cpp_forward(instance));
         }
     };
 

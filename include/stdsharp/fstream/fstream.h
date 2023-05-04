@@ -16,7 +16,7 @@ namespace stdsharp
                 requires ::std::constructible_from<T, Args...>
             [[nodiscard]] constexpr auto operator()(::std::istream& is, Args&&... args) const
             {
-                T t{::std::forward<Args>(args)...};
+                T t{cpp_forward(args)...};
                 is >> t;
                 return t;
             }

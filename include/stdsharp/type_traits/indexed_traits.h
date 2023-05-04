@@ -117,7 +117,7 @@ namespace stdsharp
         [[nodiscard]] constexpr indexed_value<::std::decay_t<T>, I> operator()(T&& t) //
             noexcept(nothrow_constructible_from<indexed_value<::std::decay_t<T>, I>, T>)
         {
-            return ::std::forward<T>(t);
+            return cpp_forward(t);
         }
     };
 
@@ -143,7 +143,7 @@ namespace stdsharp
                 constexpr base(U&&... u) //
                     noexcept((nothrow_constructible_from<stdsharp::indexed_type<T, I>, U> && ...))
                     requires(::std::constructible_from<stdsharp::indexed_type<T, I>, U> && ...)
-                    : stdsharp::indexed_type<T, I>(::std::forward<U>(u))...
+                    : stdsharp::indexed_type<T, I>(cpp_forward(u))...
                 {
                 }
 
@@ -207,7 +207,7 @@ namespace stdsharp
                     requires(::std::constructible_from<stdsharp::indexed_value<T, I>, U> && ...)
                 constexpr impl(U&&... u) //
                     noexcept((nothrow_constructible_from<stdsharp::indexed_value<T, I>, U> && ...)):
-                    stdsharp::indexed_value<T, I>(::std::forward<U>(u))...
+                    stdsharp::indexed_value<T, I>(cpp_forward(u))...
                 {
                 }
             };
@@ -247,10 +247,7 @@ namespace stdsharp
             const ::std::index_sequence<I...> //
         ) noexcept(nothrow_invocable<Fn, get_element_t<I, Indexed>...>)
         {
-            return ::std::invoke(
-                ::std::forward<Fn>(fn),
-                cpo::get_element<I>(::std::forward<Indexed>(indexed))...
-            );
+            return ::std::invoke(cpp_forward(fn), cpo::get_element<I>(cpp_forward(indexed))...);
         }
 
     public:
@@ -264,8 +261,8 @@ namespace stdsharp
         )
         {
             return impl(
-                ::std::forward<Fn>(fn),
-                ::std::forward<Indexed>(indexed),
+                cpp_forward(fn),
+                cpp_forward(indexed),
                 ::std::make_index_sequence<::std::tuple_size_v<Indexed>>{}
             );
         }

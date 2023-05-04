@@ -67,21 +67,21 @@ namespace stdsharp
     template<typename U>                                                                         \
     [[nodiscard]] friend constexpr T operator op(T t, const U& u) noexcept(noexcept(t op## = u)) \
         requires requires {                                                                      \
-                     {                                                                           \
-                         t op## = u                                                              \
-                         } -> ::std::same_as<T&>;                                                \
-                 }                                                                               \
+            {                                                                                    \
+                t op## = u                                                                       \
+            } -> ::std::same_as<T&>;                                                             \
+        }                                                                                        \
     {                                                                                            \
-        return ::std::move(t op## = u);                                                          \
+        return cpp_move(t op## = u);                                                             \
     }                                                                                            \
                                                                                                  \
     template<not_same_as<T> U, decay_same_as<T> This>                                            \
         requires Commutable && requires(const U& u, T t) { t op u; }                             \
     [[nodiscard]] friend constexpr T operator op(const U& u, This&& t) noexcept(                 \
-        noexcept(::std::forward<This>(t) op u)                                                   \
+        noexcept(cpp_forward(t) op u)                                                            \
     )                                                                                            \
     {                                                                                            \
-        return ::std::forward<This>(t) op u;                                                     \
+        return cpp_forward(t) op u;                                                              \
     }
 
         BS_ARITH_OP(+)

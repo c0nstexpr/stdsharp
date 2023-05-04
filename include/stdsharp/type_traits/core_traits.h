@@ -10,6 +10,7 @@
 #include <nameof.hpp>
 
 #include "../utility/adl_proof.h"
+#include "../macros.h"
 
 using namespace ::std::literals;
 
@@ -36,7 +37,7 @@ namespace stdsharp
         constexpr auto operator()(Args&&... args) const
             noexcept(::std::is_nothrow_constructible_v<type<Args...>, Args...>)
         {
-            return type<Args...>{::std::forward<Args>(args)...};
+            return type<Args...>{cpp_forward(args)...};
         }
     };
 
@@ -355,7 +356,7 @@ namespace stdsharp
             requires(::std::constructible_from<T<Ts>, Us> && ...)
         constexpr ttp_expend(Us&&... us) //
             noexcept((::std::is_nothrow_constructible_v<T<Ts>, Us> && ...)):
-            T<Ts>(::std::forward<Us>(us))...
+            T<Ts>(cpp_forward(us))...
         {
         }
     };
@@ -381,7 +382,7 @@ namespace stdsharp
             requires(::std::constructible_from<T<V>, Us> && ...)
         constexpr nttp_expend(Us&&... us) //
             noexcept((::std::is_nothrow_constructible_v<T<V>, Us> && ...)):
-            T<V>(::std::forward<Us>(us))...
+            T<V>(cpp_forward(us))...
         {
         }
     };
@@ -420,7 +421,7 @@ namespace stdsharp
                 [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
                     noexcept(noexcept(::std::get<I>(::std::declval<T>())))
                 {
-                    return ::std::get<I>(::std::forward<T>(t));
+                    return ::std::get<I>(cpp_forward(t));
                 }
 
                 template<typename T>
@@ -432,7 +433,7 @@ namespace stdsharp
                 [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
                     noexcept(noexcept(get<I>(::std::declval<T>())))
                 {
-                    return get<I>(::std::forward<T>(t));
+                    return get<I>(cpp_forward(t));
                 }
             };
         }

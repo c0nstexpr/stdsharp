@@ -9,11 +9,14 @@
 
 namespace stdsharp
 {
-    template<typename>
+    template<allocator_req>
     struct allocator_aware_traits;
 
     template<allocator_req Alloc>
-    using allocation = typename allocator_aware_traits<Alloc>::allocation;
+    using allocation = allocator_aware_traits<Alloc>::allocation;
+
+    template<allocator_req Alloc, typename ValueType = Alloc::value_type>
+    using allocation_for = allocator_aware_traits<Alloc>::template allocation_for<ValueType>;
 
     namespace details
     {
@@ -71,17 +74,13 @@ namespace stdsharp
     struct make_allocation_by_obj_fn
     {
         template<allocator_req allocator_type, typename... Args>
-        [[nodiscard]] constexpr allocation<allocator_type>
+        [[nodiscard]] constexpr allocation_for<allocator_type, T>
             operator()(allocator_type& alloc, Args&&... args)
         {
             using traits = allocator_traits<allocator_type>;
 
             const auto& allocation = make_allocation(alloc, sizeof(T));
-            traits::construct(
-                alloc,
-                pointer_cast<T>(allocation.begin()),
-                ::std::forward<Args>(args)...
-            );
+            traits::construct(alloc, pointer_cast<T>(allocation.begin()), cpp_forward(args)...);
             return allocation;
         }
     };
@@ -89,7 +88,7 @@ namespace stdsharp
     template<typename T>
     inline constexpr make_allocation_by_obj_fn<T> make_allocation_by_obj{};
 
-    template<typename Alloc>
+    template<allocator_req Alloc>
     struct allocator_aware_traits : allocator_traits<Alloc>
     {
         using traits = allocator_traits<Alloc>;
@@ -107,528 +106,268 @@ namespace stdsharp
         using traits::propagate_on_swap_v;
         using traits::always_equal_v;
 
+        class allocation;
+
         template<typename ValueType = value_type>
-        class [[nodiscard]] allocation
-        {
-            friend details::allocation_access;
-
-            pointer ptr_ = nullptr;
-            size_type size_ = 0;
-
-        public:
-            using value_type = ValueType;
-
-            template<typename T>
-            [[nodiscard]] constexpr ::std::span<T>
-                as_span(const difference_type offset, const size_type count) const noexcept
-            {
-                precondition<::std::out_of_range>(
-                    [condition = (offset * sizeof(value_type) + count * sizeof(T)) <=
-                         (size_ * sizeof(value_type))] { return condition; },
-                    "pointer out of range"
-                );
-
-                return {pointer_cast<T>(ptr_ + offset), count};
-            }
-
-            template<typename T = ValueType>
-            [[nodiscard]] constexpr auto as_span(const difference_type offset = 0) const noexcept
-            {
-                precondition<::std::out_of_range>(
-                    [condition = offset <= size_] { return condition; },
-                    "pointer out of range"
-                );
-
-                return ::std::span<T>{
-                    pointer_cast<T>(ptr_ + offset),
-                    pointer_cast<T>(ptr_ + size_) //
-                };
-            }
-
-            [[nodiscard]] constexpr auto begin() const noexcept { return ptr_; }
-
-            [[nodiscard]] constexpr auto end() const noexcept { return ptr_ + size_; }
-
-            [[nodiscard]] constexpr const_pointer cbegin() const noexcept { return begin(); }
-
-            [[nodiscard]] constexpr const_pointer cend() const noexcept { return end(); }
-
-            [[nodiscard]] constexpr auto size() const noexcept { return size_; }
-
-            [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ != nullptr; }
-
-            constexpr operator bool() const noexcept { return empty(); }
-
-            [[nodiscard]] constexpr allocation
-                sub(const size_type offset, const size_type size) const noexcept
-            {
-                precondition<::std::out_of_range>(
-                    [condition = offset + size <= size_] { return condition; },
-                    "pointer out of range"
-                );
-
-                return {ptr_ + offset, size};
-            }
-
-            [[nodiscard]] constexpr allocation sub(const size_type size) const noexcept
-            {
-                return sub(0, size);
-            }
-
-            constexpr void allocate(allocator_type& alloc, const size_type size) noexcept
-            {
-                if(size_ >= size) return;
-
-                if(ptr_ != nullptr) deallocate(alloc);
-
-                *this = make_allocation(size);
-            }
-
-            constexpr void deallocate(allocator_type& alloc) noexcept
-            {
-                traits::deallocate(alloc, ptr_, size_);
-                *this = {};
-            }
-
-            template<typename... Args>
-            constexpr decltype(auto) construct(allocator_type& alloc, Args&&... args) noexcept
-            {
-                return traits::construct(
-                    alloc,
-                    pointer_cast<ValueType>(ptr_),
-                    ::std::forward<Args>(args)...
-                );
-            }
-
-            constexpr void destroy(allocator_type& alloc) noexcept
-            {
-                traits::destroy(alloc, pointer_cast<ValueType>(ptr_));
-            }
-        };
-
-        struct allocation_info
-        {
-            ::std::reference_wrapper<allocator_type> allocator;
-            allocation allocation;
-            size_type used_size = allocation.size();
-        };
-
-    private:
-        template<typename T, auto Impl>
-        struct use_alloc_do_as_fn
-        {
-            using span_t = const ::std::span<T>&;
-            using fn = decltype(Impl);
-
-            static constexpr bool is_invocable =
-                ::std::invocable<fn, allocator_type&, span_t, span_t>;
-
-            static constexpr bool is_noexcept =
-                nothrow_invocable<fn, allocator_type&, span_t, span_t>;
-
-            template<typename Rng>
-            constexpr void
-                operator()(allocator_type& alloc, const allocation& dest, span_t src) const
-                noexcept(is_noexcept)
-                requires is_invocable
-            {
-                Impl(alloc, dest.template as_span<T>(), src);
-            }
-
-            constexpr void
-                operator()(allocator_type& alloc, const allocation& dest, const allocation& src)
-                    const noexcept(is_noexcept)
-                requires is_invocable
-            {
-                (*this)(alloc, dest, src.template as_span<T>());
-            }
-
-            constexpr void operator()(
-                allocator_type& alloc,
-                const allocation& dest,
-                const allocation& src,
-                const size_type count
-            ) const noexcept(is_noexcept)
-                requires is_invocable
-            {
-                Impl(alloc, dest.template as_span<T>(count), src.template as_span<T>(count));
-            }
-        };
-
-        template<typename T, auto Impl, typename Fn = decltype(Impl)>
-        struct do_as_fn
-        {
-            using span_t = const ::std::span<T>&;
-
-            static constexpr bool is_invocable = ::std::invocable<Fn, span_t, span_t>;
-
-            static constexpr bool is_noexcept = nothrow_invocable<Fn, span_t, span_t>;
-
-            constexpr void operator()(const allocation& dest, span_t src) const
-                noexcept(is_noexcept)
-                requires is_invocable
-            {
-                Impl(dest.template as_span<T>(), src);
-            }
-
-            constexpr void operator()(const allocation& dest, const allocation& src) const
-                noexcept(is_noexcept)
-                requires is_invocable
-            {
-                (*this)(dest, src.template as_span<T>());
-            }
-
-            constexpr void
-                operator()(const allocation& dest, const allocation& src, const size_type count)
-                    const noexcept(is_noexcept)
-                requires is_invocable
-            {
-                Impl(dest.template as_span<T>(count), src.template as_span<T>(count));
-            }
-        };
-
-        template<typename T>
-        struct copy_as_impl_fn
-        {
-            using span_t = const ::std::span<T>&;
-
-            // NOLINTNEXTLINE(*-swappable-parameters)
-            constexpr void operator()(allocator_type& alloc, span_t dest, span_t src) const
-                noexcept(nothrow_copy_constructible<T>)
-                requires ::std::copy_constructible<T>
-            {
-                for(auto d_first = dest.begin(); const auto& v : src)
-                    traits::construct(alloc, d_first++, v);
-            }
-        };
-
-        template<typename T>
-        struct move_as_impl_fn
-        {
-            using span_t = const ::std::span<T>&;
-
-            // NOLINTNEXTLINE(*-swappable-parameters)
-            constexpr void operator()(allocator_type& alloc, span_t dest, span_t src) const
-                noexcept(nothrow_move_constructible<T>)
-                requires ::std::move_constructible<T>
-            {
-                for(auto d_first = dest.begin(); const auto& v : src)
-                    traits::construct(alloc, d_first++, ::std::move(v));
-            }
-        };
-
-        template<typename T>
-        struct copy_assign_as_impl_fn
-        {
-            using span_t = const ::std::span<T>&;
-
-            constexpr void operator()(span_t dest, span_t src_span) const
-                noexcept(nothrow_copy_assignable<T>)
-                requires copy_assignable<T>
-            {
-                for(auto d_first = dest.begin(); const auto& v : src_span) *(d_first++) = v;
-            }
-        };
-
-        template<typename T>
-        struct move_assign_as_impl_fn
-        {
-            using span_t = const ::std::span<T>&;
-
-            constexpr void operator()(span_t dest, span_t src) const
-                noexcept(nothrow_move_constructible<T>)
-                requires ::std::move_constructible<T>
-            {
-                for(auto d_first = dest.begin(); auto&& v : src) *(d_first++) = ::std::move(v);
-            }
-        };
-
-        template<typename T>
-        struct swap_as_impl_fn
-        {
-            using span_t = const ::std::span<T>&;
-
-            constexpr void operator()(span_t dest, span_t src) const noexcept(nothrow_swappable<T>)
-                requires ::std::swappable<T>
-            {
-                for(auto d_first = dest.begin(); auto& v : src)
-                    ::std::ranges::swap(*(d_first++), v);
-            }
-        };
-
-    public:
-        template<typename T = value_type>
-        struct delete_as_fn
-        {
-        private:
-            constexpr void
-                operator()(allocator_type& alloc, const ::std::span<T>& dest) const noexcept
-            {
-                for(auto& v : dest) traits::destroy(alloc, &v);
-            }
-
-        public:
-            constexpr void operator()(allocator_type& alloc, const allocation& dest) const noexcept
-            {
-                (*this)(alloc, dest.template as_span<T>());
-            }
-
-            constexpr void
-                operator()(allocator_type& alloc, const allocation& dest, const size_type count)
-                    const noexcept
-            {
-                (*this)(alloc, dest.template as_span<T>(count));
-            }
-        };
-
-        template<typename T = value_type>
-        static constexpr delete_as_fn<T> delete_as{};
-
-        template<typename T = value_type>
-        using copy_as_fn = use_alloc_do_as_fn<T, copy_as_impl_fn<T>{}>;
-
-        template<typename T = value_type>
-        static constexpr copy_as_fn<T> copy_as{};
-
-        template<typename T = value_type>
-        using move_as_fn = use_alloc_do_as_fn<T, move_as_impl_fn<T>{}>;
-
-        template<typename T = value_type>
-        static constexpr move_as_fn<T> move_as{};
-
-        template<typename T = value_type>
-        using copy_assign_as_fn = do_as_fn<T, copy_assign_as_impl_fn<T>{}>;
-
-        template<typename T = value_type>
-        static constexpr copy_assign_as_fn<T> copy_assign_as{};
-
-        template<typename T = value_type>
-        using move_assign_as_fn = do_as_fn<T, move_assign_as_impl_fn<T>{}>;
-
-        template<typename T = value_type>
-        static constexpr move_assign_as_fn<T> move_assign_as{};
-
-        template<typename T = value_type>
-        using swap_as_fn = do_as_fn<T, swap_as_impl_fn<T>{}>;
-
-        template<typename T = value_type>
-        static constexpr swap_as_fn<T> swap_as{};
-
-        using allocation_cref = const allocation&;
-
-    private:
-        static constexpr void release(const allocation_info& dest, auto& fn) noexcept
-        {
-            ::std::invoke(fn, dest.allocator, dest.allocation);
-            traits::deallocate(dest.allocator, dest.allocation.begin(), dest.allocation.size());
-        }
-
-        static constexpr bool check_empty_allocation(
-            const allocation_info& dest,
-            const allocation_info& src,
-            auto& fn
-        ) noexcept
-        {
-            if(src.allocation) [[likely]]
-                return false;
-
-            release(dest, fn);
-
-            if constexpr(propagate_on_copy_v) dest.allocator.get() = src.allocator;
-            else if constexpr(propagate_on_move_v)
-                dest.allocator.get() = ::std::move(src.allocator);
-
-            dest.allocation = {};
-            return true;
-        }
-
-        static constexpr void
-            assign_value(const allocation_info& dest, const allocation_info& src, auto&& fn)
-        {
-            ::std::invoke(::std::forward<decltype(fn)>(fn), dest.allocation, src.allocation);
-        }
-
-        static constexpr void
-            construct_value(const allocation_info& dest, const allocation_info& src, auto&& fn)
-        {
-            ::std::invoke(
-                ::std::forward<decltype(fn)>(fn),
-                dest.allocator,
-                dest.allocation,
-                src.allocation
-            );
-        }
+        class allocation_for;
 
         static constexpr auto simple_movable = propagate_on_move_v || always_equal_v;
 
         static constexpr auto simple_swappable = propagate_on_swap_v || always_equal_v;
 
+        template<typename ValueType>
+        static constexpr allocation_for<ValueType>
+            copy_construct(allocator_type& alloc, const allocation_for<ValueType>& other)
+        {
+            allocation_for<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));
+            allocation.construct(alloc, other.get_const());
+            return allocation;
+        }
+
+        template<typename ValueType>
+        static constexpr allocation_for<ValueType>
+            move_construct(allocator_type&, const allocation_for<ValueType>& other) noexcept
+        {
+            return other;
+        }
+
+        template<typename ValueType>
         static constexpr void
-            copy_assign_impl(allocation_info& dest, const allocation_info& src, auto&& fn)
+            destroy(allocator_type& alloc, allocation_for<ValueType>& allocation) noexcept
         {
-            const auto assign_alloc = [&] { dest.allocator.get() = src.allocator; };
-
-            if(dest.allocation.size() >= src.allocation.size())
-            {
-                if constexpr(propagate_on_copy_v)
-                {
-                    if constexpr(!always_equal_v)
-                    {
-                        if(dest.allocator != src.allocator) {}
-                    }
-                    else
-                    {
-                        assign_value(dest, src, fn);
-                        assign_alloc();
-                        return;
-                    }
-                }
-                else
-                {
-                    assign_value(dest, src, fn);
-                    return;
-                }
-            }
-
-            release(dest, fn);
-            if constexpr(propagate_on_copy_v) assign_alloc();
-
-            dest.allocation =
-                copy_construct(dest.allocator, src.allocation, ::std::forward<decltype(fn)>(fn));
-        }
-
-        static constexpr void
-            move_assign_impl(allocation_info& dest, const allocation_info& src, auto&& fn)
-        {
-            const auto assign_alloc = [&]
-            {
-                release(dest, fn);
-                if constexpr(propagate_on_move_v) dest.allocator.get() = ::std::move(src.allocator);
-            };
-
-            if constexpr(!simple_movable)
-                if(dest.allocator != src.allocator)
-                {
-                    if(dest.allocation.size() >= src.used_size)
-                    {
-                        assign_value(dest, src, ::std::forward<decltype(fn)>(fn));
-                        return;
-                    }
-
-                    assign_alloc();
-
-                    dest.allocation = make_allocation(dest.allocator, src.used_size);
-                    construct_value(dest, src, ::std::forward<decltype(fn)>(fn));
-
-                    return;
-                }
-
-            assign_alloc();
-            dest.allocation = ::std::exchange(src.allocation, {});
-        }
-
-    public:
-        template<typename T>
-        static constexpr auto construct_fn_req =
-            ::std::invocable<T, allocator_type&, allocation_cref, allocation_cref>;
-
-        template<typename Copy = copy_as_fn<>>
-            requires construct_fn_req<Copy>
-        static constexpr allocation
-            copy_construct(allocator_type& alloc, allocation_cref other, Copy&& copy = {})
-        {
-            if(!other) [[unlikely]]
-                return {};
-
-            const auto& res = make_allocation(alloc, other.used_size);
-            construct_value({alloc, res}, other, ::std::forward<Copy>(copy));
-            return res;
-        }
-
-        static constexpr allocation move_construct(allocation& other) noexcept
-        {
-            return ::std::exchange(other, {});
-        }
-
-        template<typename T>
-        static constexpr auto assign_fn_req =
-            ::std::invocable<T, allocator_type&, allocation_cref> &&
-            ::std::invocable<T, allocation_cref, allocation_cref> && //
-            construct_fn_req<T>;
-
-        template<typename Fn>
-        static constexpr auto copy_assignable_test =
-            assign_fn_req<Fn> ? expr_req::well_formed : expr_req::ill_formed;
-
-        template<typename CopyFn = invocables<copy_assign_as_fn<>, delete_as_fn<>, copy_as_fn<>>>
-            requires(copy_assignable_test<CopyFn> >= expr_req::well_formed)
-        static constexpr void
-            copy_assign(allocation_info& dest, const allocation_info& src, CopyFn copy = {})
-        {
-            if(check_empty_allocation(dest, src, copy)) return;
-            copy_assign_impl(dest, src, ::std::move(copy));
-        }
-
-        template<typename Fn>
-        static constexpr auto move_assignable_test = simple_movable ? //
-            expr_req::no_exception :
-            assign_fn_req<Fn> ? expr_req::well_formed : expr_req::ill_formed;
-
-        template<typename MoveFn = invocables<move_assign_as_fn<>, delete_as_fn<>, move_as_fn<>>>
-            requires(move_assignable_test<MoveFn> >= expr_req::well_formed)
-        static constexpr void
-            move_assign(allocation_info& dest, allocation_info& src, MoveFn move = {}) //
-            noexcept(move_assignable_test<MoveFn> >= expr_req::no_exception)
-        {
-            if(check_empty_allocation(dest, src, move)) return;
-            move_assign_impl(dest, src, ::std::move(move));
+            allocation.deallocate(alloc);
         }
 
     private:
-        static constexpr void
-            swap_impl(const allocation_info lhs, const allocation_info rhs, auto& swap)
+        template<typename ValueType>
+        static constexpr void copy_impl(
+            allocator_type& dst_alloc,
+            const allocation_for<ValueType>& dst_allocation,
+            const allocation_for<ValueType>& src_allocation
+        )
         {
-            STDSHARP_ASSUME(lhs.allocation.size() >= rhs.used_size);
-
-            const auto& rhs_allocation = make_allocation(rhs.allocator, lhs.used_size);
-            construct_value({rhs.allocator, rhs_allocation}, lhs, swap);
-
-            ::std::invoke(swap, lhs.allocator, lhs.allocation);
-            construct_value(lhs, rhs, swap);
-
-            release(rhs, swap);
-
-            rhs.allocation = rhs_allocation;
+            if(src_allocation.has_value())
+            {
+                if(dst_allocation.has_value()) dst_allocation.get() = src_allocation.get_const();
+                else dst_allocation.construct(dst_alloc, src_allocation.get_const());
+            }
+            else dst_allocation.destroy(dst_alloc);
         }
 
     public:
-        template<typename Fn>
-        static constexpr auto swappable_test = simple_swappable ? //
-            expr_req::no_exception :
-            assign_fn_req<Fn> ? expr_req::well_formed : expr_req::ill_formed;
-
-        template<typename SwapFn = invocables<move_assign_as_fn<>, move_as_fn<>, delete_as_fn<>>>
-            requires(swappable_test<SwapFn> >= expr_req::well_formed)
-        static constexpr void
-            swap(const allocation_info lhs, const allocation_info rhs, SwapFn swap = {}) //
-            noexcept(swappable_test<SwapFn> >= expr_req::no_exception)
+        template<typename ValueType>
+        static constexpr void copy_assign(
+            allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            const allocator_type&,
+            const allocation_for<ValueType>& src_allocation
+        ) noexcept(nothrow_copyable<value_type>)
         {
-            if constexpr(!simple_swappable)
-                if(lhs.allocator != rhs.allocator)
+            copy_impl(dst_alloc, dst_allocation, src_allocation);
+        }
+
+        template<typename ValueType>
+        static constexpr void copy_assign(
+            allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            const allocator_type& src_alloc,
+            const allocation_for<ValueType>& src_allocation
+        ) noexcept(nothrow_copyable<value_type>)
+            requires propagate_on_copy_v
+        {
+            if constexpr(!always_equal_v)
+                if(dst_alloc != src_alloc)
                 {
-                    const auto is_lhs_capable = lhs.allocation.size() >= rhs.used_size;
-
-                    if(is_lhs_capable && (rhs.allocation.size() >= lhs.used_size))
-                        assign_value(lhs, rhs, swap);
-                    else if(is_lhs_capable) swap_impl(lhs, rhs, swap);
-                    else swap_impl(rhs, lhs, swap);
-
-                    return;
+                    dst_allocation.destroy(dst_alloc);
+                    dst_allocation.deallocate(dst_alloc);
                 }
 
-            ::std::swap(lhs.allocation, rhs.allocation);
+            dst_alloc = src_alloc;
+            copy_impl(dst_alloc, dst_allocation, src_allocation);
+        }
 
-            if constexpr(propagate_on_swap_v) ::std::ranges::swap(lhs.allocator, rhs.allocator);
+        template<typename ValueType>
+        static constexpr void move_assign(
+            allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            const allocator_type&,
+            allocation_for<ValueType>& src_allocation
+        ) noexcept(nothrow_movable<value_type>)
+        {
+            if(src_allocation.has_value())
+            {
+                if(dst_allocation.has_value())
+                    dst_allocation.get() = cpp_move(src_allocation.get());
+                else dst_allocation.construct(dst_alloc, cpp_move(src_allocation.get()));
+            }
+            else dst_allocation.destroy(dst_alloc);
+
+            destroy(src_allocation);
+        }
+
+        template<typename ValueType>
+        static constexpr void move_assign(
+            allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            const allocator_type& src_alloc,
+            allocation_for<ValueType>& src_allocation
+        ) noexcept
+            requires propagate_on_move_v
+        {
+            if constexpr(!always_equal_v)
+                if(dst_alloc != src_alloc)
+                {
+                    dst_allocation.destroy(dst_alloc);
+                    dst_allocation.deallocate(dst_alloc);
+                }
+
+            dst_alloc = src_alloc;
+            dst_allocation = ::std::exchange(src_allocation, {});
+        }
+
+    private:
+        template<typename ValueType>
+        static constexpr void swap_impl(
+            [[maybe_unused]] allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            [[maybe_unused]] allocator_type& src_alloc,
+            allocation_for<ValueType>& src_allocation
+        )
+        {
+            if constexpr(!always_equal_v)
+                if(dst_alloc != src_alloc)
+                {
+                    ::std::ranges::swap(dst_allocation.get(), src_allocation.get());
+                    return;
+                }
+            ::std::swap(dst_allocation, src_allocation);
+        }
+
+    public:
+        template<typename ValueType>
+        static constexpr void swap(
+            allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            allocator_type& src_alloc,
+            allocation_for<ValueType>& src_allocation
+        ) noexcept(always_equal_v || nothrow_swappable<value_type>)
+        {
+            swap_impl(dst_alloc, dst_allocation, src_alloc, src_allocation);
+            if constexpr(propagate_on_swap_v) ::std::ranges::swap(dst_alloc, src_alloc);
+        }
+    };
+
+    template<allocator_req Allocator>
+    class [[nodiscard]] allocator_aware_traits<Allocator>::allocation
+    {
+        friend details::allocation_access;
+
+        pointer ptr_ = nullptr;
+        size_type size_ = 0;
+
+    protected:
+        constexpr allocation(pointer ptr, const size_type size) noexcept: ptr_(ptr), size_(size) {}
+
+    public:
+        allocation() = default;
+
+        [[nodiscard]] constexpr auto begin() const noexcept { return ptr_; }
+
+        [[nodiscard]] constexpr auto end() const noexcept { return ptr_ + size_; }
+
+        [[nodiscard]] constexpr const_pointer cbegin() const noexcept { return begin(); }
+
+        [[nodiscard]] constexpr const_pointer cend() const noexcept { return end(); }
+
+        [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+
+        [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ != nullptr; }
+
+        constexpr operator bool() const noexcept { return empty(); }
+
+        constexpr void allocate(allocator_type& alloc, const size_type size) noexcept
+        {
+            if(size_ >= size) return;
+
+            if(ptr_ != nullptr) deallocate(alloc);
+
+            *this = make_allocation(size);
+        }
+
+        constexpr void deallocate(allocator_type& alloc) noexcept
+        {
+            traits::deallocate(alloc, ptr_, size_);
+            *this = {};
+        }
+    };
+
+    template<allocator_req Allocator>
+    template<typename ValueType>
+    class [[nodiscard]] allocator_aware_traits<Allocator>::allocation_for
+    {
+    public:
+        using value_type = ValueType;
+
+    private:
+        allocation allocation_{};
+        bool has_value_ = false;
+
+    public:
+        allocation_for() = default;
+
+        allocation_for(const allocation& allocation) noexcept(!is_debug): allocation_(allocation)
+        {
+            precondition<::std::invalid_argument>( //
+                [condition = allocation_.size() >= sizeof(value_type)] { return condition; }
+            );
+        }
+
+        [[nodiscard]] constexpr decltype(auto) get() const noexcept
+        {
+            return pointer_cast<value_type>(base::begin());
+        }
+
+        [[nodiscard]] constexpr const auto& get_const() const noexcept { return get(); }
+
+        [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
+
+        constexpr void allocate(
+            traits::allocator_type& alloc,
+            const traits::const_void_pointer& hint = nullptr
+        )
+        {
+            if(allocation_) return;
+
+            allocation_ = make_allocation(alloc, sizeof(value_type), hint);
+        }
+
+        constexpr void deallocate(traits::allocator_type& alloc) noexcept
+        {
+            if(!allocation_) return;
+            if(has_value()) destroy(alloc);
+            allocation_.deallocate(alloc);
+        }
+
+        template<
+            typename... Args,
+            auto Req = traits::template construct_req<value_type, Args...> // clang-format off
+        > requires(Req >= expr_req::well_formed)
+        [[nodiscard]] constexpr decltype(auto) construct(traits::allocator_type& alloc, Args&&... args)
+            noexcept(Req >= expr_req::no_exception) // clang-format on
+        {
+            if(!allocation_) allocate(alloc);
+            else if(has_value()) destroy(alloc);
+
+            decltype(auto) res = traits::construct(alloc, get(), cpp_forward(args)...);
+            has_value_ = true;
+            return res;
+        }
+
+        constexpr void destroy(traits::allocator_type& alloc) noexcept
+        {
+            if(!has_value()) return;
+            traits::destroy(alloc, get());
+            has_value_ = false;
         }
     };
 
@@ -660,7 +399,7 @@ namespace stdsharp
             (alloc_last_ctor<Args...> >= expr_req::well_formed)
         constexpr allocator_aware_ctor(Args&&... args) //
             noexcept(alloc_last_ctor<Args...> >= expr_req::no_exception):
-            T(::std::forward<Args>(args)..., allocator_type{})
+            T(cpp_forward(args)..., allocator_type{})
         {
         }
 
@@ -669,7 +408,7 @@ namespace stdsharp
             (alloc_arg_ctor<Args...> >= expr_req::well_formed)
         constexpr allocator_aware_ctor(Args&&... args) //
             noexcept(alloc_arg_ctor<Args...> >= expr_req::no_exception):
-            T(::std::allocator_arg, allocator_type{}, ::std::forward<Args>(args)...)
+            T(::std::allocator_arg, allocator_type{}, cpp_forward(args)...)
         {
         }
 
@@ -680,7 +419,7 @@ namespace stdsharp
             const allocator_type& alloc,
             Args&&... args
         ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>):
-            T(::std::forward<Args>(args)..., alloc)
+            T(cpp_forward(args)..., alloc)
         {
         }
 

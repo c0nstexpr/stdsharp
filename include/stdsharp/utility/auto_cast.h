@@ -17,7 +17,7 @@ namespace stdsharp
             [[nodiscard]] constexpr operator U() const&& //
                 noexcept(nothrow_explicitly_convertible<T, U>)
             {
-                return static_cast<U>(::std::forward<T>(t));
+                return static_cast<U>(cpp_forward(t));
             }
         };
 
@@ -25,7 +25,7 @@ namespace stdsharp
         template<typename T>
         [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
         {
-            return auto_cast_operator<T>{::std::forward<T>(t)}; //
+            return auto_cast_operator<T>{cpp_forward(t)}; //
         }
     } auto_cast{};
 

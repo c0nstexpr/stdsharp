@@ -24,17 +24,15 @@ public:                                                                         
                    const ::std::index_sequence<I...>,                                     \
                    const_ base ref indexed,                                               \
                    Args&&... args                                                         \
-        )                                                                                 \
-            ->decltype(auto)                                                              \
+               ) -> decltype(auto)                                                        \
         {                                                                                 \
             return ::std::invoke(                                                         \
                 stdsharp::get<I>(static_cast<const_ base ref>(indexed))...,               \
-                ::std::forward<Args>(args)...                                             \
+                cpp_forward(args)...                                                      \
             );                                                                            \
-        }                                                                                 \
-        (::std::index_sequence_for<Func, T...>{},                                         \
-         static_cast<const_ base ref>(*this),                                             \
-         ::std::forward<Args>(args)...);                                                  \
+        }(::std::index_sequence_for<Func, T...>{},                                        \
+          static_cast<const_ base ref>(*this),                                            \
+          cpp_forward(args)...);                                                          \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -58,7 +56,7 @@ public:                                                                         
         constexpr auto operator()(Func&& func, Args&&... args) const
             noexcept(noexcept(bind_t{::std::declval<Func>(), ::std::declval<Args>()...}))
         {
-            return bind_t{::std::forward<Func>(func), ::std::forward<Args>(args)...};
+            return bind_t{cpp_forward(args)...};
         }
     } bind{};
 

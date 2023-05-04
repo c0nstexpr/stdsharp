@@ -22,15 +22,15 @@ namespace stdsharp
             (
                 [&condition](::std::pair<Predicate, Func>&& pair)
                 {
-                    auto&& [first, second] = ::std::move(pair);
+                    auto&& [first, second] = cpp_move(pair);
 
-                    if(static_cast<bool>(::std::invoke(::std::move(first), condition)))
+                    if(static_cast<bool>(::std::invoke(cpp_move(first), condition)))
                     {
-                        ::std::invoke(::std::move(second), condition);
+                        ::std::invoke(cpp_move(second), condition);
                         return true;
                     }
                     return false;
-                }(::std::move(cases)) ||
+                }(cpp_move(cases)) ||
                 ... //
             );
         }
@@ -73,11 +73,11 @@ namespace stdsharp
                         {
                             if constexpr(::std::invocable<Cases, T>)
                             {
-                                ::std::invoke(::std::forward<Cases>(c), T{});
+                                ::std::invoke(cpp_forward(c), T{});
                                 return true;
                             }
                             else return false;
-                        }(::std::move(cases)) ||
+                        }(cpp_move(cases)) ||
                         ...
                     );
                 }

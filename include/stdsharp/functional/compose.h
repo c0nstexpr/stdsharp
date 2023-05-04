@@ -12,7 +12,7 @@ namespace stdsharp
             template<typename Arg>
             constexpr decltype(auto) operator()(Arg&& arg, const empty_t) const noexcept
             {
-                return ::std::forward<Arg>(arg);
+                return cpp_forward(arg);
             }
 
             template<typename... Arg, ::std::invocable<Arg...> First, typename... Fn>
@@ -37,9 +37,9 @@ namespace stdsharp
             )
             {
                 return (*this)( //
-                    ::std::invoke(::std::forward<First>(first), std::forward<Arg>(arg)...),
+                    ::std::invoke(cpp_forward(arg)...),
                     empty,
-                    ::std::forward<Fn>(fn)...
+                    cpp_forward(fn)...
                 );
             }
         };
@@ -50,7 +50,7 @@ namespace stdsharp
     {
         template<typename... U>
             requires(::std::constructible_from<value_wrapper<T>, U> && ...)
-        constexpr composed(U&&... u): value_wrapper<T>(::std::forward<U>(u))...
+        constexpr composed(U&&... u): value_wrapper<T>(cpp_forward(u))...
         {
         }
 
@@ -61,7 +61,7 @@ namespace stdsharp
         const_ ref noexcept(nothrow_invocable<details::compose_impl, Args..., empty_t, T...>) \
     {                                                                                         \
         return details::compose_impl{}(                                                       \
-            ::std::forward<Args>(args)...,                                                    \
+            cpp_forward(args)...,                                                             \
             empty,                                                                            \
             static_cast<const_ T ref>(value_wrapper<T>::value)...                             \
         );                                                                                    \
@@ -84,7 +84,7 @@ namespace stdsharp
         constexpr auto operator()(T&&... t) const
             noexcept(noexcept(composed{::std::declval<T>()...}))
         {
-            return composed{::std::forward<T>(t)...};
+            return composed{cpp_forward(t)...};
         }
     } make_composed{};
 

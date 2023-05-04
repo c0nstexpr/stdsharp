@@ -15,10 +15,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(Fn&& fn, Projector projector, Args&&... args) const
             noexcept(nothrow_invocable<Fn, ::std::invoke_result_t<Projector, Args>...>)
         {
-            return ::std::invoke(
-                ::std::forward<Fn>(fn),
-                ::std::invoke(projector, ::std::forward<Args>(args))...
-            );
+            return ::std::invoke(cpp_forward(fn), ::std::invoke(projector, cpp_forward(args))...);
         }
     } projected_invoke{};
 
@@ -41,9 +38,9 @@ namespace stdsharp
         const_ ref noexcept(projected_nothrow_invocable<Func, const_ Proj ref, Args...>) \
     {                                                                                    \
         return projected_invoke(                                                         \
-            ::std::forward<Func>(func),                                                  \
+            cpp_forward(func),                                                           \
             static_cast<const_ Proj ref>(value_wrapper<Proj>::value),                    \
-            ::std::forward<Args>(args)...                                                \
+            cpp_forward(args)...                                                         \
         );                                                                               \
     }
 
@@ -63,9 +60,9 @@ namespace stdsharp
         template<typename Func>
             requires requires { projector{::std::declval<Func>()}; }
         [[nodiscard]] constexpr auto operator()(Func&& func) const
-            noexcept(noexcept(projector{::std::forward<Func>(func)}))
+            noexcept(noexcept(projector{cpp_forward(func)}))
         {
-            return projector{::std::forward<Func>(func)};
+            return projector{cpp_forward(func)};
         }
     } make_projector{};
 
@@ -81,10 +78,7 @@ namespace stdsharp
             noexcept(nothrow_invocable<make_projector_fn, Proj>&&
                          nothrow_std_bindable<Projector, Func>)
         {
-            return ::std::bind(
-                make_projector(::std::forward<Proj>(proj)),
-                ::std::forward<Func>(func)
-            );
+            return ::std::bind(make_projector(cpp_forward(func));
         }
     } projected{};
 

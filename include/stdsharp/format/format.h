@@ -59,7 +59,7 @@ namespace stdsharp
             Visitor&& vis //
         ) const
         {
-            return FORMAT_NS::visit_format_arg(::std::forward<Visitor>(vis), fc.arg(value));
+            return FORMAT_NS::visit_format_arg(cpp_forward(vis), fc.arg(value));
         }
 
         template<typename T, typename OutputIt, typename CharT>
@@ -72,8 +72,7 @@ namespace stdsharp
                 fc,
                 []<typename U>(U&& u) noexcept -> ::std::optional<T>
                 {
-                    if constexpr(::std::convertible_to<U, T>)
-                        return static_cast<T>(::std::forward<U>(u));
+                    if constexpr(::std::convertible_to<U, T>) return static_cast<T>(cpp_forward(u));
                     else return ::std::nullopt;
                 }
             );
@@ -105,9 +104,9 @@ namespace stdsharp
             [&fc]<typename U>(U&& u) -> ::std::optional<result_t>
             {
                 if constexpr(::std::same_as<::std::remove_cvref_t<U>, result_t>)
-                    return ::std::optional<result_t>{::std::forward<U>(u)};
+                    return ::std::optional<result_t>{cpp_forward(u)};
                 else if constexpr(::std::same_as<::std::remove_cvref_t<U>, nested_arg_index>)
-                    return ::std::forward<U>(u).template get_from_context<result_t>(fc);
+                    return cpp_forward(fc);
                 else return ::std::nullopt;
             },
             spec

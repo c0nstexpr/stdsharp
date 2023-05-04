@@ -149,7 +149,7 @@ namespace stdsharp
             constexpr T operator()(const Alloc& alloc, Args&&... args) const
                 noexcept(nothrow_constructible_from<T, Args..., const Alloc&>)
             {
-                return T{::std::forward<Args>(args)..., alloc};
+                return T{cpp_forward(args)..., alloc};
             }
 
             template<typename Alloc, typename... Args>
@@ -161,7 +161,7 @@ namespace stdsharp
                          const Alloc&,
                          Args...>)
             {
-                return T{::std::allocator_arg, alloc, ::std::forward<Args>(args)...};
+                return T{::std::allocator_arg, alloc, cpp_forward(args)...};
             }
         };
     }
@@ -184,7 +184,7 @@ namespace stdsharp
                 noexcept(noexcept(::std::ranges::construct_at(ptr, ::std::declval<Args>()...)))
                 requires requires { ::std::ranges::construct_at(ptr, ::std::declval<Args>()...); }
             {
-                return ::std::ranges::construct_at(ptr, ::std::forward<Args>(args)...);
+                return ::std::ranges::construct_at(ptr, cpp_forward(args)...);
             }
 
             template<typename T, typename... Args>
@@ -196,7 +196,7 @@ namespace stdsharp
             ) const noexcept(noexcept(::std::ranges::construct_at(ptr, ::std::declval<Args>()...)))
                 requires requires { ::std::ranges::construct_at(ptr, ::std::declval<Args>()...); }
             {
-                return ::new(ptr) T{::std::forward<Args>(args)...};
+                return ::new(ptr) T{cpp_forward(args)...};
             }
         };
 
@@ -207,7 +207,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
                 const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
-                return ::std::ranges::construct_at(ptr, ::std::forward<Args>(args)..., alloc);
+                return ::std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
             }
 
             template<typename T, typename... Args, typename Tag = ::std::allocator_arg_t>
@@ -219,7 +219,7 @@ namespace stdsharp
                     ptr,
                     ::std::allocator_arg,
                     alloc,
-                    ::std::forward<Args>(args)...
+                    cpp_forward(args)...
                 );
             }
 
@@ -232,7 +232,7 @@ namespace stdsharp
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
-                return ::new(ptr) T{::std::forward<Args>(args)..., alloc};
+                return ::new(ptr) T{cpp_forward(args)..., alloc};
             }
 
             template<typename T, typename... Args, typename Tag = ::std::allocator_arg_t>
@@ -244,7 +244,7 @@ namespace stdsharp
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
-                return ::new(ptr) T{::std::allocator_arg, alloc, ::std::forward<Args>(args)...};
+                return ::new(ptr) T{::std::allocator_arg, alloc, cpp_forward(args)...};
             }
         };
 
@@ -255,7 +255,7 @@ namespace stdsharp
                 noexcept(noexcept(a.construct(ptr, ::std::declval<Args>()...)))
                 requires requires { a.construct(ptr, ::std::declval<Args>()...); }
             {
-                return a.construct(ptr, ::std::forward<Args>(args)...);
+                return a.construct(ptr, cpp_forward(args)...);
             }
         }; // NOLINTEND(*-owning-memory)
 

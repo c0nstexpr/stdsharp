@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "../macros.h"
+
 namespace stdsharp
 {
     template<typename T, typename... U>
@@ -161,7 +163,7 @@ namespace stdsharp
     template<typename B> // clang-format off
     concept boolean_testable = ::std::convertible_to<B, bool> && requires(B&& b)
     {
-        { !::std::forward<B>(b) } -> ::std::convertible_to<bool>;
+        { !cpp_forward(b) } -> ::std::convertible_to<bool>;
     }; // clang-format on
 
     template<typename T, typename U>
@@ -178,7 +180,8 @@ namespace stdsharp
 
     template<typename T, typename U>
     concept nothrow_weakly_equality_comparable_with = weakly_equality_comparable_with<T, U> &&
-        requires(const ::std::remove_reference_t<T>& t, const ::std::remove_reference_t<U>& u) //
+        requires(const ::std::remove_reference_t<T>& t,
+                 const ::std::remove_reference_t<U>& u) //
     {
         noexcept(t == u);
         noexcept(t != u);
@@ -366,7 +369,7 @@ namespace stdsharp
     concept const_aligned = (const_<T> == const_<U>);
 
     template<typename T, typename U>
-    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>) && (rvalue_ref<T> == rvalue_ref<U>);
+    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>)&&(rvalue_ref<T> == rvalue_ref<U>);
 
     template<typename T, typename U>
     concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;

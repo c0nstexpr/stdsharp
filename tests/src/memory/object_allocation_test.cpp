@@ -12,7 +12,7 @@ void foo()
     using t = normal_movable_object_allocation<allocator_t>;
 
     t v0{};
-    t v1{::std::allocator_arg, v0.get_allocator(), ::std::move(v0)};
+    t v1{::std::allocator_arg, v0.get_allocator(), cpp_move(v0)};
 
     v1.emplace<void>();
 

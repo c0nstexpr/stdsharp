@@ -196,7 +196,7 @@ namespace stdsharp
             [[nodiscard]] constexpr auto operator()(Func&& func) const
                 noexcept(nothrow_invocable<IfFunc, Func>)
             {
-                return IfFunc{}(::std::not_fn(::std::forward<Func>(func)));
+                return IfFunc{}(::std::not_fn(cpp_forward(func)));
             }
         };
 
@@ -220,7 +220,7 @@ namespace stdsharp
             [[nodiscard]] constexpr auto operator()(Func func) const
                 noexcept(nothrow_invocable<FindFunc, Func>)
             {
-                const auto v = FindFunc{}(::std::forward<Func>(func));
+                const auto v = FindFunc{}(cpp_forward(func));
                 if constexpr(Equal) return v == size();
                 else return v != size();
             }

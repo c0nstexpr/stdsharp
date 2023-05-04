@@ -15,8 +15,8 @@ namespace stdsharp
             ::std::array<::std::projected<::std::ranges::iterator_t<Rng>, Proj>, N> arr{};
 
             ::std::ranges::copy(
-                ::std::forward<Rng>(rng) | //
-                    ::std::views::transform(::std::forward<Proj>(proj)) | //
+                cpp_forward(rng) | //
+                    ::std::views::transform(cpp_forward(proj)) | //
                     ::std::views::take(N),
                 arr.begin()
             );

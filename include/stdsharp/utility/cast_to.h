@@ -12,7 +12,7 @@ namespace stdsharp
         [[nodiscard]] constexpr U operator()(T&& t) const
             noexcept(noexcept(static_cast<U>(::std::declval<T>())))
         {
-            return static_cast<U>(::std::forward<T>(t));
+            return static_cast<U>(cpp_forward(t));
         }
     };
 

@@ -93,7 +93,7 @@ namespace stdsharp
                             noexcept(mov_assign_req == expr_req::no_exception) //
                             requires(mov_assign_req >= expr_req::well_formed) //
                             {
-                                *pointer_cast<T>(left) = ::std::move(*pointer_cast<T>(right)); //
+                                *pointer_cast<T>(left) = cpp_move(*pointer_cast<T>(right)); //
                             },
                             [](ptr_cref left, cptr_cref right) //
                             noexcept(cp_assign_req == expr_req::no_exception) //
@@ -259,11 +259,7 @@ namespace stdsharp
             ):
                 compressed_(alloc, ::std::type_identity<ValueType>{}),
                 allocation_( //
-                    make_allocation_by_obj<T>(
-                        get_allocator(),
-                        ptr_cast<T>(),
-                        ::std::forward<Args>(args)...
-                    )
+                    make_allocation_by_obj<T>(get_allocator(), ptr_cast<T>(), cpp_forward(args)...)
                 )
             {
             }
@@ -539,7 +535,7 @@ namespace stdsharp
             noexcept(nothrow_constructible_from<ValueType, Args...>&&
                          nothrow_move_assignable<ValueType>)
         {
-            get<ValueType>() = ValueType{::std::forward<Args>(args)...};
+            get<ValueType>() = ValueType{cpp_forward(args)...};
             return true;
         }
 
@@ -574,13 +570,12 @@ namespace stdsharp
         {
             using value_t = ::std::decay_t<T>;
 
-            if(type_id<value_t> == type() &&
-               try_same_type_emplace<value_t>(::std::forward<Args>(args)...))
+            if(type_id<value_t> == type() && try_same_type_emplace<value_t>(cpp_forward(args)...))
                 return get<value_t>();
 
             data.assign_traits(mem_traits{::std::type_identity<T>{}});
 
-            allocator_traits::construct(alloc, ptr_cast<value_t>(), ::std::forward<Args>(args)...);
+            allocator_traits::construct(alloc, ptr_cast<value_t>(), cpp_forward(args)...);
 
             return get<value_t>();
         }
@@ -599,14 +594,14 @@ namespace stdsharp
         )
             requires emplace_able<::std::decay_t<T>, decltype(il), Args...>
         {
-            return emplace<T, decltype(il), Args...>(alloc, il, ::std::forward<Args>(args)...);
+            return emplace<T, decltype(il), Args...>(alloc, il, cpp_forward(args)...);
         }
 
         template<not_same_as<void> T>
             requires emplace_able<::std::decay_t<T>, T>
         constexpr decltype(auto) emplace(Alloc& alloc, T&& t)
         {
-            return emplace<::std::decay_t<T>, T>(alloc, ::std::forward<T>(t));
+            return emplace<::std::decay_t<T>, T>(alloc, cpp_forward(t));
         }
 
         constexpr ~basic_object_allocation() noexcept { data.reset(allocator); }

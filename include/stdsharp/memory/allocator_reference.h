@@ -54,7 +54,7 @@ namespace stdsharp
             noexcept(noexcept(traits::construct(this->get(), p, ::std::declval<Args>()...)))
             requires requires { traits::construct(this->get(), p, ::std::declval<Args>()...); }
         {
-            traits::construct(this->get(), p, ::std::forward<Args>(args)...);
+            traits::construct(this->get(), p, cpp_forward(args)...);
         }
 
         template<typename U>

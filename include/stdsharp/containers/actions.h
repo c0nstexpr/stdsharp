@@ -14,14 +14,14 @@ namespace stdsharp::actions
         ) operator()(Container& container, const const_iterator_t<Container> iter, Args&&... args)
             const
         {
-            return container.emplace(iter, ::std::forward<Args>(args)...);
+            return container.emplace(iter, cpp_forward(args)...);
         }
 
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires associative_like_container<Container>
         constexpr decltype(auto) operator()(Container& container, Args&&... args) const
         {
-            return container.emplace(::std::forward<Args>(args)...);
+            return container.emplace(cpp_forward(args)...);
         }
     } emplace;
 
@@ -104,11 +104,7 @@ namespace stdsharp::actions
                     invocable<emplace_fn, Container&, const_iterator_t<Container>, Args...>     \
                 constexpr decltype(auto) operator()(Container& container, Args&&... args) const \
             {                                                                                   \
-                return *actions::emplace(                                                       \
-                    container,                                                                  \
-                    container.c##iter(),                                                        \
-                    ::std::forward<Args>(args)...                                               \
-                );                                                                              \
+                return *actions::emplace(container, container.c##iter(), cpp_forward(args)...); \
             }                                                                                   \
         };                                                                                      \
                                                                                                 \
@@ -122,7 +118,7 @@ namespace stdsharp::actions
                     container.emplace_##where(::std::declval<Args>()...);                       \
                 }                                                                               \
             {                                                                                   \
-                return container.emplace_##where(::std::forward<Args>(args)...);                \
+                return container.emplace_##where(cpp_forward(args)...);                         \
             }                                                                                   \
         };                                                                                      \
     }                                                                                           \
@@ -158,7 +154,7 @@ namespace stdsharp::actions
                     >; // clang-format on
                 }
                 {
-                    return erase_if(container, ::std::forward<Predicate>(predicate_fn));
+                    return erase_if(container, cpp_forward(predicate_fn));
                 }
             };
 
@@ -180,10 +176,7 @@ namespace stdsharp::actions
                 }
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                 {
-                    const auto& it = ::std::ranges::remove_if(
-                        container,
-                        ::std::forward<Predicate>(predicate_fn)
-                    );
+                    const auto& it = ::std::ranges::remove_if(container, cpp_forward(predicate_fn));
                     const auto removed_size = it.size();
                     cpo::erase(container, it.begin(), it.end());
                     return removed_size;
@@ -271,7 +264,7 @@ namespace stdsharp::actions
             {
                 Container container{};
                 reserved<sizeof...(Args)>(container);
-                (emplace_back(container, ::std::forward<Args>(args)), ...);
+                (emplace_back(container, cpp_forward(args)), ...);
                 return container;
             }
 
@@ -284,7 +277,7 @@ namespace stdsharp::actions
             {
                 Container container{};
                 reserved<sizeof...(Args)>(container);
-                (emplace(container, ::std::forward<Args>(args)), ...);
+                (emplace(container, cpp_forward(args)), ...);
                 return container;
             }
         };
@@ -315,10 +308,7 @@ namespace stdsharp::actions
                 )
             )
             {
-                return ::std::apply(
-                    regular_make_container_fn<Container>{},
-                    ::std::forward<Tuple>(tuple)
-                );
+                return ::std::apply(regular_make_container_fn<Container>{}, cpp_forward(tuple));
             }
         };
     }

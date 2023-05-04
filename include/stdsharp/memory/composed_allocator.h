@@ -60,8 +60,7 @@ namespace stdsharp
         composed_allocator() = default;
 
         template<typename... Args>
-        constexpr explicit composed_allocator(Args&&... args):
-            alloc_pair_(::std::forward<Args>(args)...)
+        constexpr explicit composed_allocator(Args&&... args): alloc_pair_(cpp_forward(args)...)
         {
         }
 
@@ -164,8 +163,8 @@ namespace stdsharp
                     )
                 )
             )
-                first_traits::construct(first, ptr, ::std::forward<Args>(args)...);
-            else second_traits::construct(second, ptr, ::std::forward<Args>(args)...);
+                first_traits::construct(first, ptr, cpp_forward(args)...);
+            else second_traits::construct(second, ptr, cpp_forward(args)...);
         }
 
         constexpr bool contains(const value_type* const ptr) const noexcept

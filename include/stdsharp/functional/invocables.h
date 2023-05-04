@@ -24,7 +24,7 @@ namespace stdsharp
     constexpr decltype(auto) operator()(Args&&... args)                     \
         const_ ref noexcept(nothrow_invocable<Fn, Args...>)                 \
     {                                                                       \
-        return base::value()(::std::forward<Args>(args)...);                \
+        return base::value()(cpp_forward(args)...);                         \
     }
 
             STDSHARP_OPERATOR(, &)
@@ -54,7 +54,7 @@ namespace stdsharp
                     requires(::std::constructible_from<Func, Args> && ...)
                 constexpr impl(Args&&... args) //
                     noexcept((nothrow_constructible_from<Func, Args> && ...)):
-                    indexed_invocable<Func, I>(::std::forward<Args>(args))...
+                    indexed_invocable<Func, I>(cpp_forward(args))...
                 {
                 }
             };
@@ -79,7 +79,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<Invocable, Args...>)
         {
-            return cpo::get_element<Index>(::std::forward<T>(t))(::std ::forward<Args>(args)...);
+            return cpo::get_element<Index>(cpp_forward(args)...);
         }
     };
 
@@ -117,7 +117,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<invoke_at_t<T, Args...>, T, Args...>)
         {
-            return invoke_at_t<T, Args...>{}(::std::forward<T>(t), ::std ::forward<Args>(args)...);
+            return invoke_at_t<T, Args...>{}(cpp_forward(args)...);
         }
     };
 
@@ -153,7 +153,7 @@ namespace stdsharp
     {                                                                             \
         return details::sequenced_invoke(                                         \
             static_cast<const_ base ref>(*this),                                  \
-            ::std::forward<Args>(args)...                                         \
+            cpp_forward(args)...                                                  \
         );                                                                        \
     }
 

@@ -30,7 +30,7 @@ namespace stdsharp
         inline constexpr nodiscard_invocable forwarding =
             []<typename T>(T&& t) noexcept(nothrow_constructible_from<forwarding_views<T>, T>)
         {
-            return forwarding_views<T>{::std::forward<T>(t)}; //
+            return forwarding_views<T>{cpp_forward(t)}; //
         };
     }
 }

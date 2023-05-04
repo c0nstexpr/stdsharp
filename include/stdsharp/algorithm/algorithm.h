@@ -14,7 +14,7 @@ namespace stdsharp
         noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
         -> T& // clang-format on
     {
-        if(::std::invoke(::std::move(comp), right, left)) left = ::std::forward<U>(right);
+        if(::std::invoke(cpp_move(comp), right, left)) left = cpp_forward(right);
         return left;
     };
 
@@ -25,7 +25,7 @@ namespace stdsharp
         (T & left, U && right)
         noexcept(nothrow_invocable<set_if_fn, T&, U, ::std::ranges::greater>) -> T& // clang-format on
     {
-        return set_if(left, ::std::forward<U>(right), greater_v);
+        return set_if(left, cpp_forward(right), greater_v);
     };
 
     using set_if_greater_fn = decltype(set_if_greater);
@@ -35,7 +35,7 @@ namespace stdsharp
         (T& left, U&& right)
         noexcept(nothrow_invocable<set_if_fn, T&, U, ::std::ranges::less>) -> T& // clang-format on
     {
-        return set_if(left, ::std::forward<U>(right), less_v);
+        return set_if(left, cpp_forward(right), less_v);
     };
 
     using set_if_less_fn = decltype(set_if_less);

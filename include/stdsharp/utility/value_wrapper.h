@@ -31,20 +31,14 @@ namespace stdsharp
         template<typename... U>
             requires ::std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            details::value_wrapper<T>{::std::forward<U>(u)...}
+            details::value_wrapper<T>{cpp_forward(u)...}
         {
         }
 
-#define STDSHARP_OPERATOR(const_, ref)                             \
-    constexpr const_ T ref value() const_ ref noexcept             \
-    {                                                              \
-        return static_cast<const_ T ref>(v);                       \
-    }                                                              \
-                                                                   \
-    constexpr explicit operator const_ T ref() const_ ref noexcept \
-    {                                                              \
-        return value();                                            \
-    }
+#define STDSHARP_OPERATOR(const_, ref)                                                          \
+    constexpr const_ T ref value() const_ ref noexcept { return static_cast<const_ T ref>(v); } \
+                                                                                                \
+    constexpr explicit operator const_ T ref() const_ ref noexcept { return value(); }
 
         STDSHARP_OPERATOR(, &)
         STDSHARP_OPERATOR(const, &)
