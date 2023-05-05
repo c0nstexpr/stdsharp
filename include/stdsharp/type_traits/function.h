@@ -19,7 +19,6 @@ namespace stdsharp
             using ptr_t = function_t*;
         };
 
-
         template<typename T>
         struct function_traits_helper;
 

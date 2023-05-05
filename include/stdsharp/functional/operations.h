@@ -5,6 +5,7 @@
 
 #include "../iterator/iterator.h"
 #include "invocables.h"
+#include "../cstdint/cstdint.h"
 
 namespace stdsharp
 {
@@ -76,25 +77,23 @@ namespace stdsharp
 
     inline constexpr struct bit_xnor
     {
-        template<typename T, typename U>
-            requires requires { bit_not_v(bit_xor_v(::std::declval<T>(), ::std::declval<U>())); }
-        constexpr decltype(auto) operator()(T&& t, U&& u) const
-            noexcept(noexcept(bit_not_v(bit_xor_v(::std::declval<T>(), ::std::declval<U>()))))
+        constexpr decltype(auto) operator()(auto&& t, auto&& u) const
+            noexcept(noexcept(bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u)))))
+            requires requires { bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u))); }
         {
-            return bit_not_v(bit_xor_v(cpp_forward(u)));
+            return bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u)));
         }
     } bit_xnor_v{};
 
-#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                    \
-    inline constexpr struct direction##_shift                                        \
-    {                                                                                \
-        template<typename T, typename U>                                             \
-            requires requires(T&& left, U&& right) { cpp_forward(right); }           \
-        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const \
-            noexcept(noexcept(cpp_forward(right)))                                   \
-        {                                                                            \
-            return cpp_forward(right);                                               \
-        }                                                                            \
+#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                          \
+    inline constexpr struct direction##_shift                                              \
+    {                                                                                      \
+        [[nodiscard]] constexpr decltype(auto) operator()(auto&& left, auto&& right) const \
+            noexcept(noexcept(cpp_forward(left) operate cpp_forward(right)))               \
+            requires requires { cpp_forward(left) operate cpp_forward(right); }            \
+        {                                                                                  \
+            return cpp_forward(left) operate cpp_forward(right);                           \
+        }                                                                                  \
     } direction##_shift_v{};
 
     BS_UTIL_SHIFT_OPERATE(left, <<)

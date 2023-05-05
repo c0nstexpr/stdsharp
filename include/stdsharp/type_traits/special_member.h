@@ -138,7 +138,36 @@ namespace stdsharp
         expr_req::ill_formed,
         expr_req::ill_formed,
         expr_req::ill_formed,
-        expr_req::no_exception,
         expr_req::ill_formed,
+        expr_req::ill_formed,
+    };
+
+    template<special_mem_req Req>
+    struct fake_type_for
+    {
+        fake_type_for(fake_type_for&&) //
+            noexcept(Req.move_construct >= expr_req::no_exception)
+            requires(Req.move_construct >= expr_req::well_formed)
+        = default;
+
+        fake_type_for(const fake_type_for&) //
+            noexcept(Req.copy_construct >= expr_req::no_exception)
+            requires(Req.copy_construct >= expr_req::well_formed)
+        = default;
+
+        fake_type_for& operator=(fake_type_for&&) //
+            noexcept(Req.move_assign >= expr_req::no_exception)
+            requires(Req.move_assign >= expr_req::well_formed)
+        = default;
+
+        fake_type_for& operator=(const fake_type_for&) //
+            noexcept(Req.copy_assign >= expr_req::no_exception)
+            requires(Req.copy_assign >= expr_req::well_formed)
+        = default;
+
+        ~fake_type_for() //
+            noexcept(Req.destruct >= expr_req::no_exception)
+            requires(Req.destruct >= expr_req::well_formed)
+        = default;
     };
 }

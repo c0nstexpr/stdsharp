@@ -28,6 +28,4 @@ namespace stdsharp
             return auto_cast_operator<T>{cpp_forward(t)}; //
         }
     } auto_cast{};
-
-
 }

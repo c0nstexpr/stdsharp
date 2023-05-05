@@ -120,7 +120,6 @@ namespace stdsharp
     template<typename T, ::std::size_t Size>
     using static_memory_resource_for =
         static_memory_resource<ceil_reminder(Size * sizeof(T), sizeof(generic_storage))>;
-
 }
 
 #include "../compilation_config_out.h"

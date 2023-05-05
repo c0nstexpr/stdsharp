@@ -64,7 +64,6 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using set = multiset<TestType>;
 
-
         GIVEN(fmt::format("set type {}", type_id<set>))
         {
             STATIC_REQUIRE(!sequence_container<set>);

@@ -55,15 +55,14 @@ namespace stdsharp
             Compare cmp = {},
             Proj proj = {}
         ) const // NOLINTEND(*-easily-swappable-parameters)
-#ifndef NDEBUG
             noexcept( //
+                !is_debug ||
                 nothrow_predicate<
                     Compare,
                     ::std::projected<const T*, Proj>,
                     ::std::projected<const T*, Proj> // clang-format off
                 > // clang-format on
             )
-#endif
         {
             const auto& proj_max = ::std::invoke(proj, max);
             const auto& proj_min = ::std::invoke(proj, min);
