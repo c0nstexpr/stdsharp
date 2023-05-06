@@ -101,24 +101,12 @@ namespace stdsharp
 
     template<typename T>
     inline constexpr special_mem_req special_mem_req::for_type{
-        ::std::move_constructible<T> ?
-            nothrow_move_constructible<T> ? expr_req::no_exception : expr_req::well_formed :
-            expr_req::ill_formed,
-        ::std::copy_constructible<T> ?
-            nothrow_copy_constructible<T> ? expr_req::no_exception : expr_req::well_formed :
-            expr_req::ill_formed,
-        move_assignable<T> ?
-            nothrow_move_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
-            expr_req::ill_formed,
-        copy_assignable<T> ?
-            nothrow_copy_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
-            expr_req::ill_formed,
-        ::std::is_destructible_v<T> ?
-            ::std::is_nothrow_destructible_v<T> ? expr_req::no_exception : expr_req::well_formed :
-            expr_req::ill_formed,
-        ::std::swappable<T> ?
-            nothrow_swappable<T> ? expr_req::no_exception : expr_req::well_formed :
-            expr_req::ill_formed //
+        get_expr_req(::std::move_constructible<T>, nothrow_move_constructible<T>),
+        get_expr_req(::std::copy_constructible<T>, nothrow_copy_constructible<T>),
+        get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
+        get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
+        get_expr_req(::std::is_destructible_v<T>, ::std::is_nothrow_destructible_v<T>),
+        get_expr_req(::std::swappable<T>, nothrow_swappable<T>) //
     };
 
     inline constexpr special_mem_req special_mem_req::trivial{};

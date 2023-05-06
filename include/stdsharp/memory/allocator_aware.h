@@ -330,36 +330,26 @@ namespace stdsharp
         static constexpr auto copy_constructible_req =
             traits::template construct_req<value_type, const value_type&>;
 
-        static constexpr auto move_constructible_req =
-            traits::template construct_req<value_type, value_type>;
+        static constexpr auto move_constructible_req = expr_req::no_exception;
 
         static constexpr auto copy_assignable_req = ::std::min(
             copy_constructible_req,
-            copy_assignable<value_type> ? //
-                nothrow_copy_assignable<value_type> && (!propagate_on_copy_v || always_equal_v) ? //
-                    expr_req::no_exception :
-                    expr_req::well_formed :
-                expr_req::ill_formed
+            get_expr_req(
+                copy_assignable<value_type>,
+                nothrow_copy_assignable<value_type> && (!propagate_on_copy_v || always_equal_v)
+            )
         );
 
         static constexpr auto move_assignable_req = propagate_on_move_v ?
             expr_req::no_exception :
             ::std::min(
-                move_constructible_req,
-                move_assignable<value_type> ? //
-                    nothrow_move_assignable<value_type> ? //
-                        expr_req::no_exception :
-                        expr_req::well_formed :
-                    expr_req::ill_formed
+                traits::template construct_req<value_type, value_type>,
+                get_expr_req(move_assignable<value_type>, nothrow_move_assignable<value_type>)
             );
 
-        static constexpr auto swappable_req = propagate_on_swap_v ? //
+        static constexpr auto swappable_req = propagate_on_swap_v || always_equal_v ? //
             expr_req::no_exception :
-            always_equal_v ? //
-                expr_req::no_exception :
-                ::std::swappable<value_type> ? //
-                    nothrow_swappable<value_type> ? expr_req::no_exception : expr_req::well_formed :
-                    expr_req::ill_formed;
+            get_expr_req(::std::swappable<value_type>, nothrow_swappable<value_type>);
 
         static constexpr special_mem_req mem_req{
             move_constructible_req,
