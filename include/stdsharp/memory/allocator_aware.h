@@ -136,17 +136,30 @@ namespace stdsharp
 
     private:
         template<typename ValueType>
+        static constexpr void assign_impl(
+            allocator_type& dst_alloc,
+            allocation_for<ValueType>& dst_allocation,
+            auto&& value
+        )
+        {
+            if(dst_allocation.has_value())
+            {
+                dst_allocation.get() = cpp_forward(value);
+                return;
+            }
+
+            dst_allocation.construct(dst_alloc, cpp_forward(value));
+        }
+
+        template<typename ValueType>
         static constexpr void copy_impl(
             allocator_type& dst_alloc,
-            const allocation_for<ValueType>& dst_allocation,
+            allocation_for<ValueType>& dst_allocation,
             const allocation_for<ValueType>& src_allocation
         )
         {
             if(src_allocation.has_value())
-            {
-                if(dst_allocation.has_value()) dst_allocation.get() = src_allocation.get_const();
-                else dst_allocation.construct(dst_alloc, src_allocation.get_const());
-            }
+                assign_impl(dst_alloc, dst_allocation, src_allocation.get_const());
             else dst_allocation.destroy(dst_alloc);
         }
 
@@ -168,7 +181,6 @@ namespace stdsharp
                         {
                             dst_allocation.deallocate(dst_alloc);
                             dst_alloc = src_alloc;
-                            dst_allocation.allocate(dst_alloc);
                             return;
                         }
 
@@ -189,33 +201,18 @@ namespace stdsharp
         {
             if(src_allocation.has_value())
             {
-                if(dst_allocation.has_value())
-                    dst_allocation.get() = cpp_move(src_allocation.get());
-                else dst_allocation.construct(dst_alloc, cpp_move(src_allocation.get()));
+                assign_impl(dst_alloc, dst_allocation, cpp_move(src_allocation.get()));
+                destroy(src_allocation, src_alloc);
             }
             else destroy(dst_alloc, dst_allocation);
-
-            destroy(src_alloc, src_allocation);
         }
 
         template<typename ValueType>
             requires propagate_on_move_v
-        static constexpr void move_assign_impl(
-            allocator_type& dst_alloc,
-            allocation_for<ValueType>& dst_allocation,
-            allocator_type& src_alloc,
-            allocation_for<ValueType>& src_allocation
-        )
+        static constexpr void
+            move_assign_impl(allocator_type& dst_alloc, allocation_for<ValueType>& dst_allocation, allocator_type&, allocation_for<ValueType>&)
         {
-            if constexpr(!always_equal_v)
-                if(dst_alloc != src_alloc)
-                {
-                    dst_allocation.destroy(dst_alloc);
-                    dst_allocation.deallocate(dst_alloc);
-                }
-
-            dst_alloc = cpp_move(src_alloc);
-            dst_allocation = ::std::exchange(src_allocation, {});
+            dst_allocation.deallocate(dst_alloc);
         }
 
     public:
@@ -228,7 +225,12 @@ namespace stdsharp
             allocation_for<ValueType>& src_allocation
         ) noexcept(allocation_for<ValueType>::move_assignable_req >= expr_req::no_exception)
         {
-            move_assign_impl(dst_alloc, dst_allocation, src_alloc, src_allocation);
+            if constexpr(!always_equal_v)
+                if(dst_alloc != src_alloc)
+                    move_assign_impl(dst_alloc, dst_allocation, src_alloc, src_allocation);
+
+            if constexpr(propagate_on_move_v) dst_alloc = cpp_move(src_alloc);
+            dst_allocation = ::std::exchange(src_allocation, {});
         }
 
     private:
@@ -243,7 +245,28 @@ namespace stdsharp
             if constexpr(!always_equal_v && !propagate_on_swap_v)
                 if(dst_alloc != src_alloc)
                 {
-                    ::std::ranges::swap(dst_allocation.get(), src_allocation.get());
+                    if(src_allocation.has_value() && dst_allocation.has_value())
+                    {
+                        ::std::ranges::swap(dst_allocation.get(), src_allocation.get());
+                        return;
+                    }
+
+                    constexpr auto impl = []( // clang-format off
+                        allocator_type& dst_alloc,
+                        allocation_for<ValueType>& dst_allocation,
+                        allocator_type& src_alloc,
+                        allocation_for<ValueType>& src_allocation
+                    ) // clang-format on
+                    {
+                        src_allocation.construct(src_alloc, cpp_move(dst_allocation.get()));
+                        dst_allocation.destroy(dst_alloc);
+                    };
+
+                    if(dst_allocation.has_value())
+                        impl(dst_alloc, dst_allocation, src_alloc, src_allocation);
+                    else if(src_allocation.has_value())
+                        impl(src_alloc, src_allocation, dst_alloc, dst_allocation);
+
                     return;
                 }
 
@@ -260,18 +283,7 @@ namespace stdsharp
             allocation_for<ValueType>& src_allocation
         ) noexcept(allocation_for<ValueType>::swappable_req >= expr_req::no_exception)
         {
-            [&]
-            {
-                if constexpr(!always_equal_v && !propagate_on_swap_v)
-                    if(dst_alloc != src_alloc)
-                    {
-                        ::std::ranges::swap(dst_allocation.get(), src_allocation.get());
-                        return;
-                    }
-
-                ::std::swap(dst_allocation, src_allocation);
-            }();
-
+            swap_impl(dst_alloc, dst_allocation, src_alloc, src_allocation);
             if constexpr(propagate_on_swap_v) ::std::ranges::swap(dst_alloc, src_alloc);
         }
     };
