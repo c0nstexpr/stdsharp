@@ -1,11 +1,12 @@
 #pragma once
 
-#include <ranges>
 #include <algorithm>
 #include <stdexcept>
 
+#include "../ranges/ranges.h"
 #include "../cassert/cassert.h"
 #include "../functional/operations.h"
+#include "../compare/compare.h"
 
 namespace stdsharp
 {
@@ -78,36 +79,48 @@ namespace stdsharp
         }
     } is_between{};
 
-    template<::std::ranges::input_range TRng, ::std::ranges::input_range URng>
-        requires ::std::three_way_comparable<
-            ::std::ranges::range_const_reference_t<TRng>,
-            ::std::ranges::range_const_reference_t<URng>>
-    constexpr auto strict_compare(const TRng& left, const URng& right) noexcept
+    constexpr struct strict_compare_fn
     {
-        using ordering = ::std::partial_ordering;
-
-        auto pre = ordering::equivalent;
-
-        for(auto r_it = ::std::ranges::begin(right); const auto& v : left)
+        template<::std::ranges::input_range TRng, ::std::ranges::input_range URng>
+            requires ::std::three_way_comparable_with<
+                range_const_reference_t<TRng>,
+                range_const_reference_t<URng>>
+        constexpr auto operator()(const TRng& left, const URng& right) const noexcept
         {
-            if(pre == ordering::unordered) return ordering::unordered;
+            using ordering = ::std::partial_ordering;
 
-            const ordering next = ::std::compare_three_way{}(v, *r_it);
+            auto pre = ordering::equivalent;
+            const auto r_end = ::std::ranges::end(right);
 
-            if(pre == next || is_eq(next)) continue;
-            if(is_eq(pre))
+            for(auto r_it = ::std::ranges::begin(right); const auto& v : left)
             {
-                pre = next;
-                continue;
+                if(r_it == r_end)
+                {
+                    pre = is_lt(pre) ? ordering::unordered : ordering::greater;
+                    break;
+                }
+
+                if(is_ud(pre)) return ordering::unordered;
+
+                const auto next = ::std::compare_three_way{}(v, *r_it);
+
+                if(pre == next || is_eq(next)) continue;
+                if(is_eq(pre))
+                {
+                    pre = next;
+                    continue;
+                }
+
+                pre = is_gt(pre) ? is_gt(next) ? ordering::greater : ordering::unordered :
+                    is_lt(next)  ? ordering::less :
+                                   ordering::unordered;
+
+                ++r_it;
             }
 
-            pre = is_gt(pre) ? is_gt(next) ? ordering::greater : ordering::unordered :
-                is_lt(next)  ? ordering::less :
-                               ordering::unordered;
+            return pre;
         }
-
-        return pre;
-    }
+    } strict_compare{};
 }
 
 #undef INVALID_ARGUMENT

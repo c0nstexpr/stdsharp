@@ -9,32 +9,9 @@
 
 namespace stdsharp
 {
-    namespace details
-    {
-        template<typename T>
-        struct iter_const_reference;
-
-        template<typename T>
-            requires requires { typename ::std::iter_value_t<T>; }
-        struct iter_const_reference<T>
-        {
-            using type = add_const_lvalue_ref_t<::std::iter_value_t<T>>;
-        };
-
-        template<typename T>
-            requires requires //
-        {
-            typename ::std::iter_value_t<T>;
-            typename T::const_reference;
-        }
-        struct iter_const_reference<T>
-        {
-            using type = typename T::const_reference;
-        };
-    }
-
-    template<typename T>
-    using iter_const_reference_t = typename details::iter_const_reference<T>;
+    template<::std::indirectly_readable T>
+    using iter_const_reference_t =
+        ::std::common_reference_t<const ::std::iter_value_t<T>&&, ::std::iter_reference_t<T>>;
 
     template<typename I>
     concept weakly_decrementable = ::std::movable<I> &&

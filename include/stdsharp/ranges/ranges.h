@@ -4,6 +4,7 @@
 #pragma once
 
 #include <ranges>
+#include "../iterator/iterator.h"
 
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
@@ -20,7 +21,7 @@ namespace stdsharp
     using const_sentinel_t = decltype(::std::ranges::cend(::std::declval<T&>()));
 
     template<typename T>
-    using range_const_reference_t = add_const_lvalue_ref_t<::std::ranges::range_value_t<T>>;
+    using range_const_reference_t = iter_const_reference_t<::std::ranges::iterator_t<T>>;
 
     template<typename T>
     using forwarding_views = ::std::ranges::transform_view<T, forward_like_fn<T>>;
