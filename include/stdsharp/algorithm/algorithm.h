@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ranges>
 #include <algorithm>
 #include <stdexcept>
 
@@ -76,6 +77,37 @@ namespace stdsharp
             return !::std::invoke(cmp, proj_t, proj_min) && !::std::invoke(cmp, proj_max, proj_t);
         }
     } is_between{};
+
+    template<::std::ranges::input_range TRng, ::std::ranges::input_range URng>
+        requires ::std::three_way_comparable<
+            ::std::ranges::range_const_reference_t<TRng>,
+            ::std::ranges::range_const_reference_t<URng>>
+    constexpr auto strict_compare(const TRng& left, const URng& right) noexcept
+    {
+        using ordering = ::std::partial_ordering;
+
+        auto pre = ordering::equivalent;
+
+        for(auto r_it = ::std::ranges::begin(right); const auto& v : left)
+        {
+            if(pre == ordering::unordered) return ordering::unordered;
+
+            const ordering next = ::std::compare_three_way{}(v, *r_it);
+
+            if(pre == next || is_eq(next)) continue;
+            if(is_eq(pre))
+            {
+                pre = next;
+                continue;
+            }
+
+            pre = is_gt(pre) ? is_gt(next) ? ordering::greater : ordering::unordered :
+                is_lt(next)  ? ordering::less :
+                               ordering::unordered;
+        }
+
+        return pre;
+    }
 }
 
 #undef INVALID_ARGUMENT

@@ -69,35 +69,38 @@ namespace stdsharp
         friend constexpr auto
             operator==(const special_mem_req left, const special_mem_req right) noexcept
         {
-            return (left <=> right) == partial_ordering::equivalent;
-        }
-
-        friend constexpr special_mem_req
-            min(const special_mem_req left, const special_mem_req right) noexcept
-        {
-            return {
-                ::std::min(left.move_construct, right.move_construct),
-                ::std::min(left.copy_construct, right.copy_construct),
-                ::std::min(left.move_assign, right.move_assign),
-                ::std::min(left.copy_assign, right.copy_assign),
-                ::std::min(left.destruct, right.destruct),
-                ::std::min(left.swap, right.swap) //
-            };
-        }
-
-        friend constexpr special_mem_req
-            max(const special_mem_req left, const special_mem_req right) noexcept
-        {
-            return {
-                ::std::max(left.move_construct, right.move_construct),
-                ::std::max(left.copy_construct, right.copy_construct),
-                ::std::max(left.move_assign, right.move_assign),
-                ::std::max(left.copy_assign, right.copy_assign),
-                ::std::max(left.destruct, right.destruct),
-                ::std::max(left.swap, right.swap) //
-            };
+            return left.move_construct == right.move_construct &&
+                left.copy_construct == right.copy_construct &&
+                left.move_assign == right.move_assign && //
+                left.copy_assign == right.copy_assign && //
+                left.destruct == right.destruct && //
+                left.swap == right.swap;
         }
     };
+
+    constexpr special_mem_req min(const special_mem_req left, const special_mem_req right) noexcept
+    {
+        return {
+            ::std::min(left.move_construct, right.move_construct),
+            ::std::min(left.copy_construct, right.copy_construct),
+            ::std::min(left.move_assign, right.move_assign),
+            ::std::min(left.copy_assign, right.copy_assign),
+            ::std::min(left.destruct, right.destruct),
+            ::std::min(left.swap, right.swap) //
+        };
+    }
+
+    constexpr special_mem_req max(const special_mem_req left, const special_mem_req right) noexcept
+    {
+        return {
+            ::std::max(left.move_construct, right.move_construct),
+            ::std::max(left.copy_construct, right.copy_construct),
+            ::std::max(left.move_assign, right.move_assign),
+            ::std::max(left.copy_assign, right.copy_assign),
+            ::std::max(left.destruct, right.destruct),
+            ::std::max(left.swap, right.swap) //
+        };
+    }
 
     template<typename T>
     inline constexpr special_mem_req special_mem_req::for_type{
