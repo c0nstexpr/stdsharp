@@ -15,13 +15,20 @@
 namespace stdsharp
 {
     template<typename T>
-    using const_iterator_t = decltype(::std::ranges::cbegin(::std::declval<T&>()));
+    using const_iterator_t =
+#if __cpp_lib_ranges_as_const >= 202207L
+        ::std::const_iterator_t<T>;
+#else
+        decltype(::std::ranges::cbegin(::std::declval<T&>()));
+#endif
 
     template<typename T>
-    using const_sentinel_t = decltype(::std::ranges::cend(::std::declval<T&>()));
-
-    template<typename T>
-    using range_const_reference_t = iter_const_reference_t<::std::ranges::iterator_t<T>>;
+    using range_const_reference_t =
+#if __cpp_lib_ranges_as_const >= 202207L
+        ::std::range_const_reference_t<T>;
+#else
+        iter_const_reference_t<::std::ranges::iterator_t<T>>;
+#endif
 
     template<typename T>
     using forwarding_views = ::std::ranges::transform_view<T, forward_like_fn<T>>;
