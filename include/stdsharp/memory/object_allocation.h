@@ -5,15 +5,8 @@
 
 namespace stdsharp
 {
-    template<allocation_obj_req, typename>
-    class basic_object_allocation;
-
     namespace details
     {
-        template<typename T, typename Allocator, allocation_obj_req Req>
-        concept req_compatible_for =
-            Req <= allocator_aware_traits<Allocator>::template allocation_for<T>::obj_req;
-
         template<allocation_obj_req Req, typename Alloc>
         class allocation_dispatchers
         {
@@ -23,7 +16,6 @@ namespace stdsharp
             using typename traits::allocation;
             using allocation_cref = const allocation&;
 
-            static constexpr auto mov_ctor_req = Req.move_construct;
             static constexpr auto cp_ctor_req = Req.copy_construct;
             static constexpr auto mov_assign_req = Req.move_assign;
             static constexpr auto cp_assign_req = Req.copy_assign;
@@ -36,7 +28,7 @@ namespace stdsharp
                 implement_dispatcher<ExprReq, void, alloc&, allocation&, bool, Args...>;
 
             using dispatchers = stdsharp::indexed_values<
-                ctor_dispatcher<mov_ctor_req, allocation&>,
+                ctor_dispatcher<expr_req::no_exception, allocation&>,
                 ctor_dispatcher<cp_ctor_req, allocation_cref>,
                 write_dispatcher<mov_assign_req, alloc&, allocation&>,
                 write_dispatcher<cp_assign_req, alloc_cref, allocation_cref>,
@@ -65,9 +57,7 @@ namespace stdsharp
             constexpr allocation_dispatchers(const ::std::type_identity<T>) noexcept:
                 allocation_dispatchers(
                     dispatchers(
-                        [](alloc & alloc, allocation & other) //
-                        noexcept(mov_ctor_req == expr_req::no_exception) //
-                        requires(mov_ctor_req >= expr_req::well_formed) //
+                        [](alloc& alloc, allocation& other) noexcept
                         {
                             AllocationFor allocation_for{other, true};
                             const auto res = traits::move_construct(alloc, allocation_for);
@@ -137,9 +127,8 @@ namespace stdsharp
             {
             }
 
-            [[nodiscard]] constexpr auto construct(alloc& alloc, allocation& allocation) const
-                noexcept(mov_ctor_req == expr_req::no_exception)
-                requires(mov_ctor_req >= expr_req::well_formed)
+            [[nodiscard]] constexpr auto
+                construct(alloc& alloc, allocation& allocation) const noexcept
             {
                 return get<0>(dispatchers_)(alloc, allocation);
             }
@@ -196,7 +185,7 @@ namespace stdsharp
             constexpr void
                 shrink_to_fit(alloc& alloc, allocation& allocation, const bool has_value) const
             {
-                get<5>(dispatchers_)(alloc, allocation, has_value);
+                get<5>(dispatchers_)(alloc, allocation, has_value); // NOLINT(*-magic-numbers)
             }
 
             [[nodiscard]] constexpr auto type() const noexcept { return current_type_; }
@@ -214,7 +203,8 @@ namespace stdsharp
         };
 
         template<allocation_obj_req Req, typename Alloc>
-        class allocation_rsc : public allocator_aware_traits<Alloc>
+        class allocation_rsc : // NOLINT(*-special-member-functions)
+            public allocator_aware_traits<Alloc>
         {
             using traits = allocator_aware_traits<Alloc>;
 
@@ -271,11 +261,11 @@ namespace stdsharp
             }
 
             template<allocation_obj_req OtherReq>
-                requires((OtherReq >= Req) && (Req.move_construct >= expr_req::well_formed))
+                requires(OtherReq >= Req)
             constexpr allocation_rsc(
                 allocation_rsc<OtherReq, Alloc>&& other,
                 const allocator_type& alloc
-            ) noexcept(Req.move_construct >= expr_req::no_exception):
+            ) noexcept:
                 compressed_(other.get_dispatchers(), alloc),
                 allocation_(
                     get_dispatchers() ?
@@ -397,103 +387,87 @@ namespace stdsharp
             constexpr auto& get_allocation() const noexcept { return allocation_; }
         };
 
-        template<allocation_obj_req Req, allocator_req Alloc>
-        class basic_object_allocation : public allocator_aware_ctor<allocation_rsc<Req, Alloc>>
+        template<
+            allocation_obj_req Req,
+            allocator_req Alloc,
+            typename Base = allocator_aware_ctor<allocation_rsc<Req, Alloc>>>
+        class basic_object_allocation : public Base
         {
+            using typename Base::allocator_type;
+
+            using Base::get_allocation;
+            using Base::get_dispatchers;
+            using Base::get_allocator;
+
+            using this_t = basic_object_allocation;
+
+            template<typename T, typename... Args>
+            static constexpr auto compatible_impl()
+            {
+                using value_t = ::std::decay_t<T>;
+
+                return (this_t::template construct_req<value_t, Args...> >= expr_req::well_formed
+                       ) &&
+                    Req <= this_t::template allocation_for<value_t>::obj_req;
+            }
+
+            template<typename T, typename... Args>
+            static constexpr auto compatible = compatible_impl<T, Args...>();
+
+        public:
+            using Base::Base;
+
+            static constexpr auto req = Req;
+
+            template<not_same_as<void> T, typename... Args>
+                requires compatible<T, Args...>
+            constexpr decltype(auto) emplace(Args&&... args)
+            {
+                using value_t = ::std::decay_t<T>;
+                this->destroy();
+                get_allocation().allocate(get_allocator(), sizeof(value_t));
+                return this_t::construct(get_allocator(), get<value_t>(), cpp_forward(args)...);
+            }
+
+            template<::std::same_as<void> = void>
+            constexpr void emplace() noexcept
+            {
+                this->destroy();
+            }
+
+            template<not_same_as<void> T, typename... Args, typename U>
+            constexpr decltype(auto) emplace(const ::std::initializer_list<U> il, Args&&... args)
+                requires compatible<T, decltype(il), Args...>
+            {
+                return emplace<T, decltype(il), Args...>(il, cpp_forward(args)...);
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr decltype(auto) get() noexcept
+            {
+                return pointer_cast<T>(get_allocation().begin());
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr decltype(auto) get() const noexcept
+            {
+                return pointer_cast<T>(get_allocation().cbegin());
+            }
+
+            [[nodiscard]] constexpr bool has_value() const noexcept { return get_dispatchers(); }
+
+            [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
+
+            [[nodiscard]] constexpr auto type() const noexcept { return get_dispatchers().type(); }
+
+            [[nodiscard]] constexpr auto size() const noexcept { return get_dispatchers().size(); }
+
+            [[nodiscard]] constexpr auto reserved() const noexcept
+            {
+                return get_allocation().size();
+            }
         };
     }
-
-    template<allocation_obj_req Req, allocator_req Alloc>
-    class basic_object_allocation<Req, Alloc> :
-        public allocator_aware_ctor<details::allocation_rsc<Req, Alloc>>
-    {
-        using this_t = basic_object_allocation;
-        using alloc_construct_fn = typename this_t::construct_fn;
-
-        template<typename ValueType, typename... Args>
-            requires move_assignable<ValueType>
-        constexpr bool try_same_type_emplace(Args&&... args) //
-            noexcept(nothrow_constructible_from<ValueType, Args...>&&
-                         nothrow_move_assignable<ValueType>)
-        {
-            get<ValueType>() = ValueType{cpp_forward(args)...};
-            return true;
-        }
-
-        template<typename>
-        constexpr bool try_same_type_emplace(const auto&...) noexcept
-        {
-            return false;
-        }
-
-        template<typename T, typename... Args>
-        static constexpr auto emplace_able =
-            ::std::invocable<alloc_construct_fn, Alloc&, T*, Args...> &&
-            details::req_compatible_for<T, Alloc, Req>;
-
-    public:
-        static constexpr auto req = Req;
-
-        template<not_same_as<void> T, typename... Args>
-            requires emplace_able<::std::decay_t<T>, Args...>
-        constexpr decltype(auto) emplace(Alloc& alloc, Args&&... args)
-        {
-            using value_t = ::std::decay_t<T>;
-
-            if(type_id<value_t> == type() && try_same_type_emplace<value_t>(cpp_forward(args)...))
-                return get<value_t>();
-
-            this_t::construct(alloc, ptr_cast<value_t>(), cpp_forward(args)...);
-
-            return get<value_t>();
-        }
-
-        template<::std::same_as<void> = void>
-        constexpr void emplace(Alloc& alloc) noexcept
-        {
-            destroy(alloc);
-        }
-
-        template<not_same_as<void> T, typename... Args, typename U>
-        constexpr decltype(auto) emplace(
-            Alloc& alloc,
-            const ::std::initializer_list<U> il,
-            Args&&... args //
-        )
-            requires emplace_able<::std::decay_t<T>, decltype(il), Args...>
-        {
-            return emplace<T, decltype(il), Args...>(alloc, il, cpp_forward(args)...);
-        }
-
-        template<not_same_as<void> T>
-            requires emplace_able<::std::decay_t<T>, T>
-        constexpr decltype(auto) emplace(T&& t)
-        {
-            return emplace<::std::decay_t<T>, T>(cpp_forward(t));
-        }
-
-        template<typename T>
-        constexpr decltype(auto) get() noexcept
-        {
-            return data.template get<T>();
-        }
-
-        template<typename T>
-        constexpr decltype(auto) get() const noexcept
-        {
-            return data.template get<T>();
-        }
-
-        [[nodiscard]] constexpr bool has_value() const noexcept { return data; }
-
-        [[nodiscard]] constexpr explicit operator bool() const noexcept { return data; }
-
-        [[nodiscard]] constexpr auto type() const noexcept { return data.type(); }
-
-        [[nodiscard]] constexpr auto size() const noexcept { return data.size(); }
-
-        [[nodiscard]] constexpr auto reserved() const noexcept { return data.reserved(); }
-    };
 
     template<typename T, allocator_req Alloc>
     using object_allocation_like =
