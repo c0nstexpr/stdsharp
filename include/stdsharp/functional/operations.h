@@ -132,12 +132,11 @@ namespace stdsharp
         };                                                                                       \
     }                                                                                            \
                                                                                                  \
-    inline constexpr struct operator_type##_assign :                                             \
-        sequenced_invocables<                                                                    \
-            details::operator_type##_assign,                                                     \
-            details::indirect_##operator_type##_assign>                                          \
-    {                                                                                            \
-    } operator_type##_assign_v{};
+    using operator_type##_assign = sequenced_invocables<                                         \
+        details::operator_type##_assign,                                                         \
+        details::indirect_##operator_type##_assign>;                                             \
+                                                                                                 \
+    inline constexpr operator_type##_assign operator_type##_assign_v{};
 
     BS_UTIL_ASSIGN_OPERATE(plus, +)
     BS_UTIL_ASSIGN_OPERATE(minus, -)

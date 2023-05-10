@@ -23,6 +23,14 @@ namespace stdsharp
 #endif
 
     template<typename T>
+    using const_sentinel_t =
+#if __cpp_lib_ranges_as_const >= 202207L
+        ::std::const_sentinel_t<T>;
+#else
+        decltype(::std::ranges::cend(::std::declval<T&>()));
+#endif
+
+    template<typename T>
     using range_const_reference_t =
 #if __cpp_lib_ranges_as_const >= 202207L
         ::std::range_const_reference_t<T>;

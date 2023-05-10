@@ -78,7 +78,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<Invocable, Args...>)
         {
-            return cpo::get_element<Index>(t, cpp_forward(args)...);
+            return cpo::get_element<Index>(t)(cpp_forward(args)...);
         }
     };
 

@@ -1,5 +1,4 @@
 #include "stdsharp/functional/symmetric_operations.h"
-#include "stdsharp/containers/actions.h"
 #include "test.h"
 
 using namespace std;

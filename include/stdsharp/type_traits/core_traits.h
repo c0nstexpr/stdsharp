@@ -66,11 +66,8 @@ namespace stdsharp
         get_expr_req(::std::is_invocable_r_v<T, Ret, Args...>, ::std::is_nothrow_invocable_r_v<T, Ret, Args...>);
 
     template<typename T, typename... Args>
-    inline constexpr auto invocable_test = ::std::is_invocable_v<T, Args...> ? //
-        ::std::is_nothrow_invocable_r_v<T, Args...> ? //
-            expr_req::no_exception :
-            expr_req::well_formed :
-        expr_req::ill_formed;
+    inline constexpr auto invocable_test =
+        get_expr_req(::std::is_invocable_v<T, Args...>, ::std::is_nothrow_invocable_v<T, Args...>);
 
     template<typename T, typename... Args>
     inline constexpr auto constructible_from_test =

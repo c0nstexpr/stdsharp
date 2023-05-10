@@ -34,7 +34,7 @@ SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
 
             THEN("write values")
             {
-                constexpr auto data = views::iota(0, count);
+                constexpr auto data = std::views::iota(0, count);
                 std::ranges::copy(data, ptr);
                 REQUIRE_THAT(data, Catch::Matchers::RangeEquals(span(ptr, count)));
             }
