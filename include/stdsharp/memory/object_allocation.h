@@ -2,6 +2,7 @@
 
 #include "allocator_aware.h"
 #include "../utility/implementation_reference.h"
+#include "../type_traits/object.h"
 
 namespace stdsharp
 {
@@ -51,9 +52,10 @@ namespace stdsharp
             allocation_dispatchers() = default;
 
             template<
-                req_compatible_for<Alloc, Req> T,
+                typename T,
                 typename AllocationFor = traits::template allocation_for<T> // clang-format off
             > // clang-format on
+                requires(Req <= allocation_value_type_req<alloc, ::std::decay_t<T>>)
             constexpr allocation_dispatchers(const ::std::type_identity<T>) noexcept:
                 allocation_dispatchers(
                     dispatchers(
@@ -215,9 +217,11 @@ namespace stdsharp
             using typename traits::allocation;
             using typename traits::allocator_type;
 
+        protected:
+            using dispatchers_t = allocation_dispatchers<Req, Alloc>;
+
         private:
-            using compressed_t =
-                stdsharp::indexed_values<allocation_dispatchers<Req, Alloc>, allocator_type>;
+            using compressed_t = stdsharp::indexed_values<dispatchers_t, allocator_type>;
 
             compressed_t compressed_{};
             allocation allocation_{};
@@ -394,33 +398,34 @@ namespace stdsharp
         class basic_object_allocation : public Base
         {
             using typename Base::allocator_type;
+            using typename Base::dispatchers_t;
 
             using Base::get_allocation;
             using Base::get_dispatchers;
             using Base::get_allocator;
-
             using this_t = basic_object_allocation;
 
             template<typename T, typename... Args>
-            static constexpr auto compatible_impl()
+            static constexpr auto emplace_constructible = requires(::std::decay_t<T> t) //
             {
-                using value_t = ::std::decay_t<T>;
-
-                return (this_t::template construct_req<value_t, Args...> >= expr_req::well_formed
-                       ) &&
-                    Req <= this_t::template allocation_for<value_t>::obj_req;
-            }
-
-            template<typename T, typename... Args>
-            static constexpr auto compatible = compatible_impl<T, Args...>();
+                requires Base::template construct_req<decltype(t), Args...> >=
+                    expr_req::well_formed;
+                requires ::std::assignable_from<dispatchers_t, ::std::type_identity<decltype(t)>>;
+            };
 
         public:
             using Base::Base;
 
             static constexpr auto req = Req;
 
-            template<not_same_as<void> T, typename... Args>
-                requires compatible<T, Args...>
+            template<::std::same_as<void> T = void>
+            constexpr void emplace() noexcept
+            {
+                this->destroy();
+            }
+
+            template<typename T, typename... Args>
+                requires emplace_constructible<T, Args...>
             constexpr decltype(auto) emplace(Args&&... args)
             {
                 using value_t = ::std::decay_t<T>;
@@ -429,15 +434,9 @@ namespace stdsharp
                 return this_t::construct(get_allocator(), get<value_t>(), cpp_forward(args)...);
             }
 
-            template<::std::same_as<void> = void>
-            constexpr void emplace() noexcept
-            {
-                this->destroy();
-            }
-
-            template<not_same_as<void> T, typename... Args, typename U>
+            template<typename T, typename... Args, typename U>
             constexpr decltype(auto) emplace(const ::std::initializer_list<U> il, Args&&... args)
-                requires compatible<T, decltype(il), Args...>
+                requires emplace_constructible<T, decltype(il), Args...>
             {
                 return emplace<T, decltype(il), Args...>(il, cpp_forward(args)...);
             }
@@ -469,23 +468,19 @@ namespace stdsharp
         };
     }
 
+    template<allocation_obj_req Req, allocator_req Alloc>
+    using basic_object_allocation = details::basic_object_allocation<Req, Alloc>;
+
     template<typename T, allocator_req Alloc>
     using object_allocation_like =
-        basic_object_allocation<allocator_traits<Alloc>::template mem_req_for<T>, Alloc>;
+        basic_object_allocation<allocation_value_type_req<Alloc, T>, Alloc>;
 
     template<allocator_req Alloc>
-    using trivial_object_allocation = basic_object_allocation<allocation_mem_req::trivial, Alloc>;
+    using trivial_object_allocation = object_allocation_like<trivial_object, Alloc>;
 
     template<allocator_req Alloc>
-    using normal_movable_object_allocation =
-        basic_object_allocation<allocation_mem_req::unique, Alloc>;
+    using normal_object_allocation = object_allocation_like<normal_object, Alloc>;
 
     template<allocator_req Alloc>
-    using normal_object_allocation = basic_object_allocation<
-        allocation_obj_req{
-            .move_construct = expr_req::well_formed,
-            .copy_construct = expr_req::well_formed,
-            .copy_assign = expr_req::well_formed //
-        },
-        Alloc>;
+    using unique_object_allocation = object_allocation_like<unique_object, Alloc>;
 }

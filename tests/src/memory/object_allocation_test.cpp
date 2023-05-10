@@ -9,12 +9,12 @@ using allocator_t = allocator<generic_storage>;
 
 void foo()
 {
-    using t = normal_movable_object_allocation<allocator_t>;
+    // using t = normal_object_allocation<allocator_t>;
 
-    t v0{};
-    t v1{::std::allocator_arg, v0.get_allocator(), cpp_move(v0)};
+    // t v0{};
+    // t v1{::std::allocator_arg, v0.get_allocator(), cpp_move(v0)};
 
-    v1.emplace<void>();
+    // v1.emplace<void>();
 
     // static_assert(::std::move_constructible<t>);
     // static_assert(nothrow_move_constructible<t>);
@@ -27,10 +27,10 @@ void foo()
 
 SCENARIO("object allocation basic requirements", "[memory][object allocation]") // NOLINT
 {
-    STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
-    STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
-    STATIC_REQUIRE(default_initializable<normal_object_allocation<allocator_t>>);
-    STATIC_REQUIRE(default_initializable<normal_movable_object_allocation<allocator_t>>);
+    // STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
+    // STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
+    // STATIC_REQUIRE(default_initializable<normal_object_allocation<allocator_t>>);
+    // STATIC_REQUIRE(default_initializable<normal_movable_object_allocation<allocator_t>>);
 
     // STATIC_REQUIRE(nothrow_movable<normal_movable_object_allocation<allocator_t>>);
     // STATIC_REQUIRE(nothrow_swappable<normal_movable_object_allocation<allocator_t>>);

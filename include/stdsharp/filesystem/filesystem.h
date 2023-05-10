@@ -448,7 +448,7 @@ namespace stdsharp::inline literals
     using namespace stdsharp::filesystem::literals;
 }
 
-#if __cpp_lib_format >= 201907L
+#if(__cpp_lib_format >= 201907L) || (_LIBCPP_VERSION >= 160002)
 namespace std
 #else
 namespace fmt

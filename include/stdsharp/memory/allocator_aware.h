@@ -17,6 +17,9 @@ namespace stdsharp
     template<allocator_req Alloc, typename ValueType = Alloc::value_type>
     using allocation_for = allocator_aware_traits<Alloc>::template allocation_for<ValueType>;
 
+    template<allocator_req Alloc, typename ValueType = Alloc::value_type>
+    static constexpr auto allocation_value_type_req = allocation_for<Alloc, ValueType>::obj_req;
+
     namespace details
     {
         struct allocation_access

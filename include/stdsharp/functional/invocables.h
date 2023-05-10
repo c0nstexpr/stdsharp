@@ -6,7 +6,6 @@
 #include <functional>
 
 #include "../type_traits/indexed_traits.h"
-#include "../utility/auto_cast.h"
 
 namespace stdsharp
 {
@@ -79,7 +78,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<Invocable, Args...>)
         {
-            return cpo::get_element<Index>(cpp_forward(args)...);
+            return cpo::get_element<Index>(t, cpp_forward(args)...);
         }
     };
 
@@ -117,7 +116,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<invoke_at_t<T, Args...>, T, Args...>)
         {
-            return invoke_at_t<T, Args...>{}(cpp_forward(args)...);
+            return invoke_at_t<T, Args...>{}(t, cpp_forward(args)...);
         }
     };
 

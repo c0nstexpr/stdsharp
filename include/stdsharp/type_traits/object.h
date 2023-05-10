@@ -1,20 +1,14 @@
 
 #pragma once
 
-#include "../concepts/concepts.h"
-#include "core_traits.h"
+#include "special_member.h"
 
 namespace stdsharp
 {
-    struct unique_object
-    {
-        unique_object() = default;
-        unique_object(unique_object&&) = default;
-        unique_object& operator=(unique_object&&) = default;
-        unique_object(const unique_object&) = delete;
-        unique_object& operator=(const unique_object&) = delete;
-        ~unique_object() = default;
-    };
+    using trivial_object = fake_type_for<special_mem_req::trivial>;
+    using normal_object = fake_type_for<special_mem_req::normal>;
+    using unique_object = fake_type_for<special_mem_req::unique>;
+    using ill_formed_object = fake_type_for<special_mem_req::ill_formed>;
 
     template<typename T>
     class private_object

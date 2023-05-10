@@ -24,7 +24,7 @@ namespace stdsharp
                 {
                     auto&& [first, second] = cpp_move(pair);
 
-                    if(static_cast<bool>(::std::invoke(cpp_move(first), condition)))
+                    if(::std::invoke(cpp_move(first), condition))
                     {
                         ::std::invoke(cpp_move(second), condition);
                         return true;
