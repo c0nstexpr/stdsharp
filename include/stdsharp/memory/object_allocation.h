@@ -1,7 +1,7 @@
 #pragma once
 
 #include "allocator_aware.h"
-#include "../utility/implementation_reference.h"
+#include "../utility/implement_dispatcher.h"
 #include "../type_traits/object.h"
 
 namespace stdsharp
@@ -26,7 +26,7 @@ namespace stdsharp
 
             template<expr_req ExprReq, typename... Args>
             using write_dispatcher =
-                implement_dispatcher<ExprReq, void, alloc&, allocation&, bool, Args...>;
+                implement_dispatcher<ExprReq, void, alloc&, allocation&, const bool, Args...>;
 
             using dispatchers = stdsharp::indexed_values<
                 ctor_dispatcher<expr_req::no_exception, allocation&>,
@@ -355,14 +355,17 @@ namespace stdsharp
                 ::std::swap(get_dispatchers(), other_dispatchers);
             }
 
-            constexpr auto& get_allocator() const noexcept { return stdsharp::get<0>(compressed_); }
+            constexpr auto& get_allocator() const noexcept { return stdsharp::get<1>(compressed_); }
 
             constexpr operator bool() const noexcept { return get_dispatchers().has_value(); }
 
             constexpr void destroy() noexcept
             {
                 auto& dispatchers = get_dispatchers();
-                dispatchers.destroy(get_allocator(), get_allocation());
+
+                if(dispatchers) return;
+
+                dispatchers.destroy(get_allocator(), get_allocation(), true);
                 dispatchers = {};
             }
 
@@ -402,7 +405,6 @@ namespace stdsharp
 
             using Base::get_allocation;
             using Base::get_dispatchers;
-            using Base::get_allocator;
             using this_t = basic_object_allocation;
 
             template<typename T, typename... Args>
@@ -415,6 +417,7 @@ namespace stdsharp
 
         public:
             using Base::Base;
+            using Base::get_allocator;
 
             static constexpr auto req = Req;
 

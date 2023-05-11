@@ -9,20 +9,12 @@ using allocator_t = allocator<generic_storage>;
 
 void foo()
 {
-    using t = implement_dispatcher<expr_req::no_exception, void, int>;
-    using fun_ptr = t::type*;
+    constexpr auto req = allocation_value_type_req<allocator_t, unique_object>;
+    using t = allocator_aware_ctor<details::allocation_rsc<req, allocator_t>>;
 
-    constexpr auto fn = [](int&&) noexcept {};
-    // t dispathcer{fn};
-
-    static_assert(::std::convertible_to<decltype(fn), t::type*>);
-
-    auto ptr = static_cast<fun_ptr>(fn);
-
-    // using t = normal_object_allocation<allocator_t>;
-
-    // t v0{};
-    // t v1{::std::allocator_arg, v0.get_allocator(), cpp_move(v0)};
+    t v0;
+    t v1{cpp_move(v0)};
+    // t v2{::std::allocator_arg, v0.get_allocator(), cpp_move(v0)};
 
     // v1.emplace<void>();
 
@@ -37,11 +29,12 @@ void foo()
 
 SCENARIO("object allocation basic requirements", "[memory][object allocation]") // NOLINT
 {
-    // STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
-    // STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
-    // STATIC_REQUIRE(default_initializable<normal_object_allocation<allocator_t>>);
+    STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
+    STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
+    STATIC_REQUIRE(default_initializable<normal_object_allocation<allocator_t>>);
+    STATIC_REQUIRE(default_initializable<unique_object_allocation<allocator_t>>);
 
-    // STATIC_REQUIRE(nothrow_movable<normal_movable_object_allocation<allocator_t>>);
+    // STATIC_REQUIRE(nothrow_movable<unique_object_allocation<allocator_t>>);
     // STATIC_REQUIRE(nothrow_swappable<normal_movable_object_allocation<allocator_t>>);
     // STATIC_REQUIRE(copyable<normal_object_allocation<allocator_t>>);
 

@@ -7,28 +7,28 @@ namespace stdsharp
 {
     template<expr_req ExprReq, typename Ret, typename... Args>
     struct implement_dispatcher :
-        ::std::reference_wrapper<Ret(Args&&...) noexcept(ExprReq == expr_req::no_exception)>
+        ::std::reference_wrapper<Ret(Args...) noexcept(ExprReq == expr_req::no_exception)>
     {
     private:
         using func = ::meta::_t<implement_dispatcher>;
+        using m_base = ::std::reference_wrapper<func>;
 
     public:
+        using m_base::m_base;
+
         static constexpr auto requirement = ExprReq;
 
-        using ::std::reference_wrapper<func>::reference_wrapper;
-
         template<invocable_r<Ret, Args...> Closure>
-        constexpr implement_dispatcher(const Closure&) noexcept
-            requires requires(const Closure& c) //
+        constexpr implement_dispatcher(const Closure) noexcept
+            requires requires //
         {
             constant<(Closure{}, 0)>{};
             requires !(ExprReq == expr_req::no_exception) ||
                 nothrow_invocable_r<Closure, Ret, Args...>;
-            +c;
         }
             :
-            ::std::reference_wrapper<func>(
-                +[](Args&&... args) -> Ret
+            m_base(
+                *+[](Args... args) noexcept(ExprReq == expr_req::no_exception) -> Ret
                 {
                     constexpr Closure c{};
                     return c(cpp_forward(args)...);
@@ -51,17 +51,8 @@ namespace stdsharp
         }
             :
             implement_dispatcher( //
-                [](const Args&...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
+                [](Args...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
             )
-        {
-        }
-
-        template<expr_req OtherReq, typename OtherRet>
-        constexpr implement_dispatcher(
-            const implement_dispatcher<OtherReq, OtherRet, Args...>& other
-        ) noexcept
-            requires invocable_r<decltype(other), Ret, Args...>
-            : ::std::reference_wrapper<func>(other.get())
         {
         }
     };

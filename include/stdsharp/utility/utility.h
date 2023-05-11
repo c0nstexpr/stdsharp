@@ -3,13 +3,12 @@
 
 #include <utility>
 
-#include "adl_proof.h"
 #include "auto_cast.h"
 #include "cast_to.h"
 #include "constructor.h"
 #include "invocable.h"
+#include "../type_traits/core_traits.h"
 #include "value_wrapper.h"
-#include "implementation_reference.h"
 
 namespace stdsharp
 {
