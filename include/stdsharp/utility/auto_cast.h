@@ -1,20 +1,21 @@
 #pragma once
 
 #include "../concepts/concepts.h"
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
-    inline constexpr struct
+    inline constexpr struct auto_cast_fn
     {
     private:
         template<typename T>
         struct auto_cast_operator
         {
-            T&& t;
+            T&& t; // NOLINT(*-avoid-const-or-ref-data-members)
 
             template<typename U>
                 requires explicitly_convertible<T, U>
-            [[nodiscard]] constexpr operator U() const&& //
+            STDSHARP_INTRINSIC [[nodiscard]] constexpr operator U() const&& //
                 noexcept(nothrow_explicitly_convertible<T, U>)
             {
                 return static_cast<U>(cpp_forward(t));
@@ -29,3 +30,5 @@ namespace stdsharp
         }
     } auto_cast{};
 }
+
+#include "../compilation_config_out.h"

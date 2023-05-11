@@ -256,7 +256,7 @@ namespace stdsharp
     );
 
     template<::std::integral T, T First, T... V>
-    struct regular_value_sequence<First, V...> : ::std::integer_sequence<T, V...>
+    struct regular_value_sequence<First, V...> : ::std::integer_sequence<T, First, V...>
     {
     };
 

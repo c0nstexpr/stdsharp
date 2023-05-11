@@ -56,7 +56,7 @@ public:                                                                         
         constexpr auto operator()(Func&& func, Args&&... args) const
             noexcept(noexcept(bind_t{::std::declval<Func>(), ::std::declval<Args>()...}))
         {
-            return bind_t{cpp_forward(args)...};
+            return bind_t{cpp_forward(func), cpp_forward(args)...};
         }
     } bind{};
 

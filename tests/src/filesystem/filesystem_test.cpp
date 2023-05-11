@@ -2,16 +2,9 @@
 #include "test.h"
 
 using namespace std;
-using namespace fmt;
 using namespace stdsharp;
 
 using namespace stdsharp::filesystem;
-
-#if __cpp_lib_format >= 201907L
-    #define FORMAT_NS ::std
-#else
-    #define FORMAT_NS ::fmt
-#endif
 
 SCENARIO("space size", "[filesystem]") // NOLINT
 {
@@ -37,12 +30,12 @@ SCENARIO("space size", "[filesystem]") // NOLINT
     {
         constexpr auto v = 1'000'042_KB;
 
-        REQUIRE(FORMAT_NS::format("{:-<5MB}", v) == "1000MB42KB");
-        REQUIRE(FORMAT_NS::format("{:-<5.1GB}", v) == "1GB--");
-        REQUIRE(FORMAT_NS::format("{:->5.1GB}", v) == "--1GB");
-        REQUIRE(FORMAT_NS::format("{:-<5GB}", v) == "1GB0MB42KB");
-        REQUIRE(FORMAT_NS::format("{:-^5.1GB}", v) == "-1GB-");
-        REQUIRE(FORMAT_NS::format("{:.4GB}", v) == "1GB0MB42KB0B");
-        REQUIRE(FORMAT_NS::format("{}", 1.2_GB) == "1.2GB");
+        REQUIRE(::std::format("{:-<5MB}", v) == "1000MB42KB");
+        REQUIRE(::std::format("{:-<5.1GB}", v) == "1GB--");
+        REQUIRE(::std::format("{:->5.1GB}", v) == "--1GB");
+        REQUIRE(::std::format("{:-<5GB}", v) == "1GB0MB42KB");
+        REQUIRE(::std::format("{:-^5.1GB}", v) == "-1GB-");
+        REQUIRE(::std::format("{:.4GB}", v) == "1GB0MB42KB0B");
+        REQUIRE(::std::format("{}", 1.2_GB) == "1.2GB");
     }
 };

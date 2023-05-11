@@ -4,34 +4,26 @@
 #include <variant>
 #include <optional>
 #include <numeric>
+#include <format>
 
 #include <range/v3/view/repeat_n.hpp>
 #include <ctre.hpp>
 #include <unicode-db.hpp>
 
 #include "../cstdint/cstdint.h"
-#include "../concepts/concepts.h"
-
-#if(__cpp_lib_format >= 201907L) || (_LIBCPP_VERSION >= 160002)
-    #include <format>
-    #define FORMAT_NS ::std
-#else
-    #include <fmt/xchar.h>
-    #define FORMAT_NS ::fmt
-#endif
 
 namespace stdsharp
 {
     namespace details
     {
         template<typename CharT>
-        using parse_context = FORMAT_NS::basic_format_parse_context<CharT>;
+        using parse_context = ::std::basic_format_parse_context<CharT>;
 
         template<typename OutputIt, typename CharT>
-        using context = FORMAT_NS::basic_format_context<OutputIt, CharT>;
+        using context = ::std::basic_format_context<OutputIt, CharT>;
 
         template<typename CharT>
-        using iter = typename FORMAT_NS::basic_format_parse_context<CharT>::iterator;
+        using iter = typename ::std::basic_format_parse_context<CharT>::iterator;
 
         template<::std::integral T>
         constexpr auto parse_integer(const auto& rng) noexcept
@@ -59,7 +51,7 @@ namespace stdsharp
             Visitor&& vis //
         ) const
         {
-            return FORMAT_NS::visit_format_arg(cpp_forward(vis), fc.arg(value));
+            return ::std::visit_format_arg(cpp_forward(vis), fc.arg(value));
         }
 
         template<typename T, typename OutputIt, typename CharT>
@@ -89,14 +81,13 @@ namespace stdsharp
     }
 
     template<typename ResultT = void, typename SpecT, typename OutputIt, typename CharT>
-        requires requires(SpecT t) { details::nested_spec_like(t); }
     [[nodiscard]] constexpr auto get_arg(const details::context<OutputIt, CharT>& fc, SpecT&& spec)
+        requires requires { details::nested_spec_like(spec); }
     {
         using result_t = ::std::conditional_t<
             ::std::same_as<ResultT, void>,
             decltype(details::nested_spec_like(spec)),
-            ResultT // clang-format off
-        >; // clang-format on
+            ResultT>;
 
         if(spec.valueless_by_exception() || ::std::holds_alternative<::std::monostate>(spec))
             return ::std::optional<result_t>{::std::nullopt};
@@ -106,7 +97,7 @@ namespace stdsharp
                 if constexpr(::std::same_as<::std::remove_cvref_t<U>, result_t>)
                     return ::std::optional<result_t>{cpp_forward(u)};
                 else if constexpr(::std::same_as<::std::remove_cvref_t<U>, nested_arg_index>)
-                    return cpp_forward(fc);
+                    return cpp_forward(u).template get_from_context<result_t>(fc);
                 else return ::std::nullopt;
             },
             spec
@@ -117,11 +108,11 @@ namespace stdsharp
     void parse_assert(const details::parse_context<CharT>& ctx)
     {
         const auto begin = ctx.begin();
-        throw FORMAT_NS::format_error{
-            FORMAT_NS::format(
+        throw ::std::format_error{
+            ::std::format(
                 "invalid format:\n \"{}\"\n{}",
                 ::std::basic_string_view{begin, ctx.end()},
-                FORMAT_NS::format(
+                ::std::format(
                     "{}^ Unexpected character here",
                     // TODO: c++23 ::std::ranges::views::repeat
                     ::ranges::views::repeat_n(' ', begin - ctx.begin())
@@ -150,8 +141,8 @@ namespace stdsharp
 
         if(begin == ctx.end() || *begin == '}') return;
 
-        throw FORMAT_NS::format_error{
-            FORMAT_NS::format(
+        throw ::std::format_error{
+            ::std::format(
                 "invalid format: \"{}\"\nEnd of string expected",
                 ::std::basic_string_view{begin, ctx.end()}
             ) //
@@ -269,5 +260,3 @@ namespace stdsharp
         return {};
     }
 }
-
-#undef FORMAT_NS

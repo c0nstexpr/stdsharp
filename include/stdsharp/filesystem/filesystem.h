@@ -448,11 +448,7 @@ namespace stdsharp::inline literals
     using namespace stdsharp::filesystem::literals;
 }
 
-#if(__cpp_lib_format >= 201907L) || (_LIBCPP_VERSION >= 160002)
 namespace std
-#else
-namespace fmt
-#endif
 {
     template<typename Rep, typename Period, typename CharT>
         requires requires(
@@ -605,13 +601,7 @@ namespace fmt
                     );
                 };
 
-                if(locale_.use_locale)
-#if __cpp_lib_format >= 201907L
-                    ss.imbue(fc.locale());
-#else
-                    ss.imbue(fc.locale().template get<::std::locale>());
-#endif
-                else ss.imbue(::std::locale::classic());
+                ss.imbue(locale_.use_locale ? fc.locale() : ::std::locale::classic());
 
                 if(const auto precision_v = ::stdsharp::get_arg(fc, precision); precision_v)
                     for(auto i = *precision_v; i != 0; --i) do_format();

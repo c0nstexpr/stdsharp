@@ -7,7 +7,7 @@ include(cmake/Utils.cmake)
 #
 project(
   stdsharp
-  VERSION 0.5.0
+  VERSION 0.6.0
   LANGUAGES CXX)
 
 config_lib(${PROJECT_NAME} INTERFACE STD 23)
@@ -25,8 +25,8 @@ target_compile_options(
   ${PROJECT_NAME} INTERFACE $<$<CXX_COMPILER_ID:MSVC>: /external:anglebrackets>
                             $<$<CXX_COMPILER_ID:Clang>: -fexperimental-library>)
 
-target_compile_definitions(${PROJECT_NAME} INTERFACE $<$<CXX_COMPILER_ID:Clang>:
-                                                     _LIBCPP_ENABLE_NODISCARD>)
+target_link_options(${PROJECT_NAME} INTERFACE $<$<CXX_COMPILER_ID:Clang>:
+                    -lc++experimental>)
 
 target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt range-v3::range-v3
                                                 ctre::ctre nameof::nameof)

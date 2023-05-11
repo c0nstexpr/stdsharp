@@ -9,6 +9,16 @@ using allocator_t = allocator<generic_storage>;
 
 void foo()
 {
+    using t = implement_dispatcher<expr_req::no_exception, void, int>;
+    using fun_ptr = t::type*;
+
+    constexpr auto fn = [](int&&) noexcept {};
+    // t dispathcer{fn};
+
+    static_assert(::std::convertible_to<decltype(fn), t::type*>);
+
+    auto ptr = static_cast<fun_ptr>(fn);
+
     // using t = normal_object_allocation<allocator_t>;
 
     // t v0{};
@@ -30,7 +40,6 @@ SCENARIO("object allocation basic requirements", "[memory][object allocation]") 
     // STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
     // STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
     // STATIC_REQUIRE(default_initializable<normal_object_allocation<allocator_t>>);
-    // STATIC_REQUIRE(default_initializable<normal_movable_object_allocation<allocator_t>>);
 
     // STATIC_REQUIRE(nothrow_movable<normal_movable_object_allocation<allocator_t>>);
     // STATIC_REQUIRE(nothrow_swappable<normal_movable_object_allocation<allocator_t>>);

@@ -217,7 +217,7 @@ namespace stdsharp
         {
             template<typename Func>
                 requires ::std::invocable<FindFunc, Func>
-            [[nodiscard]] constexpr auto operator()(Func func) const
+            [[nodiscard]] constexpr auto operator()(Func&& func) const
                 noexcept(nothrow_invocable<FindFunc, Func>)
             {
                 const auto v = FindFunc{}(cpp_forward(func));
@@ -253,13 +253,10 @@ namespace stdsharp
         static constexpr struct for_each_n_fn
         {
             template<proxy_concept<predicate> Func>
-            constexpr auto operator()(auto for_each_n_count, Func func) const
+            constexpr auto operator()(auto count, Func func) const
                 noexcept(nothrow_predicate<Func>::value)
             {
-                ((for_each_n_count == 0 ?
-                      false :
-                      (::std::invoke(func, Values), --for_each_n_count, true)) &&
-                 ...);
+                ((count == 0 ? false : (::std::invoke(func, Values), --count, true)) && ...);
                 return func;
             }
         } for_each_n{};

@@ -14,7 +14,7 @@ namespace stdsharp
             using traits = allocator_aware_traits<Alloc>;
             using alloc = traits::allocator_type;
             using alloc_cref = const alloc&;
-            using typename traits::allocation;
+            using allocation = traits::allocation;
             using allocation_cref = const allocation&;
 
             static constexpr auto cp_ctor_req = Req.copy_construct;

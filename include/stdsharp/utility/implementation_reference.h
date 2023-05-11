@@ -5,9 +5,9 @@
 
 namespace stdsharp
 {
-    template<expr_req ExprReq, typename Ret, typename... Arg>
+    template<expr_req ExprReq, typename Ret, typename... Args>
     struct implement_dispatcher :
-        ::std::reference_wrapper<Ret(Arg&&...) noexcept(ExprReq == expr_req::no_exception)>
+        ::std::reference_wrapper<Ret(Args&&...) noexcept(ExprReq == expr_req::no_exception)>
     {
     private:
         using func = ::meta::_t<implement_dispatcher>;
@@ -17,15 +17,29 @@ namespace stdsharp
 
         using ::std::reference_wrapper<func>::reference_wrapper;
 
-        template<nothrow_convertible_to<func*> Closure>
-        constexpr implement_dispatcher(Closure&& closure) noexcept:
-            ::std::reference_wrapper<func>(*static_cast<func*>(closure))
+        template<invocable_r<Ret, Args...> Closure>
+        constexpr implement_dispatcher(const Closure&) noexcept
+            requires requires(const Closure& c) //
+        {
+            constant<(Closure{}, 0)>{};
+            requires !(ExprReq == expr_req::no_exception) ||
+                nothrow_invocable_r<Closure, Ret, Args...>;
+            +c;
+        }
+            :
+            ::std::reference_wrapper<func>(
+                +[](Args&&... args) -> Ret
+                {
+                    constexpr Closure c{};
+                    return c(cpp_forward(args)...);
+                }
+            )
         {
         }
 
         constexpr implement_dispatcher() noexcept
             requires ::std::same_as<void, Ret>
-            : implement_dispatcher([](const Arg&...) noexcept {})
+            : implement_dispatcher([](const Args&...) noexcept {})
         {
         }
 
@@ -37,15 +51,16 @@ namespace stdsharp
         }
             :
             implement_dispatcher( //
-                [](const Arg&...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
+                [](const Args&...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
             )
         {
         }
 
         template<expr_req OtherReq, typename OtherRet>
-        constexpr implement_dispatcher(const implement_dispatcher<OtherReq, OtherRet, Arg...>& other
+        constexpr implement_dispatcher(
+            const implement_dispatcher<OtherReq, OtherRet, Args...>& other
         ) noexcept
-            requires invocable_r<decltype(other), Ret, Arg...>
+            requires invocable_r<decltype(other), Ret, Args...>
             : ::std::reference_wrapper<func>(other.get())
         {
         }
