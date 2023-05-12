@@ -70,7 +70,8 @@ namespace stdsharp
                         noexcept(cp_ctor_req == expr_req::no_exception) //
                         requires(cp_ctor_req >= expr_req::well_formed) //
                         {
-                            return traits::copy_construct(alloc, {other, true}).allocation();
+                            return traits::copy_construct(alloc, AllocationFor{other, true})
+                                .allocation();
                         },
                         []( //
                             alloc & dst_alloc,
@@ -196,7 +197,7 @@ namespace stdsharp
 
             [[nodiscard]] constexpr auto has_value() const noexcept { return size() != 0; }
 
-            [[nodiscard]] explicit constexpr operator bool() const noexcept { return has_value(); }
+            [[nodiscard]] constexpr operator bool() const noexcept { return has_value(); }
 
         private:
             dispatchers dispatchers_{};
@@ -363,7 +364,7 @@ namespace stdsharp
             {
                 auto& dispatchers = get_dispatchers();
 
-                if(dispatchers) return;
+                if(!dispatchers) return;
 
                 dispatchers.destroy(get_allocator(), get_allocation(), true);
                 dispatchers = {};
@@ -412,7 +413,8 @@ namespace stdsharp
             {
                 requires Base::template construct_req<decltype(t), Args...> >=
                     expr_req::well_formed;
-                requires ::std::assignable_from<dispatchers_t, ::std::type_identity<decltype(t)>>;
+                requires ::std::
+                    constructible_from<dispatchers_t, ::std::type_identity<decltype(t)>>;
             };
 
         public:
@@ -432,9 +434,14 @@ namespace stdsharp
             constexpr decltype(auto) emplace(Args&&... args)
             {
                 using value_t = ::std::decay_t<T>;
+
                 this->destroy();
                 get_allocation().allocate(get_allocator(), sizeof(value_t));
-                return this_t::construct(get_allocator(), get<value_t>(), cpp_forward(args)...);
+
+                this_t::construct(get_allocator(), ptr<value_t>(), cpp_forward(args)...);
+                get_dispatchers() = ::std::type_identity<value_t>{};
+
+                return get<value_t>();
             }
 
             template<typename T, typename... Args, typename U>
@@ -445,15 +452,36 @@ namespace stdsharp
             }
 
             template<typename T>
-            [[nodiscard]] constexpr decltype(auto) get() noexcept
+                requires emplace_constructible<T, T>
+            constexpr decltype(auto) emplace(T&& t)
+            {
+                return emplace<T, T>(cpp_forward(t));
+            }
+
+        private:
+            template<typename T>
+            [[nodiscard]] constexpr auto ptr() noexcept
             {
                 return pointer_cast<T>(get_allocation().begin());
             }
 
             template<typename T>
-            [[nodiscard]] constexpr decltype(auto) get() const noexcept
+            [[nodiscard]] constexpr auto ptr() const noexcept
             {
                 return pointer_cast<T>(get_allocation().cbegin());
+            }
+
+        public:
+            template<typename T>
+            [[nodiscard]] constexpr decltype(auto) get() noexcept
+            {
+                return *ptr<T>();
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr decltype(auto) get() const noexcept
+            {
+                return *ptr<T>();
             }
 
             [[nodiscard]] constexpr bool has_value() const noexcept { return get_dispatchers(); }
@@ -471,12 +499,9 @@ namespace stdsharp
         };
     }
 
-    template<allocation_obj_req Req, allocator_req Alloc>
-    using basic_object_allocation = details::basic_object_allocation<Req, Alloc>;
-
     template<typename T, allocator_req Alloc>
     using object_allocation_like =
-        basic_object_allocation<allocation_value_type_req<Alloc, T>, Alloc>;
+        details::basic_object_allocation<allocation_value_type_req<Alloc, T>, Alloc>;
 
     template<allocator_req Alloc>
     using trivial_object_allocation = object_allocation_like<trivial_object, Alloc>;

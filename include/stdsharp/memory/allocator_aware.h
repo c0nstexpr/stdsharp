@@ -114,12 +114,12 @@ namespace stdsharp
         class allocation_for;
 
         template<typename ValueType>
-        static constexpr allocation_for<ValueType>
+        [[nodiscard]] static constexpr allocation_for<ValueType>
             copy_construct(allocator_type& alloc, const allocation_for<ValueType>& other)
             requires(allocation_for<ValueType>::copy_constructible_req >= expr_req::well_formed);
 
         template<typename ValueType>
-        static constexpr allocation_for<ValueType>
+        [[nodiscard]] static constexpr allocation_for<ValueType>
             move_construct(allocator_type&, allocation_for<ValueType>& other) noexcept;
 
         template<typename ValueType>
@@ -285,7 +285,7 @@ namespace stdsharp
 
             if(ptr_ != nullptr) deallocate(alloc);
 
-            *this = make_allocation(size);
+            *this = make_allocation(alloc, size);
         }
 
         constexpr void deallocate(allocator_type& alloc) noexcept
@@ -308,7 +308,7 @@ namespace stdsharp
     private:
         [[nodiscard]] constexpr auto to_array() const noexcept
         {
-            return std::array{move_construct, copy_construct, move_assign, copy_assign};
+            return std::array{copy_construct, move_assign, copy_assign};
         }
 
         [[nodiscard]] friend constexpr auto
@@ -339,7 +339,7 @@ namespace stdsharp
         );
 
         static constexpr auto copy_assignable_req = ::std::min(
-            copy_constructible_req,
+            traits::template construct_req<value_type, const value_type&>,
             get_expr_req(copy_assignable<value_type>, !propagate_on_copy_v || always_equal_v)
         );
 
@@ -372,16 +372,24 @@ namespace stdsharp
                     ::std::ranges::greater_equal{},
                     allocation_.size(),
                     has_value_ ? sizeof(value_type) : 0
-                )
+                ),
+                "allocation size is too small for the value type"
             );
         }
 
-        [[nodiscard]] constexpr decltype(auto) get() const noexcept
+        [[nodiscard]] constexpr auto ptr() const noexcept
         {
             return pointer_cast<value_type>(allocation_.begin());
         }
 
-        [[nodiscard]] constexpr const auto& get_const() const noexcept { return get(); }
+        [[nodiscard]] constexpr auto cptr() const noexcept
+        {
+            return pointer_cast<value_type>(allocation_.cbegin());
+        }
+
+        [[nodiscard]] constexpr decltype(auto) get() const noexcept { return *ptr(); }
+
+        [[nodiscard]] constexpr decltype(auto) get_const() const noexcept { return *cptr(); }
 
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
@@ -407,7 +415,12 @@ namespace stdsharp
 
             auto new_allocation = make_allocation(alloc, sizeof(value_type));
 
-            if(has_value()) traits::construct(alloc, new_allocation.begin(), cpp_move(get()));
+            if(has_value())
+                traits::construct(
+                    alloc,
+                    pointer_cast<value_type>(new_allocation.begin()),
+                    cpp_move(get())
+                );
 
             deallocate(alloc);
             allocation_ = new_allocation;
@@ -417,20 +430,18 @@ namespace stdsharp
             typename... Args,
             auto Req = traits::template construct_req<value_type, Args...> // clang-format off
         > requires(Req >= expr_req::well_formed)
-        [[nodiscard]] constexpr decltype(auto) construct(allocator_type& alloc, Args&&... args)
+        constexpr void construct(allocator_type& alloc, Args&&... args)
             noexcept(Req >= expr_req::no_exception) // clang-format on
         {
             destroy(alloc);
-
-            decltype(auto) res = traits::construct(alloc, get(), cpp_forward(args)...);
+            traits::construct(alloc, ptr(), cpp_forward(args)...);
             has_value_ = true;
-            return res;
         }
 
         constexpr void destroy(allocator_type& alloc) noexcept
         {
             if(!has_value()) return;
-            traits::destroy(alloc, get());
+            traits::destroy(alloc, ptr());
             has_value_ = false;
         }
 
@@ -509,8 +520,20 @@ namespace stdsharp
         {
         }
 
-        this_t& operator=(const this_t&) = default;
-        this_t& operator=(this_t&&) = default; // NOLINT(*-noexcept-move-constructor)
+        constexpr this_t& operator=(const this_t& other) noexcept(nothrow_copy_assignable<T>)
+            requires copy_assignable<T>
+        {
+            static_cast<T&>(*this) = other;
+            return *this;
+        }
+
+        constexpr this_t& operator=(this_t&& other) noexcept(nothrow_move_assignable<T>)
+            requires move_assignable<T>
+        {
+            static_cast<T&>(*this) = cpp_move(other);
+            return *this;
+        }
+
         ~allocator_aware_ctor() = default;
     };
 

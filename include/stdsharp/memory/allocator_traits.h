@@ -204,58 +204,53 @@ namespace stdsharp
         {
             template<typename T, typename... Args>
                 requires ::std::constructible_from<T, Args..., const Alloc&>
-            constexpr decltype(auto) operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
+            constexpr void operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
                 const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
-                return ::std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
+                ::std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
             }
 
             template<typename T, typename... Args, typename Tag = ::std::allocator_arg_t>
                 requires ::std::constructible_from<T, Tag, const Alloc&, Args...>
-            constexpr decltype(auto) operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
+            constexpr void operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
                 const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
-                return ::std::ranges::construct_at(
-                    ptr,
-                    ::std::allocator_arg,
-                    alloc,
-                    cpp_forward(args)...
-                );
+                ::std::ranges::construct_at(ptr, ::std::allocator_arg, alloc, cpp_forward(args)...);
             }
 
             template<typename T, typename... Args>
                 requires ::std::constructible_from<T, Args..., const Alloc&>
-            constexpr decltype(auto) operator()(
+            constexpr void operator()(
                 const Alloc& alloc,
                 void* const ptr,
                 const ::std::in_place_type_t<T>,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
-                return ::new(ptr) T{cpp_forward(args)..., alloc};
+                ::new(ptr) T{cpp_forward(args)..., alloc};
             }
 
             template<typename T, typename... Args, typename Tag = ::std::allocator_arg_t>
                 requires ::std::constructible_from<T, Tag, const Alloc&, Args...>
-            constexpr decltype(auto) operator()(
+            constexpr void operator()(
                 const Alloc& alloc,
                 void* const ptr,
                 const ::std::in_place_type_t<T>,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
-                return ::new(ptr) T{::std::allocator_arg, alloc, cpp_forward(args)...};
+                ::new(ptr) T{::std::allocator_arg, alloc, cpp_forward(args)...};
             }
         };
 
         struct custom_constructor
         {
             template<typename T, typename... Args>
-            constexpr decltype(auto) operator()(Alloc& a, T* const ptr, Args&&... args) const
+            constexpr void operator()(Alloc& a, T* const ptr, Args&&... args) const
                 noexcept(noexcept(a.construct(ptr, ::std::declval<Args>()...)))
                 requires requires { a.construct(ptr, ::std::declval<Args>()...); }
             {
-                return a.construct(ptr, cpp_forward(args)...);
+                a.construct(ptr, cpp_forward(args)...);
             }
         }; // NOLINTEND(*-owning-memory)
 
@@ -266,11 +261,8 @@ namespace stdsharp
         static constexpr constructor construct{};
 
         template<typename T, typename... Args>
-        static constexpr auto construct_req = ::std::invocable<constructor, Alloc&, T*, Args...> ?
-            nothrow_invocable<constructor, Alloc&, T*, Args...> ? //
-                expr_req::no_exception :
-                expr_req::well_formed :
-            expr_req::ill_formed;
+        static constexpr auto construct_req =
+            get_expr_req(::std::invocable<constructor, Alloc&, T*, Args...>, nothrow_invocable<constructor, Alloc&, T*, Args...>);
 
     private:
         struct custom_destructor

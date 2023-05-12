@@ -1,3 +1,4 @@
+#include "stdsharp/type_traits/object.h"
 #include "test.h"
 #include "stdsharp/memory/object_allocation.h"
 #include "stdsharp/memory/static_memory_resource.h"
@@ -7,135 +8,112 @@ using namespace std;
 
 using allocator_t = allocator<generic_storage>;
 
-void foo()
+const auto _ = [] // NOLINT
 {
-    constexpr auto req = allocation_value_type_req<allocator_t, unique_object>;
-    using t = allocator_aware_ctor<details::allocation_rsc<req, allocator_t>>;
+    using t = trivial_object_allocation<allocator<int>>;
+    t allocation{};
+    int& value = allocation.emplace(1);
 
-    t v0;
-    t v1{cpp_move(v0)};
-    // t v2{::std::allocator_arg, v0.get_allocator(), cpp_move(v0)};
-
-    // v1.emplace<void>();
-
-    // static_assert(::std::move_constructible<t>);
-    // static_assert(nothrow_move_constructible<t>);
-
-    // static_assert(move_assignable<t>);
-    // static_assert(nothrow_move_assignable<t>);
-
-    // static_assert(nothrow_movable<t>);
-}
+    return value;
+}();
 
 SCENARIO("object allocation basic requirements", "[memory][object allocation]") // NOLINT
 {
+    struct local
+    {
+        local() = default;
+        ~local() = default;
+
+    private:
+        local(const local&) = default;
+        local(local&&) = default;
+        local& operator=(const local&) = default;
+        local& operator=(local&&) = default;
+    };
+
+    using normal_t = normal_object_allocation<allocator_t>;
+    using unique_t = unique_object_allocation<allocator_t>;
+    using worst_t = object_allocation_like<local, allocator_t>;
+
     STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
     STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
-    STATIC_REQUIRE(default_initializable<normal_object_allocation<allocator_t>>);
-    STATIC_REQUIRE(default_initializable<unique_object_allocation<allocator_t>>);
+    STATIC_REQUIRE(default_initializable<normal_t>);
+    STATIC_REQUIRE(default_initializable<unique_t>);
 
-    // STATIC_REQUIRE(nothrow_movable<unique_object_allocation<allocator_t>>);
-    // STATIC_REQUIRE(nothrow_swappable<normal_movable_object_allocation<allocator_t>>);
-    // STATIC_REQUIRE(copyable<normal_object_allocation<allocator_t>>);
+    STATIC_REQUIRE(nothrow_movable<unique_t>);
+    STATIC_REQUIRE(nothrow_swappable<unique_t>);
+    STATIC_REQUIRE(copyable<normal_t>);
 
-    // using worst_allocation = basic_object_allocation<
-    //     []
-    //     {
-    //         auto req = special_mem_req::ill_formed;
-    //         req.destruct = expr_req::no_exception;
-    //         return req;
-    //     }(),
-    //     allocator_t // clang-format off
-    // >; // clang-format on
-
-    // STATIC_REQUIRE(default_initializable<worst_allocation>);
-    // STATIC_REQUIRE(nothrow_movable<worst_allocation>);
-    // STATIC_REQUIRE(nothrow_swappable<worst_allocation>);
+    STATIC_REQUIRE(default_initializable<worst_t>);
+    STATIC_REQUIRE(nothrow_movable<worst_t>);
+    STATIC_REQUIRE(nothrow_swappable<worst_t>);
 }
 
-// SCENARIO("object allocation assign value", "[memory][object allocation]") // NOLINT
-// {
-//     GIVEN("a normal object allocation")
-//     {
-//         normal_object_allocation<allocator_t> allocation;
+SCENARIO("object allocation assign value", "[memory][object allocation]") // NOLINT
+{
+    GIVEN("a normal object allocation")
+    {
+        normal_object_allocation<allocator_t> allocation;
 
-//         WHEN("emplace an int value")
-//         {
-//             auto value = allocation.emplace<int>(1);
+        WHEN("emplace an int value")
+        {
+            auto value = allocation.emplace<int>(1);
 
-//             THEN("the return value should correct") { REQUIRE(value == 1); }
-//         }
+            THEN("the return value should correct") { REQUIRE(value == 1); }
 
-//         WHEN("emplace an int vector")
-//         {
-//             const auto list = {1, 2};
-//             const auto& value = allocation.emplace(vector<int>{list});
+            AND_THEN("type should be expected") { REQUIRE(allocation.type() == type_id<int>); }
+        }
 
-//             THEN("the return value should correct")
-//             {
-//                 REQUIRE_THAT(value, Catch::Matchers::RangeEquals(list));
-//             }
-//         }
+        WHEN("emplace an int vector")
+        {
+            const auto list = {1, 2};
+            const auto& value = allocation.emplace(vector<int>{list});
 
-//         WHEN("assign an int value")
-//         {
-//             allocation = 1;
+            THEN("the return value should correct")
+            {
+                REQUIRE_THAT(value, Catch::Matchers::RangeEquals(list));
+            }
 
-//             THEN("the return value should correct") { REQUIRE(allocation.get<int>() == 1); }
+            AND_THEN("type should be expected")
+            {
+                REQUIRE(allocation.type() == type_id<vector<int>>);
+            }
+        }
 
-//             AND_THEN("type should be expected") { REQUIRE(allocation.type() == type_id<int>); }
-//         }
+        auto invoked = 0u;
 
-//         struct local
-//         {
-//             bool invoked = false;
+        struct local : reference_wrapper<unsigned>
+        {
+            local(unsigned& value): reference_wrapper(value) { ++get(); }
+        };
 
-//             local() = default;
-//             local(const local&) = default;
-//             local(local&&) = default;
+        WHEN("assign custom type twice")
+        {
+            INFO(fmt::format("custom type: {}", type_id<local>));
 
-//             local& operator=(local&&) noexcept
-//             {
-//                 invoked = true;
-//                 return *this;
-//             }
+            auto& l = allocation.emplace<local>(invoked);
+            allocation.emplace<local>(invoked);
 
-//             local& operator=(const local&) noexcept
-//             {
-//                 invoked = true;
-//                 return *this;
-//             }
+            THEN("assign operator should be invoked") { REQUIRE(invoked == 2); }
 
-//             ~local() = default;
-//         };
+            AND_THEN("destroy allocation and check content")
+            {
+                allocation.destroy();
+                REQUIRE(!allocation);
+            }
+        }
+    }
+}
 
-//         WHEN("assign custom type twice")
-//         {
-//             INFO(fmt::format("custom type: {}", type_id<local>));
-
-//             auto& l = allocation.emplace<local>();
-//             allocation.emplace<local>();
-
-//             THEN("assign operator should be invoked") { REQUIRE(l.invoked); }
-
-//             AND_THEN("reset allocation and check content")
-//             {
-//                 allocation.reset();
-//                 REQUIRE(!allocation);
-//             }
-//         }
-//     }
-// }
-
-// SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
-// {
-//     STATIC_REQUIRE( // TODO: use generic storage type for inner storage
-//         []
-//         {
-//             trivial_object_allocation<allocator<int>> allocation{};
-//             auto& value = allocation.emplace(1);
-//             value = 42;
-//             return allocation.get<int>();
-//         }() == 42
-//     );
-// }
+SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
+{
+    STATIC_REQUIRE( // TODO: use generic storage type for inner storage
+        []
+        {
+            trivial_object_allocation<allocator<int>> allocation{};
+            auto& value = allocation.emplace(1);
+            value = 42;
+            return allocation.get<int>();
+        }() == 42
+    );
+}

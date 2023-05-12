@@ -85,37 +85,47 @@ namespace stdsharp
             requires ::std::three_way_comparable_with<
                 range_const_reference_t<TRng>,
                 range_const_reference_t<URng>>
-        constexpr auto operator()(const TRng& left, const URng& right) const noexcept
+        constexpr auto operator()(const TRng& left, const URng& right) const
         {
             using ordering = ::std::partial_ordering;
 
             auto pre = ordering::equivalent;
-            const auto r_end = ::std::ranges::end(right);
-
-            for(auto r_it = ::std::ranges::begin(right); const auto& v : left)
+            const auto cmp_impl = [](ordering& pre, const ordering next)
             {
-                if(r_it == r_end)
-                {
-                    pre = is_lt(pre) ? ordering::unordered : ordering::greater;
-                    break;
-                }
-
-                if(is_ud(pre)) return ordering::unordered;
-
-                const auto next = ::std::compare_three_way{}(v, *r_it);
-
-                if(pre == next || is_eq(next)) continue;
                 if(is_eq(pre))
                 {
                     pre = next;
-                    continue;
+                    return;
                 }
 
-                pre = is_gt(pre) ? is_gt(next) ? ordering::greater : ordering::unordered :
-                    is_lt(next)  ? ordering::less :
-                                   ordering::unordered;
+                if(pre != next && is_neq(next))
+                {
+                    pre = ordering::unordered;
+                    return;
+                }
+            };
 
-                ++r_it;
+            {
+                auto l_it = ::std::ranges::cbegin(left);
+                auto r_it = ::std::ranges::cbegin(right);
+                const auto l_end = ::std::ranges::cend(left);
+                const auto r_end = ::std::ranges::cend(right);
+                for(; !is_ud(pre); ++l_it, ++r_it)
+                {
+                    if(l_it == l_end)
+                    {
+                        if(r_it != r_end) cmp_impl(pre, ordering::less);
+                        break;
+                    }
+
+                    if(r_it == r_end)
+                    {
+                        cmp_impl(pre, ordering::greater);
+                        break;
+                    }
+
+                    cmp_impl(pre, ::std::compare_three_way{}(*l_it, *r_it));
+                }
             }
 
             return pre;
