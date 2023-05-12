@@ -108,7 +108,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
         THEN("allocate memory more then its size should throws")
         {
-            REQUIRE_THROWS_AS(allocator.allocate(allocator.size * sizeof(max_aligned)), bad_alloc);
+            REQUIRE_THROWS_AS(allocator.allocate(allocator.size * sizeof(all_aligned)), bad_alloc);
         }
     }
 

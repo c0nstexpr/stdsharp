@@ -6,16 +6,7 @@
 using namespace stdsharp;
 using namespace std;
 
-using allocator_t = allocator<max_aligned>;
-
-const auto _ = [] // NOLINT
-{
-    using t = trivial_obj_allocation<allocator<int>>;
-    t allocation{};
-    int& value = allocation.emplace(1);
-
-    return value;
-}();
+using allocator_t = allocator<all_aligned>;
 
 SCENARIO("object allocation basic requirements", "[memory][object allocation]") // NOLINT
 {
@@ -33,9 +24,9 @@ SCENARIO("object allocation basic requirements", "[memory][object allocation]") 
 
     using normal_t = normal_obj_allocation<allocator_t>;
     using unique_t = unique_obj_allocation<allocator_t>;
-    using worst_t = object_allocation_for<local, allocator_t>;
+    using worst_t = obj_allocation_for<local, allocator_t>;
 
-    STATIC_REQUIRE(default_initializable<object_allocation_for<int, allocator_t>>);
+    STATIC_REQUIRE(default_initializable<obj_allocation_for<int, allocator_t>>);
     STATIC_REQUIRE(default_initializable<trivial_obj_allocation<allocator_t>>);
     STATIC_REQUIRE(default_initializable<normal_t>);
     STATIC_REQUIRE(default_initializable<unique_t>);

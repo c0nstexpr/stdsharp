@@ -121,6 +121,13 @@ namespace stdsharp
     template<typename T, ::std::size_t Size>
     using static_memory_resource_for =
         static_memory_resource<ceil_reminder(Size * sizeof(T), sizeof(all_aligned))>;
+
+    template<::std::size_t Size>
+    constexpr auto& get_static_memory_resource() noexcept
+    {
+        static thread_local constinit static_memory_resource<Size> resource{};
+        return resource;
+    }
 }
 
 #include "../compilation_config_out.h"

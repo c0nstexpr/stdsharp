@@ -1,45 +1,34 @@
 #include "composed_allocator.h"
 #include "static_allocator.h"
 #include "object_allocation.h"
-#include "stdsharp/memory/static_memory_resource.h"
 
 namespace stdsharp
 {
     namespace details
     {
-        template<typename Allocator>
-        concept soo_allocator = allocator_req<Allocator> &&
-            ::std::same_as<typename Allocator::value_type, generic_storage>;
-
-        template<::std::size_t Size>
-        using generic_static_allocator =
-            static_allocator<generic_storage, Size * sizeof(generic_storage)>;
+        template<typename Alloc>
+        concept soo_alloc =
+            allocator_req<Alloc> && ::std::same_as<typename Alloc::value_type, all_aligned>;
     }
 
     template<
         ::std::size_t Size = 1,
-        details::soo_allocator Allocator = ::std::allocator<generic_storage>,
-        special_mem_req Req = special_mem_req::normal // clang-format off
+        details::soo_alloc Allocator = ::std::allocator<all_aligned> // clang-format off
     > // clang-format on
-    struct basic_static_cached :
-        basic_object_allocation<
-            Req,
-            composed_allocator<details::generic_static_allocator<Size>, Allocator>>
-    {
-        using base = basic_object_allocation<Req, typename basic_static_cached::allocator_type>;
-
-        using base::base;
-    };
+    using soo_allocator = composed_allocator<static_allocator_for<all_aligned, Size>, Allocator>;
 
     template<
+        typename T,
         ::std::size_t Size = 1,
-        typename Allocator = ::std::allocator<generic_storage> // clang-format off
-    > // clang-format on
-    using static_cached = details::static_cached<Size, Allocator, object_allocation>;
+        details::soo_alloc Allocator = ::std::allocator<all_aligned>>
+    using soo_allocation_for = obj_allocation_for<T, soo_allocator<Size, Allocator>>;
 
-    template<
-        ::std::size_t Size = 1,
-        typename Allocator = ::std::allocator<generic_storage> // clang-format off
-    > // clang-format on
-    using unique_static_cached = details::static_cached<Size, Allocator, unique_object_allocation>;
+    template<::std::size_t Size = 1, details::soo_alloc Allocator = ::std::allocator<all_aligned>>
+    using trivial_soo_allocation = trivial_obj_allocation<soo_allocator<Size, Allocator>>;
+
+    template<::std::size_t Size = 1, details::soo_alloc Allocator = ::std::allocator<all_aligned>>
+    using normal_soo_allocation = normal_obj_allocation<soo_allocator<Size, Allocator>>;
+
+    template<::std::size_t Size = 1, details::soo_alloc Allocator = ::std::allocator<all_aligned>>
+    using unique_soo_allocation = unique_obj_allocation<soo_allocator<Size, Allocator>>;
 }

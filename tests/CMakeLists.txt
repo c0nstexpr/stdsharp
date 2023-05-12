@@ -21,6 +21,7 @@ set(src
     src/memory/composed_allocator_test.cpp
     src/memory/object_allocation_test.cpp
     src/memory/static_allocator_test.cpp
+    src/memory/small_object_optimization_test.cpp
     src/type_traits/member_test.cpp
     src/type_traits/type_sequence_test.cpp
     src/type_traits/value_sequence_test.cpp

@@ -62,6 +62,14 @@ namespace stdsharp
             typename first_traits::is_always_equal,
             typename second_traits::is_always_equal>;
 
+        template<typename T>
+        struct rebind
+        {
+            using other = composed_allocator<
+                typename first_traits::template rebind_alloc<T>,
+                typename second_traits::template rebind_alloc<T>>;
+        };
+
         composed_allocator() = default;
 
         template<typename... Args>
@@ -102,11 +110,10 @@ namespace stdsharp
                 ptr;
         }
 
-        constexpr void
-            deallocate(typename allocator_traits<FirstAlloc>::pointer ptr, const ::std::size_t n)
+        constexpr void deallocate(value_type* const ptr, const ::std::size_t n)
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(ptr)) first.deallocate(ptr, n);
+            if(first.contains(first_ptr_traits::to_pointer(ptr))) first.deallocate(ptr, n);
             else second.deallocate(ptr, n);
         }
 
@@ -160,14 +167,7 @@ namespace stdsharp
             noexcept(nothrow_constructible_from<value_type, Args...>)
         {
             auto& [first, second] = alloc_pair_;
-            if( //
-                first_traits::contains(
-                    first,
-                    first_ptr_traits::pointer_to(
-                        static_cast<value_type*>(static_cast<void*>(ptr))
-                    )
-                )
-            )
+            if(first.contains(first_ptr_traits::to_pointer(pointer_cast<value_type*>(ptr))))
                 first_traits::construct(first, ptr, cpp_forward(args)...);
             else second_traits::construct(second, ptr, cpp_forward(args)...);
         }
@@ -179,6 +179,8 @@ namespace stdsharp
                 alloc_pair_.second.contains(second_cvp_traits::to_pointer(ptr)) :
                 false;
         }
+
+        bool operator==(const composed_allocator&) const noexcept = default;
     };
 
     template<typename T, typename U>
