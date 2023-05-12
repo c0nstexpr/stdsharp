@@ -279,13 +279,17 @@ namespace stdsharp
 
         constexpr operator bool() const noexcept { return empty(); }
 
-        constexpr void allocate(allocator_type& alloc, const size_type size) noexcept
+        constexpr void allocate(
+            allocator_type& alloc,
+            const size_type size,
+            const allocator_cvp<allocator_type>& hint = nullptr
+        )
         {
             if(size_ >= size) return;
 
             if(ptr_ != nullptr) deallocate(alloc);
 
-            *this = make_allocation(alloc, size);
+            *this = make_allocation(alloc, size, hint);
         }
 
         constexpr void deallocate(allocator_type& alloc) noexcept
@@ -473,24 +477,6 @@ namespace stdsharp
             constructible_from_test<T, ::std::allocator_arg_t, allocator_type, Args...>;
 
     public:
-        template<typename... Args>
-            requires ::std::constructible_from<allocator_type> &&
-            (alloc_last_ctor<Args...> >= expr_req::well_formed)
-        constexpr allocator_aware_ctor(Args&&... args) //
-            noexcept(alloc_last_ctor<Args...> >= expr_req::no_exception):
-            T(cpp_forward(args)..., allocator_type{})
-        {
-        }
-
-        template<typename... Args>
-            requires ::std::constructible_from<allocator_type> &&
-            (alloc_arg_ctor<Args...> >= expr_req::well_formed)
-        constexpr allocator_aware_ctor(Args&&... args) //
-            noexcept(alloc_arg_ctor<Args...> >= expr_req::no_exception):
-            T(::std::allocator_arg, allocator_type{}, cpp_forward(args)...)
-        {
-        }
-
         template<typename... Args>
             requires ::std::constructible_from<T, Args..., allocator_type>
         constexpr allocator_aware_ctor(

@@ -7,6 +7,7 @@
 #include "allocator_traits.h"
 #include "../cmath/cmath.h"
 #include "../compilation_config_in.h"
+#include "../cassert/cassert.h"
 
 namespace stdsharp
 {
@@ -67,6 +68,10 @@ namespace stdsharp
             deallocate(all_aligned* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
+            precondition<::std::out_of_range>(
+                [ptr, this] { return contains(ptr); },
+                "pointer does not belong to this resource"
+            );
             ::std::ranges::fill_n(map_state(ptr), auto_cast(required_size), false);
         }
 
@@ -83,9 +88,12 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto remaining() const noexcept { return size - used(); }
 
-        [[nodiscard]] constexpr auto contains(const all_aligned* const ptr) noexcept
+        [[nodiscard]] constexpr auto contains(const void* const ptr) noexcept
         {
-            return map_state(ptr) != state_.cend();
+            const auto data_p = storage_.data();
+            return ::std::is_constant_evaluated() ? //
+                constexpr_map_state_impl(ptr) < size :
+                ptr >= data_p && ptr < data_p + size;
         }
 
         [[nodiscard]] constexpr bool operator==(const static_memory_resource& other) const noexcept
@@ -94,7 +102,7 @@ namespace stdsharp
         }
 
     private:
-        [[nodiscard]] constexpr auto map_state(const all_aligned* const ptr) noexcept
+        [[nodiscard]] constexpr auto map_state(const value_t* const ptr) noexcept
         {
             const auto diff = [&, this]
             {
@@ -106,7 +114,7 @@ namespace stdsharp
             return state_.begin() + ::std::ranges::min(diff, static_cast<decltype(diff)>(size));
         }
 
-        [[nodiscard]] constexpr auto constexpr_map_state_impl(const all_aligned* const ptr) noexcept
+        [[nodiscard]] constexpr auto constexpr_map_state_impl(const void* const ptr) noexcept
         {
             const auto data = storage_.data();
             const auto ptr_view = ::std::views::iota(data, data + size);
@@ -125,7 +133,7 @@ namespace stdsharp
     template<::std::size_t Size>
     constexpr auto& get_static_memory_resource() noexcept
     {
-        static thread_local constinit static_memory_resource<Size> resource{};
+        thread_local constinit static_memory_resource<Size> resource{};
         return resource;
     }
 }

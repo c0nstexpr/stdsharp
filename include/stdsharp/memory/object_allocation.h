@@ -230,6 +230,11 @@ namespace stdsharp
         public:
             allocation_rsc() = default;
 
+            constexpr allocation_rsc(const allocator_type& alloc):
+                compressed_(dispatchers_t{}, alloc)
+            {
+            }
+
             template<
                 typename... Args,
                 typename T,
@@ -401,7 +406,6 @@ namespace stdsharp
             typename Base = allocator_aware_ctor<allocation_rsc<Req, Alloc>>>
         class obj_allocation : public Base
         {
-            using typename Base::allocator_type;
             using typename Base::dispatchers_t;
 
             using Base::get_allocation;
@@ -418,6 +422,7 @@ namespace stdsharp
             };
 
         public:
+            using typename Base::allocator_type;
             using Base::Base;
             using Base::get_allocator;
 

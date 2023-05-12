@@ -11,7 +11,7 @@ namespace stdsharp
         template<typename T>
         concept allocator_contains = requires(
             const T alloc,
-            const typename allocator_traits<T>::pointer ptr
+            const typename allocator_traits<T>::const_void_pointer ptr
         ) // clang-format off
         {
             { alloc.contains(ptr) } -> ::std::convertible_to<bool>; // clang-format on
@@ -72,8 +72,10 @@ namespace stdsharp
 
         composed_allocator() = default;
 
-        template<typename... Args>
-        constexpr explicit composed_allocator(Args&&... args): alloc_pair_(cpp_forward(args)...)
+        template<typename... Args, ::std::constructible_from<Args...> Pair = decltype(alloc_pair_)>
+        constexpr explicit composed_allocator(Args&&... args) //
+            noexcept(nothrow_constructible_from<Pair, Args...>):
+            alloc_pair_(cpp_forward(args)...)
         {
         }
 
@@ -162,12 +164,18 @@ namespace stdsharp
             return result;
         }
 
-        template<typename T, typename... Args>
+        template<
+            typename T,
+            typename... Args,
+            auto Req = ::std::
+                min(first_traits::template construct_req<T, Args...>,
+                    second_traits::template construct_req<T, Args...>)>
+            requires(Req >= expr_req::well_formed)
         constexpr void construct(T* const ptr, Args&&... args) //
-            noexcept(nothrow_constructible_from<value_type, Args...>)
+            noexcept(Req >= expr_req::no_exception)
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(first_ptr_traits::to_pointer(pointer_cast<value_type*>(ptr))))
+            if(first.contains(first_cvp_traits::to_pointer(to_void_pointer(ptr))))
                 first_traits::construct(first, ptr, cpp_forward(args)...);
             else second_traits::construct(second, ptr, cpp_forward(args)...);
         }
