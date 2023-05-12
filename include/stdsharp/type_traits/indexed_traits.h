@@ -274,7 +274,7 @@ namespace std
     template<::std::size_t I, derived_from<::stdsharp::details::stdsharp_indexed_tag> Indexed>
     struct tuple_element<I, Indexed>
     {
-        using type = typename Indexed::template get_t<I>;
+        using type = Indexed::template get_t<I>;
     };
 
     template<derived_from<::stdsharp::details::stdsharp_indexed_tag> Indexed>

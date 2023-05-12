@@ -23,7 +23,7 @@ namespace stdsharp
         using context = ::std::basic_format_context<OutputIt, CharT>;
 
         template<typename CharT>
-        using iter = typename ::std::basic_format_parse_context<CharT>::iterator;
+        using iter = ::std::basic_format_parse_context<CharT>::iterator;
 
         template<::std::integral T>
         constexpr auto parse_integer(const auto& rng) noexcept

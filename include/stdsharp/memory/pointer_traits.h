@@ -23,7 +23,7 @@ namespace stdsharp
         using typename base::element_type;
 
         template<typename U>
-        using rebind = typename base::template rebind<U>;
+        using rebind = base::template rebind<U>;
 
         using reference = ::std::add_lvalue_reference_t<element_type>;
 

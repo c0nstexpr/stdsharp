@@ -46,10 +46,7 @@ namespace stdsharp
         constexpr void deallocate(T* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
-            resource().deallocate(
-                pointer_cast<generic_storage>(ptr),
-                to_generic_size(required_size)
-            );
+            resource().deallocate(pointer_cast<max_aligned>(ptr), to_generic_size(required_size));
         }
 
         [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }
@@ -61,7 +58,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool contains(const T* const ptr) const noexcept
         {
-            return resource().contains(pointer_cast<generic_storage>(ptr));
+            return resource().contains(pointer_cast<max_aligned>(ptr));
         }
 
     private:
@@ -69,14 +66,14 @@ namespace stdsharp
 
         static constexpr auto to_generic_size(const ::std::size_t size_v)
         {
-            return ceil_reminder(size_v * sizeof(T), sizeof(generic_storage));
+            return ceil_reminder(size_v * sizeof(T), sizeof(max_aligned));
         }
     };
 
     template<::std::size_t Size>
-    static_allocator(static_memory_resource<Size>&) -> static_allocator<generic_storage, Size>;
+    static_allocator(static_memory_resource<Size>&) -> static_allocator<max_aligned, Size>;
 
     template<typename T, ::std::size_t Size>
     using static_allocator_for =
-        static_allocator<T, ceil_reminder(Size * sizeof(T), sizeof(generic_storage))>;
+        static_allocator<T, ceil_reminder(Size * sizeof(T), sizeof(max_aligned))>;
 }

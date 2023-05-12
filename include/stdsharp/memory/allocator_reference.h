@@ -12,19 +12,19 @@ namespace stdsharp
     public:
         using ::std::reference_wrapper<Alloc>::reference_wrapper;
 
-        using value_type = typename traits::value_type;
-        using pointer = typename traits::pointer;
-        using const_pointer = typename traits::const_pointer;
-        using void_pointer = typename traits::void_pointer;
-        using const_void_pointer = typename traits::const_void_pointer;
-        using difference_type = typename traits::difference_type;
-        using size_type = typename traits::size_type;
+        using value_type = traits::value_type;
+        using pointer = traits::pointer;
+        using const_pointer = traits::const_pointer;
+        using void_pointer = traits::void_pointer;
+        using const_void_pointer = traits::const_void_pointer;
+        using difference_type = traits::difference_type;
+        using size_type = traits::size_type;
         using propagate_on_container_copy_assignment =
-            typename traits::propagate_on_container_copy_assignment;
+            traits::propagate_on_container_copy_assignment;
         using propagate_on_container_move_assignment =
-            typename traits::propagate_on_container_move_assignment;
-        using propagate_on_container_swap = typename traits::propagate_on_container_swap;
-        using is_always_equal = typename traits::is_always_equal;
+            traits::propagate_on_container_move_assignment;
+        using propagate_on_container_swap = traits::propagate_on_container_swap;
+        using is_always_equal = traits::is_always_equal;
 
         template<typename U>
         struct rebind

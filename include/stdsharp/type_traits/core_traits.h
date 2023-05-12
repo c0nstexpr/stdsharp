@@ -30,7 +30,7 @@ namespace stdsharp
     {
         template<typename... Args>
             requires requires { typename deduction<T, Args...>::type; }
-        using type = typename deduction<T, Args...>::type;
+        using type = deduction<T, Args...>::type;
 
         template<typename... Args>
             requires ::std::constructible_from<type<Args...>, Args...>
@@ -136,7 +136,7 @@ namespace stdsharp
     using constant = ::std::integral_constant<decltype(Value), Value>;
 
     template<auto Value>
-    using constant_value_type = typename constant<Value>::value_type;
+    using constant_value_type = constant<Value>::value_type;
 
     template<typename T>
     inline constexpr const auto& static_const_v = ::ranges::static_const<T>::value;
@@ -498,6 +498,6 @@ namespace meta::extension
         requires requires { typename Fn::template invoke<V...>; }
     struct apply<Fn, T<V...>>
     {
-        using type = typename Fn::template invoke<V...>;
+        using type = Fn::template invoke<V...>;
     };
 }

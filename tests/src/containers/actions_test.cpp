@@ -27,8 +27,8 @@ consteval auto erase_req_f()
 template<typename Container>
 concept erase_req = requires(
     Container container,
-    typename Container::const_iterator iter,
-    bool (&predicate)(typename Container::const_reference)
+    Container::const_iterator iter,
+    bool (&predicate)(Container::const_reference)
 ) //
 {
     requires erase_req_f<Container>();
@@ -60,7 +60,7 @@ consteval auto emplace_req_f()
 template<sequence_container Container>
 consteval auto emplace_req_f()
 {
-    return requires(Container container, typename Container::value_type v) //
+    return requires(Container container, Container::value_type v) //
     {
         actions::emplace(container, container.cbegin(), v); //
     };
@@ -99,7 +99,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     CAPTURE(type_id<TestType>);
 
     STATIC_REQUIRE( //
-        requires(TestType v, typename TestType::value_type value) //
+        requires(TestType v, TestType::value_type value) //
         {
             actions::emplace_back(v, value);
             actions::emplace_front(v, value);

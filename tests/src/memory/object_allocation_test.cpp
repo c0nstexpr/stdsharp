@@ -6,11 +6,11 @@
 using namespace stdsharp;
 using namespace std;
 
-using allocator_t = allocator<generic_storage>;
+using allocator_t = allocator<max_aligned>;
 
 const auto _ = [] // NOLINT
 {
-    using t = trivial_object_allocation<allocator<int>>;
+    using t = trivial_obj_allocation<allocator<int>>;
     t allocation{};
     int& value = allocation.emplace(1);
 
@@ -31,12 +31,12 @@ SCENARIO("object allocation basic requirements", "[memory][object allocation]") 
         local& operator=(local&&) = default;
     };
 
-    using normal_t = normal_object_allocation<allocator_t>;
-    using unique_t = unique_object_allocation<allocator_t>;
-    using worst_t = object_allocation_like<local, allocator_t>;
+    using normal_t = normal_obj_allocation<allocator_t>;
+    using unique_t = unique_obj_allocation<allocator_t>;
+    using worst_t = object_allocation_for<local, allocator_t>;
 
-    STATIC_REQUIRE(default_initializable<object_allocation_like<int, allocator_t>>);
-    STATIC_REQUIRE(default_initializable<trivial_object_allocation<allocator_t>>);
+    STATIC_REQUIRE(default_initializable<object_allocation_for<int, allocator_t>>);
+    STATIC_REQUIRE(default_initializable<trivial_obj_allocation<allocator_t>>);
     STATIC_REQUIRE(default_initializable<normal_t>);
     STATIC_REQUIRE(default_initializable<unique_t>);
 
@@ -53,7 +53,7 @@ SCENARIO("object allocation assign value", "[memory][object allocation]") // NOL
 {
     GIVEN("a normal object allocation")
     {
-        normal_object_allocation<allocator_t> allocation;
+        normal_obj_allocation<allocator_t> allocation;
 
         WHEN("emplace an int value")
         {
@@ -110,7 +110,7 @@ SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
     STATIC_REQUIRE( // TODO: use generic storage type for inner storage
         []
         {
-            trivial_object_allocation<allocator<int>> allocation{};
+            trivial_obj_allocation<allocator<int>> allocation{};
             auto& value = allocation.emplace(1);
             value = 42;
             return allocation.get<int>();

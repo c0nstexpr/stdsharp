@@ -399,14 +399,14 @@ namespace stdsharp
             allocation_obj_req Req,
             allocator_req Alloc,
             typename Base = allocator_aware_ctor<allocation_rsc<Req, Alloc>>>
-        class basic_object_allocation : public Base
+        class obj_allocation : public Base
         {
             using typename Base::allocator_type;
             using typename Base::dispatchers_t;
 
             using Base::get_allocation;
             using Base::get_dispatchers;
-            using this_t = basic_object_allocation;
+            using this_t = obj_allocation;
 
             template<typename T, typename... Args>
             static constexpr auto emplace_constructible = requires(::std::decay_t<T> t) //
@@ -500,15 +500,14 @@ namespace stdsharp
     }
 
     template<typename T, allocator_req Alloc>
-    using object_allocation_like =
-        details::basic_object_allocation<allocation_value_type_req<Alloc, T>, Alloc>;
+    using obj_allocation_for = details::obj_allocation<allocation_value_type_req<Alloc, T>, Alloc>;
 
     template<allocator_req Alloc>
-    using trivial_object_allocation = object_allocation_like<trivial_object, Alloc>;
+    using trivial_obj_allocation = obj_allocation_for<trivial_object, Alloc>;
 
     template<allocator_req Alloc>
-    using normal_object_allocation = object_allocation_like<normal_object, Alloc>;
+    using normal_obj_allocation = obj_allocation_for<normal_object, Alloc>;
 
     template<allocator_req Alloc>
-    using unique_object_allocation = object_allocation_like<unique_object, Alloc>;
+    using unique_obj_allocation = obj_allocation_for<unique_object, Alloc>;
 }

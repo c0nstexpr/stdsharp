@@ -17,5 +17,5 @@ namespace stdsharp
     }
 
     template<template<typename...> typename Inner, typename... T>
-    using adl_proof_t = typename details::adl_proof<Inner, T...>::t_;
+    using adl_proof_t = details::adl_proof<Inner, T...>::t_;
 }

@@ -42,7 +42,7 @@ namespace stdsharp
             using apply_t = T<Types...>;
 
             template<::std::size_t I>
-            using type = typename Base::template value_type<I>::type;
+            using type = Base::template value_type<I>::type;
 
             template<::std::size_t... I>
             using at_t = regular_type_sequence<type<I>...>;
@@ -57,7 +57,7 @@ namespace stdsharp
             using append_t = regular_type_sequence<Types..., Others...>;
 
             template<typename T = void>
-            using invoke_fn = typename Base::template invoke_fn<T>;
+            using invoke_fn = Base::template invoke_fn<T>;
 
             template<typename T = empty_t>
             static constexpr invoke_fn<T> invoke{};
@@ -122,7 +122,7 @@ namespace std
         requires same_as<::stdsharp::template_rebind<Seq>, ::stdsharp::type_sequence<>>
     struct tuple_element<I, Seq>
     {
-        using type = typename Seq::template type<I>;
+        using type = Seq::template type<I>;
     };
 }
 

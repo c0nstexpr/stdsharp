@@ -58,8 +58,8 @@ namespace stdsharp
                 return value;
             }();
 
-            using type = typename to_value_sequence<
-                rng_v_to_sequence<unique_indices_value> // clang-format off
+            using type =
+                to_value_sequence<rng_v_to_sequence<unique_indices_value> // clang-format off
             >::template apply_t<seq::template at_t>; // clang-format on
         };
 
@@ -156,7 +156,7 @@ namespace stdsharp
         using apply_t = T<Values...>;
 
         template<::std::size_t I>
-        using value_type = typename values_t::template get_t<I>;
+        using value_type = values_t::template get_t<I>;
 
         template<::std::size_t I>
         static constexpr value_type<I> value = get<I>(values);
@@ -378,7 +378,7 @@ namespace stdsharp
         using transform_t = decltype(transform<Func...>());
 
         template<::std::size_t From, ::std::size_t Size>
-        using select_range_t = typename to_value_sequence<make_value_sequence_t<From, Size>>:: //
+        using select_range_t = to_value_sequence<make_value_sequence_t<From, Size>>:: //
             template apply_t<at_t>;
 
         template<::std::size_t Size>
@@ -450,13 +450,13 @@ namespace stdsharp
 
     public:
         template<::std::size_t Index, auto... Other>
-        using insert_t = typename insert<Index>::template type<Other...>;
+        using insert_t = insert<Index>::template type<Other...>;
 
         template<::std::size_t... Index>
         using remove_at_t = ::meta::_t<remove_at<Index...>>;
 
         template<::std::size_t Index, auto Other>
-        using replace_t = typename to_value_sequence<
+        using replace_t = to_value_sequence<
             typename to_value_sequence<front_t<Index>>::template append_t<Other>
             // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
@@ -474,6 +474,6 @@ namespace std
     template<::std::size_t I, auto... Values>
     struct tuple_element<I, ::stdsharp::value_sequence<Values...>>
     {
-        using type = typename ::stdsharp::value_sequence<Values...>::template type<I>;
+        using type = ::stdsharp::value_sequence<Values...>::template type<I>;
     };
 }

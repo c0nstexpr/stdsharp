@@ -10,7 +10,7 @@
 
 namespace stdsharp
 {
-    union generic_storage
+    union all_aligned
     {
     private:
         ::std::max_align_t v;
@@ -22,9 +22,11 @@ namespace stdsharp
     public:
         static constexpr auto size = Size;
 
+        using value_t = all_aligned;
+
         using states_t = ::std::array<bool, size>;
 
-        using storage_t = ::std::array<generic_storage, size>;
+        using storage_t = ::std::array<all_aligned, size>;
 
         static_memory_resource() = default;
 
@@ -42,14 +44,14 @@ namespace stdsharp
 
         ~static_memory_resource() = default;
 
-        [[nodiscard]] constexpr generic_storage* allocate(const ::std::size_t required_size)
+        [[nodiscard]] constexpr all_aligned* allocate(const ::std::size_t required_size)
         {
             const auto ptr = try_allocate(required_size);
 
             return (ptr == nullptr && required_size != 0) ? throw ::std::bad_alloc{} : ptr;
         }
 
-        [[nodiscard]] constexpr generic_storage* try_allocate(const ::std::size_t required_size)
+        [[nodiscard]] constexpr all_aligned* try_allocate(const ::std::size_t required_size)
         {
             if(required_size == 0) return nullptr;
 
@@ -62,7 +64,7 @@ namespace stdsharp
         }
 
         constexpr void
-            deallocate(generic_storage* const ptr, const ::std::size_t required_size) noexcept
+            deallocate(all_aligned* const ptr, const ::std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
             ::std::ranges::fill_n(map_state(ptr), auto_cast(required_size), false);
@@ -81,7 +83,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto remaining() const noexcept { return size - used(); }
 
-        [[nodiscard]] constexpr auto contains(const generic_storage* const ptr) noexcept
+        [[nodiscard]] constexpr auto contains(const all_aligned* const ptr) noexcept
         {
             return map_state(ptr) != state_.cend();
         }
@@ -92,7 +94,7 @@ namespace stdsharp
         }
 
     private:
-        [[nodiscard]] constexpr auto map_state(const generic_storage* const ptr) noexcept
+        [[nodiscard]] constexpr auto map_state(const all_aligned* const ptr) noexcept
         {
             const auto diff = [&, this]
             {
@@ -104,8 +106,7 @@ namespace stdsharp
             return state_.begin() + ::std::ranges::min(diff, static_cast<decltype(diff)>(size));
         }
 
-        [[nodiscard]] constexpr auto constexpr_map_state_impl(const generic_storage* const ptr
-        ) noexcept
+        [[nodiscard]] constexpr auto constexpr_map_state_impl(const all_aligned* const ptr) noexcept
         {
             const auto data = storage_.data();
             const auto ptr_view = ::std::views::iota(data, data + size);
@@ -119,7 +120,7 @@ namespace stdsharp
 
     template<typename T, ::std::size_t Size>
     using static_memory_resource_for =
-        static_memory_resource<ceil_reminder(Size * sizeof(T), sizeof(generic_storage))>;
+        static_memory_resource<ceil_reminder(Size * sizeof(T), sizeof(all_aligned))>;
 }
 
 #include "../compilation_config_out.h"

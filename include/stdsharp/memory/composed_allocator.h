@@ -23,16 +23,21 @@ namespace stdsharp
         requires ::std::same_as<typename FirstAlloc::value_type, typename SecondAlloc::value_type>
     class composed_allocator
     {
-        ::std::pair<FirstAlloc, SecondAlloc> alloc_pair_;
+    public:
+        using first_allocator_type = FirstAlloc;
+        using second_allocator_type = SecondAlloc;
 
-        using first_traits = allocator_traits<FirstAlloc>;
-        using second_traits = allocator_traits<SecondAlloc>;
+    private:
+        ::std::pair<first_allocator_type, second_allocator_type> alloc_pair_;
 
-        using first_ptr = typename first_traits::pointer;
-        using second_ptr = typename second_traits::pointer;
+        using first_traits = allocator_traits<first_allocator_type>;
+        using second_traits = allocator_traits<second_allocator_type>;
 
-        using first_cvp = typename first_traits::const_void_pointer;
-        using second_cvp = typename second_traits::const_void_pointer;
+        using first_ptr = first_traits::pointer;
+        using second_ptr = second_traits::pointer;
+
+        using first_cvp = first_traits::const_void_pointer;
+        using second_cvp = second_traits::const_void_pointer;
 
         using first_ptr_traits = pointer_traits<first_ptr>;
         using second_ptr_traits = pointer_traits<second_ptr>;
@@ -41,7 +46,7 @@ namespace stdsharp
         using second_cvp_traits = pointer_traits<second_cvp>;
 
     public:
-        using value_type = typename FirstAlloc::value_type;
+        using value_type = FirstAlloc::value_type;
 
         using propagate_on_container_copy_assignment = ::std::disjunction<
             typename first_traits::propagate_on_container_copy_assignment,

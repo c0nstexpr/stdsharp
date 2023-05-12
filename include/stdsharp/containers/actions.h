@@ -37,7 +37,7 @@ namespace stdsharp::actions
                 constexpr auto operator()(
                     Container& container,
                     const ::std::equality_comparable_with< // clang-format off
-                        typename ::std::decay_t<Container>::value_type
+                         typename ::std::decay_t<Container>::value_type
                     > auto& value // clang-format on
                 ) const
                     requires requires // clang-format off
@@ -111,7 +111,7 @@ namespace stdsharp::actions
         struct emplace_##where##_mem_fn                                                         \
         {                                                                                       \
             template<typename... Args, container_emplace_constructible<Args...> Container>      \
-            constexpr typename ::std::decay_t<Container>::reference                             \
+            constexpr ::std::decay_t<Container>::reference                                      \
                 operator()(Container& container, Args&&... args) const                          \
                 requires requires {                                                             \
                     requires stdsharp::container<Container>;                                    \

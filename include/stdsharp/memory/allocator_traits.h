@@ -36,18 +36,18 @@ namespace stdsharp
         requires requires(
             Alloc alloc,
             ::std::allocator_traits<Alloc> t_traits,
-            typename decltype(t_traits)::pointer p,
-            typename decltype(t_traits)::const_pointer const_p,
-            typename decltype(t_traits)::void_pointer void_p,
-            typename decltype(t_traits)::const_void_pointer const_void_p,
-            typename decltype(t_traits)::value_type v,
-            typename decltype(t_traits)::size_type size,
-            typename decltype(t_traits):: //
+            decltype(t_traits)::pointer p,
+            decltype(t_traits)::const_pointer const_p,
+            decltype(t_traits)::void_pointer void_p,
+            decltype(t_traits)::const_void_pointer const_void_p,
+            decltype(t_traits)::value_type v,
+            decltype(t_traits)::size_type size,
+            decltype(t_traits):: //
             template rebind_traits<details::alloc_req_dummy_t> u_traits,
-            typename decltype(t_traits)::is_always_equal always_equal,
-            typename decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
-            typename decltype(t_traits)::propagate_on_container_move_assignment move_assign,
-            typename decltype(t_traits)::propagate_on_container_swap swap // clang-format off
+            decltype(t_traits)::is_always_equal always_equal,
+            decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
+            decltype(t_traits)::propagate_on_container_move_assignment move_assign,
+            decltype(t_traits)::propagate_on_container_swap swap // clang-format off
         ) // clang-format on
         {
             requires !const_volatile<decltype(v)>;
@@ -92,10 +92,10 @@ namespace stdsharp
             { *const_p } -> ::std::same_as<add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
 
             requires requires(
-                typename decltype(u_traits)::pointer other_p,
-                typename decltype(u_traits)::const_pointer other_const_p,
-                typename decltype(u_traits)::allocator_type u_alloc,
-                typename decltype(t_traits)::allocator_type another_alloc // clang-format off
+                decltype(u_traits)::pointer other_p,
+                decltype(u_traits)::const_pointer other_const_p,
+                decltype(u_traits)::allocator_type u_alloc,
+                decltype(t_traits)::allocator_type another_alloc // clang-format off
             )
             {
                 nothrow_constructible_from<Alloc, const decltype(u_alloc)&>;
@@ -329,10 +329,10 @@ namespace stdsharp
         static constexpr auto always_equal_v = is_always_equal::value;
 
         template<typename U>
-        using rebind_alloc = typename base::template rebind_alloc<U>;
+        using rebind_alloc = base::template rebind_alloc<U>;
 
         template<typename U>
-        using rebind_traits = typename base::template rebind_traits<U>;
+        using rebind_traits = base::template rebind_traits<U>;
 
         using base::max_size;
         using base::select_on_container_copy_construction;
@@ -426,13 +426,13 @@ namespace stdsharp
     };
 
     template<allocator_req Alloc>
-    using allocator_pointer = typename allocator_traits<Alloc>::pointer;
+    using allocator_pointer = allocator_traits<Alloc>::pointer;
 
     template<allocator_req Alloc>
-    using allocator_size_type = typename allocator_traits<Alloc>::size_type;
+    using allocator_size_type = allocator_traits<Alloc>::size_type;
 
     template<allocator_req Alloc>
-    using allocator_cvp = typename allocator_traits<Alloc>::const_void_pointer;
+    using allocator_cvp = allocator_traits<Alloc>::const_void_pointer;
 
     template<typename>
     struct allocator_of;
