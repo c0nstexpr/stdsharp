@@ -9,7 +9,7 @@ namespace stdsharp
     {
         [[nodiscard]] auto& operator()() const
         {
-            static thread_local ::std::random_device random_device;
+            thread_local ::std::random_device random_device;
             return random_device;
         }
     } get_random_device{};

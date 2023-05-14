@@ -82,12 +82,6 @@ TEMPLATE_TEST_CASE( // NOLINT
     STATIC_REQUIRE(emplace_req<TestType>);
 }
 
-void foo(vector<int>& container, int value)
-{
-    using fn = actions::emplace_back_fn;
-    fn{}(container, value);
-}
-
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: emplace where actions",
     "[containers][actions]",

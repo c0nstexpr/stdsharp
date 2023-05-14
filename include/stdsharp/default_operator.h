@@ -39,7 +39,7 @@ namespace stdsharp
     };
 
     template<typename T, ::std::constructible_from Delegate = ::std::identity>
-        requires requires { constant<(true, Delegate{})>{}; }
+        requires cpp_is_constexpr(Delegate{})
     class default_pre_increase_and_decrease : default_post_increase_and_decrease<T>
     {
         static constexpr Delegate delegate{};
@@ -109,7 +109,7 @@ namespace stdsharp
     };
 
     template<typename T, ::std::constructible_from Delegate = ::std::identity>
-        requires requires { constant<(true, Delegate{})>{}; }
+        requires cpp_is_constexpr(Delegate{})
     class default_arithmetic_assign_operation : default_pre_increase_and_decrease<T, Delegate>
     {
         static constexpr Delegate delegate{};

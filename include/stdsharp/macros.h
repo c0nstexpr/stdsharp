@@ -12,6 +12,7 @@ namespace stdsharp::details
     using var_template = void;
 }
 
-#define cpp_forward(v) static_cast<decltype(v)>(v)
-#define cpp_move(v) static_cast<decltype(stdsharp::details::remove_ref(v))&&>(v)
-#define cpp_is_constexpr(v) requires { typename var_template<(v, true)>; }
+#define cpp_forward(...) static_cast<decltype(__VA_ARGS__)>(__VA_ARGS__)
+#define cpp_move(...) \
+    static_cast<decltype(stdsharp::details::remove_ref(__VA_ARGS__))&&>(__VA_ARGS__)
+#define cpp_is_constexpr(...) requires { typename details::var_template<(__VA_ARGS__, true)>; }

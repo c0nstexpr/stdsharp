@@ -22,7 +22,7 @@ namespace stdsharp
         constexpr implement_dispatcher(const Closure) noexcept
             requires requires //
         {
-            constant<(Closure{}, 0)>{};
+            requires cpp_is_constexpr(Closure{});
             requires !(ExprReq == expr_req::no_exception) ||
                 nothrow_invocable_r<Closure, Ret, Args...>;
         }

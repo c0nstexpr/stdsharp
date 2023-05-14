@@ -23,10 +23,11 @@ namespace stdsharp
 
     namespace details
     {
-        template<auto... Values>
-        struct reverse_value_sequence
-        {
-        };
+        template<auto... Values, typename seq = value_sequence<Values...>>
+        consteval to_value_sequence<
+            make_value_sequence_t<seq::size() - 1, seq::size(), ::std::minus{}>>::
+            template apply_t<seq::template at_t>
+            get_reverse_value_sequence();
 
         template<auto... Values>
         struct unique_value_sequence
@@ -83,25 +84,6 @@ namespace stdsharp
             constexpr auto operator()(const auto&) const noexcept { return false; }
         };
     } // clang-format on
-
-    template<auto... Values>
-    using reverse_value_sequence = decltype(
-        []
-        {
-            using seq = value_sequence<Values...>;
-
-            return typename to_value_sequence< //
-                make_value_sequence_t<
-                    seq::size() - 1,
-                    seq::size(),
-                    ::std::minus{}
-                >
-            >::template apply_t<seq::template at_t>{};
-        }()
-    );
-
-    template<auto... Values>
-    using unique_value_sequence = ::meta::_t<details::unique_value_sequence<Values...>>;
 
     template<auto... Values>
     struct value_sequence : regular_value_sequence<Values...>
@@ -461,6 +443,12 @@ namespace stdsharp
             // clang-format off
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
+
+    template<auto... Values>
+    using reverse_value_sequence = decltype(details::get_reverse_value_sequence<Values...>());
+
+    template<auto... Values>
+    using unique_value_sequence = ::meta::_t<details::unique_value_sequence<Values...>>;
 }
 
 namespace std
@@ -474,6 +462,6 @@ namespace std
     template<::std::size_t I, auto... Values>
     struct tuple_element<I, ::stdsharp::value_sequence<Values...>>
     {
-        using type = ::stdsharp::value_sequence<Values...>::template type<I>;
+        using type = typename ::stdsharp::value_sequence<Values...>::template value_type<I>;
     };
 }

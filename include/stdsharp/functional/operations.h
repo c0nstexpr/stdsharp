@@ -77,7 +77,8 @@ namespace stdsharp
 
     inline constexpr struct bit_xnor
     {
-        constexpr decltype(auto) operator()(auto&& t, auto&& u) const
+        template<typename T, typename U = T>
+        constexpr decltype(auto) operator()(T&& t, U&& u) const
             noexcept(noexcept(bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u)))))
             requires requires { bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u))); }
         {
@@ -85,15 +86,16 @@ namespace stdsharp
         }
     } bit_xnor_v{};
 
-#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                          \
-    inline constexpr struct direction##_shift                                              \
-    {                                                                                      \
-        [[nodiscard]] constexpr decltype(auto) operator()(auto&& left, auto&& right) const \
-            noexcept(noexcept(cpp_forward(left) operate cpp_forward(right)))               \
-            requires requires { cpp_forward(left) operate cpp_forward(right); }            \
-        {                                                                                  \
-            return cpp_forward(left) operate cpp_forward(right);                           \
-        }                                                                                  \
+#define BS_UTIL_SHIFT_OPERATE(direction, operate)                                    \
+    inline constexpr struct direction##_shift                                        \
+    {                                                                                \
+        template<typename T, typename U = T>                                         \
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const \
+            noexcept(noexcept(cpp_forward(left) operate cpp_forward(right)))         \
+            requires requires { cpp_forward(left) operate cpp_forward(right); }      \
+        {                                                                            \
+            return cpp_forward(left) operate cpp_forward(right);                     \
+        }                                                                            \
     } direction##_shift_v{};
 
     BS_UTIL_SHIFT_OPERATE(left, <<)
@@ -110,9 +112,9 @@ namespace stdsharp
     {                                                                                            \
         struct operator_type##_assign                                                            \
         {                                                                                        \
-            template<typename T, typename U>                                                     \
-                requires operator_type                                                           \
-            ##_assignable_from<T, U> constexpr decltype(auto) operator()(T& l, U&& u) const      \
+            template<typename T, typename U = T>                                                 \
+                requires(operator_type##_assignable_from<T, U>)                                  \
+            constexpr decltype(auto) operator()(T& l, U&& u) const                               \
                 noexcept(noexcept((l op## = cpp_forward(u))))                                    \
             {                                                                                    \
                 return l op## = cpp_forward(u);                                                  \
@@ -122,7 +124,7 @@ namespace stdsharp
                                                                                                  \
         struct indirect_##operator_type##_assign                                                 \
         {                                                                                        \
-            template<typename T, typename U>                                                     \
+            template<typename T, typename U = T>                                                 \
                 requires requires(T l, U&& u) { l = operator_type##_v(l, cpp_forward(u)); }      \
             constexpr decltype(auto) operator()(T& l, U&& u) const                               \
                 noexcept(noexcept((l = operator_type##_v(l, cpp_forward(u)))))                   \
@@ -154,7 +156,7 @@ namespace stdsharp
 #define BS_UTIL_ASSIGN_OPERATE(operator_type)                                           \
     inline constexpr struct operator_type##_assign                                      \
     {                                                                                   \
-        template<typename T, typename U>                                                \
+        template<typename T, typename U = T>                                            \
             requires requires(T l, U&& u) { l = operator_type##_v(l, cpp_forward(u)); } \
         constexpr decltype(auto) operator()(T& l, U&& u) const                          \
             noexcept(noexcept((l = operator_type##_v(l, cpp_forward(u)))))              \

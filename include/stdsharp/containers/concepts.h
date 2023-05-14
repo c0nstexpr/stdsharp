@@ -216,10 +216,10 @@ namespace stdsharp
         template<typename ContainerType>
         concept container_insertable = requires(
             ContainerType instance,
-            ContainerType::value_type value,
+            typename ContainerType::value_type value,
             const decltype(value)& const_value,
-            ContainerType::iterator iter,
-            ContainerType::const_iterator const_iter
+            typename ContainerType::iterator iter,
+            typename ContainerType::const_iterator const_iter
         ) //
         {
             requires logical_imply(
@@ -380,8 +380,8 @@ namespace stdsharp
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
-            decltype(instance)::reverse_iterator iter,
-            decltype(instance)::const_reverse_iterator const_iter
+            typename decltype(instance)::reverse_iterator iter,
+            typename decltype(instance)::const_reverse_iterator const_iter
         ) // clang-format off
         {
             { instance.rbegin() } -> ::std::same_as<decltype(iter)>;
@@ -398,8 +398,8 @@ namespace stdsharp
     {
         requires requires(
             ::std::decay_t<Container> instance,
-            decltype(instance)::value_type value,
-            decltype(instance)::allocator_type alloc
+            typename decltype(instance)::value_type value,
+            typename decltype(instance)::allocator_type alloc
         ) //
         {
             requires allocator_req<decltype(alloc)>;
@@ -436,11 +436,11 @@ namespace stdsharp
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
-            decltype(instance)::value_type value,
+            typename decltype(instance)::value_type value,
             const decltype(value)& const_value,
-            decltype(instance)::iterator iter,
-            decltype(instance)::const_iterator const_iter,
-            decltype(instance)::size_type size
+            typename decltype(instance)::iterator iter,
+            typename decltype(instance)::const_iterator const_iter,
+            typename decltype(instance)::size_type size
         ) //
         {
             requires logical_imply(
@@ -512,8 +512,8 @@ namespace stdsharp
         template<typename Container>
         concept unique_associative = requires(
             ::std::decay_t<Container> instance,
-            decltype(instance)::node_type node,
-            decltype(instance)::insert_return_type insert_return_v
+            typename decltype(instance)::node_type node,
+            typename decltype(instance)::insert_return_type insert_return_v
         ) // clang-format off
         {
             { instance.insert(cpp_move(node)) } ->
@@ -527,7 +527,7 @@ namespace stdsharp
         template<typename Container>
         concept multikey_associative = requires(
             ::std::decay_t<Container> instance,
-            decltype(instance)::node_type node
+            typename decltype(instance)::node_type node
         ) // clang-format off
         {
             { instance.insert(cpp_move(node)) } ->
@@ -537,35 +537,12 @@ namespace stdsharp
         template<typename Container, typename... Args>
         struct container_optional_constructible
         {
-            template<typename... Optional>
-            static constexpr auto value =
-                []<::std::size_t... I>(const ::std::index_sequence<I...>)
-            {
-                constexpr ::std::size_t count = sizeof...(Optional);
+            template<typename...>
+            static constexpr bool value = ::std::constructible_from<Container, Args...>;
 
-                if constexpr(count == 0) return ::std::constructible_from<Container, Args...>;
-                else
-                {
-                    using last_t = indexed_types<Optional...>::template get_t<count - 1>;
-
-                    constexpr auto res = ::std::constructible_from<
-                        Container,
-                        Args...,
-                        typename indexed_types<Optional...>::template get_t<I>...,
-                        last_t // clang-format off
-                    >; // clang-format on
-
-                    if constexpr(::std::default_initializable<last_t>)
-                        return res &&
-                            value<typename indexed_types<Optional...>::template get_t<I>...>;
-                    else return res;
-                }
-            }( //
-                ::std::make_index_sequence < sizeof...(Optional) == 0 ?
-                    sizeof...(Optional) :
-                    sizeof...(Optional) - 1 // clang-format off
-                >{} // clang-format on
-            );
+            template<typename T, typename... Optional>
+            static constexpr bool value<T, Optional...> =
+                ::std::constructible_from<Container, Args..., T, Optional...> && value<Optional...>;
         };
     }
 
@@ -576,13 +553,13 @@ namespace stdsharp
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
-            decltype(instance)::key_type key,
-            decltype(instance)::const_reference const_ref,
-            decltype(instance)::value_type value,
-            decltype(instance)::node_type node,
-            decltype(instance)::iterator iter,
-            decltype(instance)::const_iterator const_iter,
-            decltype(instance)::size_type size,
+            typename decltype(instance)::key_type key,
+            typename decltype(instance)::const_reference const_ref,
+            typename decltype(instance)::value_type value,
+            typename decltype(instance)::node_type node,
+            typename decltype(instance)::iterator iter,
+            typename decltype(instance)::const_iterator const_iter,
+            typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list
         ) //
         {
@@ -635,14 +612,14 @@ namespace stdsharp
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
-            decltype(instance)::value_type value,
-            decltype(instance)::key_type key,
+            typename decltype(instance)::value_type value,
+            typename decltype(instance)::key_type key,
             allocator_of_t<decltype(instance)> alloc,
-            decltype(instance)::key_compare key_cmp,
-            decltype(instance)::value_compare value_cmp,
-            decltype(instance)::iterator iter,
-            decltype(instance)::const_iterator const_iter,
-            decltype(instance)::size_type size,
+            typename decltype(instance)::key_compare key_cmp,
+            typename decltype(instance)::value_compare value_cmp,
+            typename decltype(instance)::iterator iter,
+            typename decltype(instance)::const_iterator const_iter,
+            typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list
         ) //
         {
@@ -700,19 +677,19 @@ namespace stdsharp
         requires requires(
             ::std::decay_t<Container> instance,
             const decltype(instance)& const_instance,
-            decltype(instance)::value_type value,
-            decltype(instance)::key_type key,
-            decltype(instance)::key_equal key_equal,
-            decltype(instance)::hasher hasher,
+            typename decltype(instance)::value_type value,
+            typename decltype(instance)::key_type key,
+            typename decltype(instance)::key_equal key_equal,
+            typename decltype(instance)::hasher hasher,
             allocator_of_t<decltype(instance)> alloc,
-            decltype(instance)::reference ref,
-            decltype(instance)::const_reference const_ref,
-            decltype(instance)::iterator iter,
-            decltype(instance)::const_iterator const_iter,
-            decltype(instance)::local_iterator local_iter,
-            decltype(instance)::const_local_iterator const_local_iter,
-            decltype(instance)::difference_type diff,
-            decltype(instance)::size_type size,
+            typename decltype(instance)::reference ref,
+            typename decltype(instance)::const_reference const_ref,
+            typename decltype(instance)::iterator iter,
+            typename decltype(instance)::const_iterator const_iter,
+            typename decltype(instance)::local_iterator local_iter,
+            typename decltype(instance)::const_local_iterator const_local_iter,
+            typename decltype(instance)::difference_type diff,
+            typename decltype(instance)::size_type size,
             ::std::initializer_list<decltype(value)> v_list
         ) //
         {

@@ -8,8 +8,8 @@ namespace stdsharp
     {
         template<
             typename Condition,
-            ::std::predicate<const Condition>... Predicate,
-            ::std::invocable<const Condition>... Func // clang-format off
+            ::std::predicate<const Condition&>... Predicate,
+            ::std::invocable<const Condition&>... Func // clang-format off
         > // clang-format on
         constexpr void operator()(
             const Condition& condition,
@@ -44,9 +44,12 @@ namespace stdsharp
             ::std::pair<Condition, Func>... cases //
         ) const noexcept((nothrow_invocable<Func, Condition> && ...))
         {
-            operator()(
+            (*this)(
                 condition,
-                make_pair(::std::bind_front(equal_to_v, cases.first), cases.second)...
+                make_pair(
+                    ::std::bind_front(equal_to_v, cpp_move(cases.first)),
+                    cpp_move(cases.second)
+                )...
             );
         }
     } pattern_match{};

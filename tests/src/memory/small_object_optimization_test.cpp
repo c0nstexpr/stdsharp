@@ -41,8 +41,7 @@ SCENARIO("use soo allocation store value", "[memory][small object optimization]"
 {
     GIVEN("a normal object allocation")
     {
-        soo_allocator<> allocator{};
-        normal_soo_allocation<> allocation{allocator};
+        normal_soo_allocation<> allocation;
 
         WHEN("emplace an int value")
         {

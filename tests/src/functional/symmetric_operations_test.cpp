@@ -16,14 +16,15 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     GIVEN(fmt::format("int value: {}", Value))
     {
-        THEN("assign to 0 and revert back")
+        THEN("plus 1 and revert back")
         {
             auto v = Value;
 
             const auto& revert = cpo::symmetric_operation(plus_assign_v, v, 1);
             plus_assign_v(v, 1);
-            REQUIRE(Value + 1 == v);
+            REQUIRE((Value + 1) == v);
             revert();
+
             REQUIRE(Value == v);
         }
     }

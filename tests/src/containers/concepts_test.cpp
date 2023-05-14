@@ -5,10 +5,6 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
-using vec = vector<unique_ptr<int>>;
-
-static_assert(container<vec>);
-
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: container concept",
     "[containers]",

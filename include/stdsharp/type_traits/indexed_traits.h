@@ -211,15 +211,13 @@ namespace stdsharp
                 {
                 }
             };
-
-            using type = impl<>;
         };
     }
 
     template<typename... T>
-    struct basic_indexed_values : details::indexed_values<T...>::type
+    struct basic_indexed_values : details::indexed_values<T...>::template impl<>
     {
-        using details::indexed_values<T...>::type::type;
+        using details::indexed_values<T...>::template impl<>::impl;
     };
 
     template<typename... T>

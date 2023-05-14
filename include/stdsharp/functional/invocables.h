@@ -70,13 +70,10 @@ namespace stdsharp
     template<::std::size_t Index>
     struct invoke_at_fn
     {
-        template<
-            typename T,
-            typename... Args,
-            ::std::invocable<Args...> Invocable = get_element_t<Index, T> // clang-format off
-        > // clang-format on
+        template<typename T, typename... Args>
+            requires ::std::invocable<get_element_t<Index, T>, Args...>
         constexpr decltype(auto) operator()(T&& t, Args&&... args) const
-            noexcept(nothrow_invocable<Invocable, Args...>)
+            noexcept(nothrow_invocable<get_element_t<Index, T>, Args...>)
         {
             return cpo::get_element<Index>(t)(cpp_forward(args)...);
         }
@@ -85,22 +82,32 @@ namespace stdsharp
     template<auto Index>
     inline constexpr invoke_at_fn<Index> invoke_at{};
 
-    template<constant_value PredicateConstant>
-        requires ::std::predicate<decltype(PredicateConstant::value), expr_req>
+    template<template<typename...> typename Predicator>
     struct invoke_first_fn
     {
     private:
         template<typename T, typename... Args, ::std::size_t I = 0>
+            requires requires //
+        {
+            requires(Predicator<get_element_t<I, T>, Args...>::value); //
+        }
+        static constexpr ::std::size_t find_first_impl(const index_constant<I>) noexcept
+        {
+            return I;
+        }
+
+        template<typename T, typename... Args, ::std::size_t I = 0>
+        static constexpr ::std::size_t find_first_impl(const index_constant<I>) noexcept
+        {
+            return find_first<T, Args...>(index_constant<I + 1>{});
+        }
+
+        template<typename T, typename... Args, ::std::size_t I = 0>
         static constexpr ::std::size_t find_first(const index_constant<I> = {}) noexcept
         {
             if constexpr(requires { typename get_element_t<I, T>; })
-            {
-                if constexpr(::std::
-                                 invoke(PredicateConstant::value, invocable_test<get_element_t<I, T>, Args...>))
-                    return I;
-                else return find_first<T, Args...>(index_constant<I + 1>{});
-            }
-            else return -1;
+                return find_first_impl<T, Args...>(index_constant<I>{});
+            else return static_cast<::std::size_t>(-1);
         }
 
         template<typename T, typename... Args>
@@ -120,40 +127,39 @@ namespace stdsharp
         }
     };
 
-    template<constant_value PredicateConstant>
-    inline constexpr invoke_first_fn<PredicateConstant> invoke_first{};
+    template<template<typename...> typename Predicator>
+    inline constexpr invoke_first_fn<Predicator> invoke_first{};
 
     namespace details
     {
+        template<typename Func, typename... Args>
+            requires ::std::invocable<Func, Args...>
         struct sequenced_invocables_predicate
         {
-            static constexpr auto value =
-                ::std::bind_front(::std::ranges::less_equal{}, expr_req::well_formed);
+            static constexpr auto value = true;
         };
-
-        inline constexpr auto sequenced_invoke =
-            invoke_first<details::sequenced_invocables_predicate>;
     }
+
+    using sequenced_invoke_fn = invoke_first_fn<details::sequenced_invocables_predicate>;
+
+    inline constexpr sequenced_invoke_fn sequenced_invoke{};
 
     template<typename... Invocable>
     struct basic_sequenced_invocables : invocables<Invocable...>
     {
         using base = invocables<Invocable...>;
 
-        using base::base;
+        using invocables<Invocable...>::invocables;
 
-#define STDSHARP_OPERATOR(const_, ref)                                            \
-    template<                                                                     \
-        typename... Args,                                                         \
-        typename Base = const_ base ref,                                          \
-        ::std::invocable<Base, Args...> Fn = decltype(details::sequenced_invoke)> \
-    constexpr decltype(auto) operator()(Args&&... args)                           \
-        const_ ref noexcept(nothrow_invocable<Fn, Base, Args...>)                 \
-    {                                                                             \
-        return details::sequenced_invoke(                                         \
-            static_cast<const_ base ref>(*this),                                  \
-            cpp_forward(args)...                                                  \
-        );                                                                        \
+#define STDSHARP_OPERATOR(const_, ref)                                          \
+    template<                                                                   \
+        typename... Args,                                                       \
+        typename Base = const_ base ref,                                        \
+        ::std::invocable<Base, Args...> Fn = sequenced_invoke_fn>               \
+    constexpr decltype(auto) operator()(Args&&... args)                         \
+        const_ ref noexcept(nothrow_invocable<Fn, Base, Args...>)               \
+    {                                                                           \
+        return Fn{}(static_cast<const_ base ref>(*this), cpp_forward(args)...); \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -166,10 +172,6 @@ namespace stdsharp
 
     template<typename... T>
     basic_sequenced_invocables(T&&...) -> basic_sequenced_invocables<::std::decay_t<T>...>;
-
-    namespace details
-    {
-    }
 
     template<typename... Invocable>
     using sequenced_invocables = adl_proof_t<basic_sequenced_invocables, Invocable...>;

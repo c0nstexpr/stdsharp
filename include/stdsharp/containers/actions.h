@@ -111,7 +111,7 @@ namespace stdsharp::actions
         struct emplace_##where##_mem_fn                                                         \
         {                                                                                       \
             template<typename... Args, container_emplace_constructible<Args...> Container>      \
-            constexpr ::std::decay_t<Container>::reference                                      \
+            constexpr typename ::std::decay_t<Container>::reference                             \
                 operator()(Container& container, Args&&... args) const                          \
                 requires requires {                                                             \
                     requires stdsharp::container<Container>;                                    \

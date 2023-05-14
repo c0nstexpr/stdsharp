@@ -148,7 +148,7 @@ namespace stdsharp
     inline constexpr auto conditional_v<false, Left, Right> = Right;
 
     template<typename T>
-    concept constant_value = requires { constant<(T::value, true)>{}; };
+    concept constant_value = cpp_is_constexpr(T::value);
 
     template<::std::size_t I>
     using index_constant = ::std::integral_constant<::std::size_t, I>;
@@ -255,7 +255,7 @@ namespace stdsharp
         }(::std::type_identity<TypeSeq>{})
     );
 
-    template<::std::integral T, T First, T... V>
+    template<::std::integral T, T First, ::std::same_as<T> auto... V>
     struct regular_value_sequence<First, V...> : ::std::integer_sequence<T, First, V...>
     {
     };
@@ -408,27 +408,25 @@ namespace stdsharp
     {
         namespace details
         {
-            void get() = delete;
+            void get(auto&&) = delete;
 
             template<::std::size_t I>
             struct get_element_fn
             {
-                template<typename T>
-                    requires requires { ::std::get<I>(::std::declval<T>()); }
-                [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                    noexcept(noexcept(::std::get<I>(::std::declval<T>())))
+                [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
+                    noexcept(noexcept(::std::get<I>(cpp_forward(t))))
+                    requires requires { ::std::get<I>(cpp_forward(t)); }
                 {
                     return ::std::get<I>(cpp_forward(t));
                 }
 
-                template<typename T>
+                [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
+                    noexcept(noexcept(get<I>(cpp_forward(t))))
                     requires requires //
                 {
-                    get<I>(::std::declval<T>());
-                    requires !requires { ::std::get<I>(::std::declval<T>()); };
+                    get<I>(cpp_forward(t));
+                    requires !requires { ::std::get<I>(cpp_forward(t)); };
                 }
-                [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                    noexcept(noexcept(get<I>(::std::declval<T>())))
                 {
                     return get<I>(cpp_forward(t));
                 }
@@ -437,7 +435,8 @@ namespace stdsharp
 
         inline namespace cpo_impl
         {
-            using details::get_element_fn;
+            template<::std::size_t I>
+            using get_element_fn = details::get_element_fn<I>;
 
             template<::std::size_t I>
             inline constexpr get_element_fn<I> get_element;

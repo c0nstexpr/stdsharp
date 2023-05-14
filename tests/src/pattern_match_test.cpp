@@ -1,6 +1,5 @@
 #include "test.h"
 #include "stdsharp/pattern_match.h"
-#include "stdsharp/functional/bind.h"
 
 using namespace std;
 using namespace fmt;
@@ -25,18 +24,17 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
             constexpr auto match = []() consteval
             {
                 my_enum matched{};
-                const auto& matched_assign = stdsharp::bind(assign_v, matched);
+                const auto& matched_assign = [&matched](const my_enum value) { matched = value; };
 
                 pattern_match(
                     my_enum::two,
-                    pair{bind_front(equal_to_v, my_enum::one), matched_assign},
-                    pair{bind_front(equal_to_v, my_enum::two), matched_assign},
-                    pair{bind_front(equal_to_v, my_enum::three), matched_assign}
+                    pair{my_enum::one, matched_assign},
+                    pair{my_enum::two, matched_assign},
+                    pair{my_enum::three, matched_assign}
                 );
 
                 return matched;
-            }
-            ();
+            }();
 
             STATIC_REQUIRE(match == my_enum::two);
         }
