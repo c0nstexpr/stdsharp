@@ -9,21 +9,9 @@ namespace stdsharp
     namespace details
     {
         template<allocation_obj_req Req, typename Alloc>
-        struct allocation_dispatchers_traits
+        class allocation_dispatchers
         {
             using traits = allocator_aware_traits<Alloc>;
-
-            template<typename T>
-            static constexpr bool type_compatible =
-                Req <= traits::template allocation_for<::std::decay_t<T>>::obj_req;
-        };
-
-        template<allocation_obj_req Req, typename Alloc>
-        class allocation_dispatchers : allocation_dispatchers_traits<Req, Alloc>
-        {
-            using m_base = allocation_dispatchers_traits<Req, Alloc>;
-
-            using typename m_base::traits;
             using alloc = traits::allocator_type;
             using alloc_cref = const alloc&;
             using allocation = traits::allocation;
@@ -65,10 +53,8 @@ namespace stdsharp
 
             template<
                 typename T,
-                typename AllocationFor =
-                    traits::template allocation_for<::std::decay_t<T>> // clang-format off
-            > // clang-format on
-                requires(m_base::template type_compatible<T>)
+                typename AllocationFor = traits::template allocation_for<::std::decay_t<T>>>
+                requires(Req <= AllocationFor::obj_req)
             constexpr allocation_dispatchers(const ::std::type_identity<T>) noexcept:
                 allocation_dispatchers(
                     dispatchers(
@@ -413,6 +399,12 @@ namespace stdsharp
             constexpr auto& get_allocation() const noexcept { return allocation_; }
         };
 
+        template<typename Base, typename T, typename... Args>
+        concept emplace_constructible =
+            Base::template construct_req<T, Args...> >= expr_req::well_formed
+            // && ::std::constructible_from<typename Base::dispatchers_t, ::std::type_identity<T>>
+            ;
+
         template<
             allocation_obj_req Req,
             allocator_req Alloc,
@@ -427,13 +419,8 @@ namespace stdsharp
 
         public:
             template<typename T, typename... Args>
-            static constexpr auto emplace_constructible = requires(::std::decay_t<T> t) //
-            {
-                requires Base::template construct_req<decltype(t), Args...> >=
-                    expr_req::well_formed;
-                requires ::std::
-                    constructible_from<dispatchers_t, ::std::type_identity<decltype(t)>>;
-            };
+            static constexpr auto emplace_constructible =
+                details::emplace_constructible<Base, ::std::decay_t<T>, Args...>;
 
             using typename Base::allocator_type;
             using Base::Base;
@@ -457,7 +444,7 @@ namespace stdsharp
                 get_allocation().allocate(get_allocator(), sizeof(value_t));
 
                 this_t::construct(get_allocator(), ptr<value_t>(), cpp_forward(args)...);
-                get_dispatchers() = ::std::type_identity<value_t>{};
+                get_dispatchers() = dispatchers_t{::std::type_identity<value_t>{}};
 
                 return get<value_t>();
             }
