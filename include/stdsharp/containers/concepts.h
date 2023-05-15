@@ -12,6 +12,7 @@
 #include "../memory/allocator_traits.h"
 #include "../ranges/ranges.h"
 #include "../functional/operations.h"
+#include "../type_traits/type_sequence.h"
 
 namespace stdsharp
 {
@@ -540,9 +541,15 @@ namespace stdsharp
             template<typename...>
             static constexpr bool value = ::std::constructible_from<Container, Args...>;
 
-            template<typename T, typename... Optional>
-            static constexpr bool value<T, Optional...> =
-                ::std::constructible_from<Container, Args..., T, Optional...> && value<Optional...>;
+            template<typename... Optional>
+                requires(sizeof...(Optional) > 0)
+            static constexpr bool value<Optional...> =
+                ::std::constructible_from<Container, Args..., Optional...> &&
+                []<typename... T>(const basic_type_sequence<T...>) consteval //
+            {
+                return value<T...>;
+            }(typename stdsharp::type_sequence<
+                Optional...>::template select_range_t<0, sizeof...(Optional) - 1>{});
         };
     }
 

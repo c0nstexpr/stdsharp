@@ -133,7 +133,13 @@ namespace stdsharp
     template<::std::size_t Size>
     constexpr auto& get_static_memory_resource() noexcept
     {
-        thread_local constinit static_memory_resource<Size> resource{};
+#ifdef _MSC_VER
+        static
+#else
+        constinit
+#endif
+            thread_local static_memory_resource<Size>
+                resource{};
         return resource;
     }
 }

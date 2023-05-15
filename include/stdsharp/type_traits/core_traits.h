@@ -318,6 +318,9 @@ namespace stdsharp
             using type =
                 decltype(array_to_sequence<array>(::std::make_index_sequence<array.size()>{}));
         };
+
+        template<typename... T, template<typename...> typename Inner, typename... U>
+        consteval Inner<T...> template_rebind_impl(Inner<U...>);
     }
 
     template<typename Seq>
@@ -396,13 +399,9 @@ namespace stdsharp
     );
 
     template<typename Template, typename... T>
-    using template_rebind = decltype( //
-        []<template<typename...> typename Inner, typename... U> //
-        (const Inner<U...>)
-        {
-            return ::std::type_identity<Inner<U...>>{}; //
-        }(::std::declval<Template>())
-    );
+        requires requires { details::template_rebind_impl<T...>(::std::declval<Template>()); }
+    using template_rebind =
+        decltype(details::template_rebind_impl<T...>(::std::declval<Template>()));
 
     namespace cpo
     {

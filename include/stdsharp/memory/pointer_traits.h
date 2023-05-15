@@ -80,6 +80,11 @@ namespace stdsharp
 
         static constexpr to_address_fn to_address_impl;
 
+        struct identity_to_pointer
+        {
+            constexpr pointer operator()(const pointer& p) const noexcept { return p; }
+        };
+
         struct dereference_to_pointer
         {
             template<::std::same_as<raw_pointer> T = raw_pointer>
@@ -92,15 +97,17 @@ namespace stdsharp
 
         struct convert_to_pointer
         {
-            constexpr pointer operator()(const raw_pointer p) // NOLINT(*-misplaced-const)
+            STDSHARP_INTRINSIC constexpr pointer operator()(const raw_pointer p
+            ) // NOLINT(*-misplaced-const)
                 const noexcept
                 requires explicitly_convertible<raw_pointer, pointer>
             {
-                return auto_cast(p);
+                return static_cast<pointer>(p);
             }
         };
 
-        using to_pointer_fn = sequenced_invocables<dereference_to_pointer, convert_to_pointer>;
+        using to_pointer_fn =
+            sequenced_invocables<identity_to_pointer, dereference_to_pointer, convert_to_pointer>;
 
         static constexpr to_pointer_fn to_pointer_impl;
 

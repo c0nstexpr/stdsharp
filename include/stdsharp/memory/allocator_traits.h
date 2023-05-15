@@ -25,7 +25,7 @@ namespace stdsharp
             nullable_pointer<T> && nothrow_default_initializable<T> && nothrow_movable<T> &&
             nothrow_swappable<T> && nothrow_copyable<T> && nothrow_weakly_equality_comparable<T> &&
             nothrow_weakly_equality_comparable_with<T, ::std::nullptr_t>;
-    } // namespace details
+    }
 
     template<typename Alloc>
     concept allocator_req = requires //
@@ -340,7 +340,7 @@ namespace stdsharp
         static constexpr pointer allocate(
             allocator_type& alloc,
             const size_type count,
-            const const_void_pointer& hint = nullptr
+            const const_void_pointer hint = nullptr
         )
         {
             return hint == nullptr ? base::allocate(alloc, count) :
@@ -356,7 +356,7 @@ namespace stdsharp
         static constexpr pointer try_allocate(
             allocator_type& alloc,
             const size_type count,
-            const const_void_pointer& hint = nullptr
+            const const_void_pointer hint = nullptr
         ) noexcept
         {
             if(max_size(alloc) < count) return nullptr;
@@ -374,7 +374,7 @@ namespace stdsharp
         static constexpr auto try_allocate(
             allocator_type& alloc,
             const size_type count,
-            [[maybe_unused]] const const_void_pointer& hint = nullptr
+            [[maybe_unused]] const const_void_pointer hint = nullptr
         ) noexcept
             requires requires // clang-format off
         {
@@ -445,4 +445,4 @@ namespace stdsharp
 
     template<typename T>
     using allocator_of_t = ::meta::_t<allocator_of<T>>;
-} // namespace stdsharp
+}

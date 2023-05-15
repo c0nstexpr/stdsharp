@@ -28,7 +28,7 @@ namespace stdsharp
             static constexpr allocation<allocator_type> make_allocation(
                 allocator_type& alloc,
                 const allocator_size_type<allocator_type> size,
-                const allocator_cvp<allocator_type>& hint = nullptr
+                const allocator_cvp<allocator_type> hint = nullptr
             )
             {
                 if(size == 0) [[unlikely]]
@@ -41,7 +41,7 @@ namespace stdsharp
             static constexpr allocation<allocator_type> try_make_allocation(
                 allocator_type& alloc,
                 const allocator_size_type<allocator_type> size,
-                const allocator_cvp<allocator_type>& hint = nullptr
+                const allocator_cvp<allocator_type> hint = nullptr
             ) noexcept
             {
                 if(size == 0) [[unlikely]]
@@ -56,7 +56,7 @@ namespace stdsharp
     constexpr allocation<allocator_type> make_allocation(
         allocator_type& alloc,
         const allocator_size_type<allocator_type> size,
-        const allocator_cvp<allocator_type>& hint = nullptr
+        const allocator_cvp<allocator_type> hint = nullptr
     )
     {
         return details::allocation_access::make_allocation(alloc, size, hint);
@@ -66,7 +66,7 @@ namespace stdsharp
     constexpr allocation<allocator_type> try_make_allocation(
         allocator_type& alloc,
         const allocator_size_type<allocator_type> size,
-        const allocator_cvp<allocator_type>& hint = nullptr
+        const allocator_cvp<allocator_type> hint = nullptr
     ) noexcept
     {
         return details::allocation_access::try_make_allocation(alloc, size, hint);
@@ -116,11 +116,19 @@ namespace stdsharp
         template<typename ValueType>
         [[nodiscard]] static constexpr allocation_for<ValueType>
             copy_construct(allocator_type& alloc, const allocation_for<ValueType>& other)
-            requires(allocation_for<ValueType>::copy_constructible_req >= expr_req::well_formed);
+            requires(allocation_for<ValueType>::copy_constructible_req >= expr_req::well_formed)
+        {
+            allocation_for<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));
+            allocation.construct(alloc, other.get_const());
+            return allocation;
+        }
 
         template<typename ValueType>
         [[nodiscard]] static constexpr allocation_for<ValueType>
-            move_construct(allocator_type&, allocation_for<ValueType>& other) noexcept;
+            move_construct(allocator_type&, allocation_for<ValueType>& other) noexcept
+        {
+            return ::std::exchange(other, {});
+        }
 
         template<typename ValueType>
         static constexpr void
@@ -282,7 +290,7 @@ namespace stdsharp
         constexpr void allocate(
             allocator_type& alloc,
             const size_type size,
-            const allocator_cvp<allocator_type>& hint = nullptr
+            const allocator_cvp<allocator_type> hint = nullptr
         )
         {
             if(size_ >= size) return;
@@ -397,7 +405,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
-        constexpr void allocate(allocator_type& alloc, const const_void_pointer& hint = nullptr)
+        constexpr void allocate(allocator_type& alloc, const const_void_pointer hint = nullptr)
         {
             destroy(alloc);
             allocation_.allocate(alloc, sizeof(value_type), hint);
@@ -453,7 +461,7 @@ namespace stdsharp
     };
 
     template<typename T>
-        requires requires(const T t, T::allocator_type alloc) //
+        requires requires(const T t, typename T::allocator_type alloc) //
     {
         requires ::std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
         // clang-format off
@@ -522,29 +530,4 @@ namespace stdsharp
 
         ~allocator_aware_ctor() = default;
     };
-
-    template<allocator_req Allocator>
-    template<typename ValueType>
-    constexpr allocation_for<Allocator, ValueType>
-        allocator_aware_traits<Allocator>::copy_construct(
-            allocator_type& alloc,
-            const allocation_for<ValueType>& other
-        )
-        requires(allocation_for<ValueType>::copy_constructible_req >= expr_req::well_formed)
-    {
-        allocation_for<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));
-        allocation.construct(alloc, other.get_const());
-        return allocation;
-    }
-
-    template<allocator_req Allocator>
-    template<typename ValueType>
-    constexpr allocation_for<Allocator, ValueType>
-        allocator_aware_traits<Allocator>::move_construct(
-            allocator_type&,
-            allocation_for<ValueType>& other
-        ) noexcept
-    {
-        return ::std::exchange(other, {});
-    }
 }

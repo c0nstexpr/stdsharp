@@ -3,10 +3,10 @@
 namespace stdsharp::details
 {
     template<typename T>
-    T remove_ref(T&&);
+    consteval T remove_ref(T&&);
 
     template<typename T>
-    T remove_ref(T&);
+    consteval T remove_ref(T&);
 
     template<bool>
     using var_template = void;

@@ -9,9 +9,21 @@ namespace stdsharp
     namespace details
     {
         template<allocation_obj_req Req, typename Alloc>
-        class allocation_dispatchers
+        struct allocation_dispatchers_traits
         {
             using traits = allocator_aware_traits<Alloc>;
+
+            template<typename T>
+            static constexpr bool type_compatible =
+                Req <= traits::template allocation_for<::std::decay_t<T>>::obj_req;
+        };
+
+        template<allocation_obj_req Req, typename Alloc>
+        class allocation_dispatchers : allocation_dispatchers_traits<Req, Alloc>
+        {
+            using m_base = allocation_dispatchers_traits<Req, Alloc>;
+
+            using typename m_base::traits;
             using alloc = traits::allocator_type;
             using alloc_cref = const alloc&;
             using allocation = traits::allocation;
@@ -53,9 +65,10 @@ namespace stdsharp
 
             template<
                 typename T,
-                typename AllocationFor = traits::template allocation_for<T> // clang-format off
+                typename AllocationFor =
+                    traits::template allocation_for<::std::decay_t<T>> // clang-format off
             > // clang-format on
-                requires(Req <= allocation_value_type_req<alloc, ::std::decay_t<T>>)
+                requires(m_base::template type_compatible<T>)
             constexpr allocation_dispatchers(const ::std::type_identity<T>) noexcept:
                 allocation_dispatchers(
                     dispatchers(
@@ -412,6 +425,7 @@ namespace stdsharp
             using Base::get_dispatchers;
             using this_t = obj_allocation;
 
+        public:
             template<typename T, typename... Args>
             static constexpr auto emplace_constructible = requires(::std::decay_t<T> t) //
             {
@@ -421,7 +435,6 @@ namespace stdsharp
                     constructible_from<dispatchers_t, ::std::type_identity<decltype(t)>>;
             };
 
-        public:
             using typename Base::allocator_type;
             using Base::Base;
             using Base::get_allocator;

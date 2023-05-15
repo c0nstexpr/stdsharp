@@ -1,12 +1,10 @@
-#include "stdsharp/type_traits/object.h"
 #include "test.h"
 #include "stdsharp/memory/object_allocation.h"
-#include "stdsharp/memory/static_memory_resource.h"
 
 using namespace stdsharp;
 using namespace std;
 
-using allocator_t = allocator<all_aligned>;
+using allocator_t = allocator<unsigned char>;
 
 SCENARIO("object allocation basic requirements", "[memory][object allocation]") // NOLINT
 {
@@ -82,7 +80,7 @@ SCENARIO("object allocation assign value", "[memory][object allocation]") // NOL
         {
             INFO(fmt::format("custom type: {}", type_id<local>));
 
-            auto& l = allocation.emplace<local>(invoked);
+            allocation.emplace<local>(invoked);
             allocation.emplace<local>(invoked);
 
             THEN("assign operator should be invoked") { REQUIRE(invoked == 2); }
@@ -98,7 +96,7 @@ SCENARIO("object allocation assign value", "[memory][object allocation]") // NOL
 
 SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
 {
-    STATIC_REQUIRE( // TODO: use generic storage type for inner storage
+    STATIC_REQUIRE(
         []
         {
             trivial_obj_allocation<allocator<int>> allocation{};
@@ -108,3 +106,17 @@ SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
         }() == 42
     );
 }
+
+template<typename T>
+static constexpr auto value()
+{
+    return allocation_obj_req{} >= allocation_value_type_req<allocator_t, T>;
+}
+
+template<allocation_obj_req Req, typename T>
+    requires(Req >= allocation_value_type_req<allocator_t, ::std::decay_t<T>>)
+void bar()
+{
+}
+
+void foo() { bar<allocation_obj_req{}, int>(); }
