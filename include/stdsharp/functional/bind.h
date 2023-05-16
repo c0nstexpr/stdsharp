@@ -19,13 +19,23 @@ namespace stdsharp
             using ::std::reference_wrapper<T>::reference_wrapper;
         };
 
-        static constexpr struct : ::std::identity
+        template<>
+        struct arg_wrapper<void>
+        {
+        };
+
+        static constexpr struct
         {
             template<typename T>
-                requires decay_same_as<T, arg_wrapper<typename T::value_type>>
+                requires ::std::same_as<template_rebind<::std::decay_t<T>, void>, arg_wrapper<void>>
             [[nodiscard]] constexpr decltype(auto) operator()(T&& wrapper) const noexcept
             {
                 return cpp_forward(wrapper).get();
+            }
+
+            [[nodiscard]] constexpr decltype(auto) operator()(auto&& v) const noexcept
+            {
+                return cpp_forward(v);
             }
         } extract{};
 
