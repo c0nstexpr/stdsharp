@@ -360,9 +360,15 @@ namespace stdsharp
                 ::std::swap(get_dispatchers(), other_dispatchers);
             }
 
-            constexpr auto& get_allocator() const noexcept { return stdsharp::get<1>(compressed_); }
+            [[nodiscard]] constexpr auto& get_allocator() const noexcept
+            {
+                return stdsharp::get<1>(compressed_);
+            }
 
-            constexpr operator bool() const noexcept { return get_dispatchers().has_value(); }
+            [[nodiscard]] constexpr operator bool() const noexcept
+            {
+                return get_dispatchers().has_value();
+            }
 
             constexpr void destroy() noexcept
             {
@@ -385,25 +391,25 @@ namespace stdsharp
             }
 
         protected:
-            constexpr auto& get_dispatchers() noexcept { return stdsharp::get<0>(compressed_); }
-
-            constexpr auto& get_dispatchers() const noexcept
+            [[nodiscard]] constexpr auto& get_dispatchers() noexcept
             {
                 return stdsharp::get<0>(compressed_);
             }
 
-            constexpr auto& get_allocator() noexcept { return stdsharp::get<1>(compressed_); }
+            [[nodiscard]] constexpr auto& get_dispatchers() const noexcept
+            {
+                return stdsharp::get<0>(compressed_);
+            }
 
-            constexpr auto& get_allocation() noexcept { return allocation_; }
+            [[nodiscard]] constexpr auto& get_allocator() noexcept
+            {
+                return stdsharp::get<1>(compressed_);
+            }
 
-            constexpr auto& get_allocation() const noexcept { return allocation_; }
+            [[nodiscard]] constexpr auto& get_allocation() noexcept { return allocation_; }
+
+            [[nodiscard]] constexpr auto& get_allocation() const noexcept { return allocation_; }
         };
-
-        template<typename Base, typename T, typename... Args>
-        concept emplace_constructible =
-            Base::template construct_req<T, Args...> >= expr_req::well_formed
-            // && ::std::constructible_from<typename Base::dispatchers_t, ::std::type_identity<T>>
-            ;
 
         template<
             allocation_obj_req Req,
@@ -420,7 +426,8 @@ namespace stdsharp
         public:
             template<typename T, typename... Args>
             static constexpr auto emplace_constructible =
-                details::emplace_constructible<Base, ::std::decay_t<T>, Args...>;
+                (Base::template construct_req<T, Args...> >= expr_req::well_formed) &&
+                ::std::constructible_from<dispatchers_t, ::std::type_identity<T>>;
 
             using typename Base::allocator_type;
             using Base::Base;

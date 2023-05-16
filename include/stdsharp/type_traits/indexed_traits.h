@@ -68,7 +68,7 @@ namespace stdsharp
     template<::std::size_t Index>                                                                \
     [[nodiscard]] constexpr decltype(auto) get(const index_constant<Index>) const_ ref_ noexcept \
     {                                                                                            \
-        return this->value();                                                                    \
+        return value_wrapper<T>::get();                                                          \
     }
 
         STDSHARP_GET(, &)

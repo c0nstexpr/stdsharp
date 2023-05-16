@@ -44,26 +44,47 @@ namespace stdsharp
         {
         }
 
-        constexpr bool contains(const T other) const noexcept
+        [[nodiscard]] constexpr bool contains(const T other) const noexcept
         {
             const underlying_type v = auto_cast(*this);
             return (v & static_cast<underlying_type>(other)) == v;
         }
 
-        constexpr bool contains(const flag other) const noexcept { return contains(other.value); }
+        [[nodiscard]] constexpr bool contains(const flag other) const noexcept
+        {
+            return contains(other.value);
+        }
 
         // NOLINTBEGIN(hicpp-signed-bitwise)
-        constexpr auto operator|(const T other) const noexcept { return flag{value | other}; }
+        [[nodiscard]] constexpr auto operator|(const T other) const noexcept
+        {
+            return flag{value | other};
+        }
 
-        friend constexpr auto operator|(const T v, const flag e) noexcept { return flag{e | v}; }
+        [[nodiscard]] friend constexpr auto operator|(const T v, const flag e) noexcept
+        {
+            return flag{e | v};
+        }
 
-        constexpr flag operator|(const flag other) const noexcept { return flag{value | other}; }
+        [[nodiscard]] constexpr flag operator|(const flag other) const noexcept
+        {
+            return flag{value | other};
+        }
 
-        constexpr flag operator&(const T other) const noexcept { return flag{value & other}; }
+        [[nodiscard]] constexpr flag operator&(const T other) const noexcept
+        {
+            return flag{value & other};
+        }
 
-        friend constexpr auto operator&(const T v, const flag e) noexcept { return flag{e & v}; }
+        [[nodiscard]] friend constexpr auto operator&(const T v, const flag e) noexcept
+        {
+            return flag{e & v};
+        }
 
-        constexpr auto operator&(const flag other) const noexcept { return flag{value & other}; }
+        [[nodiscard]] constexpr auto operator&(const flag other) const noexcept
+        {
+            return flag{value & other};
+        }
 
         // NOLINTEND(hicpp-signed-bitwise)
     };

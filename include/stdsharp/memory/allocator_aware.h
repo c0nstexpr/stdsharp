@@ -323,18 +323,74 @@ namespace stdsharp
             return std::array{copy_construct, move_assign, copy_assign};
         }
 
-        [[nodiscard]] friend constexpr auto
-            operator<=>(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
+        [[nodiscard]] friend constexpr bool
+            operator<(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
-            return strict_compare(left.to_array(), right.to_array());
+            bool has_less = false;
+            const auto cmp = ::std::ranges::equal(
+                left.to_array(),
+                right.to_array(),
+                [&has_less](const expr_req left, const expr_req right)
+                {
+                    if(left < right)
+                    {
+                        has_less = true;
+                        return true;
+                    }
+
+                    return left == right;
+                }
+            );
+
+            return has_less && cmp;
         }
 
         [[nodiscard]] friend constexpr bool
-            operator==(const allocation_obj_req& lhs, const allocation_obj_req& rhs) noexcept
+            operator>(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
-            return lhs.copy_construct == rhs.copy_construct && //
-                lhs.move_assign == rhs.move_assign && //
-                lhs.copy_assign == rhs.copy_assign;
+            bool has_greater = false;
+            const auto cmp = ::std::ranges::equal(
+                left.to_array(),
+                right.to_array(),
+                [&has_greater](const expr_req left, const expr_req right)
+                {
+                    if(left > right)
+                    {
+                        has_greater = true;
+                        return true;
+                    }
+
+                    return left == right;
+                }
+            );
+
+            return has_greater && cmp;
+        }
+
+        [[nodiscard]] friend constexpr bool
+            operator<=(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
+        {
+            return ::std::ranges::equal(
+                left.to_array(),
+                right.to_array(),
+                ::std::ranges::less_equal{}
+            );
+        }
+
+        [[nodiscard]] friend constexpr bool
+            operator>=(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
+        {
+            return ::std::ranges::equal(
+                left.to_array(),
+                right.to_array(),
+                ::std::ranges::greater_equal{}
+            );
+        }
+
+        [[nodiscard]] friend constexpr bool
+            operator==(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
+        {
+            return ::std::ranges::equal(left.to_array(), right.to_array());
         }
     };
 

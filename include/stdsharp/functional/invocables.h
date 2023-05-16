@@ -23,7 +23,7 @@ namespace stdsharp
     constexpr decltype(auto) operator()(Args&&... args)                     \
         const_ ref noexcept(nothrow_invocable<Fn, Args...>)                 \
     {                                                                       \
-        return base::value()(cpp_forward(args)...);                         \
+        return base::get()(cpp_forward(args)...);                           \
     }
 
             STDSHARP_OPERATOR(, &)

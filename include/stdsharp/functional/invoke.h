@@ -58,7 +58,7 @@ namespace stdsharp
 #if __cpp_lib_invoke_r >= 202106L
                 ::std::invoke_r<ReturnT>(cpp_forward(args)...)
 #else
-                static_cast<ReturnT>(::std::invoke(cpp_forward(args)...))
+                static_cast<ReturnT>(::std::invoke(cpp_forward(func), cpp_forward(args)...))
 #endif
                     ;
         };
@@ -66,4 +66,28 @@ namespace stdsharp
 
     template<typename ReturnT>
     inline constexpr invoke_r_fn<ReturnT> invoke_r{};
+
+    inline constexpr struct projected_invoke_fn
+    {
+        template<typename Fn, typename Projector, typename... Args>
+            requires requires //
+        {
+            requires(::std::invocable<Projector, Args> && ...);
+            requires ::std::invocable<Fn, ::std::invoke_result_t<Projector, Args>...>;
+        }
+        constexpr decltype(auto) operator()(Fn&& fn, Projector projector, Args&&... args) const
+            noexcept(
+                (nothrow_invocable<Projector, Args> && ...) && //
+                nothrow_invocable<Fn, ::std::invoke_result_t<Projector, Args>...> //
+            )
+        {
+            return ::std::invoke(cpp_forward(fn), ::std::invoke(projector, cpp_forward(args))...);
+        }
+    } projected_invoke{};
+
+    template<typename... Args>
+    concept projected_invocable = ::std::invocable<projected_invoke_fn, Args...>;
+
+    template<typename... Args>
+    concept projected_nothrow_invocable = nothrow_invocable<projected_invoke_fn, Args...>;
 }

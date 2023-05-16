@@ -58,15 +58,23 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     }
 }
 
+namespace
+{
+    constexpr auto greater = [] { return partial_ordering::greater; };
+    constexpr auto less = [] { return partial_ordering::less; };
+    constexpr auto equivalent = [] { return partial_ordering::equivalent; };
+    constexpr auto unordered = [] { return partial_ordering::unordered; };
+}
+
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: strict compare",
     "[algorithm]",
     ((auto Left, auto Right, auto GetCmp), Left, Right, GetCmp),
-    (array{3, 4}, array{1, 2}, [] { return partial_ordering::greater; }),
-    (array{1, 2}, array{3, 2}, [] { return partial_ordering::less; }),
-    (array{1, 2}, array{1, 2}, [] { return partial_ordering::equivalent; }),
-    (array{0, 3}, array{1, 2}, [] { return partial_ordering::unordered; }),
-    (array{2, 2}, array{1, 2}, [] { return partial_ordering::greater; })
+    (array{3, 4}, array{1, 2}, greater),
+    (array{1, 2}, array{3, 2}, less),
+    (array{1, 2}, array{1, 2}, equivalent),
+    (array{0, 3}, array{1, 2}, unordered),
+    (array{2, 2}, array{1, 2}, greater)
 )
 {
     GIVEN("given three values")

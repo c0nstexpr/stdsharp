@@ -69,14 +69,17 @@ namespace stdsharp
             traits::deallocate(this->get(), p, n);
         }
 
-        constexpr auto max_size() const noexcept { return traits::max_size(this->get()); }
+        [[nodiscard]] constexpr auto max_size() const noexcept
+        {
+            return traits::max_size(this->get());
+        }
 
-        constexpr auto select_on_container_copy_construction() const
+        [[nodiscard]] constexpr auto select_on_container_copy_construction() const
         {
             return traits::select_on_container_copy_construction(this->get());
         }
 
-        constexpr auto operator==(const allocator_reference& other) const noexcept
+        [[nodiscard]] constexpr bool operator==(const allocator_reference& other) const noexcept
         {
             return this->get() == other.get();
         }

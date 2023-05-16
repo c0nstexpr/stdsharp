@@ -1,62 +1,65 @@
 #pragma once
 
-#include "../type_traits/indexed_traits.h"
+#include "invoke.h"
 
 namespace stdsharp
 {
-    template<typename Func, typename... T>
-    class bind_t : indexed_values<Func, T...>
-    {
-        using base = indexed_values<Func, T...>;
-
-    public:
-        using base::base;
-
-#define STDSHARP_OPERATOR(const_, ref)                                                    \
-                                                                                          \
-public:                                                                                   \
-    template<typename... Args>                                                            \
-        requires ::std::invocable<const_ Func ref, const_ T ref..., Args...>              \
-    constexpr decltype(auto) operator()(Args&&... args)                                   \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, const_ T ref..., Args...>) \
-    {                                                                                     \
-        return []<::std::size_t... I>(                                                    \
-                   const ::std::index_sequence<I...>,                                     \
-                   const_ base ref indexed,                                               \
-                   Args&&... args                                                         \
-               ) -> decltype(auto)                                                        \
-        {                                                                                 \
-            return ::std::invoke(                                                         \
-                stdsharp::get<I>(static_cast<const_ base ref>(indexed))...,               \
-                cpp_forward(args)...                                                      \
-            );                                                                            \
-        }(::std::index_sequence_for<Func, T...>{},                                        \
-          static_cast<const_ base ref>(*this),                                            \
-          cpp_forward(args)...);                                                          \
-    }
-
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-
-#undef STDSHARP_OPERATOR
-    };
-
-    template<typename Func, typename... Args>
-    bind_t(Func&&, Args&&...) -> bind_t<::std::decay_t<Func>, persist_t<Args&&>...>;
-
     inline constexpr struct bind_fn
     {
+    private:
+        template<typename T>
+        struct arg_wrapper : value_wrapper<T>
+        {
+            using value_wrapper<T>::value_wrapper;
+        };
+
+        template<typename T>
+        struct arg_wrapper<T&> : ::std::reference_wrapper<T>
+        {
+            using ::std::reference_wrapper<T>::reference_wrapper;
+        };
+
+        static constexpr struct : ::std::identity
+        {
+            template<typename T>
+                requires decay_same_as<T, arg_wrapper<typename T::value_type>>
+            [[nodiscard]] constexpr decltype(auto) operator()(T&& wrapper) const noexcept
+            {
+                return cpp_forward(wrapper).get();
+            }
+        } extract{};
+
+        template<typename T>
+        using extract_t = decltype(extract(::std::declval<T>()));
+
+    public:
         template<typename Func, typename... Args>
+        constexpr auto operator()(Func&& func, Args&&... args) const noexcept( //
+            noexcept( //
+                ::std::bind_front(
+                    projected_invoke,
+                    cpp_forward(func),
+                    extract,
+                    arg_wrapper<persist_t<Args&&>>{cpp_forward(args)}...
+                )
+            )
+        )
             requires requires //
         {
-            bind_t{::std::declval<Func>(), ::std::declval<Args>()...};
+            ::std::bind_front(
+                projected_invoke,
+                cpp_forward(func),
+                extract,
+                arg_wrapper<persist_t<Args&&>>{cpp_forward(args)}...
+            );
         }
-        constexpr auto operator()(Func&& func, Args&&... args) const
-            noexcept(noexcept(bind_t{::std::declval<Func>(), ::std::declval<Args>()...}))
         {
-            return bind_t{cpp_forward(func), cpp_forward(args)...};
+            return ::std::bind_front(
+                projected_invoke,
+                cpp_forward(func),
+                extract,
+                arg_wrapper<persist_t<Args&&>>{cpp_forward(args)}...
+            );
         }
     } bind{};
 

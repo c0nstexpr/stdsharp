@@ -97,9 +97,9 @@ namespace stdsharp
 
         struct convert_to_pointer
         {
-            STDSHARP_INTRINSIC constexpr pointer operator()(const raw_pointer p
-            ) // NOLINT(*-misplaced-const)
-                const noexcept
+            STDSHARP_INTRINSIC constexpr pointer operator()( //
+                const raw_pointer p // NOLINT(*-misplaced-const)
+            ) const noexcept
                 requires explicitly_convertible<raw_pointer, pointer>
             {
                 return static_cast<pointer>(p);

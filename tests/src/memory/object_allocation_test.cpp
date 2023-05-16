@@ -106,17 +106,3 @@ SCENARIO("constexpr object allocation", "[memory][object allocation]") // NOLINT
         }() == 42
     );
 }
-
-template<typename T>
-static constexpr auto value()
-{
-    return allocation_obj_req{} >= allocation_value_type_req<allocator_t, T>;
-}
-
-template<allocation_obj_req Req, typename T>
-    requires(Req >= allocation_value_type_req<allocator_t, ::std::decay_t<T>>)
-void bar()
-{
-}
-
-void foo() { bar<allocation_obj_req{}, int>(); }

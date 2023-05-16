@@ -37,7 +37,7 @@ namespace stdsharp
             )
             {
                 return (*this)( //
-                    ::std::invoke(cpp_forward(arg)...),
+                    ::std::invoke(cpp_forward(first), cpp_forward(arg)...),
                     empty,
                     cpp_forward(fn)...
                 );

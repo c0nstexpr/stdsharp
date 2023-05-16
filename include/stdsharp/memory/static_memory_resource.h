@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <memory>
 
 #include "../utility/auto_cast.h"
 #include "allocator_traits.h"
@@ -61,7 +62,10 @@ namespace stdsharp
             if(found.empty()) return nullptr;
 
             ::std::ranges::fill(found, true);
-            return storage_.data() + (found.begin() - state_.cbegin());
+            return ::std::ranges::next(
+                storage_.data(),
+                ::std::ranges::distance(state_.cbegin(), found.begin())
+            );
         }
 
         constexpr void
@@ -90,10 +94,10 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto contains(const void* const ptr) noexcept
         {
-            const auto data_p = storage_.data();
             return ::std::is_constant_evaluated() ? //
                 constexpr_map_state_impl(ptr) < size :
-                ptr >= data_p && ptr < data_p + size;
+                (ptr >= ::std::to_address(storage_.cbegin())) &&
+                    (ptr < ::std::to_address(storage_.cend()));
         }
 
         [[nodiscard]] constexpr bool operator==(const static_memory_resource& other) const noexcept
@@ -117,7 +121,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto constexpr_map_state_impl(const void* const ptr) noexcept
         {
             const auto data = storage_.data();
-            const auto ptr_view = ::std::views::iota(data, data + size);
+            const auto ptr_view = ::std::views::iota(data, ::std::ranges::next(data, size));
             return ::std::ranges::find(ptr_view, ptr) - ptr_view.begin();
         }
 

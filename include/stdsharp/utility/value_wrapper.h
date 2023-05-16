@@ -11,12 +11,28 @@ namespace stdsharp
         struct value_wrapper
         {
             T v;
+
+            value_wrapper() = default;
+
+            template<typename... U>
+                requires ::std::constructible_from<T, U...>
+            constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
+                v(cpp_forward(u)...)
+            {
+            }
         };
 
         template<empty_type T>
         struct value_wrapper<T>
         {
-            STDSHARP_NO_UNIQUE_ADDRESS T v;
+            STDSHARP_NO_UNIQUE_ADDRESS T v{};
+
+            template<typename... U>
+                requires ::std::constructible_from<T, U...>
+            constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
+                v(cpp_forward(u)...)
+            {
+            }
         };
     }
 
@@ -24,21 +40,13 @@ namespace stdsharp
     struct value_wrapper : details::value_wrapper<T>
     {
         using value_type = T;
+        using details::value_wrapper<T>::value_wrapper;
         using details::value_wrapper<T>::v;
 
-        value_wrapper() = default;
-
-        template<typename... U>
-            requires ::std::constructible_from<T, U...>
-        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            details::value_wrapper<T>{cpp_forward(u)...}
-        {
-        }
-
-#define STDSHARP_OPERATOR(const_, ref)                                                          \
-    constexpr const_ T ref value() const_ ref noexcept { return static_cast<const_ T ref>(v); } \
-                                                                                                \
-    constexpr explicit operator const_ T ref() const_ ref noexcept { return value(); }
+#define STDSHARP_OPERATOR(const_, ref)                                                        \
+    constexpr const_ T ref get() const_ ref noexcept { return static_cast<const_ T ref>(v); } \
+                                                                                              \
+    constexpr explicit operator const_ T ref() const_ ref noexcept { return get(); }
 
         STDSHARP_OPERATOR(, &)
         STDSHARP_OPERATOR(const, &)

@@ -119,7 +119,7 @@ namespace stdsharp
             else second.deallocate(ptr, n);
         }
 
-        constexpr auto max_size() const noexcept
+        [[nodiscard]] constexpr auto max_size() const noexcept
         {
             return ::std::min(
                 first_traits::max_size(alloc_pair_.first),
@@ -127,7 +127,7 @@ namespace stdsharp
             );
         }
 
-        constexpr composed_allocator select_on_container_copy_construction() const
+        [[nodiscard]] constexpr composed_allocator select_on_container_copy_construction() const
         {
             return {
                 first_traits::select_on_container_copy_construction(alloc_pair_.first),
@@ -135,7 +135,7 @@ namespace stdsharp
             };
         }
 
-        constexpr auto allocate_at_least(const ::std::size_t n)
+        [[nodiscard]] constexpr auto allocate_at_least(const ::std::size_t n)
         {
             struct
             {
@@ -188,7 +188,7 @@ namespace stdsharp
                 false;
         }
 
-        bool operator==(const composed_allocator&) const noexcept = default;
+        [[nodiscard]] bool operator==(const composed_allocator&) const noexcept = default;
     };
 
     template<typename T, typename U>
