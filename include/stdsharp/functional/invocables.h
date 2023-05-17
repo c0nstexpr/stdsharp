@@ -18,12 +18,12 @@ namespace stdsharp
 
             using base::base;
 
-#define STDSHARP_OPERATOR(const_, ref)                                      \
-    template<typename... Args, ::std::invocable<Args...> Fn = const_ T ref> \
-    constexpr decltype(auto) operator()(Args&&... args)                     \
-        const_ ref noexcept(nothrow_invocable<Fn, Args...>)                 \
-    {                                                                       \
-        return base::get()(cpp_forward(args)...);                           \
+#define STDSHARP_OPERATOR(const_, ref)                                                  \
+    template<typename... Args, ::std::invocable<Args...> Fn = const_ T ref>             \
+    constexpr decltype(auto) operator()(Args&&... args)                                 \
+        const_ ref noexcept(nothrow_invocable<Fn, Args...>)                             \
+    {                                                                                   \
+        return ::std::invoke(static_cast<const_ T ref>(this->v), cpp_forward(args)...); \
     }
 
             STDSHARP_OPERATOR(, &)

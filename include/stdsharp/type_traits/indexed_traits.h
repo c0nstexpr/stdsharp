@@ -64,11 +64,11 @@ namespace stdsharp
     {
         using value_wrapper<T>::value_wrapper;
 
-#define STDSHARP_GET(const_, ref_)                                                               \
-    template<::std::size_t Index>                                                                \
-    [[nodiscard]] constexpr decltype(auto) get(const index_constant<Index>) const_ ref_ noexcept \
-    {                                                                                            \
-        return value_wrapper<T>::get();                                                          \
+#define STDSHARP_GET(const_, ref)                                                               \
+    template<::std::size_t Index>                                                               \
+    [[nodiscard]] constexpr decltype(auto) get(const index_constant<Index>) const_ ref noexcept \
+    {                                                                                           \
+        return static_cast<const_ T ref>(this->v);                                              \
     }
 
         STDSHARP_GET(, &)
