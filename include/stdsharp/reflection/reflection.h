@@ -6,126 +6,46 @@
 #include <ranges>
 
 #include "../type_traits/core_traits.h"
+#include "../concepts/concepts.h"
 
 using namespace ::std::literals;
 
 namespace stdsharp::reflection
 {
-    enum class member_category
-    {
-        function,
-        data
-    };
-
     struct member_info
     {
         ::std::string_view name{};
-        member_category category{};
+
+        enum
+        {
+            function,
+            data
+        } category{};
 
         friend bool operator==(member_info, member_info) = default;
-        friend bool operator!=(member_info, member_info) = default;
     };
 
     template<typename T>
-    struct get_members_t;
+    constexpr ::std::conditional_t<dependent_false<T>(), int, void> get_members;
 
     template<typename T, typename U>
-    struct get_members_t<::std::pair<T, U>>
-    {
-        [[nodiscard]] constexpr auto operator()() const noexcept
-        {
-            return ::std::array{
-                member_info{"first", member_category::data},
-                member_info{"second", member_category::data} //
-            };
-        }
+    constexpr ::std::array get_members<::std::pair<T, U>>{
+        member_info{"first", member_info::data},
+        member_info{"second", member_info::data} //
     };
 
-    namespace details
-    {
-        template<typename>
-        struct is_std_pair;
+    template<ltr, typename T>
+    constexpr ::std::conditional_t<dependent_false<T>(), int, void> get_member;
 
-        template<typename T, typename U>
-        struct is_std_pair<::std::pair<T, U>>
-        {
-        };
+    template<typename T, typename U>
+    stdsharp_data_member_reflect(first, ::std::pair<T, U>);
 
-        template<auto V>
-        void get_member(auto&&) = delete;
-
-        template<auto Literal>
-        struct get_member_fn
-        {
-            static constexpr ::std::string_view name = Literal;
-
-            template<typename T>
-                requires requires { get_member<Literal>(::std::declval<T>()); }
-            [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const
-                noexcept(noexcept(get_member<Literal>(::std::declval<T>())))
-            {
-                return get_member<Literal>(cpp_forward(t));
-            }
-
-            template<typename T>
-                requires requires //
-            {
-                requires name == "first";
-                is_std_pair<::std::remove_cvref_t<T>>{};
-            }
-            [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
-            {
-                return cpp_forward(p).first;
-            }
-
-            template<typename T>
-                requires requires //
-            {
-                requires name == "second";
-                is_std_pair<::std::remove_cvref_t<T>>{};
-            }
-            [[nodiscard]] constexpr auto& operator()(T&& p) const noexcept
-            {
-                return cpp_forward(p).second;
-            }
-        };
-
-        template<typename T>
-        struct get_members_fn
-        {
-            [[nodiscard]] constexpr ::std::ranges::output_range<member_info> auto
-                operator()() const noexcept
-                requires(noexcept(reflection::get_members_t<T>{}()))
-            {
-                return reflection::get_members_t<T>{}();
-            }
-        };
-    }
-
-    namespace cpo::inline cpo_impl
-    {
-        using details::get_member_fn;
-        using details::get_members_fn;
-
-        template<ltr Literal>
-        inline constexpr get_member_fn<Literal> get_member{};
-
-        template<typename T>
-        inline constexpr get_members_fn<T> get_members{};
-    }
+    template<typename T, typename U>
+    stdsharp_data_member_reflect(second, ::std::pair<T, U>);
 
     template<typename T>
-    struct get_data_members_fn
-    {
-        constexpr auto operator()() const noexcept
-        {
-            return get_members<T>() |
-                ::std::views::filter( //
-                       [](const member_info info) { return info.category == member_category::data; }
-                );
-        }
-    };
-
-    template<typename T>
-    inline constexpr get_data_members_fn<T> get_data_members{};
+    inline constexpr auto get_data_members = ::std::views::filter(
+        get_members<T>,
+        [](const member_info info) { return info.category == member_info::data; }
+    );
 }
