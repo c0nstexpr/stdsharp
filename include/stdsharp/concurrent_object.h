@@ -5,6 +5,7 @@
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
+#include "type_traits/indexed_traits.h"
 #include "utility/value_wrapper.h"
 
 namespace stdsharp
@@ -202,10 +203,26 @@ namespace stdsharp
     namespace reflection
     {
         template<typename ValueT, typename Lockable>
-        stdsharp_func_member_reflect(write, concurrent_object<ValueT, Lockable>);
+        inline constexpr indexed_values<
+            stdsharp_func_member_reflect(write, concurrent_object<ValueT, Lockable>) //
+            >
+            members_for{};
 
         template<typename ValueT, typename Lockable>
-        stdsharp_func_member_reflect(read, concurrent_object<ValueT, Lockable>);
+        inline constexpr auto get_member<"write"_ltr, concurrent_object<ValueT, Lockable>> =
+            [](decay_same_as<concurrent_object<ValueT, Lockable>> auto&& v, auto&&... args
+            ) noexcept(noexcept(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args
+            )...))
+            ) -> decltype(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...))
+        { return static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...); };
+
+        template<typename ValueT, typename Lockable>
+        inline constexpr auto get_member<"read"_ltr, concurrent_object<ValueT, Lockable>> =
+            [](decay_same_as<concurrent_object<ValueT, Lockable>> auto&& v, auto&&... args
+            ) noexcept(noexcept(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args
+            )...))
+            ) -> decltype(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...))
+        { return static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...); };
 
         template<typename T, typename U>
         inline constexpr ::std::array get_members<concurrent_object<T, U>>{

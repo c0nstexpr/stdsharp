@@ -1,6 +1,3 @@
-//
-
-//
 #pragma once
 
 #include <ranges>
@@ -12,7 +9,17 @@ using namespace ::std::literals;
 
 namespace stdsharp::reflection
 {
+    enum mem_type
+    {
+        function,
+        data
+    };
+
+    template<typename Reflected, ltr, mem_type>
+    constexpr ::std::conditional_t<dependent_false<Reflected>(), int, void> member;
+
     struct member_info
+
     {
         ::std::string_view name{};
 
