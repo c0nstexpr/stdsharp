@@ -202,32 +202,22 @@ namespace stdsharp
 
     namespace reflection
     {
-        template<typename ValueT, typename Lockable>
-        inline constexpr indexed_values<
-            stdsharp_func_member_reflect(write, concurrent_object<ValueT, Lockable>) //
-            >
-            members_for{};
-
-        template<typename ValueT, typename Lockable>
-        inline constexpr auto get_member<"write"_ltr, concurrent_object<ValueT, Lockable>> =
-            [](decay_same_as<concurrent_object<ValueT, Lockable>> auto&& v, auto&&... args
-            ) noexcept(noexcept(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args
-            )...))
-            ) -> decltype(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...))
-        { return static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...); };
-
-        template<typename ValueT, typename Lockable>
-        inline constexpr auto get_member<"read"_ltr, concurrent_object<ValueT, Lockable>> =
-            [](decay_same_as<concurrent_object<ValueT, Lockable>> auto&& v, auto&&... args
-            ) noexcept(noexcept(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args
-            )...))
-            ) -> decltype(static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...))
-        { return static_cast<decltype(v)>(v).first(static_cast<decltype(args)>(args)...); };
-
         template<typename T, typename U>
-        inline constexpr ::std::array get_members<concurrent_object<T, U>>{
-            member_info{"read", member_info::function},
-            member_info{"write", member_info::function} //
-        };
+        inline constexpr auto function<concurrent_object<T, U>> = make_indexed_values( //
+            member<concurrent_object<T, U>>::template function_reflect<"read">(
+                [](const decay_same_as<concurrent_object<T, U>> auto&& v,
+                   auto&&... args) //
+                noexcept(noexcept(cpp_forward(v).read(cpp_forward(args)...))
+                ) -> decltype(cpp_forward(v).read(cpp_forward(args)...))
+                { return cpp_forward(v).read(cpp_forward(args)...); }
+            ),
+            member<concurrent_object<T, U>>::template function_reflect<"write">(
+                [](decay_same_as<concurrent_object<T, U>> auto&& v,
+                   auto&&... args) //
+                noexcept(noexcept(cpp_forward(v).write(cpp_forward(args)...))
+                ) -> decltype(cpp_forward(v).write(cpp_forward(args)...))
+                { return cpp_forward(v).write(cpp_forward(args)...); }
+            )
+        );
     }
 }

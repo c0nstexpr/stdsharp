@@ -15,9 +15,7 @@ namespace stdsharp
     };
 
     template<auto Ptr>
-    struct member_pointer_traits : member_traits<::std::decay_t<decltype(Ptr)>>
-    {
-    };
+    using member_pointer_traits = member_traits<::std::decay_t<decltype(Ptr)>>;
 
     template<auto Ptr>
     using member_t = ::meta::_t<member_pointer_traits<Ptr>>;

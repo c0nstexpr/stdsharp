@@ -1,58 +1,69 @@
 #pragma once
 
 #include <ranges>
+#include <stdexcept>
 
-#include "../type_traits/core_traits.h"
-#include "../concepts/concepts.h"
-
-using namespace ::std::literals;
+#include "../type_traits/member.h"
 
 namespace stdsharp::reflection
 {
-    enum mem_type
+    template<typename Reflected>
+    struct member
     {
-        function,
-        data
-    };
-
-    template<typename Reflected, ltr, mem_type>
-    constexpr ::std::conditional_t<dependent_false<Reflected>(), int, void> member;
-
-    struct member_info
-
-    {
-        ::std::string_view name{};
-
-        enum
+    private:
+        template<ltr Name, typename T>
+        struct invoker : T
         {
-            function,
-            data
-        } category{};
+            using reflected = Reflected;
+            static constexpr auto name = Name;
 
-        friend bool operator==(member_info, member_info) = default;
+            consteval auto operator[](const ::std::string_view n)
+            {
+                if(n == name) return *this;
+                throw ::std::invalid_argument{"Invalid member name"};
+            }
+        };
+
+        template<ltr Name, auto Ptr>
+        struct data_mem
+        {
+            using reflected = Reflected;
+            static constexpr auto name = Name;
+            using type = member_t<Ptr>;
+
+            consteval auto operator[](const ::std::string_view n)
+            {
+                if(n == name) return *this;
+                throw ::std::invalid_argument{"Invalid member name"};
+            }
+        };
+
+    public:
+        template<ltr Name, typename T>
+            requires cpp_is_constexpr(T{})
+        static consteval invoker<Name, T> func_reflect(const T = {}) noexcept
+        {
+            return {};
+        }
+
+        template<ltr Name, member_of<Reflected> auto Ptr>
+        static consteval data_mem<Name, Ptr> data_reflect() noexcept
+        {
+            return {};
+        }
+
+        static consteval const Reflected& cast(const Reflected& t) noexcept { return t; }
     };
 
-    template<typename T>
-    constexpr ::std::conditional_t<dependent_false<T>(), int, void> get_members;
+    template<typename Reflected>
+    inline constexpr ::std::conditional_t<dependent_false<Reflected>(), int, void> function;
+
+    template<typename Reflected>
+    inline constexpr ::std::conditional_t<dependent_false<Reflected>(), int, void> data;
 
     template<typename T, typename U>
-    constexpr ::std::array get_members<::std::pair<T, U>>{
-        member_info{"first", member_info::data},
-        member_info{"second", member_info::data} //
-    };
-
-    template<ltr, typename T>
-    constexpr ::std::conditional_t<dependent_false<T>(), int, void> get_member;
-
-    template<typename T, typename U>
-    stdsharp_data_member_reflect(first, ::std::pair<T, U>);
-
-    template<typename T, typename U>
-    stdsharp_data_member_reflect(second, ::std::pair<T, U>);
-
-    template<typename T>
-    inline constexpr auto get_data_members = ::std::views::filter(
-        get_members<T>,
-        [](const member_info info) { return info.category == member_info::data; }
+    inline constexpr auto data<::std::pair<T, U>> = make_indexed_values(
+        member<::std::pair<T, U>>::template data_reflect<"first", &::std::pair<T, U>::first>(),
+        member<::std::pair<T, U>>::template data_reflect<"second", &::std::pair<T, U>::second>()
     );
 }
