@@ -51,8 +51,6 @@ namespace stdsharp::reflection
         {
             return {};
         }
-
-        static consteval const Reflected& cast(const Reflected& t) noexcept { return t; }
     };
 
     template<typename Reflected>

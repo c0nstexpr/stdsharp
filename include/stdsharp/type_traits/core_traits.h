@@ -48,6 +48,35 @@ namespace stdsharp
         rvalue
     };
 
+    template<typename T>
+    inline constexpr auto get_ref_qualifier = ::std::is_lvalue_reference_v<T> ? //
+        ref_qualifier::lvalue :
+        ::std::is_rvalue_reference_v<T> ? ref_qualifier::rvalue : ref_qualifier::none;
+
+    template<typename T>
+    struct cast_to_fn
+    {
+#define STDSHARP_OPERATOR(const_, volotile_, ref)                                        \
+    constexpr const_ volotile_ T ref operator()(const_ volotile_ T ref t) const noexcept \
+    {                                                                                    \
+        return static_cast<const_ volotile_ T ref>(t);                                   \
+    }
+
+        STDSHARP_OPERATOR(const, , &)
+        STDSHARP_OPERATOR(const, , &&)
+        STDSHARP_OPERATOR(const, volatile, &)
+        STDSHARP_OPERATOR(const, volatile, &&)
+        STDSHARP_OPERATOR(, volatile, &)
+        STDSHARP_OPERATOR(, volatile, &&)
+        STDSHARP_OPERATOR(, , &)
+        STDSHARP_OPERATOR(, , &&)
+
+#undef STDSHARP_OPERATOR
+    };
+
+    template<typename T>
+    inline constexpr auto cast_to = cast_to_fn<T>{};
+
     enum class expr_req
     {
         ill_formed,
