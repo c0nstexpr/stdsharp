@@ -9,7 +9,7 @@
 
 namespace stdsharp
 {
-    template<auto...>
+    template<decltype(auto)...>
     struct value_sequence;
 
     template<typename T>
@@ -23,13 +23,13 @@ namespace stdsharp
 
     namespace details
     {
-        template<auto... Values, typename seq = value_sequence<Values...>>
+        template<decltype(auto)... Values, typename seq = value_sequence<Values...>>
         consteval to_value_sequence<
             make_value_sequence_t<seq::size() - 1, seq::size(), ::std::minus{}>>::
             template apply_t<seq::template at_t>
             get_reverse_value_sequence();
 
-        template<auto... Values>
+        template<decltype(auto)... Values>
         struct unique_value_sequence
         {
             using seq = value_sequence<Values...>;
@@ -85,7 +85,7 @@ namespace stdsharp
         };
     } // clang-format on
 
-    template<auto... Values>
+    template<decltype(auto)... Values>
     struct value_sequence : regular_value_sequence<Values...>
     {
     public:
@@ -222,7 +222,6 @@ namespace stdsharp
 
     public:
         static constexpr struct for_each_fn
-
         {
             template<proxy_concept<predicate> Func>
             constexpr auto operator()(Func func) const noexcept(nothrow_predicate<Func>::value)
@@ -369,17 +368,17 @@ namespace stdsharp
         template<::std::size_t Size>
         using front_t = select_range_t<0, Size>;
 
-        template<auto... Others>
+        template<decltype(auto)... Others>
         using append_t = regular_value_sequence<Values..., Others...>;
 
-        template<auto... Others>
+        template<decltype(auto)... Others>
         using append_front_t = regular_value_sequence<Others..., Values...>;
 
     private:
         template<::std::size_t Index>
         struct insert
         {
-            template<auto... Others, auto... Front, auto... Back>
+            template<decltype(auto)... Others, decltype(auto)... Front, decltype(auto)... Back>
             static consteval regular_value_sequence<Front..., Others..., Back...> impl(
                 const regular_value_sequence<Front...>,
                 const regular_value_sequence<Back...> //
@@ -388,7 +387,7 @@ namespace stdsharp
                 return {};
             }
 
-            template<auto... Others>
+            template<decltype(auto)... Others>
             using type = decltype(impl<Others...>(front_t<Index>{}, back_t<size() - Index>{}));
         };
 
@@ -444,22 +443,22 @@ namespace stdsharp
         >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
     };
 
-    template<auto... Values>
+    template<decltype(auto)... Values>
     using reverse_value_sequence = decltype(details::get_reverse_value_sequence<Values...>());
 
-    template<auto... Values>
+    template<decltype(auto)... Values>
     using unique_value_sequence = ::meta::_t<details::unique_value_sequence<Values...>>;
 }
 
 namespace std
 {
-    template<auto... Values>
+    template<decltype(auto)... Values>
     struct tuple_size<::stdsharp::value_sequence<Values...>> :
         ::stdsharp::index_constant<::stdsharp::value_sequence<Values...>::size()>
     {
     };
 
-    template<::std::size_t I, auto... Values>
+    template<::std::size_t I, decltype(auto)... Values>
     struct tuple_element<I, ::stdsharp::value_sequence<Values...>>
     {
         using type = typename ::stdsharp::value_sequence<Values...>::template value_type<I>;

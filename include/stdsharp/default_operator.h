@@ -1,36 +1,36 @@
 #pragma once
 
-#include "concepts/concepts.h"
+#include "utility/cast_to.h"
 #include "type_traits/core_traits.h"
 
 namespace stdsharp
 {
+    template<typename T>
+    class default_unary_op
+    {
+        [[nodiscard]] friend constexpr T operator+(const T& t) //
+            noexcept(nothrow_copy_constructible<T>)
+            requires ::std::copy_constructible<T>
+        {
+            return t;
+        }
+    };
 
     template<typename T>
-    class default_post_increase_and_decrease
+    class default_post_increase_and_decrease : default_unary_op<T>
     {
-        template<::std::same_as<T> U>
-        [[nodiscard]] friend constexpr auto operator++(U& t, int) // NOLINT(cert-dcl21-cpp)
-            noexcept(nothrow_copy_constructible<U>&& noexcept(++t))
-            requires requires //
-        {
-            requires ::std::copy_constructible<U>;
-            ++t;
-        }
+        [[nodiscard]] friend constexpr auto operator++(T& t, int) //
+            noexcept(nothrow_copy_constructible<T>&& noexcept(++t))
+            requires ::std::copy_constructible<T> && requires { ++t; }
         {
             const auto copy = t;
             ++t;
             return copy;
         }
 
-        template<::std::same_as<T> U>
-        [[nodiscard]] friend constexpr auto operator--(U& t, int) // NOLINT(cert-dcl21-cpp)
-            noexcept(nothrow_copy_constructible<U>&& noexcept(--t))
-            requires requires //
-        {
-            requires ::std::copy_constructible<U>;
-            --t;
-        }
+        [[nodiscard]] friend constexpr auto operator--(T& t, int) //
+            noexcept(nothrow_copy_constructible<T>&& noexcept(--t))
+            requires ::std::copy_constructible<T> && requires { --t; }
         {
             const auto copy = t;
             --t;
@@ -38,20 +38,20 @@ namespace stdsharp
         }
     };
 
-    template<typename T, ::std::constructible_from Delegate = ::std::identity>
+    template<typename T, typename Delegate = ::std::identity>
         requires cpp_is_constexpr(Delegate{})
     class default_pre_increase_and_decrease : default_post_increase_and_decrease<T>
     {
         static constexpr Delegate delegate{};
 
-        friend constexpr T& operator++(::std::same_as<T> auto& t) noexcept(noexcept(++delegate(t)))
+        friend constexpr T& operator++(T& t) noexcept(noexcept(++delegate(t)))
             requires requires { ++delegate(t); }
         {
             ++delegate(t);
             return t;
         }
 
-        friend constexpr T& operator--(::std::same_as<T> auto& t) //
+        friend constexpr T& operator--(T& t) //
             noexcept(noexcept(--delegate(t))) //
             requires requires { --delegate(t); }
         {
@@ -60,105 +60,80 @@ namespace stdsharp
         }
     };
 
-    template<typename T, bool Commutable = true>
-    class default_arithmetic_operation : default_post_increase_and_decrease<T>
-    {
-#define BS_ARITH_OP(op)                                                                          \
-    template<typename U>                                                                         \
-    [[nodiscard]] friend constexpr T operator op(T t, const U& u) noexcept(noexcept(t op## = u)) \
-        requires requires {                                                                      \
-            {                                                                                    \
-                t op## = u                                                                       \
-            } -> ::std::same_as<T&>;                                                             \
-        }                                                                                        \
-    {                                                                                            \
-        return cpp_move(t op## = u);                                                             \
-    }                                                                                            \
-                                                                                                 \
-    template<not_same_as<T> U, decay_same_as<T> This>                                            \
-        requires Commutable && requires(const U& u, T t) { t op u; }                             \
-    [[nodiscard]] friend constexpr T operator op(const U& u, This&& t) noexcept(                 \
-        noexcept(cpp_forward(t) op u)                                                            \
-    )                                                                                            \
-    {                                                                                            \
-        return cpp_forward(t) op u;                                                              \
-    }
-
-        BS_ARITH_OP(+)
-        BS_ARITH_OP(-)
-        BS_ARITH_OP(*)
-        BS_ARITH_OP(/)
-        BS_ARITH_OP(%)
-        BS_ARITH_OP(&)
-        BS_ARITH_OP(|)
-        BS_ARITH_OP(^)
-        BS_ARITH_OP(<<)
-        BS_ARITH_OP(>>)
-
-#undef BS_ARITH_OP
-
-        [[nodiscard]] friend constexpr T& operator+(::std::same_as<T> auto& t) noexcept
-        {
-            return t;
-        }
-
-        [[nodiscard]] friend constexpr T&& operator+(::std::same_as<T> auto&& t) noexcept
-        {
-            return static_cast<T&&>(t);
-        }
-    };
-
-    template<typename T, ::std::constructible_from Delegate = ::std::identity>
+    template<typename T, typename Delegate = ::std::identity>
         requires cpp_is_constexpr(Delegate{})
     class default_arithmetic_assign_operation : default_pre_increase_and_decrease<T, Delegate>
     {
         static constexpr Delegate delegate{};
 
-#define BS_ARITH_OP(op)                                                                 \
-    template<::std::same_as<T> This>                                                    \
-    friend constexpr T& operator op##=(This& t, const not_same_as<T> auto& u) noexcept( \
-        noexcept(delegate(t) op## = u)                                                  \
-    )                                                                                   \
-        requires requires { delegate(t) op## = u; }                                     \
-    {                                                                                   \
-        delegate(t) op## = u;                                                           \
-        return t;                                                                       \
-    }                                                                                   \
-                                                                                        \
-    template<::std::same_as<T> This>                                                    \
-    friend constexpr T& operator op##=(This& t, const This& u) noexcept(                \
-        noexcept(delegate(t) op## = delegate(u))                                        \
-    )                                                                                   \
-        requires requires { delegate(t) op## = delegate(u); }                           \
-    {                                                                                   \
-        delegate(t) op## = delegate(u);                                                 \
-        return t;                                                                       \
+#define STDSHARP_ARITH_OP(op)                                         \
+    friend constexpr T& operator op##=(T& t, const auto& u) noexcept( \
+        noexcept(delegate(t) op## = u)                                \
+    )                                                                 \
+        requires requires { delegate(t) op## = u; }                   \
+    {                                                                 \
+        delegate(t) op## = u;                                         \
+        return t;                                                     \
     }
 
-        BS_ARITH_OP(+)
-        BS_ARITH_OP(-)
-        BS_ARITH_OP(*)
-        BS_ARITH_OP(/)
-        BS_ARITH_OP(%)
-        BS_ARITH_OP(&)
-        BS_ARITH_OP(|)
-        BS_ARITH_OP(^)
-        BS_ARITH_OP(<<)
-        BS_ARITH_OP(>>)
+        STDSHARP_ARITH_OP(+)
+        STDSHARP_ARITH_OP(-)
+        STDSHARP_ARITH_OP(*)
+        STDSHARP_ARITH_OP(/)
+        STDSHARP_ARITH_OP(%)
+        STDSHARP_ARITH_OP(&)
+        STDSHARP_ARITH_OP(|)
+        STDSHARP_ARITH_OP(^)
+        STDSHARP_ARITH_OP(<<)
+        STDSHARP_ARITH_OP(>>)
 
-#undef BS_ARITH_OP
+#undef STDSHARP_ARITH_OP
 
-#define BS_ARITH_OP(op)                                                                            \
-    template<::std::same_as<T> U>                                                                  \
-    [[nodiscard]] friend constexpr T operator op(const U& t) noexcept(noexcept(U{op delegate(t)})) \
-        requires requires { U{op delegate(t)}; }                                                   \
+#define STDSHARP_ARITH_OP(op)                                                                      \
+    [[nodiscard]] friend constexpr T operator op(const T& t) noexcept(noexcept(T{op delegate(t)})) \
+        requires requires { T{op delegate(t)}; }                                                   \
     {                                                                                              \
         return T{op delegate(t)};                                                                  \
     }
 
-        BS_ARITH_OP(~);
-        BS_ARITH_OP(-);
+        STDSHARP_ARITH_OP(~);
+        STDSHARP_ARITH_OP(-);
 
-#undef BS_ARITH_OP
+#undef STDSHARP_ARITH_OP
+    };
+
+    template<typename T, typename Delegate = ::std::identity, bool Commutable = true>
+    class default_arithmetic_operation : default_arithmetic_assign_operation<T, Delegate>
+    {
+#define STDSHARP_ARITH_OP(op)                                                             \
+    [[nodiscard]] friend constexpr T operator op(T t, auto&& u) noexcept(                 \
+        noexcept(t op## = cpp_forward(u))                                                 \
+    )                                                                                     \
+        requires requires { t op## = cpp_forward(u); }                                    \
+    {                                                                                     \
+        return t op## = cpp_forward(u);                                                   \
+    }                                                                                     \
+                                                                                          \
+    template<typename U>                                                                  \
+    [[nodiscard]] friend constexpr T operator op(U&& u, T t) noexcept(noexcept(cpp_move(t \
+    ) op cpp_forward(u)))                                                                 \
+        requires(!::std::convertible_to<U, T>) && Commutable &&                           \
+        requires { cpp_move(t) op cpp_forward(u); }                                       \
+    {                                                                                     \
+        return cpp_move(t) op cpp_forward(u);                                             \
+    }
+
+        STDSHARP_ARITH_OP(+)
+        STDSHARP_ARITH_OP(-)
+        STDSHARP_ARITH_OP(*)
+        STDSHARP_ARITH_OP(/)
+        STDSHARP_ARITH_OP(%)
+        STDSHARP_ARITH_OP(&)
+        STDSHARP_ARITH_OP(|)
+        STDSHARP_ARITH_OP(^)
+        STDSHARP_ARITH_OP(<<)
+        STDSHARP_ARITH_OP(>>)
+
+#undef STDSHARP_ARITH_OP
     };
 }

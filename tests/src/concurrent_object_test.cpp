@@ -40,21 +40,17 @@ SCENARIO("concurrent object reflection support", "[concurrent object]") // NOLIN
 
     using concurrent_object_t = concurrent_object<int>;
 
-    constexpr auto members = reflection::get_members<concurrent_object_t>;
+    using function = reflection::function_t<concurrent_object_t>;
 
-    STATIC_REQUIRE( //
-        std::ranges::equal(
-            members,
-            initializer_list<member_info>{
-                {"read", member_info::function},
-                {"write", member_info::function} //
-            }
-        )
-    );
+    using func = function::get_t<"read"_ltr>();
+    concurrent_object_t obj;
+    void (*ptr)(const ::std::optional<int>) = nullptr;
+
+    func{}(obj, *ptr);
 
     STATIC_REQUIRE( //
         invocable<
-            decltype(get_member<"read"_ltr, concurrent_object_t>),
+            function::get_t<"read"_ltr>(),
             concurrent_object_t,
             void(const ::std::optional<int>) // clang-format off
         > // clang-format on

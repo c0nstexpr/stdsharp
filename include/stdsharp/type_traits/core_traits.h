@@ -53,30 +53,6 @@ namespace stdsharp
         ref_qualifier::lvalue :
         ::std::is_rvalue_reference_v<T> ? ref_qualifier::rvalue : ref_qualifier::none;
 
-    template<typename T>
-    struct cast_to_fn
-    {
-#define STDSHARP_OPERATOR(const_, volotile_, ref)                                        \
-    constexpr const_ volotile_ T ref operator()(const_ volotile_ T ref t) const noexcept \
-    {                                                                                    \
-        return static_cast<const_ volotile_ T ref>(t);                                   \
-    }
-
-        STDSHARP_OPERATOR(const, , &)
-        STDSHARP_OPERATOR(const, , &&)
-        STDSHARP_OPERATOR(const, volatile, &)
-        STDSHARP_OPERATOR(const, volatile, &&)
-        STDSHARP_OPERATOR(, volatile, &)
-        STDSHARP_OPERATOR(, volatile, &&)
-        STDSHARP_OPERATOR(, , &)
-        STDSHARP_OPERATOR(, , &&)
-
-#undef STDSHARP_OPERATOR
-    };
-
-    template<typename T>
-    inline constexpr auto cast_to = cast_to_fn<T>{};
-
     enum class expr_req
     {
         ill_formed,
@@ -161,19 +137,19 @@ namespace stdsharp
     template<typename T, typename U>
     using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
-    template<auto Value>
+    template<decltype(auto) Value>
     using constant = ::std::integral_constant<decltype(Value), Value>;
 
-    template<auto Value>
+    template<decltype(auto) Value>
     using constant_value_type = constant<Value>::value_type;
 
     template<typename T>
     inline constexpr const auto& static_const_v = ::ranges::static_const<T>::value;
 
-    template<bool conditional, auto Left, auto>
+    template<bool conditional, decltype(auto) Left, auto>
     inline constexpr auto conditional_v = Left;
 
-    template<auto Left, auto Right>
+    template<decltype(auto) Left, decltype(auto) Right>
     inline constexpr auto conditional_v<false, Left, Right> = Right;
 
     template<typename T>
@@ -213,7 +189,7 @@ namespace stdsharp
     template<typename T>
     inline constexpr make_template_type_fn<type_constant> make_type_constant{};
 
-    template<auto...>
+    template<decltype(auto)...>
     struct regular_value_sequence;
 
     template<typename... T>
@@ -255,7 +231,7 @@ namespace stdsharp
         }(::std::declval<ValueSeq>())
     );
 
-    template<auto... V>
+    template<decltype(auto)... V>
     struct regular_value_sequence
     {
         [[nodiscard]] static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
@@ -265,7 +241,7 @@ namespace stdsharp
         using convert_to_type_sequence = regular_type_sequence<Converter<V>...>;
     };
 
-    template<auto V>
+    template<decltype(auto) V>
     struct regular_value_sequence<V> : constant<V>
     {
         [[nodiscard]] static constexpr ::std::size_t size() noexcept { return 1; }
@@ -294,10 +270,10 @@ namespace stdsharp
 
     namespace details
     {
-        template<template<auto...> typename T, auto... V>
+        template<template<auto...> typename T, decltype(auto)... V>
         consteval regular_value_sequence<V...> to_regular_value_sequence(const T<V...>&);
 
-        template<typename T, auto... V>
+        template<typename T, decltype(auto)... V>
         consteval regular_value_sequence<V...>
             to_regular_value_sequence(::std::integer_sequence<T, V...>);
 
@@ -373,7 +349,7 @@ namespace stdsharp
     template<typename Rng>
     using rng_to_sequence = ::meta::_t<details::rng_to_sequence<Rng>>;
 
-    template<auto Rng>
+    template<decltype(auto) Rng>
     using rng_v_to_sequence = rng_to_sequence<constant<Rng>>;
 
     template<template<typename> typename T, typename... Ts>
@@ -394,15 +370,16 @@ namespace stdsharp
     ttp_expend(T<Ts>...) -> ttp_expend<T, Ts...>;
 
     template<template<typename> typename T, typename Seq>
-    using make_ttp_expend_by = decltype( //
-        []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
-        {
-            return ::std::type_identity<ttp_expend<T, U...>>{}; //
-        }(::std::declval<Seq>())
-        // clang-format off
-    ); // clang-format on
+    using make_ttp_expend_by = ::meta::_t< //
+        decltype( //
+            []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
+            {
+                return ::std::type_identity<ttp_expend<T, U...>>{}; //
+            }(::std::declval<Seq>())
+        ) // clang-format off
+    >; // clang-format on
 
-    template<template<auto> typename T, auto... V>
+    template<template<auto> typename T, decltype(auto)... V>
     struct nttp_expend : T<V>...
     {
         nttp_expend() = default;
@@ -416,12 +393,12 @@ namespace stdsharp
         }
     };
 
-    template<template<auto> typename T, auto... V>
+    template<template<auto> typename T, decltype(auto)... V>
     nttp_expend(T<V>...) -> nttp_expend<T, V...>;
 
     template<template<auto> typename T, ::std::size_t Size>
     using make_nttp_expend = decltype( //
-        []<template<auto...> typename Inner, auto... V>(const Inner<V...>) //
+        []<template<auto...> typename Inner, decltype(auto)... V>(const Inner<V...>) //
         {
             return ::std::type_identity<nttp_expend<T, V...>>{}; //
         }(make_index_sequence<Size>{})
@@ -521,7 +498,7 @@ namespace stdsharp
 
 namespace meta::extension
 {
-    template<typename Fn, template<auto...> typename T, auto... V>
+    template<typename Fn, template<auto...> typename T, decltype(auto)... V>
         requires requires { typename Fn::template invoke<V...>; }
     struct apply<Fn, T<V...>>
     {

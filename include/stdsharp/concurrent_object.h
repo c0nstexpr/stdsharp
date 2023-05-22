@@ -203,21 +203,35 @@ namespace stdsharp
     namespace reflection
     {
         template<typename T, typename U>
-        inline constexpr auto function<concurrent_object<T, U>> = make_indexed_values( //
-            member<concurrent_object<T, U>>::template function_reflect<"read">(
-                [](const decay_same_as<concurrent_object<T, U>> auto&& v,
-                   auto&&... args) //
-                noexcept(noexcept(cpp_forward(v).read(cpp_forward(args)...))
-                ) -> decltype(cpp_forward(v).read(cpp_forward(args)...))
-                { return cpp_forward(v).read(cpp_forward(args)...); }
-            ),
-            member<concurrent_object<T, U>>::template function_reflect<"write">(
-                [](decay_same_as<concurrent_object<T, U>> auto&& v,
-                   auto&&... args) //
-                noexcept(noexcept(cpp_forward(v).write(cpp_forward(args)...))
-                ) -> decltype(cpp_forward(v).write(cpp_forward(args)...))
-                { return cpp_forward(v).write(cpp_forward(args)...); }
-            )
-        );
+        inline constexpr auto function<concurrent_object<T, U>> =
+            member<concurrent_object<T, U>>::template func_reflect<"read"_ltr, "write"_ltr>(
+                [](auto&& v, auto&&... args) //
+                noexcept( //
+                    noexcept(
+                        cast_fwd<concurrent_object<T, U>>(cpp_forward(v)).read(cpp_forward(args)...)
+                    )
+                ) -> //
+                decltype( //
+                    cast_fwd<concurrent_object<T, U>>(cpp_forward(v)).read(cpp_forward(args)...)
+                ) //
+                {
+                    return cast_fwd<concurrent_object<T, U>>(cpp_forward(v))
+                        .read(cpp_forward(args)...);
+                },
+                [](auto&& v, auto&&... args) //
+                noexcept( //
+                    noexcept( //
+                        cast_fwd<concurrent_object<T, U>>(cpp_forward(v))
+                            .write(cpp_forward(args)...)
+                    )
+                ) -> //
+                decltype( //
+                    cast_fwd<concurrent_object<T, U>>(cpp_forward(v)).write(cpp_forward(args)...)
+                ) //
+                {
+                    return cast_fwd<concurrent_object<T, U>>(cpp_forward(v))
+                        .write(cpp_forward(args)...);
+                }
+            );
     }
 }
