@@ -137,10 +137,10 @@ namespace stdsharp
     template<typename T, typename U>
     using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
 
-    template<decltype(auto) Value>
+    template<auto Value>
     using constant = ::std::integral_constant<decltype(Value), Value>;
 
-    template<decltype(auto) Value>
+    template<auto Value>
     using constant_value_type = constant<Value>::value_type;
 
     template<typename T>
@@ -189,7 +189,7 @@ namespace stdsharp
     template<typename T>
     inline constexpr make_template_type_fn<type_constant> make_type_constant{};
 
-    template<decltype(auto)...>
+    template<auto...>
     struct regular_value_sequence;
 
     template<typename... T>
@@ -223,7 +223,8 @@ namespace stdsharp
 
     template<
         typename ValueSeq,
-        template<auto> typename Converter = details::value_seq_default_converter>
+        template<auto> typename Converter = details::value_seq_default_converter // clang-format off
+    > // clang-format on
     using convert_from_value_sequence = decltype( //
         []<template<auto...> typename Inner, auto... V>(const Inner<V...>&) //
         {
@@ -231,7 +232,7 @@ namespace stdsharp
         }(::std::declval<ValueSeq>())
     );
 
-    template<decltype(auto)... V>
+    template<auto... V>
     struct regular_value_sequence
     {
         [[nodiscard]] static constexpr ::std::size_t size() noexcept { return sizeof...(V); }
@@ -241,7 +242,7 @@ namespace stdsharp
         using convert_to_type_sequence = regular_type_sequence<Converter<V>...>;
     };
 
-    template<decltype(auto) V>
+    template<auto V>
     struct regular_value_sequence<V> : constant<V>
     {
         [[nodiscard]] static constexpr ::std::size_t size() noexcept { return 1; }
@@ -284,11 +285,8 @@ namespace stdsharp
 
         template<::std::array Array, ::std::size_t... Index>
             requires nttp_able<typename decltype(Array)::value_type>
-        consteval regular_value_sequence<Array[Index]...>
-            array_to_sequence(const ::std::index_sequence<Index...>)
-        {
-            return {};
-        }
+        consteval regular_value_sequence<(Array[Index])...>
+            array_to_sequence(::std::index_sequence<Index...>);
 
         template<
             constant_value T,

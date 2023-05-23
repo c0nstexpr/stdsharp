@@ -9,7 +9,7 @@
 
 namespace stdsharp
 {
-    template<decltype(auto)...>
+    template<auto...>
     struct value_sequence;
 
     template<typename T>
@@ -85,7 +85,7 @@ namespace stdsharp
         };
     } // clang-format on
 
-    template<decltype(auto)... Values>
+    template<auto... Values>
     struct value_sequence : regular_value_sequence<Values...>
     {
     public:

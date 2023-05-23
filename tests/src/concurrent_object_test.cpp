@@ -42,15 +42,9 @@ SCENARIO("concurrent object reflection support", "[concurrent object]") // NOLIN
 
     using function = reflection::function_t<concurrent_object_t>;
 
-    using func = function::get_t<"read"_ltr>();
-    concurrent_object_t obj;
-    void (*ptr)(const ::std::optional<int>) = nullptr;
-
-    func{}(obj, *ptr);
-
     STATIC_REQUIRE( //
         invocable<
-            function::get_t<"read"_ltr>(),
+            function::member_of_t<to_array("read")>,
             concurrent_object_t,
             void(const ::std::optional<int>) // clang-format off
         > // clang-format on

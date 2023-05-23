@@ -2,7 +2,6 @@
 
 #include "../type_traits/member.h"
 #include "../utility/cast_to.h"
-#include "../type_traits/type_sequence.h"
 
 namespace stdsharp::reflection
 {
@@ -10,6 +9,9 @@ namespace stdsharp::reflection
     struct member
     {
     private:
+        template<typename...>
+        struct meta_set;
+
         template<ltr Name, typename Getter>
         struct meta_base : Getter
         {
@@ -35,31 +37,21 @@ namespace stdsharp::reflection
         template<ltr Name, auto Ptr>
         using data_meta = meta_base<Name, data_meta_getter<Ptr>>;
 
-        template<typename...>
-        struct meta_set;
-
         template<ltr... Name, typename... Getter>
-        struct meta_set<meta_base<Name, Getter>...>
+        struct meta_set<meta_base<Name, Getter>...> : indexed_types<meta_base<Name, Getter>...>
         {
-        private:
-            using seq = type_sequence<meta_base<Name, Getter>...>;
+            template<decltype(auto) N>
+                requires(::std::ranges::equal(N, Name) || ...)
+            using member_of_t = ::std::invoke_result_t< //
+                invocables<meta_base<Name, Getter> (*)(constant<::std::ranges::equal(N, Name)>)...>,
+                constant<true> // clang-format off
+            >; // clang-format on
 
             template<decltype(auto) N>
-            static constexpr auto get_index = seq::find_if( //
-                []<typename T>(const T) { return ::std::ranges::equal(N, T::type::name); }
-            );
-
-        public:
-            template<decltype(auto) N>
-                requires requires { typename seq::template type<get_index<N>>; }
-            static consteval seq::template type<get_index<N>> get()
+            static consteval member_of_t<N> member_of()
             {
                 return {};
             }
-
-            template<decltype(auto) N>
-                requires requires { get<N>(); }
-            using get_t = decltype(get<N>());
         };
 
     public:

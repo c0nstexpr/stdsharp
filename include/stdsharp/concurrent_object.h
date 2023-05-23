@@ -192,7 +192,7 @@ namespace stdsharp
 
     private:
         ::std::optional<T> object_{};
-        mutable value_wrapper<Lockable> lockable_{};
+        mutable Lockable lockable_{};
 
         constexpr auto& lockable() noexcept { return lockable_; }
     };

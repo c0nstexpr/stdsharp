@@ -32,21 +32,15 @@ runs:
       uses: lukka/get-cmake@latest
 
     - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v10
+      uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 4f9d25a7f299db656c376af402637819ee2caba0
+        vcpkgGitCommitId: 0ccb3d11406922bef1dcc29002f68f633a321f19
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
+        doNotCache: false
 
     - name: Run before cmake build
       run: ${{ inputs.before-build }}
       shell: bash
-
-    - name: Cache vcpkg builds
-      uses: actions/cache@v3
-      with:
-        path: |
-          ${{ inputs.build-dir }}/vcpkg_installed
-        key: ${{ runner.os }}-${{ inputs.build-type }}
 
     - name: Install dependencies and generate project files
       run: cmake -S "${{ github.workspace }}" -B "${{ inputs.build-dir }}" -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ inputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}

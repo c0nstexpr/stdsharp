@@ -6,13 +6,6 @@
 
 namespace stdsharp
 {
-    namespace details
-    {
-        struct stdsharp_indexed_tag
-        {
-        };
-    }
-
     template<typename T, ::std::size_t I>
     struct basic_indexed_type : type_constant<T>
     {
@@ -159,9 +152,7 @@ namespace stdsharp
     }
 
     template<typename... T>
-    struct basic_indexed_types :
-        details::basic_indexed_types<T...>::impl,
-        details::stdsharp_indexed_tag
+    struct basic_indexed_types : details::basic_indexed_types<T...>::impl
     {
     };
 
@@ -269,16 +260,32 @@ namespace stdsharp
 
 namespace std
 {
-    template<::std::size_t I, derived_from<::stdsharp::details::stdsharp_indexed_tag> Indexed>
-    struct tuple_element<I, Indexed>
+    template<::std::size_t I, template<typename...> typename Template, typename... T>
+        requires(::std::same_as<::stdsharp::regular_type_sequence<T...>, Template<T...>> || ::std::same_as<::stdsharp::basic_type_sequence<T...>, Template<T...>>)
+    struct tuple_element<I, Template<T...>>
     {
-        using type = Indexed::template get_t<I>;
+        using type = Template<T...>::template get_t<I>;
     };
 
-    template<derived_from<::stdsharp::details::stdsharp_indexed_tag> Indexed>
-    struct tuple_size<Indexed>
+    template<template<typename...> typename Template, typename... T>
+        requires(::std::same_as<::stdsharp::regular_type_sequence<T...>, Template<T...>> || ::std::same_as<::stdsharp::basic_type_sequence<T...>, Template<T...>>)
+    struct tuple_size<Template<T...>>
     {
-        static constexpr auto value = Indexed::size();
+        static constexpr auto value = Template<T...>::size();
+    };
+
+    template<::std::size_t I, template<auto...> typename Template, auto... V>
+        requires ::std::same_as<::stdsharp::regular_value_sequence<V...>, Template<V...>>
+    struct tuple_element<I, Template<V...>>
+    {
+        using type = Template<V...>::template get_t<I>;
+    };
+
+    template<template<auto...> typename Template, auto... V>
+        requires ::std::same_as<::stdsharp::regular_value_sequence<V...>, Template<V...>>
+    struct tuple_size<Template<V...>>
+    {
+        static constexpr auto value = Template<V...>::size();
     };
 }
 
