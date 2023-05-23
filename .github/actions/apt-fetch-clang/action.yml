@@ -17,7 +17,7 @@ runs:
         version: ${{ inputs.llvm-ver }}
 
     - run: |
-        sudo apt-get install clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev;
+        sudo apt-get install llvm-${{ inputs.llvm-ver }} clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev;
         sudo update-alternatives --remove-all clang;
         sudo update-alternatives --remove-all clang++;
         sudo update-alternatives --remove-all clang-tidy;
