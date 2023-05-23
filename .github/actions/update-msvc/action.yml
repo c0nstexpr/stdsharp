@@ -6,5 +6,5 @@ runs:
   steps:
     - run: |
         Invoke-WebRequest https://aka.ms/vs/17/release/vs_enterprise.exe -OutFile setup.exe
-        .\setup.exe updateAll -q --norestart
+        .\setup.exe updateAll --norestart -p
       shell: pwsh
