@@ -19,15 +19,12 @@ jobs:
         os: [ubuntu-22.04]
         include:
           - os: ubuntu-22.04
-            llvm-ver: 15
 
     steps:
       - uses: actions/checkout@v2
 
       - name: Fetch Clang
         uses: ./.github/actions/apt-fetch-clang
-        with:
-          llvm-ver: ${{ matrix.llvm-ver }}
 
       - name: Get cmake option
         id: cmake-option
