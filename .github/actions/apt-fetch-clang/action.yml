@@ -18,14 +18,14 @@ runs:
 
     - run: |
         sudo apt-get install llvm-${{ inputs.llvm-ver }} clang-tidy-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev;
-        sudo update-alternatives --remove-all clang;
-        sudo update-alternatives --remove-all clang++;
-        sudo update-alternatives --remove-all clang-tidy;
-        sudo update-alternatives --remove-all llvm-cov;
-        sudo update-alternatives --remove-all llvm-profdata;
-        sudo update-alternatives --remove-all ld.lld;
-        sudo update-alternatives --remove-all cc;
-        sudo update-alternatives --remove-all c++;
+        sudo update-alternatives --remove-all clang || true;
+        sudo update-alternatives --remove-all clang++ || true;
+        sudo update-alternatives --remove-all clang-tidy || true;
+        sudo update-alternatives --remove-all llvm-cov || true;
+        sudo update-alternatives --remove-all llvm-profdata || true;
+        sudo update-alternatives --remove-all ld.lld || true;
+        sudo update-alternatives --remove-all cc || true;
+        sudo update-alternatives --remove-all c++ || true;
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${{ inputs.llvm-ver }} 1000;
         sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${{ inputs.llvm-ver }} 1000;
