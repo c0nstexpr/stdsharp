@@ -5,20 +5,20 @@ using namespace std;
 using namespace fmt;
 using namespace stdsharp;
 
+struct my_class
+{
+    using mem_t = int;
+    mem_t m;
+
+    using mem_func_r_t = char;
+    using mem_func_args_t = regular_type_sequence<long, double>;
+
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    mem_func_r_t mem_f(long, double) { return {}; }
+};
+
 SCENARIO("member", "[type traits]") // NOLINT
 {
-    struct my_class
-    {
-        using mem_t = int;
-        int m;
-
-        using mem_func_r_t = char;
-        using mem_func_args_t = regular_type_sequence<long, double>;
-
-        // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-        char mem_f(long, double) { return {}; }
-    };
-
     GIVEN( //
         fmt::format(
             "custom class type\n name: {}\nmember type: {}\nmem func type: {}\nreturn: {}\nargs:"
@@ -34,7 +34,7 @@ SCENARIO("member", "[type traits]") // NOLINT
         THEN("use member traits to get member type, type should be expected")
         {
             using mem_p_t = stdsharp::member_pointer_traits<&my_class::m>;
-            using mem_p_func_t = stdsharp::member_function_pointer_traits<&my_class::mem_f>;
+            using mem_p_func_t = stdsharp::member_pointer_traits<&my_class::mem_f>;
             using mem_func_r = mem_p_func_t::result_t;
             using mem_func_args = mem_p_func_t::args_t;
 

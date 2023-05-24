@@ -17,7 +17,7 @@ namespace stdsharp
     template<typename T>
     using const_iterator_t =
 #if __cpp_lib_ranges_as_const >= 202207L
-        ::std::const_iterator_t<T>;
+        ::std::ranges::const_iterator_t<T>;
 #else
         decltype(::std::ranges::cbegin(::std::declval<T&>()));
 #endif
@@ -25,7 +25,7 @@ namespace stdsharp
     template<typename T>
     using const_sentinel_t =
 #if __cpp_lib_ranges_as_const >= 202207L
-        ::std::const_sentinel_t<T>;
+        ::std::ranges::const_sentinel_t<T>;
 #else
         decltype(::std::ranges::cend(::std::declval<T&>()));
 #endif
@@ -33,7 +33,7 @@ namespace stdsharp
     template<typename T>
     using range_const_reference_t =
 #if __cpp_lib_ranges_as_const >= 202207L
-        ::std::range_const_reference_t<T>;
+        ::std::ranges::range_const_reference_t<T>;
 #else
         iter_const_reference_t<::std::ranges::iterator_t<T>>;
 #endif

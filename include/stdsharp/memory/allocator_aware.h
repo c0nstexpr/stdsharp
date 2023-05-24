@@ -517,7 +517,7 @@ namespace stdsharp
     };
 
     template<typename T>
-        requires requires(const T t, typename T::allocator_type alloc) //
+        requires requires(const T t, T::allocator_type alloc) //
     {
         requires ::std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
         // clang-format off
