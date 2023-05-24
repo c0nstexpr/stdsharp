@@ -14,7 +14,7 @@ struct my_class
     using mem_func_args_t = regular_type_sequence<long, double>;
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    mem_func_r_t mem_f(long, double) { return {}; }
+    mem_func_r_t mem_f(long, double);
 };
 
 SCENARIO("member", "[type traits]") // NOLINT

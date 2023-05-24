@@ -426,8 +426,9 @@ namespace stdsharp
         public:
             template<typename T, typename... Args>
             static constexpr auto emplace_constructible =
-                (Base::template construct_req<T, Args...> >= expr_req::well_formed) &&
-                ::std::constructible_from<dispatchers_t, ::std::type_identity<T>>;
+                (Base::template construct_req<::std::decay_t<T>, Args...> >= expr_req::well_formed
+                ) &&
+                ::std::constructible_from<dispatchers_t, ::std::type_identity<::std::decay_t<T>>>;
 
             using typename Base::allocator_type;
             using Base::Base;
