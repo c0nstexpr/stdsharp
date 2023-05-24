@@ -34,7 +34,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt range-v3::range-v3
 verbose_message("Successfully added all dependencies and linked against them.")
 
 target_install(${PROJECT_NAME} COMPATIBILITY SameMajorVersion DEPENDENCIES
-               fmt;ctre;range-v3)
+               fmt;ctre;range-v3;nameof)
 
 install(FILES cmake/Utils.cmake
         DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}/stdsharp)
