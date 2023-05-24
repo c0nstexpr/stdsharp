@@ -4,19 +4,23 @@
 #include <algorithm>
 #include <ranges>
 
+#include "../macros.h"
+
 namespace stdsharp
 {
     template<::std::size_t N>
     struct range_to_array_fn
     {
         template<typename Rng, typename Proj = ::std::identity>
-        constexpr auto operator()(Rng&& rng, Proj&& proj = {}) const
+        constexpr auto operator()(Rng&& rng, Proj proj = {}) const
         {
-            ::std::array<::std::projected<::std::ranges::iterator_t<Rng>, Proj>, N> arr{};
+            using value_type = ::std::projected<::std::ranges::iterator_t<Rng>, Proj>::value_type;
+
+            ::std::array<value_type, N> arr{};
 
             ::std::ranges::copy(
                 cpp_forward(rng) | //
-                    ::std::views::transform(cpp_forward(proj)) | //
+                    ::std::views::transform(proj) | //
                     ::std::views::take(N),
                 arr.begin()
             );

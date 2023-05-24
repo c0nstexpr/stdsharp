@@ -3,9 +3,9 @@
 //
 #pragma once
 
+#include <compare>
 #include <concepts>
 #include <type_traits>
-#include <utility>
 
 #include "../macros.h"
 
@@ -288,13 +288,12 @@ namespace stdsharp
     template<typename T>
     concept nothrow_move_assignable = ::std::is_nothrow_move_assignable_v<T>;
 
-    template<typename T>
-    concept nothrow_swappable =
-        requires(T& t1, T& t2) { requires noexcept(::std::ranges::swap(t1, t2)); };
-
     template<typename T, typename U>
     concept nothrow_swappable_with =
         requires(T& t, U& u) { requires noexcept(::std::ranges::swap(t, u)); };
+
+    template<typename T>
+    concept nothrow_swappable = nothrow_swappable_with<T, T>;
 
     template<typename T>
     concept nothrow_movable = ::std::movable<T> && //
@@ -320,11 +319,11 @@ namespace stdsharp
     concept nothrow_convertible_to = ::std::is_nothrow_convertible_v<T, U>;
 
     template<typename From, typename To>
-    concept explicitly_convertible = requires { static_cast<To>(std::declval<From>()); };
+    concept explicitly_convertible = requires(From&& v) { static_cast<To>(cpp_forward(v)); };
 
     template<typename From, typename To>
     concept nothrow_explicitly_convertible =
-        requires { requires noexcept(static_cast<To>(std::declval<From>())); };
+        requires(From&& v) { requires noexcept(static_cast<To>(cpp_forward(v))); };
 
     template<typename To, typename From>
     concept explicitly_convertible_from = explicitly_convertible<From, To>;
