@@ -12,16 +12,16 @@ namespace stdsharp
     inline constexpr struct copy_fn
     {
         template<typename T>
-            requires ::std::constructible_from<::std::decay_t<T>, T>
-        [[nodiscard]] constexpr ::std::decay_t<T> operator()(T&& t) const
-            noexcept(nothrow_constructible_from<::std::decay_t<T>>)
+            requires std::constructible_from<std::decay_t<T>, T>
+        [[nodiscard]] constexpr std::decay_t<T> operator()(T&& t) const
+            noexcept(nothrow_constructible_from<std::decay_t<T>>)
         {
             return t;
         }
     } copy{};
 
     template<typename Func>
-    using not_fn_t = decltype(::std::not_fn(::std::declval<Func>()));
+    using not_fn_t = decltype(std::not_fn(std::declval<Func>()));
 
     namespace details
     {
@@ -38,8 +38,8 @@ namespace stdsharp
 
         struct assign_by_construct
         {
-            template<typename T, typename... U, typename ActualT = ::std::remove_reference_t<T>>
-                requires ::std::constructible_from<ActualT, U...>
+            template<typename T, typename... U, typename ActualT = std::remove_reference_t<T>>
+                requires std::constructible_from<ActualT, U...>
             constexpr decltype(auto) operator()(T& left, U&&... right) const
                 noexcept(noexcept(left = ActualT{cpp_forward(right)...}))
             {
@@ -53,27 +53,27 @@ namespace stdsharp
     {
     } assign_v{};
 
-    inline constexpr ::std::ranges::equal_to equal_to_v{};
-    inline constexpr ::std::ranges::not_equal_to not_equal_to_v{};
-    inline constexpr ::std::ranges::less less_v{};
-    inline constexpr ::std::ranges::greater greater_v{};
-    inline constexpr ::std::ranges::less_equal less_equal_v{};
-    inline constexpr ::std::ranges::greater_equal greater_equal_v{};
-    inline constexpr ::std::compare_three_way compare_three_way_v{};
-    inline constexpr ::std::plus<> plus_v{};
-    inline constexpr ::std::minus<> minus_v{};
-    inline constexpr ::std::divides<> divides_v{};
-    inline constexpr ::std::multiplies<> multiplies_v{};
-    inline constexpr ::std::modulus<> modulus_v{};
-    inline constexpr ::std::negate<> negate_v{};
-    inline constexpr ::std::logical_and<> logical_and_v{};
-    inline constexpr ::std::logical_not<> logical_not_v{};
-    inline constexpr ::std::logical_or<> logical_or_v{};
+    inline constexpr std::ranges::equal_to equal_to_v{};
+    inline constexpr std::ranges::not_equal_to not_equal_to_v{};
+    inline constexpr std::ranges::less less_v{};
+    inline constexpr std::ranges::greater greater_v{};
+    inline constexpr std::ranges::less_equal less_equal_v{};
+    inline constexpr std::ranges::greater_equal greater_equal_v{};
+    inline constexpr std::compare_three_way compare_three_way_v{};
+    inline constexpr std::plus<> plus_v{};
+    inline constexpr std::minus<> minus_v{};
+    inline constexpr std::divides<> divides_v{};
+    inline constexpr std::multiplies<> multiplies_v{};
+    inline constexpr std::modulus<> modulus_v{};
+    inline constexpr std::negate<> negate_v{};
+    inline constexpr std::logical_and<> logical_and_v{};
+    inline constexpr std::logical_not<> logical_not_v{};
+    inline constexpr std::logical_or<> logical_or_v{};
 
-    inline constexpr ::std::bit_and<> bit_and_v{};
-    inline constexpr ::std::bit_not<> bit_not_v{};
-    inline constexpr ::std::bit_or<> bit_or_v{};
-    inline constexpr ::std::bit_xor<> bit_xor_v{};
+    inline constexpr std::bit_and<> bit_and_v{};
+    inline constexpr std::bit_not<> bit_not_v{};
+    inline constexpr std::bit_or<> bit_or_v{};
+    inline constexpr std::bit_xor<> bit_xor_v{};
 
     inline constexpr struct bit_xnor
     {
@@ -172,7 +172,7 @@ namespace stdsharp
 
 #undef BS_UTIL_ASSIGN_OPERATE
 
-    inline constexpr ::std::identity identity_v{};
+    inline constexpr std::identity identity_v{};
 
 #define BS_UTIL_INCREMENT_DECREMENT_OPERATE(operator_prefix, op, al_op)                            \
     inline constexpr struct pre_##operator_prefix##crease                                          \
@@ -204,8 +204,8 @@ namespace stdsharp
     {
         struct advance_by_op
         {
-            template<typename T, unsigned_ Distance = ::std::iter_difference_t<T>>
-                requires ::std::invocable<pre_increase, T>
+            template<typename T, unsigned_ Distance = std::iter_difference_t<T>>
+                requires std::invocable<pre_increase, T>
             constexpr decltype(auto) operator()(T& v, Distance distance) const
                 noexcept(nothrow_invocable<pre_increase, T>)
             {
@@ -214,14 +214,14 @@ namespace stdsharp
                 return v;
             }
 
-            template<typename T, signed_ Distance = ::std::iter_difference_t<T>>
+            template<typename T, signed_ Distance = std::iter_difference_t<T>>
                 requires(
-                    ::std::invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
-                    ::std::invocable<pre_decrease, T> //
+                    std::invocable<advance_by_op, T, std::make_unsigned_t<Distance>> &&
+                    std::invocable<pre_decrease, T> //
                 )
             constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept( //
                 noexcept( //
-                    nothrow_invocable<advance_by_op, T, ::std::make_unsigned_t<Distance>> &&
+                    nothrow_invocable<advance_by_op, T, std::make_unsigned_t<Distance>> &&
                     nothrow_invocable<pre_decrease, T>
                 )
             )

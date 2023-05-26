@@ -13,11 +13,11 @@ namespace stdsharp
 
     template<expr_req ExprReq, typename Ret, typename... Args>
     struct implement_dispatcher :
-        ::std::reference_wrapper<details::implement_dispatcher_func<ExprReq, Ret, Args...>>
+        std::reference_wrapper<details::implement_dispatcher_func<ExprReq, Ret, Args...>>
     {
     private:
         using func = ::meta::_t<implement_dispatcher>;
-        using m_base = ::std::reference_wrapper<func>;
+        using m_base = std::reference_wrapper<func>;
 
         template<invocable_r<Ret, Args...> Closure>
             requires requires //
@@ -47,7 +47,7 @@ namespace stdsharp
         }
 
         constexpr implement_dispatcher() noexcept
-            requires ::std::same_as<void, Ret>
+            requires std::same_as<void, Ret>
             : implement_dispatcher([](const Args&...) noexcept {})
         {
         }
@@ -55,7 +55,7 @@ namespace stdsharp
         constexpr implement_dispatcher() noexcept
             requires requires //
         {
-            requires ::std::default_initializable<Ret>;
+            requires std::default_initializable<Ret>;
             requires(ExprReq != expr_req::no_exception) || noexcept(Ret{});
         }
             :

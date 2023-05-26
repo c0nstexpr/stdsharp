@@ -10,7 +10,7 @@ namespace stdsharp
     {
         [[nodiscard]] friend constexpr T operator+(const T& t) //
             noexcept(nothrow_copy_constructible<T>)
-            requires ::std::copy_constructible<T>
+            requires std::copy_constructible<T>
         {
             return t;
         }
@@ -37,7 +37,7 @@ namespace stdsharp
 
         [[nodiscard]] friend constexpr auto operator++(T& t, int) //
             noexcept(nothrow_copy_constructible<T>&& noexcept(++t))
-            requires ::std::copy_constructible<T> && requires { ++t; }
+            requires std::copy_constructible<T> && requires { ++t; }
         {
             const auto copy = t;
             ++t;
@@ -46,7 +46,7 @@ namespace stdsharp
 
         [[nodiscard]] friend constexpr auto operator--(T& t, int) //
             noexcept(nothrow_copy_constructible<T>&& noexcept(--t))
-            requires ::std::copy_constructible<T> && requires { --t; }
+            requires std::copy_constructible<T> && requires { --t; }
         {
             const auto copy = t;
             --t;
@@ -89,7 +89,7 @@ namespace stdsharp
     [[nodiscard]] friend constexpr T operator op(U&& u, V&& t) noexcept(  \
         noexcept(cast_fwd<T>(cpp_forward(t)) op cpp_forward(u))           \
     )                                                                     \
-        requires(!::std::convertible_to<U, T>) && Commutable &&           \
+        requires(!std::convertible_to<U, T>) && Commutable &&             \
         requires { cast_fwd<T>(cpp_forward(t)) op cpp_forward(u); }       \
     {                                                                     \
         return cast_fwd<T>(cpp_forward(t)) op cpp_forward(u);             \

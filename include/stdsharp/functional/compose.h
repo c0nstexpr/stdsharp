@@ -15,10 +15,10 @@ namespace stdsharp
                 return cpp_forward(arg);
             }
 
-            template<typename... Arg, ::std::invocable<Arg...> First, typename... Fn>
-                requires ::std::invocable<
+            template<typename... Arg, std::invocable<Arg...> First, typename... Fn>
+                requires std::invocable<
                     compose_impl,
-                    ::std::invoke_result_t<First, Arg...>,
+                    std::invoke_result_t<First, Arg...>,
                     empty_t,
                     Fn... // clang-format off
                 > // clang-format on
@@ -30,14 +30,14 @@ namespace stdsharp
             ) const noexcept( //
                 nothrow_invocable<
                     compose_impl,
-                    ::std::invoke_result_t<First, Arg...>,
+                    std::invoke_result_t<First, Arg...>,
                     empty_t,
                     Fn... // clang-format off
                 > // clang-format on
             )
             {
                 return (*this)( //
-                    ::std::invoke(cpp_forward(first), cpp_forward(arg)...),
+                    std::invoke(cpp_forward(first), cpp_forward(arg)...),
                     empty,
                     cpp_forward(fn)...
                 );
@@ -49,14 +49,14 @@ namespace stdsharp
     struct composed : private value_wrapper<T>...
     {
         template<typename... U>
-            requires(::std::constructible_from<value_wrapper<T>, U> && ...)
+            requires(std::constructible_from<value_wrapper<T>, U> && ...)
         constexpr composed(U&&... u): value_wrapper<T>(cpp_forward(u))...
         {
         }
 
 #define BS_OPERATOR(const_, ref)                                                              \
     template<typename... Args>                                                                \
-        requires ::std::invocable<details::compose_impl, Args..., empty_t, T...>              \
+        requires std::invocable<details::compose_impl, Args..., empty_t, T...>                \
     constexpr decltype(auto) operator()(Args&&... args)                                       \
         const_ ref noexcept(nothrow_invocable<details::compose_impl, Args..., empty_t, T...>) \
     {                                                                                         \
@@ -75,21 +75,20 @@ namespace stdsharp
     };
 
     template<typename... T>
-    composed(T&&...) -> composed<::std::decay_t<T>...>;
+    composed(T&&...) -> composed<std::decay_t<T>...>;
 
     inline constexpr struct make_composed_fn
     {
         template<typename... T>
-            requires requires { composed{::std::declval<T>()...}; }
-        constexpr auto operator()(T&&... t) const
-            noexcept(noexcept(composed{::std::declval<T>()...}))
+            requires requires { composed{std::declval<T>()...}; }
+        constexpr auto operator()(T&&... t) const noexcept(noexcept(composed{std::declval<T>()...}))
         {
             return composed{cpp_forward(t)...};
         }
     } make_composed{};
 
     template<typename... Fn>
-    concept composable = ::std::invocable<make_composed_fn, Fn...>;
+    concept composable = std::invocable<make_composed_fn, Fn...>;
 
     template<typename... Fn>
     concept nothrow_composable = nothrow_invocable<make_composed_fn, Fn...>;

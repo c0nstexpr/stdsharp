@@ -44,8 +44,8 @@ namespace stdsharp::actions
                 template<container_erasable Container>
                 constexpr auto operator()(
                     Container& container,
-                    const ::std::equality_comparable_with< // clang-format off
-                         typename ::std::decay_t<Container>::value_type
+                    const std::equality_comparable_with< // clang-format off
+                         typename std::decay_t<Container>::value_type
                     > auto& value // clang-format on
                 ) const
                     requires requires // clang-format off
@@ -61,8 +61,8 @@ namespace stdsharp::actions
                     requires associative_like_container<Container>
                 constexpr auto operator()(
                     Container& container,
-                    const ::std::equality_comparable_with<
-                        typename ::std::decay_t<Container>::key_type // clang-format off
+                    const std::equality_comparable_with<
+                        typename std::decay_t<Container>::key_type // clang-format off
                     > auto& key // clang-format on
                 ) const
                 {
@@ -71,7 +71,7 @@ namespace stdsharp::actions
 
                 template<
                     container_erasable Container,
-                    ::std::convertible_to<
+                    std::convertible_to<
                         actions::details::container_citer<Container> // clang-format off
                     >... ConstIter
                 > // clang-format on
@@ -109,7 +109,7 @@ namespace stdsharp::actions
         struct emplace_##where##_default_fn                                                     \
         {                                                                                       \
             template<typename Container, typename... Args>                                      \
-                requires ::std::invocable<                                                      \
+                requires std::invocable<                                                        \
                     emplace_fn,                                                                 \
                     Container&,                                                                 \
                     details::container_citer<Container>,                                        \
@@ -123,11 +123,11 @@ namespace stdsharp::actions
         struct emplace_##where##_mem_fn                                                         \
         {                                                                                       \
             template<typename... Args, container_emplace_constructible<Args...> Container>      \
-            constexpr typename ::std::decay_t<Container>::reference                             \
+            constexpr typename std::decay_t<Container>::reference                               \
                 operator()(Container& container, Args&&... args) const                          \
                 requires requires {                                                             \
                     requires stdsharp::container<Container>;                                    \
-                    container.emplace_##where(::std::declval<Args>()...);                       \
+                    container.emplace_##where(std::declval<Args>()...);                         \
                 }                                                                               \
             {                                                                                   \
                 return container.emplace_##where(cpp_forward(args)...);                         \
@@ -160,9 +160,9 @@ namespace stdsharp::actions
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                     requires requires //
                 {
-                    requires ::std::same_as<
-                        decltype(erase_if(container, ::std::declval<Predicate>())),
-                        ::std::ranges::range_size_t<Container> // clang-format off
+                    requires std::same_as<
+                        decltype(erase_if(container, std::declval<Predicate>())),
+                        std::ranges::range_size_t<Container> // clang-format off
                     >; // clang-format on
                 }
                 {
@@ -178,9 +178,8 @@ namespace stdsharp::actions
                 > // clang-format on
                     requires requires //
                 {
-                    requires ::std::
-                        invocable<decltype(::std::ranges::remove_if), Container, Predicate>;
-                    requires ::std::invocable<
+                    requires std::invocable<decltype(std::ranges::remove_if), Container, Predicate>;
+                    requires std::invocable<
                         cpo::erase_fn,
                         Container&,
                         actions::details::container_citer<Container>,
@@ -189,7 +188,7 @@ namespace stdsharp::actions
                 }
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                 {
-                    const auto& it = ::std::ranges::remove_if(container, cpp_forward(predicate_fn));
+                    const auto& it = std::ranges::remove_if(container, cpp_forward(predicate_fn));
                     const auto removed_size = it.size();
                     cpo::erase(container, it.begin(), it.end());
                     return removed_size;
@@ -206,7 +205,7 @@ namespace stdsharp::actions
     inline constexpr struct resize_fn
     {
         template<typename Container>
-        using size_type = ::std::ranges::range_size_t<Container>;
+        using size_type = std::ranges::range_size_t<Container>;
 
         template<sequence_container Container>
         constexpr void operator()(Container& container, const size_type<Container> size) const
@@ -222,7 +221,7 @@ namespace stdsharp::actions
         struct pop_##where##_default_fn                                                         \
         {                                                                                       \
             template<typename Container>                                                        \
-                requires ::std::                                                                \
+                requires std::                                                                  \
                     invocable<cpo::erase_fn, Container&, details::container_citer<Container>>   \
                 constexpr void operator()(Container& container) const                           \
             {                                                                                   \
@@ -236,7 +235,7 @@ namespace stdsharp::actions
             constexpr void operator()(Container& container) const                               \
                 requires requires {                                                             \
                     requires sequence_container<Container>;                                     \
-                    requires ::std::same_as<decltype(container.pop_##where()), void>;           \
+                    requires std::same_as<decltype(container.pop_##where()), void>;             \
                 }                                                                               \
             {                                                                                   \
                 return container.pop_##where();                                                 \
@@ -261,7 +260,7 @@ namespace stdsharp::actions
         {
         private:
             template<
-                ::std::size_t Count,
+                std::size_t Count,
                 auto HasMember = requires(Container container) { container.reserve(Count); }>
             static constexpr auto reserved(Container& container) noexcept(!HasMember)
             {
@@ -270,7 +269,7 @@ namespace stdsharp::actions
 
         public:
             template<typename... Args>
-                requires(::std::invocable<actions::emplace_back_fn, Container&, Args> && ...)
+                requires(std::invocable<actions::emplace_back_fn, Container&, Args> && ...)
             constexpr auto operator()(Args&&... args) const noexcept( //
                 (nothrow_invocable<actions::emplace_back_fn, Container&, Args>&&...) && //
                 noexcept(reserved<Container, sizeof...(Args)>())
@@ -283,7 +282,7 @@ namespace stdsharp::actions
             }
 
             template<typename... Args>
-                requires(::std::invocable<actions::emplace_fn, Container&, Args> && ...)
+                requires(std::invocable<actions::emplace_fn, Container&, Args> && ...)
             constexpr auto operator()(Args&&... args) const noexcept( //
                 (nothrow_invocable<actions::emplace_fn, Container&, Args>&&...) && //
                 noexcept(reserved<Container, sizeof...(Args)>())
@@ -308,21 +307,21 @@ namespace stdsharp::actions
         template<typename Container>
         struct make_container_from_tuple_fn
         {
-            template<typename Tuple, typename ValueType = ::std::ranges::range_value_t<Container>>
+            template<typename Tuple, typename ValueType = std::ranges::range_value_t<Container>>
                 requires requires //
             {
-                ::std::apply(regular_make_container_fn<Container>{}, ::std::declval<Tuple>()); //
+                std::apply(regular_make_container_fn<Container>{}, std::declval<Tuple>()); //
             }
             constexpr auto operator()(
-                const ::std::piecewise_construct_t,
+                const std::piecewise_construct_t,
                 Tuple&& tuple
             ) const noexcept( //
                 noexcept( //
-                    ::std::apply(regular_make_container_fn<Container>{}, ::std::declval<Tuple>())
+                    std::apply(regular_make_container_fn<Container>{}, std::declval<Tuple>())
                 )
             )
             {
-                return ::std::apply(regular_make_container_fn<Container>{}, cpp_forward(tuple));
+                return std::apply(regular_make_container_fn<Container>{}, cpp_forward(tuple));
             }
         };
     }

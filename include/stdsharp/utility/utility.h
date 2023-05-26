@@ -5,6 +5,7 @@
 #include "cast_to.h"
 #include "constructor.h"
 #include "invocable.h"
+#include "to_lvalue.h"
 #include "../type_traits/core_traits.h"
 
 namespace stdsharp
@@ -14,11 +15,11 @@ namespace stdsharp
     {
     private:
         template<typename U>
-        using copy_const_t = ::std::conditional_t<const_<::std::remove_reference_t<T>>, const U, U>;
+        using copy_const_t = std::conditional_t<const_<std::remove_reference_t<T>>, const U, U>;
 
     public:
         template<typename U>
-        [[nodiscard]] constexpr ref_align_t<T&&, copy_const_t<::std::remove_reference_t<U>>>
+        [[nodiscard]] constexpr ref_align_t<T&&, copy_const_t<std::remove_reference_t<U>>>
             operator()(U&& u) const noexcept
         {
             return auto_cast(u);
@@ -29,5 +30,5 @@ namespace stdsharp
     inline constexpr forward_like_fn<T> forward_like{};
 
     template<typename T, typename U>
-    using forward_like_t = decltype(forward_like<T>(::std::declval<U>()));
+    using forward_like_t = decltype(forward_like<T>(std::declval<U>()));
 }

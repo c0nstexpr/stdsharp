@@ -23,7 +23,7 @@ namespace stdsharp
     private:
         [[nodiscard]] constexpr auto to_rng() const noexcept
         {
-            return ::std::array{
+            return std::array{
                 move_construct,
                 copy_construct,
                 move_assign,
@@ -33,7 +33,7 @@ namespace stdsharp
             };
         }
 
-        [[nodiscard]] friend constexpr ::std::partial_ordering
+        [[nodiscard]] friend constexpr std::partial_ordering
             operator<=>(const special_mem_req left, const special_mem_req right) noexcept
         {
             return strict_compare(left.to_rng(), right.to_rng());
@@ -56,12 +56,12 @@ namespace stdsharp
         min(const special_mem_req left, const special_mem_req right) noexcept
     {
         return {
-            ::std::min(left.move_construct, right.move_construct),
-            ::std::min(left.copy_construct, right.copy_construct),
-            ::std::min(left.move_assign, right.move_assign),
-            ::std::min(left.copy_assign, right.copy_assign),
-            ::std::min(left.destruct, right.destruct),
-            ::std::min(left.swap, right.swap) //
+            std::min(left.move_construct, right.move_construct),
+            std::min(left.copy_construct, right.copy_construct),
+            std::min(left.move_assign, right.move_assign),
+            std::min(left.copy_assign, right.copy_assign),
+            std::min(left.destruct, right.destruct),
+            std::min(left.swap, right.swap) //
         };
     }
 
@@ -69,23 +69,23 @@ namespace stdsharp
         max(const special_mem_req left, const special_mem_req right) noexcept
     {
         return {
-            ::std::max(left.move_construct, right.move_construct),
-            ::std::max(left.copy_construct, right.copy_construct),
-            ::std::max(left.move_assign, right.move_assign),
-            ::std::max(left.copy_assign, right.copy_assign),
-            ::std::max(left.destruct, right.destruct),
-            ::std::max(left.swap, right.swap) //
+            std::max(left.move_construct, right.move_construct),
+            std::max(left.copy_construct, right.copy_construct),
+            std::max(left.move_assign, right.move_assign),
+            std::max(left.copy_assign, right.copy_assign),
+            std::max(left.destruct, right.destruct),
+            std::max(left.swap, right.swap) //
         };
     }
 
     template<typename T>
     inline constexpr special_mem_req special_mem_req::for_type{
-        get_expr_req(::std::move_constructible<T>, nothrow_move_constructible<T>),
-        get_expr_req(::std::copy_constructible<T>, nothrow_copy_constructible<T>),
+        get_expr_req(std::move_constructible<T>, nothrow_move_constructible<T>),
+        get_expr_req(std::copy_constructible<T>, nothrow_copy_constructible<T>),
         get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
         get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
-        get_expr_req(::std::is_destructible_v<T>, ::std::is_nothrow_destructible_v<T>),
-        get_expr_req(::std::swappable<T>, nothrow_swappable<T>) //
+        get_expr_req(std::is_destructible_v<T>, std::is_nothrow_destructible_v<T>),
+        get_expr_req(std::swappable<T>, nothrow_swappable<T>) //
     };
 
     inline constexpr special_mem_req special_mem_req::trivial{};

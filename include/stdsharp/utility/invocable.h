@@ -11,13 +11,13 @@ namespace stdsharp
 
         using base::base;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                     \
-    template<typename... Args>                                                             \
-        requires ::std::invocable<const_ Func ref, Args...>                                \
-    constexpr decltype(auto) operator()(Args&&... args)                                    \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)                   \
-    {                                                                                      \
-        return ::std::invoke(static_cast<const_ Func ref>(this->v), cpp_forward(args)...); \
+#define STDSHARP_OPERATOR(const_, ref)                                                   \
+    template<typename... Args>                                                           \
+        requires std::invocable<const_ Func ref, Args...>                                \
+    constexpr decltype(auto) operator()(Args&&... args)                                  \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)                 \
+    {                                                                                    \
+        return std::invoke(static_cast<const_ Func ref>(this->v), cpp_forward(args)...); \
     }
 
         STDSHARP_OPERATOR(, &)
@@ -37,7 +37,7 @@ namespace stdsharp
 
 #define STDSHARP_OPERATOR(const_, ref)                                    \
     template<typename... Args>                                            \
-        requires ::std::invocable<const_ base ref, Args...>               \
+        requires std::invocable<const_ base ref, Args...>                 \
     [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args)     \
         const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)  \
     {                                                                     \
@@ -53,20 +53,20 @@ namespace stdsharp
     };
 
     template<typename Func>
-    nodiscard_invocable(Func&& func) -> nodiscard_invocable<::std::decay_t<Func>>;
+    nodiscard_invocable(Func&& func) -> nodiscard_invocable<std::decay_t<Func>>;
 
     template<typename Func>
-    struct ref_invocable_t : ::std::reference_wrapper<Func>
+    struct ref_invocable_t : std::reference_wrapper<Func>
     {
-        using ::std::reference_wrapper<Func>::reference_wrapper;
+        using std::reference_wrapper<Func>::reference_wrapper;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                         \
-    template<typename... Args>                                                                 \
-        requires ::std::invocable<const_ Func ref, Args...>                                    \
-    constexpr decltype(auto) operator()(Args&&... args)                                        \
-        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)                       \
-    {                                                                                          \
-        return ::std::invoke(static_cast<const_ Func ref>(this->get()), cpp_forward(args)...); \
+#define STDSHARP_OPERATOR(const_, ref)                                                       \
+    template<typename... Args>                                                               \
+        requires std::invocable<const_ Func ref, Args...>                                    \
+    constexpr decltype(auto) operator()(Args&&... args)                                      \
+        const_ ref noexcept(nothrow_invocable<const_ Func ref, Args...>)                     \
+    {                                                                                        \
+        return std::invoke(static_cast<const_ Func ref>(this->get()), cpp_forward(args)...); \
     }
 
         STDSHARP_OPERATOR(, &)

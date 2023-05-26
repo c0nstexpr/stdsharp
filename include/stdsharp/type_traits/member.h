@@ -91,9 +91,9 @@ namespace stdsharp
 #undef STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK
 
     template<typename T, typename ClassT>
-    concept member_of = ::std::same_as<typename member_traits<T>::class_t, ClassT>;
+    concept member_of = std::same_as<typename member_traits<T>::class_t, ClassT>;
 
     template<typename T, typename ClassT>
     concept member_func_of =
-        ::std::is_member_pointer_v<T> && ::std::same_as<typename member_traits<T>::class_t, ClassT>;
+        std::is_member_pointer_v<T> && std::same_as<typename member_traits<T>::class_t, ClassT>;
 }

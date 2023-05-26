@@ -31,7 +31,7 @@ namespace stdsharp
         inherited() = default;
 
         template<typename... U>
-            requires ::std::constructible_from<Base, U...> && (::std::constructible_from<T> && ...)
+            requires std::constructible_from<Base, U...> && (std::constructible_from<T> && ...)
         constexpr explicit inherited(U&&... u) noexcept(
             nothrow_constructible_from<Base, U...> &&
             (nothrow_constructible_from<T> && ...) // clang-format off
@@ -42,8 +42,8 @@ namespace stdsharp
         template<typename BaseT, typename... U>
             requires requires //
         {
-            requires ::std::constructible_from<Base, BaseT>;
-            requires(::std::constructible_from<T, U> && ...);
+            requires std::constructible_from<Base, BaseT>;
+            requires(std::constructible_from<T, U> && ...);
         }
         constexpr explicit inherited(BaseT&& base, U&&... u) noexcept(
             nothrow_constructible_from<Base, BaseT> &&
@@ -53,7 +53,7 @@ namespace stdsharp
         }
 
         template<typename U>
-            requires ::std::assignable_from<Base, U>
+            requires std::assignable_from<Base, U>
         constexpr inherited& operator=(U&& u) noexcept(nothrow_assignable_from<Base, U>)
         {
             Base::operator=(cpp_forward(u));
@@ -62,17 +62,17 @@ namespace stdsharp
     };
 
     template<typename... T>
-    inherited(T&&...) -> inherited<::std::decay_t<T>...>;
+    inherited(T&&...) -> inherited<std::decay_t<T>...>;
 
     struct make_inherited_fn
     {
         template<typename Base, typename... U>
             requires requires //
         {
-            inherited{::std::declval<Base>(), ::std::declval<U>()...};
+            inherited{std::declval<Base>(), std::declval<U>()...};
         }
         [[nodiscard]] constexpr auto operator()(Base&& base, U&&... u) const
-            noexcept(noexcept(inherited{::std::declval<Base>(), ::std::declval<U>()...}))
+            noexcept(noexcept(inherited{std::declval<Base>(), std::declval<U>()...}))
         {
             return inherited{cpp_forward(base), cpp_forward(u)...};
         }

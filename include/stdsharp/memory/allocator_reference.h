@@ -5,12 +5,12 @@
 namespace stdsharp
 {
     template<allocator_req Alloc>
-    class allocator_reference : ::std::reference_wrapper<Alloc>
+    class allocator_reference : std::reference_wrapper<Alloc>
     {
         using traits = allocator_traits<Alloc>;
 
     public:
-        using ::std::reference_wrapper<Alloc>::reference_wrapper;
+        using std::reference_wrapper<Alloc>::reference_wrapper;
 
         using value_type = traits::value_type;
         using pointer = traits::pointer;
@@ -46,13 +46,13 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto allocate_at_least(const size_type n) const
         {
-            return ::std::allocate_at_least(this->get(), n);
+            return std::allocate_at_least(this->get(), n);
         }
 
         template<typename U, typename... Args>
         constexpr void construct(U* const p, Args&&... args) const //
-            noexcept(noexcept(traits::construct(this->get(), p, ::std::declval<Args>()...)))
-            requires requires { traits::construct(this->get(), p, ::std::declval<Args>()...); }
+            noexcept(noexcept(traits::construct(this->get(), p, std::declval<Args>()...)))
+            requires requires { traits::construct(this->get(), p, std::declval<Args>()...); }
         {
             traits::construct(this->get(), p, cpp_forward(args)...);
         }

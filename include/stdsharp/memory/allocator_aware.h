@@ -127,7 +127,7 @@ namespace stdsharp
         [[nodiscard]] static constexpr allocation_for<ValueType>
             move_construct(allocator_type&, allocation_for<ValueType>& other) noexcept
         {
-            return ::std::exchange(other, {});
+            return std::exchange(other, {});
         }
 
         template<typename ValueType>
@@ -235,7 +235,7 @@ namespace stdsharp
 
             dst_allocation.deallocate(dst_alloc);
             if constexpr(propagate_on_move_v) dst_alloc = cpp_move(src_alloc);
-            dst_allocation = ::std::exchange(src_allocation, {});
+            dst_allocation = std::exchange(src_allocation, {});
         }
 
         static constexpr void swap(
@@ -245,7 +245,7 @@ namespace stdsharp
             allocation& src_allocation
         ) noexcept(!is_debug)
         {
-            precondition<::std::invalid_argument>( //
+            precondition<std::invalid_argument>( //
                 [&dst_alloc, &src_alloc]
                 {
                     if constexpr(!always_equal_v)
@@ -254,8 +254,8 @@ namespace stdsharp
                     return true;
                 }
             );
-            ::std::swap(dst_allocation, src_allocation);
-            if constexpr(propagate_on_swap_v) ::std::ranges::swap(dst_alloc, src_alloc);
+            std::swap(dst_allocation, src_allocation);
+            if constexpr(propagate_on_swap_v) std::ranges::swap(dst_alloc, src_alloc);
         }
     };
 
@@ -327,7 +327,7 @@ namespace stdsharp
             operator<(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
             bool has_less = false;
-            const auto cmp = ::std::ranges::equal(
+            const auto cmp = std::ranges::equal(
                 left.to_array(),
                 right.to_array(),
                 [&has_less](const expr_req left, const expr_req right)
@@ -349,7 +349,7 @@ namespace stdsharp
             operator>(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
             bool has_greater = false;
-            const auto cmp = ::std::ranges::equal(
+            const auto cmp = std::ranges::equal(
                 left.to_array(),
                 right.to_array(),
                 [&has_greater](const expr_req left, const expr_req right)
@@ -370,27 +370,23 @@ namespace stdsharp
         [[nodiscard]] friend constexpr bool
             operator<=(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
-            return ::std::ranges::equal(
-                left.to_array(),
-                right.to_array(),
-                ::std::ranges::less_equal{}
-            );
+            return std::ranges::equal(left.to_array(), right.to_array(), std::ranges::less_equal{});
         }
 
         [[nodiscard]] friend constexpr bool
             operator>=(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
-            return ::std::ranges::equal(
+            return std::ranges::equal(
                 left.to_array(),
                 right.to_array(),
-                ::std::ranges::greater_equal{}
+                std::ranges::greater_equal{}
             );
         }
 
         [[nodiscard]] friend constexpr bool
             operator==(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
         {
-            return ::std::ranges::equal(left.to_array(), right.to_array());
+            return std::ranges::equal(left.to_array(), right.to_array());
         }
     };
 
@@ -401,19 +397,19 @@ namespace stdsharp
     public:
         using value_type = ValueType;
 
-        static constexpr auto copy_constructible_req = ::std::min(
+        static constexpr auto copy_constructible_req = std::min(
             traits::template construct_req<value_type, const value_type&>,
             expr_req::well_formed
         );
 
-        static constexpr auto copy_assignable_req = ::std::min(
+        static constexpr auto copy_assignable_req = std::min(
             traits::template construct_req<value_type, const value_type&>,
             get_expr_req(copy_assignable<value_type>, !propagate_on_copy_v || always_equal_v)
         );
 
         static constexpr auto move_assignable_req = propagate_on_move_v || always_equal_v ?
             expr_req::no_exception :
-            ::std::min(
+            std::min(
                 traits::template construct_req<value_type, value_type>,
                 get_expr_req(move_assignable<value_type>, nothrow_move_assignable<value_type>)
             );
@@ -435,9 +431,9 @@ namespace stdsharp
             noexcept(!is_debug):
             allocation_(allocation), has_value_(has_value)
         {
-            precondition<::std::invalid_argument>( //
-                ::std::bind_front(
-                    ::std::ranges::greater_equal{},
+            precondition<std::invalid_argument>( //
+                std::bind_front(
+                    std::ranges::greater_equal{},
                     allocation_.size(),
                     has_value_ ? sizeof(value_type) : 0
                 ),
@@ -519,10 +515,10 @@ namespace stdsharp
     template<typename T>
         requires requires(const T t, T::allocator_type alloc) //
     {
-        requires ::std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
+        requires std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
         // clang-format off
         { t.get_allocator() } noexcept ->
-            ::std::convertible_to<decltype(alloc)>; // clang-format on
+            std::convertible_to<decltype(alloc)>; // clang-format on
     }
     struct allocator_aware_ctor : T
     {
@@ -538,13 +534,13 @@ namespace stdsharp
 
         template<typename... Args>
         static constexpr auto alloc_arg_ctor =
-            constructible_from_test<T, ::std::allocator_arg_t, allocator_type, Args...>;
+            constructible_from_test<T, std::allocator_arg_t, allocator_type, Args...>;
 
     public:
         template<typename... Args>
-            requires ::std::constructible_from<T, Args..., allocator_type>
+            requires std::constructible_from<T, Args..., allocator_type>
         constexpr allocator_aware_ctor(
-            const ::std::allocator_arg_t,
+            const std::allocator_arg_t,
             const allocator_type& alloc,
             Args&&... args
         ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>):
@@ -554,7 +550,7 @@ namespace stdsharp
 
         constexpr allocator_aware_ctor(const this_t& other) //
             noexcept(nothrow_constructible_from<T, const T&, allocator_type>)
-            requires ::std::constructible_from<T, const T&, allocator_type>
+            requires std::constructible_from<T, const T&, allocator_type>
             :
             T( //
                 static_cast<const T&>(other),
@@ -565,7 +561,7 @@ namespace stdsharp
 
         constexpr allocator_aware_ctor(this_t&& other) //
             noexcept(nothrow_constructible_from<T, T, allocator_type>)
-            requires ::std::constructible_from<T, T, allocator_type>
+            requires std::constructible_from<T, T, allocator_type>
             : T(static_cast<T&&>(other), other.get_allocator())
         {
         }

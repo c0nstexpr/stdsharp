@@ -13,8 +13,8 @@ namespace stdsharp
         struct get_from_stream_fn
         {
             template<typename... Args>
-                requires ::std::constructible_from<T, Args...>
-            [[nodiscard]] constexpr auto operator()(::std::istream& is, Args&&... args) const
+                requires std::constructible_from<T, Args...>
+            [[nodiscard]] constexpr auto operator()(std::istream& is, Args&&... args) const
             {
                 T t{cpp_forward(args)...};
                 is >> t;
@@ -29,24 +29,24 @@ namespace stdsharp
     namespace details
     {
         template<typename T>
-            requires ::std::invocable<
+            requires std::invocable<
                 get_from_stream_fn<T>,
-                ::std::ifstream // clang-format off
+                std::ifstream // clang-format off
             > // clang-format on
         struct read_all_to_container_fn
         {
-            template<typename Container = ::std::vector<T>>
-                requires ::std::invocable<read_all_to_container_fn, Container&>
+            template<typename Container = std::vector<T>>
+                requires std::invocable<read_all_to_container_fn, Container&>
             [[nodiscard]] auto&
-                operator()(Container& container, const ::std::filesystem::path& path) const
+                operator()(Container& container, const std::filesystem::path& path) const
             {
-                ::std::ifstream fs{path};
+                std::ifstream fs{path};
                 return (*this)(container, fs);
             }
 
-            template<typename Container = ::std::vector<T>>
-                requires ::std::invocable<actions::emplace_back_fn, Container&, T>
-            [[nodiscard]] constexpr auto& operator()(Container& container, ::std::istream& is) const
+            template<typename Container = std::vector<T>>
+                requires std::invocable<actions::emplace_back_fn, Container&, T>
+            [[nodiscard]] constexpr auto& operator()(Container& container, std::istream& is) const
             {
                 while(is) actions::emplace_back(container, get_from_stream<T>(is));
 
@@ -60,44 +60,44 @@ namespace stdsharp
 
     namespace details
     {
-        template<typename T, ::std::default_initializable Container>
-            requires ::std::invocable<read_all_to_container_fn<T>, Container&, ::std::istream&>
+        template<typename T, std::default_initializable Container>
+            requires std::invocable<read_all_to_container_fn<T>, Container&, std::istream&>
         struct read_all_fn
         {
-            [[nodiscard]] constexpr auto operator()(::std::istream& is) const
+            [[nodiscard]] constexpr auto operator()(std::istream& is) const
             {
                 Container container{};
                 return read_all_to_container<T>(container, is);
             }
 
-            [[nodiscard]] auto operator()(const ::std::filesystem::path& path) const
+            [[nodiscard]] auto operator()(const std::filesystem::path& path) const
             {
-                ::std::ifstream fs{path};
+                std::ifstream fs{path};
                 return (*this)(fs);
             }
         };
 
         struct read_all_text_fn
         {
-            [[nodiscard]] auto operator()(::std::istream& is) const
+            [[nodiscard]] auto operator()(std::istream& is) const
             {
-                using traits_t = ::std::istream::traits_type;
+                using traits_t = std::istream::traits_type;
 
-                ::std::string str;
-                ::std::getline(is, str, traits_t::to_char_type(traits_t::eof()));
+                std::string str;
+                std::getline(is, str, traits_t::to_char_type(traits_t::eof()));
 
                 return str;
             }
 
-            [[nodiscard]] auto operator()(const ::std::filesystem::path& path) const
+            [[nodiscard]] auto operator()(const std::filesystem::path& path) const
             {
-                ::std::ifstream fs{path};
+                std::ifstream fs{path};
                 return (*this)(fs);
             }
         };
     }
 
-    template<typename T, typename Container = ::std::vector<T>>
+    template<typename T, typename Container = std::vector<T>>
     inline constexpr details::read_all_fn<T, Container> read_all{};
 
     inline constexpr details::read_all_text_fn read_all_text{};

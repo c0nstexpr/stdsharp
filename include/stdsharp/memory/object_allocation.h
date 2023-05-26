@@ -39,8 +39,8 @@ namespace stdsharp
 
             constexpr allocation_dispatchers(
                 const dispatchers& b,
-                const ::std::string_view current_type,
-                const ::std::size_t type_size
+                const std::string_view current_type,
+                const std::size_t type_size
             ) noexcept:
                 dispatchers_(b), current_type_(current_type), type_size_(type_size)
             {
@@ -53,9 +53,9 @@ namespace stdsharp
 
             template<
                 typename T,
-                typename AllocationFor = traits::template allocation_for<::std::decay_t<T>>>
+                typename AllocationFor = traits::template allocation_for<std::decay_t<T>>>
                 requires(Req <= AllocationFor::obj_req)
-            constexpr allocation_dispatchers(const ::std::type_identity<T>) noexcept:
+            constexpr allocation_dispatchers(const std::type_identity<T>) noexcept:
                 allocation_dispatchers(
                     dispatchers(
                         [](alloc& alloc, allocation& other) noexcept
@@ -200,8 +200,8 @@ namespace stdsharp
 
         private:
             dispatchers dispatchers_{};
-            ::std::string_view current_type_ = type_id<void>;
-            ::std::size_t type_size_{};
+            std::string_view current_type_ = type_id<void>;
+            std::size_t type_size_{};
         };
 
         template<allocation_obj_req Req, typename Alloc>
@@ -237,16 +237,15 @@ namespace stdsharp
             template<
                 typename... Args,
                 typename T,
-                typename ValueType = ::std::decay_t<T>,
-                typename Identity = ::std::type_identity<ValueType> // clang-format off
+                typename ValueType = std::decay_t<T>,
+                typename Identity = std::type_identity<ValueType> // clang-format off
             > // clang-format on
-                requires ::std::constructible_from<compressed_t, Identity, const allocator_type&> &&
-                             ::std::
-                                 invocable<make_allocation_by_obj_fn<T>, allocator_type&, Args...>
+                requires std::constructible_from<compressed_t, Identity, const allocator_type&> &&
+                             std::invocable<make_allocation_by_obj_fn<T>, allocator_type&, Args...>
             constexpr allocation_rsc(
-                const ::std::allocator_arg_t,
+                const std::allocator_arg_t,
                 const allocator_type& alloc,
-                const ::std::in_place_type_t<T>,
+                const std::in_place_type_t<T>,
                 Args&&... args
             ):
                 compressed_(Identity{}, alloc),
@@ -357,7 +356,7 @@ namespace stdsharp
                     other.get_allocation()
                 );
 
-                ::std::swap(get_dispatchers(), other_dispatchers);
+                std::swap(get_dispatchers(), other_dispatchers);
             }
 
             [[nodiscard]] constexpr auto& get_allocator() const noexcept
@@ -426,9 +425,8 @@ namespace stdsharp
         public:
             template<typename T, typename... Args>
             static constexpr auto emplace_constructible =
-                (Base::template construct_req<::std::decay_t<T>, Args...> >= expr_req::well_formed
-                ) &&
-                ::std::constructible_from<dispatchers_t, ::std::type_identity<::std::decay_t<T>>>;
+                (Base::template construct_req<std::decay_t<T>, Args...> >= expr_req::well_formed) &&
+                std::constructible_from<dispatchers_t, std::type_identity<std::decay_t<T>>>;
 
             using typename Base::allocator_type;
             using Base::Base;
@@ -436,7 +434,7 @@ namespace stdsharp
 
             static constexpr auto req = Req;
 
-            template<::std::same_as<void> T = void>
+            template<std::same_as<void> T = void>
             constexpr void emplace() noexcept
             {
                 this->destroy();
@@ -446,19 +444,19 @@ namespace stdsharp
                 requires emplace_constructible<T, Args...>
             constexpr decltype(auto) emplace(Args&&... args)
             {
-                using value_t = ::std::decay_t<T>;
+                using value_t = std::decay_t<T>;
 
                 this->destroy();
                 get_allocation().allocate(get_allocator(), sizeof(value_t));
 
                 this_t::construct(get_allocator(), ptr<value_t>(), cpp_forward(args)...);
-                get_dispatchers() = dispatchers_t{::std::type_identity<value_t>{}};
+                get_dispatchers() = dispatchers_t{std::type_identity<value_t>{}};
 
                 return get<value_t>();
             }
 
             template<typename T, typename... Args, typename U>
-            constexpr decltype(auto) emplace(const ::std::initializer_list<U> il, Args&&... args)
+            constexpr decltype(auto) emplace(const std::initializer_list<U> il, Args&&... args)
                 requires emplace_constructible<T, decltype(il), Args...>
             {
                 return emplace<T, decltype(il), Args...>(il, cpp_forward(args)...);

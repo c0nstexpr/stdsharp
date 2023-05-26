@@ -17,18 +17,18 @@ namespace stdsharp
     namespace details
     {
         template<typename CharT>
-        using parse_context = ::std::basic_format_parse_context<CharT>;
+        using parse_context = std::basic_format_parse_context<CharT>;
 
         template<typename OutputIt, typename CharT>
-        using context = ::std::basic_format_context<OutputIt, CharT>;
+        using context = std::basic_format_context<OutputIt, CharT>;
 
         template<typename CharT>
-        using iter = typename ::std::basic_format_parse_context<CharT>::iterator;
+        using iter = typename std::basic_format_parse_context<CharT>::iterator;
 
-        template<::std::integral T>
+        template<std::integral T>
         constexpr auto parse_integer(const auto& rng) noexcept
         {
-            return ::std::accumulate(
+            return std::accumulate(
                 rng.begin(),
                 rng.end(),
                 T{0},
@@ -43,7 +43,7 @@ namespace stdsharp
 
     struct nested_arg_index
     {
-        ::std::size_t value;
+        std::size_t value;
 
         template<typename Visitor, typename OutputIt, typename CharT>
         [[nodiscard]] constexpr decltype(auto) get_from_context(
@@ -51,7 +51,7 @@ namespace stdsharp
             Visitor&& vis //
         ) const
         {
-            return ::std::visit_format_arg(cpp_forward(vis), fc.arg(value));
+            return std::visit_format_arg(cpp_forward(vis), fc.arg(value));
         }
 
         template<typename T, typename OutputIt, typename CharT>
@@ -62,17 +62,17 @@ namespace stdsharp
         {
             return get_from_context(
                 fc,
-                []<typename U>(U&& u) noexcept -> ::std::optional<T>
+                []<typename U>(U&& u) noexcept -> std::optional<T>
                 {
-                    if constexpr(::std::convertible_to<U, T>) return static_cast<T>(cpp_forward(u));
-                    else return ::std::nullopt;
+                    if constexpr(std::convertible_to<U, T>) return static_cast<T>(cpp_forward(u));
+                    else return std::nullopt;
                 }
             );
         }
     };
 
     template<typename T>
-    using nested_spec = ::std::variant<::std::monostate, T, nested_arg_index>;
+    using nested_spec = std::variant<std::monostate, T, nested_arg_index>;
 
     namespace details
     {
@@ -84,21 +84,21 @@ namespace stdsharp
     [[nodiscard]] constexpr auto get_arg(const details::context<OutputIt, CharT>& fc, SpecT&& spec)
         requires requires { details::nested_spec_like(spec); }
     {
-        using result_t = ::std::conditional_t<
-            ::std::same_as<ResultT, void>,
+        using result_t = std::conditional_t<
+            std::same_as<ResultT, void>,
             decltype(details::nested_spec_like(spec)),
             ResultT>;
 
-        if(spec.valueless_by_exception() || ::std::holds_alternative<::std::monostate>(spec))
-            return ::std::optional<result_t>{::std::nullopt};
-        return ::std::visit(
-            [&fc]<typename U>(U&& u) -> ::std::optional<result_t>
+        if(spec.valueless_by_exception() || std::holds_alternative<std::monostate>(spec))
+            return std::optional<result_t>{std::nullopt};
+        return std::visit(
+            [&fc]<typename U>(U&& u) -> std::optional<result_t>
             {
-                if constexpr(::std::same_as<::std::remove_cvref_t<U>, result_t>)
-                    return ::std::optional<result_t>{cpp_forward(u)};
-                else if constexpr(::std::same_as<::std::remove_cvref_t<U>, nested_arg_index>)
+                if constexpr(std::same_as<std::remove_cvref_t<U>, result_t>)
+                    return std::optional<result_t>{cpp_forward(u)};
+                else if constexpr(std::same_as<std::remove_cvref_t<U>, nested_arg_index>)
                     return cpp_forward(u).template get_from_context<result_t>(fc);
-                else return ::std::nullopt;
+                else return std::nullopt;
             },
             spec
         );
@@ -108,20 +108,20 @@ namespace stdsharp
     void parse_assert(const details::parse_context<CharT>& ctx)
     {
         const auto begin = ctx.begin();
-        throw ::std::format_error{
-            ::std::format(
+        throw std::format_error{
+            std::format(
                 "invalid format:\n \"{}\"\n{}",
-                ::std::basic_string_view{begin, ctx.end()},
-                ::std::format(
+                std::basic_string_view{begin, ctx.end()},
+                std::format(
                     "{}^ Unexpected character here",
-                    // TODO: c++23 ::std::ranges::views::repeat
+                    // TODO: c++23 std::ranges::views::repeat
                     ::ranges::views::repeat_n(' ', begin - ctx.begin())
                 )
             ) //
         };
     }
 
-    template<typename CharT, ::std::predicate<CharT> Predicate>
+    template<typename CharT, std::predicate<CharT> Predicate>
     constexpr void parse_validate(const details::parse_context<CharT>& ctx, Predicate predicate)
     {
         const auto begin = ctx.begin();
@@ -141,10 +141,10 @@ namespace stdsharp
 
         if(begin == ctx.end() || *begin == '}') return;
 
-        throw ::std::format_error{
-            ::std::format(
+        throw std::format_error{
+            std::format(
                 "invalid format: \"{}\"\nEnd of string expected",
-                ::std::basic_string_view{begin, ctx.end()}
+                std::basic_string_view{begin, ctx.end()}
             ) //
         };
     }
@@ -152,7 +152,7 @@ namespace stdsharp
     template<typename CharT>
     struct fill_spec
     {
-        ::std::optional<CharT> fill;
+        std::optional<CharT> fill;
     };
 
     template<typename CharT>
@@ -165,7 +165,7 @@ namespace stdsharp
             ctx.advance_to(fill.end());
             return {*fill.begin()};
         }
-        return {::std::nullopt};
+        return {std::nullopt};
     }
 
     enum class align_t
@@ -176,7 +176,7 @@ namespace stdsharp
         center
     };
 
-    template<::std::convertible_to<char> CharT>
+    template<std::convertible_to<char> CharT>
     [[nodiscard]] constexpr auto parse_align_spec(details::parse_context<CharT>& ctx)
     {
         const auto [align] = ::ctre::starts_with<"[<^>]">(ctx);
@@ -195,7 +195,7 @@ namespace stdsharp
         return align_t::none;
     }
 
-    template<::std::integral IntType, ::std::convertible_to<char> CharT>
+    template<std::integral IntType, std::convertible_to<char> CharT>
     [[nodiscard]] constexpr nested_spec<IntType>
         parse_nested_integer_spec(details::parse_context<CharT>& ctx)
     {
@@ -206,13 +206,13 @@ namespace stdsharp
         {
             ctx.advance_to(end);
             return nested_arg_index{
-                ::std::ranges::empty(ref) ? ctx.next_arg_id() :
-                                            details::parse_integer<::std::size_t>(ref)};
+                std::ranges::empty(ref) ? ctx.next_arg_id() :
+                                          details::parse_integer<std::size_t>(ref)};
         }
         if(value)
         {
             ctx.advance_to(end);
-            return details::parse_integer<::std::size_t>(value);
+            return details::parse_integer<std::size_t>(value);
         }
 
         return {};
