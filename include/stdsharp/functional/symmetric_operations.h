@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bind.h"
+#include "bind_as_lvlaue.h"
 #include "operations.h"
 
 namespace stdsharp::cpo::inline cpo_impl
