@@ -6,14 +6,14 @@
 
 namespace stdsharp
 {
-    template<typename T, ::std::size_t ResourceSize>
+    template<typename T, std::size_t ResourceSize>
     class static_allocator
     {
     public:
         using value_type = T;
-        using propagate_on_container_move_assignment = ::std::true_type;
-        using propagate_on_container_copy_assignment = ::std::true_type;
-        using propagate_on_container_swap = ::std::true_type;
+        using propagate_on_container_move_assignment = std::true_type;
+        using propagate_on_container_copy_assignment = std::true_type;
+        using propagate_on_container_swap = std::true_type;
 
         static constexpr auto size = ResourceSize;
 
@@ -33,17 +33,17 @@ namespace stdsharp
         {
         }
 
-        [[nodiscard]] constexpr T* allocate(const ::std::size_t required_size)
+        [[nodiscard]] constexpr T* allocate(const std::size_t required_size)
         {
             return pointer_cast<T>(resource().allocate(to_generic_size(required_size)));
         }
 
-        [[nodiscard]] constexpr T* try_allocate(const ::std::size_t required_size)
+        [[nodiscard]] constexpr T* try_allocate(const std::size_t required_size)
         {
             return pointer_cast<T>(resource().try_allocate(to_generic_size(required_size)));
         }
 
-        constexpr void deallocate(T* const ptr, const ::std::size_t required_size) noexcept
+        constexpr void deallocate(T* const ptr, const std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
             resource().deallocate(pointer_cast<all_aligned>(ptr), to_generic_size(required_size));
@@ -62,18 +62,18 @@ namespace stdsharp
         }
 
     private:
-        ::std::reference_wrapper<resource_type> src_;
+        std::reference_wrapper<resource_type> src_;
 
-        static constexpr auto to_generic_size(const ::std::size_t size_v)
+        static constexpr auto to_generic_size(const std::size_t size_v)
         {
             return ceil_reminder(size_v * sizeof(T), sizeof(all_aligned));
         }
     };
 
-    template<::std::size_t Size>
+    template<std::size_t Size>
     static_allocator(static_memory_resource<Size>&) -> static_allocator<all_aligned, Size>;
 
-    template<typename T, ::std::size_t Size>
+    template<typename T, std::size_t Size>
     using static_allocator_for =
         static_allocator<T, ceil_reminder(Size * sizeof(T), sizeof(all_aligned))>;
 }

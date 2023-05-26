@@ -1,10 +1,11 @@
 #pragma once
 
 #include "invoke.h"
+#include "../utility/to_lvalue.h"
 
 namespace stdsharp
 {
-    inline constexpr struct bind_fn
+    inline constexpr struct bind_as_lvalue_fn
     {
     private:
         template<typename T>
@@ -14,9 +15,9 @@ namespace stdsharp
         };
 
         template<typename T>
-        struct arg_wrapper<T&> : ::std::reference_wrapper<T>
+        struct arg_wrapper<T&> : std::reference_wrapper<T>
         {
-            using ::std::reference_wrapper<T>::reference_wrapper;
+            using std::reference_wrapper<T>::reference_wrapper;
         };
 
         template<>
@@ -24,10 +25,16 @@ namespace stdsharp
         {
         };
 
+        template<typename T>
+        arg_wrapper(T&) -> arg_wrapper<T&>;
+
+        template<typename T>
+        arg_wrapper(T&&) -> arg_wrapper<T>;
+
         static constexpr struct
         {
             template<typename T>
-                requires ::std::same_as<template_rebind<::std::decay_t<T>, void>, arg_wrapper<void>>
+                requires std::same_as<template_rebind<std::decay_t<T>, void>, arg_wrapper<void>>
             [[nodiscard]] constexpr decltype(auto) operator()(T&& wrapper) const noexcept
             {
                 return cpp_forward(wrapper).get();
@@ -40,42 +47,36 @@ namespace stdsharp
         } extract{};
 
         template<typename T>
-        using extract_t = decltype(extract(::std::declval<T>()));
+        using extract_t = decltype(extract(std::declval<T>()));
 
     public:
         template<typename Func, typename... Args>
         constexpr auto operator()(Func&& func, Args&&... args) const noexcept( //
             noexcept( //
-                ::std::bind_front(
+                std::bind_front(
                     projected_invoke,
                     cpp_forward(func),
                     extract,
-                    arg_wrapper<persist_t<Args&&>>{cpp_forward(args)}...
+                    arg_wrapper{to_lvalue(cpp_forward(args))}...
                 )
             )
         )
             requires requires //
         {
-            ::std::bind_front(
+            std::bind_front(
                 projected_invoke,
                 cpp_forward(func),
                 extract,
-                arg_wrapper<persist_t<Args&&>>{cpp_forward(args)}...
+                arg_wrapper{to_lvalue(cpp_forward(args))}...
             );
         }
         {
-            return ::std::bind_front(
+            return std::bind_front(
                 projected_invoke,
                 cpp_forward(func),
                 extract,
-                arg_wrapper<persist_t<Args&&>>{cpp_forward(args)}...
+                arg_wrapper{to_lvalue(cpp_forward(args))}...
             );
         }
-    } bind{};
-
-    template<typename... Args>
-    concept bindable = ::std::invocable<bind_fn, Args...>;
-
-    template<typename... Args>
-    concept nothrow_bindable = nothrow_invocable<bind_fn, Args...>;
+    } bind_as_lvalue{};
 }

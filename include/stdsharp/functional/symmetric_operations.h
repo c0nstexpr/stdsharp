@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bind.h"
+#include "bind_as_lvlaue.h"
 #include "operations.h"
 
 namespace stdsharp::cpo::inline cpo_impl
@@ -11,32 +11,32 @@ namespace stdsharp::cpo::inline cpo_impl
         struct arithmetic_operation;
 
         template<>
-        struct arithmetic_operation<plus_assign> : ::std::type_identity<minus_assign>
+        struct arithmetic_operation<plus_assign> : std::type_identity<minus_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<minus_assign> : ::std::type_identity<plus_assign>
+        struct arithmetic_operation<minus_assign> : std::type_identity<plus_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<multiplies_assign> : ::std::type_identity<divides_assign>
+        struct arithmetic_operation<multiplies_assign> : std::type_identity<divides_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<divides_assign> : ::std::type_identity<multiplies_assign>
+        struct arithmetic_operation<divides_assign> : std::type_identity<multiplies_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<negate_assign> : ::std::type_identity<negate_assign>
+        struct arithmetic_operation<negate_assign> : std::type_identity<negate_assign>
         {
         };
 
         template<>
-        struct arithmetic_operation<logical_not_assign> : ::std::type_identity<logical_not_assign>
+        struct arithmetic_operation<logical_not_assign> : std::type_identity<logical_not_assign>
         {
         };
 
@@ -44,13 +44,13 @@ namespace stdsharp::cpo::inline cpo_impl
         {
             template<
                 typename... Args,
-                ::std::invocable<Args...> Operation,
+                std::invocable<Args...> Operation,
                 typename SymOp = ::meta::_t<arithmetic_operation<Operation>> // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(const Operation, Args&&... args) const
-                noexcept(noexcept(bind(SymOp{}, cpp_forward(args)...)))
+                noexcept(noexcept(bind_as_lvalue(SymOp{}, cpp_forward(args)...)))
             {
-                return bind(SymOp{}, cpp_forward(args)...);
+                return bind_as_lvalue(SymOp{}, cpp_forward(args)...);
             }
         };
 
@@ -60,9 +60,9 @@ namespace stdsharp::cpo::inline cpo_impl
         struct adl_symmetric_operation_fn
         {
             template<typename... Args>
-                requires requires { symmetric_operation(::std::declval<Args>()...); }
+                requires requires { symmetric_operation(std::declval<Args>()...); }
             [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) const
-                noexcept(symmetric_operation(::std::declval<Args>()...))
+                noexcept(symmetric_operation(std::declval<Args>()...))
             {
                 return symmetric_operation(cpp_forward(args)...);
             }

@@ -16,13 +16,13 @@ namespace stdsharp::scope
 
     template<flag<exit_fn_policy> Policy, nothrow_invocable Fn>
     struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
-        private ::std::optional<Fn>,
+        private std::optional<Fn>,
         unique_object
     {
     private:
         constexpr void execute() noexcept
         {
-            ::std::invoke(cpp_move(this->value()));
+            std::invoke(cpp_move(this->value()));
             this->reset();
         };
 
@@ -30,9 +30,9 @@ namespace stdsharp::scope
         using exit_fn_t = Fn;
 
         template<typename... Args>
-            requires ::std::constructible_from<Fn, Args...>
+            requires std::constructible_from<Fn, Args...>
         constexpr explicit scoped(Args&&... args) noexcept(nothrow_constructible_from<Fn, Args...>):
-            ::std::optional<Fn>(::std::in_place, cpp_forward(args)...)
+            std::optional<Fn>(std::in_place, cpp_forward(args)...)
         {
         }
 
@@ -43,7 +43,7 @@ namespace stdsharp::scope
             if(!this->has_value()) return;
 
             if constexpr(policy == exit_fn_policy::on_exit) execute();
-            else if(::std::is_constant_evaluated() || ::std::uncaught_exceptions() == 0)
+            else if(std::is_constant_evaluated() || std::uncaught_exceptions() == 0)
             {
                 if constexpr(policy.contains(exit_fn_policy::on_success)) execute();
             }
@@ -59,11 +59,11 @@ namespace stdsharp::scope
     {
     private:
         template<typename Fn>
-        using scoped_t = scoped<Policy, ::std::decay_t<Fn>>;
+        using scoped_t = scoped<Policy, std::decay_t<Fn>>;
 
     public:
         template<typename Fn>
-            requires ::std::constructible_from<scoped_t<Fn>, Fn>
+            requires std::constructible_from<scoped_t<Fn>, Fn>
         constexpr scoped_t<Fn> operator()(Fn&& fn) const
             noexcept(nothrow_constructible_from<scoped_t<Fn>, Fn>)
         {

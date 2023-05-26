@@ -26,7 +26,7 @@ namespace stdsharp::reflection
         struct data_meta_getter : member_pointer_traits<Ptr>
         {
             template<typename T>
-                requires ::std::invocable<cast_fwd_fn<Reflected>, T>
+                requires std::invocable<cast_fwd_fn<Reflected>, T>
             constexpr decltype(auto) operator()(T&& t) const
                 noexcept(nothrow_invocable<cast_fwd_fn<Reflected>, T>)
             {
@@ -41,9 +41,9 @@ namespace stdsharp::reflection
         struct meta_set<meta_base<Name, Getter>...> : indexed_types<meta_base<Name, Getter>...>
         {
             template<decltype(auto) N>
-                requires(::std::ranges::equal(N, Name) || ...)
-            using member_of_t = ::std::invoke_result_t< //
-                invocables<meta_base<Name, Getter> (*)(constant<::std::ranges::equal(N, Name)>)...>,
+                requires(std::ranges::equal(N, Name) || ...)
+            using member_of_t = std::invoke_result_t< //
+                invocables<meta_base<Name, Getter> (*)(constant<std::ranges::equal(N, Name)>)...>,
                 constant<true> // clang-format off
             >; // clang-format on
 
@@ -71,20 +71,20 @@ namespace stdsharp::reflection
     };
 
     template<typename Reflected>
-    inline constexpr ::std::conditional_t<dependent_false<Reflected>(), int, void> function;
+    inline constexpr std::conditional_t<dependent_false<Reflected>(), int, void> function;
 
     template<typename Reflected>
     using function_t = decltype(function<Reflected>);
 
     template<typename Reflected>
-    inline constexpr ::std::conditional_t<dependent_false<Reflected>(), int, void> data;
+    inline constexpr std::conditional_t<dependent_false<Reflected>(), int, void> data;
 
     template<typename Reflected>
     using data_t = decltype(data<Reflected>);
 
     template<typename T, typename U>
-    inline constexpr auto data<::std::pair<T, U>> =
-        member<::std::pair<T, U>>::template data_reflect<"first"_ltr, "second"_ltr>(
-            regular_value_sequence<&::std::pair<T, U>::first, &::std::pair<T, U>::second>{}
+    inline constexpr auto data<std::pair<T, U>> =
+        member<std::pair<T, U>>::template data_reflect<"first"_ltr, "second"_ltr>(
+            regular_value_sequence<&std::pair<T, U>::first, &std::pair<T, U>::second>{}
         );
 }

@@ -17,7 +17,7 @@ namespace stdsharp
             value_wrapper() = default;
 
             template<typename... U>
-                requires ::std::constructible_from<T, U...>
+                requires std::constructible_from<T, U...>
             constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
                 v(cpp_forward(u)...)
             {
@@ -30,7 +30,7 @@ namespace stdsharp
             STDSHARP_NO_UNIQUE_ADDRESS T v{};
 
             template<typename... U>
-                requires ::std::constructible_from<T, U...>
+                requires std::constructible_from<T, U...>
             constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
                 v(cpp_forward(u)...)
             {
@@ -47,19 +47,18 @@ namespace stdsharp
 
     private:
         template<typename... Args, size_t... I>
-            requires ::std::constructible_from<T, Args...>
-        constexpr value_wrapper(::std::tuple<Args...>&& args, ::std::index_sequence<I...>):
-            details::value_wrapper<T>(::std::get<I>(cpp_move(args))...)
+            requires std::constructible_from<T, Args...>
+        constexpr value_wrapper(std::tuple<Args...>&& args, std::index_sequence<I...>):
+            details::value_wrapper<T>(std::get<I>(cpp_move(args))...)
         {
         }
 
     public:
         template<typename... Args>
-            requires ::std::constructible_from<T, Args...> &&
-            (!::std::
-                 constructible_from<T, const ::std::piecewise_construct_t&, ::std::tuple<Args...>>)
-        constexpr value_wrapper(const ::std::piecewise_construct_t, ::std::tuple<Args...> args):
-            value_wrapper(cpp_move(args), ::std::index_sequence_for<Args...>{})
+            requires std::constructible_from<T, Args...> &&
+            (!std::constructible_from<T, const std::piecewise_construct_t&, std::tuple<Args...>>)
+        constexpr value_wrapper(const std::piecewise_construct_t, std::tuple<Args...> args):
+            value_wrapper(cpp_move(args), std::index_sequence_for<Args...>{})
         {
         }
 

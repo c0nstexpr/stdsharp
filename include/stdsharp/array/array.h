@@ -8,20 +8,20 @@
 
 namespace stdsharp
 {
-    template<::std::size_t N>
+    template<std::size_t N>
     struct range_to_array_fn
     {
-        template<typename Rng, typename Proj = ::std::identity>
+        template<typename Rng, typename Proj = std::identity>
         constexpr auto operator()(Rng&& rng, Proj proj = {}) const
         {
-            using value_type = ::std::projected<::std::ranges::iterator_t<Rng>, Proj>::value_type;
+            using value_type = std::projected<std::ranges::iterator_t<Rng>, Proj>::value_type;
 
-            ::std::array<value_type, N> arr{};
+            std::array<value_type, N> arr{};
 
-            ::std::ranges::copy(
+            std::ranges::copy(
                 cpp_forward(rng) | //
-                    ::std::views::transform(proj) | //
-                    ::std::views::take(N),
+                    std::views::transform(proj) | //
+                    std::views::take(N),
                 arr.begin()
             );
 
@@ -29,6 +29,6 @@ namespace stdsharp
         }
     };
 
-    template<::std::size_t N>
+    template<std::size_t N>
     inline constexpr range_to_array_fn<N> range_to_array{};
 }

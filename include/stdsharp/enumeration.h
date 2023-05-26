@@ -9,7 +9,7 @@ namespace stdsharp
     struct enumeration
     {
         using enum_type = T;
-        using underlying_type = ::std::underlying_type_t<T>;
+        using underlying_type = std::underlying_type_t<T>;
 
         T value{};
 
@@ -29,7 +29,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    enumeration(T) -> enumeration<::std::remove_cv_t<T>>;
+    enumeration(T) -> enumeration<std::remove_cv_t<T>>;
 
     template<enum_ T>
     struct flag : enumeration<T>
@@ -90,5 +90,5 @@ namespace stdsharp
     };
 
     template<typename T>
-    flag(T) -> flag<::std::remove_cv_t<T>>;
+    flag(T) -> flag<std::remove_cv_t<T>>;
 }
