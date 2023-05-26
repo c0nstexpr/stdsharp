@@ -7,7 +7,7 @@ include(cmake/Utils.cmake)
 #
 project(
   stdsharp
-  VERSION 0.6.1
+  VERSION 0.6.2
   LANGUAGES CXX)
 
 config_lib(${PROJECT_NAME} INTERFACE STD 23)
