@@ -251,6 +251,8 @@ function(target_enable_clang_tidy target)
       ${target}ClangTidyClean ALL
       COMMAND ${CMAKE_COMMAND} -E rm -rf ${report_folder}/
       USES_TERMINAL)
+
+    add_dependencies(${target} ${target}ClangTidyClean)
   else()
     message(STATUS "clang-tidy not found")
   endif()

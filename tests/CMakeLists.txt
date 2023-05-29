@@ -73,7 +73,8 @@ if(CODE_COVERAGE_EXT)
     DEPENDS ${PROJECT_NAME}
     COMMAND ${CMAKE_COMMAND} -E rm -f ${PROFILE_FILE}
     COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${PROFILE_FILE}
-            $<TARGET_FILE:${PROJECT_NAME}> # Run first to generate profraw file
+            $<TARGET_FILE:${PROJECT_NAME}> || exit 0 # Run first to generate
+                                                     # profraw file
   )
 
   target_coverage(

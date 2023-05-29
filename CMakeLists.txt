@@ -49,18 +49,18 @@ endif()
 
 include(CMakeDependentOption)
 
-cmake_dependent_option(STDSHARP_BUILD_TEST "Whether to build test" ON
+cmake_dependent_option(${PROJECT_NAME}_BUILD_TEST "Whether to build test" ON
                        "${is_standalone}" OFF)
 cmake_dependent_option(
-  STDSHARP_INCLUDE_AS_SYSTEM
+  ${PROJECT_NAME}_INCLUDE_AS_SYSTEM
   "Whether to include stdsharp headers as system headers" OFF
   "${is_standalone}" ON)
 
-if(STDSHARP_INCLUDE_AS_SYSTEM)
+if(${PROJECT_NAME}_INCLUDE_AS_SYSTEM)
   target_include_as_system(${PROJECT_NAME} INTERFACE)
 endif()
 
-if(STDSHARP_BUILD_TEST)
+if(${PROJECT_NAME}_BUILD_TEST)
   include(CTest)
   add_subdirectory(tests)
 endif()
