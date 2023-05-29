@@ -6,5 +6,5 @@ namespace std
 
 namespace stdsharp
 {
-    namespace std = std;
+    namespace std = ::std;
 }
