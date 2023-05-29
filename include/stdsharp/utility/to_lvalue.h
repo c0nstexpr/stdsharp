@@ -14,7 +14,7 @@ namespace stdsharp
             return t;
         }
 
-        template<::std::move_constructible T>
+        template<std::move_constructible T>
         [[nodiscard]] constexpr T operator()(T&& t) const noexcept
         {
             return cpp_move(t);
@@ -22,7 +22,7 @@ namespace stdsharp
     } to_lvalue{};
 
     template<typename T>
-    using to_lvalue_t = ::std::invoke_result_t<to_lvalue_fn, T>;
+    using to_lvalue_t = std::invoke_result_t<to_lvalue_fn, T>;
 }
 
 #include "../compilation_config_out.h"
