@@ -66,7 +66,7 @@ namespace stdsharp
 
         static constexpr auto to_generic_size(const std::size_t size_v)
         {
-            return ceil_reminder(size_v * sizeof(T), sizeof(all_aligned));
+            return ceil_quotient(size_v * sizeof(T), sizeof(all_aligned));
         }
     };
 
@@ -75,5 +75,5 @@ namespace stdsharp
 
     template<typename T, std::size_t Size>
     using static_allocator_for =
-        static_allocator<T, ceil_reminder(Size * sizeof(T), sizeof(all_aligned))>;
+        static_allocator<T, ceil_quotient(Size * sizeof(T), sizeof(all_aligned))>;
 }
