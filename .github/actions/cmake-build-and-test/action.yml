@@ -34,7 +34,7 @@ runs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 0ccb3d11406922bef1dcc29002f68f633a321f19
+        vcpkgGitCommitId: e8c2a04eb7ca058b6e2f0e6e33c67fdbffeee846
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
         doNotCache: false
 
