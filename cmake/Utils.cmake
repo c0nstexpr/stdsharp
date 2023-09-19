@@ -3,8 +3,16 @@ option(
   "Enable verbose output, allowing for a better understanding of each step taken."
   OFF)
 
-add_compile_options(
-  $<$<CXX_COMPILER_ID:MSVC>:/utf-8>$<$<CXX_COMPILER_ID:Clang>:-stdlib=libc++>)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_compile_options(-stdlib=libc++ -fdiagnostics-show-template-tree)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  add_compile_options(/utf-8 /diagnostics:caret)
+endif()
+
 add_link_options("SHELL: $<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld>")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
