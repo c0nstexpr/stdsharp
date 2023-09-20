@@ -6,14 +6,12 @@ option(
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_compile_options(-stdlib=libc++ -fdiagnostics-show-template-tree)
+  add_compile_options(-fdiagnostics-show-template-tree)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   add_compile_options(/utf-8 /diagnostics:caret)
 endif()
-
-add_link_options("SHELL: $<$<CXX_COMPILER_ID:Clang>:--ld-path=ld.lld>")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug mode.\n")
@@ -32,6 +30,13 @@ ProcessorCount(PROCESSOR_COUNT)
 function(verbose_message)
   if(VERBOSE_OUTPUT)
     message(STATUS ${ARGN})
+  endif()
+endfunction()
+
+function(target_clang_toolchain target lib_type)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(${target} ${lib_type} "-stdlib=libc++")
+    target_link_options(${target} ${lib_type} "--ld-path=ld.lld")
   endif()
 endfunction()
 

@@ -26,9 +26,7 @@ namespace stdsharp
         requires std::invocable<set_if_fn, T&, U, std::ranges::greater> // clang-format off
         (T & left, U && right)
         noexcept(nothrow_invocable<set_if_fn, T&, U, std::ranges::greater>) -> T& // clang-format on
-    {
-        return set_if(left, cpp_forward(right), greater_v);
-    };
+    { return set_if(left, cpp_forward(right), greater_v); };
 
     using set_if_greater_fn = decltype(set_if_greater);
 
@@ -36,9 +34,7 @@ namespace stdsharp
         requires std::invocable<set_if_fn, T&, U, std::ranges::less> // clang-format off
         (T& left, U&& right)
         noexcept(nothrow_invocable<set_if_fn, T&, U, std::ranges::less>) -> T& // clang-format on
-    {
-        return set_if(left, cpp_forward(right), less_v);
-    };
+    { return set_if(left, cpp_forward(right), less_v); };
 
     using set_if_less_fn = decltype(set_if_less);
 

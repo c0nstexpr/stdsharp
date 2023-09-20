@@ -56,7 +56,7 @@ namespace stdsharp
         {
             return
 #if __cpp_lib_invoke_r >= 202106L
-                std::invoke_r<ReturnT>(cpp_forward(args)...)
+                std::invoke_r<ReturnT>(cpp_forward(func), cpp_forward(args)...)
 #else
                 static_cast<ReturnT>(std::invoke(cpp_forward(func), cpp_forward(args)...))
 #endif

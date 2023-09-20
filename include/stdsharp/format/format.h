@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sstream>
+#include <ranges>
 #include <variant>
 #include <optional>
 #include <numeric>
@@ -114,8 +114,7 @@ namespace stdsharp
                 std::basic_string_view{begin, ctx.end()},
                 std::format(
                     "{}^ Unexpected character here",
-                    // TODO: c++23 std::ranges::views::repeat
-                    ::ranges::views::repeat_n(' ', begin - ctx.begin())
+                    std::views::repeat(' ', begin - ctx.begin())
                 )
             ) //
         };
