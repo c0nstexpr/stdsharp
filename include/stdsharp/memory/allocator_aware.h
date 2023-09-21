@@ -243,7 +243,7 @@ namespace stdsharp
             allocation& dst_allocation,
             allocator_type& src_alloc,
             allocation& src_allocation
-        ) noexcept(!is_debug)
+        ) noexcept(!is_debug) // NOLINT(*-noexcept-swap)
         {
             precondition<std::invalid_argument>( //
                 [&dst_alloc, &src_alloc]
@@ -559,7 +559,7 @@ namespace stdsharp
         {
         }
 
-        constexpr allocator_aware_ctor(this_t&& other) //
+        constexpr allocator_aware_ctor(this_t&& other) // NOLINTBEGIN(*-noexcept-move*)
             noexcept(nothrow_constructible_from<T, T, allocator_type>)
             requires std::constructible_from<T, T, allocator_type>
             : T(static_cast<T&&>(other), other.get_allocator())
@@ -569,11 +569,14 @@ namespace stdsharp
         constexpr this_t& operator=(const this_t& other) noexcept(nothrow_copy_assignable<T>)
             requires copy_assignable<T>
         {
+            if(&other == this) return *this;
+
             static_cast<T&>(*this) = other;
             return *this;
         }
 
-        constexpr this_t& operator=(this_t&& other) noexcept(nothrow_move_assignable<T>)
+        constexpr this_t& operator=(this_t&& other) //
+            noexcept(nothrow_move_assignable<T>) // NOLINTEND(*-noexcept-move*)
             requires move_assignable<T>
         {
             static_cast<T&>(*this) = cpp_move(other);

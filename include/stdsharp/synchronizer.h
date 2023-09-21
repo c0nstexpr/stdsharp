@@ -150,7 +150,7 @@ namespace stdsharp
         ~synchronizer() = default;
 
         template<typename OtherLockable>
-        constexpr void swap(synchronizer<T, OtherLockable>& other) //
+        constexpr void swap(synchronizer<T, OtherLockable>& other) // NOLINT(*-noexcept-swap)
             requires std::swappable_with<
                 value_type,
                 typename std::remove_reference_t<decltype(other)>::value_type // clang-format off

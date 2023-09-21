@@ -6,7 +6,6 @@
 #include <numeric>
 #include <format>
 
-#include <range/v3/view/repeat_n.hpp>
 #include <ctre.hpp>
 #include <unicode-db.hpp>
 
