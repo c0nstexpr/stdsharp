@@ -9,7 +9,7 @@ namespace stdsharp
     namespace details
     {
         template<allocation_obj_req Req, typename Alloc>
-        class allocation_dispatchers
+        class box_dispatchers
         {
             using traits = allocator_aware_traits<Alloc>;
             using alloc = traits::allocator_type;
@@ -28,16 +28,109 @@ namespace stdsharp
             using write_dispatcher =
                 implement_dispatcher<ExprReq, void, alloc&, allocation&, const bool, Args...>;
 
+            using mov_ctor_dispatcher = ctor_dispatcher<expr_req::no_exception, allocation&>;
+            using cp_ctor_dispatcher = ctor_dispatcher<cp_ctor_req, allocation_cref>;
+            using mov_assign_dispatcher = write_dispatcher<mov_assign_req, alloc&, allocation&>;
+            using cp_assign_dispatcher =
+                write_dispatcher<cp_assign_req, alloc_cref, allocation_cref>;
+            using destroy_dispatcher = write_dispatcher<expr_req::no_exception>;
+
             using dispatchers = stdsharp::indexed_values<
-                ctor_dispatcher<expr_req::no_exception, allocation&>,
-                ctor_dispatcher<cp_ctor_req, allocation_cref>,
-                write_dispatcher<mov_assign_req, alloc&, allocation&>,
-                write_dispatcher<cp_assign_req, alloc_cref, allocation_cref>,
-                write_dispatcher<expr_req::no_exception>,
-                write_dispatcher<expr_req::well_formed> // clang-format off
+                mov_ctor_dispatcher,
+                cp_ctor_dispatcher,
+                mov_assign_dispatcher,
+                cp_assign_dispatcher,
+                destroy_dispatcher // clang-format off
             >; // clang-format on
 
-            constexpr allocation_dispatchers(
+            template<typename T, typename TypedAllocation = traits::template typed_allocation<T>>
+                requires(Req <= TypedAllocation::obj_req)
+            struct typed_dispatcher
+            {
+                static constexpr struct
+                {
+                    constexpr auto operator()(alloc& alloc, allocation& other) const noexcept
+                    {
+                        TypedAllocation typed_allocation{other, true};
+                        const auto res = typed_allocation.mov_construct(alloc);
+
+                        other = typed_allocation.allocation();
+                        return res.allocation();
+                    }
+                } mov_construct{};
+
+                static constexpr struct : empty_t
+                {
+                    constexpr auto operator()(alloc& alloc, allocation_cref other) //
+                        const noexcept(cp_ctor_req == expr_req::no_exception) //
+                        requires(cp_ctor_req >= expr_req::well_formed)
+                    {
+                        return TypedAllocation{other, true}.cp_construct(alloc).allocation();
+                    }
+                } cp_construct{};
+
+                static constexpr struct : empty_t
+                {
+                    constexpr auto operator()(
+                        alloc& dst_alloc,
+                        allocation& dst_allocation,
+                        const bool has_value,
+                        alloc& src_alloc,
+                        allocation& src_allocation
+                    ) const noexcept(mov_assign_req == expr_req::no_exception) //
+                        requires(mov_assign_req >= expr_req::well_formed)
+                    {
+                        TypedAllocation dst{dst_allocation, has_value};
+                        TypedAllocation src{src_allocation, true};
+
+                        src.mov_assign(src_alloc, dst_alloc, dst, src_alloc);
+
+                        dst_allocation = dst.allocation();
+                        src_allocation = src.allocation();
+                    }
+                } mov_assign{};
+
+                static constexpr struct : empty_t
+                {
+                    constexpr auto operator()( //
+                        alloc& dst_alloc,
+                        allocation& dst_allocation,
+                        const bool has_value,
+                        alloc_cref src_alloc,
+                        allocation_cref src_allocation //
+                    ) const noexcept(cp_assign_req == expr_req::no_exception) //
+                        requires(cp_assign_req >= expr_req::well_formed)
+                    {
+                        TypedAllocation dst{dst_allocation, has_value};
+                        TypedAllocation src{src_allocation, true};
+
+                        src.cp_assign(src_alloc, dst_alloc, dst);
+                        dst_allocation = dst.allocation();
+                    }
+                } cp_assign{};
+
+                static constexpr struct
+                {
+                    constexpr auto
+                        operator()(alloc& alloc, allocation& allocation, const bool has_value)
+                            const noexcept
+                    {
+                        TypedAllocation src{allocation, has_value};
+                        src.destroy(alloc);
+                        allocation = src.allocation();
+                    }
+                } destroy{};
+
+                static constexpr dispatchers dispatchers{
+                    mov_construct,
+                    cp_construct,
+                    mov_assign,
+                    cp_assign,
+                    destroy
+                };
+            };
+
+            constexpr box_dispatchers(
                 const dispatchers& b,
                 const std::string_view current_type,
                 const std::size_t type_size
@@ -49,83 +142,19 @@ namespace stdsharp
         public:
             static constexpr auto req = Req;
 
-            allocation_dispatchers() = default;
+            box_dispatchers() = default;
 
-            template<
-                typename T,
-                typename AllocationFor = traits::template allocation_for<std::decay_t<T>>>
-                requires(Req <= AllocationFor::obj_req)
-            constexpr allocation_dispatchers(const std::type_identity<T>) noexcept:
-                allocation_dispatchers(
-                    dispatchers(
-                        [](alloc& alloc, allocation& other) noexcept
-                        {
-                            AllocationFor allocation_for{other, true};
-                            const auto res = traits::move_construct(alloc, allocation_for);
-                            other = allocation_for.allocation();
-                            return res.allocation();
-                        },
-                        [](alloc & alloc, allocation_cref other) //
-                        noexcept(cp_ctor_req == expr_req::no_exception) //
-                        requires(cp_ctor_req >= expr_req::well_formed) //
-                        {
-                            return traits::copy_construct(alloc, AllocationFor{other, true})
-                                .allocation();
-                        },
-                        []( //
-                            alloc & dst_alloc,
-                            allocation & dst_allocation,
-                            const bool has_value,
-                            alloc& src_alloc,
-                            allocation& src_allocation
-                        ) noexcept(mov_assign_req == expr_req::no_exception) //
-                        requires(mov_assign_req >= expr_req::well_formed) //
-                        {
-                            AllocationFor dst{dst_allocation, has_value};
-                            AllocationFor src{src_allocation, true};
-
-                            traits::move_assign(dst_alloc, dst, src_alloc, src);
-
-                            dst_allocation = dst.allocation();
-                            src_allocation = src.allocation();
-                        },
-                        []( //
-                            alloc & dst_alloc,
-                            allocation & dst_allocation,
-                            const bool has_value,
-                            alloc_cref src_alloc,
-                            allocation_cref src_allocation //
-                        ) noexcept(cp_assign_req == expr_req::no_exception) //
-                        requires(cp_assign_req >= expr_req::well_formed) //
-                        {
-                            AllocationFor dst{dst_allocation, has_value};
-                            traits::copy_assign(dst_alloc, dst, src_alloc, {src_allocation, true});
-                            dst_allocation = dst.allocation();
-                        },
-                        [](alloc& alloc, allocation& allocation, const bool has_value) noexcept
-                        {
-                            AllocationFor dst{allocation, has_value};
-                            traits::destroy(alloc, dst);
-                            allocation = dst.allocation();
-                        },
-                        [](alloc& alloc, allocation& allocation, const bool has_value) noexcept
-                        {
-                            AllocationFor dst{allocation, has_value};
-                            dst.shrink_to_fit(alloc);
-                            allocation = dst.allocation();
-                        }
-                    ),
-                    type_id<T>,
-                    sizeof(T)
-                )
+            template<typename T, typename TD = typed_dispatcher<std::decay_t<T>>>
+            constexpr box_dispatchers(const std::type_identity<T>) noexcept:
+                box_dispatchers(TD::dispatchers, type_id<T>, sizeof(T))
             {
             }
 
             template<allocation_obj_req OtherReq>
-            constexpr allocation_dispatchers( //
-                const allocation_dispatchers<OtherReq, Alloc>& other
+            constexpr box_dispatchers( //
+                const box_dispatchers<OtherReq, Alloc>& other
             ) noexcept:
-                allocation_dispatchers(other.dispatchers_, other.current_type_, other.type_size_)
+                box_dispatchers(other.dispatchers_, other.current_type_, other.type_size_)
             {
             }
 
@@ -184,12 +213,6 @@ namespace stdsharp
                 get<4>(dispatchers_)(alloc, allocation, has_value);
             }
 
-            constexpr void
-                shrink_to_fit(alloc& alloc, allocation& allocation, const bool has_value) const
-            {
-                get<5>(dispatchers_)(alloc, allocation, has_value); // NOLINT(*-magic-numbers)
-            }
-
             [[nodiscard]] constexpr auto type() const noexcept { return current_type_; }
 
             [[nodiscard]] constexpr auto size() const noexcept { return type_size_; }
@@ -205,7 +228,7 @@ namespace stdsharp
         };
 
         template<allocation_obj_req Req, typename Alloc>
-        class allocation_rsc : // NOLINT(*-special-member-functions)
+        class box_rsc : // NOLINT(*-special-member-functions)
             public allocator_aware_traits<Alloc>
         {
             using traits = allocator_aware_traits<Alloc>;
@@ -218,7 +241,7 @@ namespace stdsharp
             using typename traits::allocator_type;
 
         protected:
-            using dispatchers_t = allocation_dispatchers<Req, Alloc>;
+            using dispatchers_t = box_dispatchers<Req, Alloc>;
 
         private:
             using compressed_t = stdsharp::indexed_values<dispatchers_t, allocator_type>;
@@ -227,12 +250,9 @@ namespace stdsharp
             allocation allocation_{};
 
         public:
-            allocation_rsc() = default;
+            box_rsc() = default;
 
-            constexpr allocation_rsc(const allocator_type& alloc):
-                compressed_(dispatchers_t{}, alloc)
-            {
-            }
+            constexpr box_rsc(const allocator_type& alloc): compressed_(dispatchers_t{}, alloc) {}
 
             template<
                 typename... Args,
@@ -241,24 +261,21 @@ namespace stdsharp
                 typename Identity = std::type_identity<ValueType> // clang-format off
             > // clang-format on
                 requires std::constructible_from<compressed_t, Identity, const allocator_type&> &&
-                             std::invocable<make_allocation_by_obj_fn<T>, allocator_type&, Args...>
-            constexpr allocation_rsc(
+                             std::invocable<make_typed_allocation_fn<T>, allocator_type&, Args...>
+            constexpr box_rsc(
                 const std::allocator_arg_t,
                 const allocator_type& alloc,
                 const std::in_place_type_t<T>,
                 Args&&... args
             ):
                 compressed_(Identity{}, alloc),
-                allocation_(make_allocation_by_obj<T>(get_allocator(), cpp_forward(args)...))
+                allocation_(make_typed_allocation<T>(get_allocator(), cpp_forward(args)...))
             {
             }
 
             template<allocation_obj_req OtherReq>
                 requires((OtherReq >= Req) && (Req.copy_construct >= expr_req::well_formed))
-            constexpr allocation_rsc(
-                const allocation_rsc<OtherReq, Alloc>& other,
-                const allocator_type& alloc
-            ):
+            constexpr box_rsc(const box_rsc<OtherReq, Alloc>& other, const allocator_type& alloc):
                 compressed_(other.get_dispatchers(), alloc),
                 allocation_(
                     get_dispatchers() ?
@@ -270,8 +287,8 @@ namespace stdsharp
 
             template<allocation_obj_req OtherReq>
                 requires(OtherReq >= Req)
-            constexpr allocation_rsc(
-                allocation_rsc<OtherReq, Alloc>&& other,
+            constexpr box_rsc(
+                box_rsc<OtherReq, Alloc>&& other,
                 const allocator_type& alloc
             ) noexcept:
                 compressed_(other.get_dispatchers(), alloc),
@@ -316,28 +333,28 @@ namespace stdsharp
         public:
             template<allocation_obj_req OtherReq>
                 requires((OtherReq >= Req) && (Req.copy_assign >= expr_req::well_formed))
-            constexpr allocation_rsc& operator=( //
-                const allocation_rsc<OtherReq, Alloc>& other
+            constexpr box_rsc& operator=( //
+                const box_rsc<OtherReq, Alloc>& other
             ) noexcept(Req.copy_assign >= expr_req::no_exception)
             {
                 return assign_impl(other);
             }
 
-            allocation_rsc& operator=(allocation_rsc&)
+            box_rsc& operator=(box_rsc&)
                 requires false;
 
             template<allocation_obj_req OtherReq>
                 requires((OtherReq >= Req) && (Req.move_assign >= expr_req::well_formed))
-            constexpr allocation_rsc& operator=(allocation_rsc<OtherReq, Alloc>&& other) //
+            constexpr box_rsc& operator=(box_rsc<OtherReq, Alloc>&& other) //
                 noexcept(traits::propagate_on_move_v || traits::always_equal_v)
             {
                 return assign_impl(other);
             }
 
-            allocation_rsc& operator=(allocation_rsc&&) // NOLINT
+            box_rsc& operator=(box_rsc&&) // NOLINT
                 requires false;
 
-            constexpr ~allocation_rsc()
+            constexpr ~box_rsc()
             {
                 destroy();
                 get_allocation().deallocate(get_allocator());
@@ -345,7 +362,7 @@ namespace stdsharp
 
             template<allocation_obj_req OtherReq>
                 requires(OtherReq >= Req)
-            constexpr void swap(allocation_rsc<OtherReq, Alloc>& other) noexcept
+            constexpr void swap(box_rsc<OtherReq, Alloc>& other) noexcept
             {
                 auto& other_dispatchers = other.get_dispatchers();
 
@@ -379,16 +396,6 @@ namespace stdsharp
                 dispatchers = {};
             }
 
-            constexpr void shrink_to_fit()
-            {
-                const auto& dispatchers = get_dispatchers();
-                auto& alloc = get_allocator();
-                auto& allocation = get_allocation();
-
-                if(dispatchers.has_value()) dispatchers.shrink_to_fit(alloc, allocation, true);
-                else allocation.deallocate(alloc);
-            }
-
         protected:
             [[nodiscard]] constexpr auto& get_dispatchers() noexcept
             {
@@ -413,14 +420,14 @@ namespace stdsharp
         template<
             allocation_obj_req Req,
             allocator_req Alloc,
-            typename Base = allocator_aware_ctor<allocation_rsc<Req, Alloc>>>
-        class obj_allocation : public Base
+            typename Base = allocator_aware_ctor<box_rsc<Req, Alloc>>>
+        class box : public Base
         {
             using typename Base::dispatchers_t;
 
             using Base::get_allocation;
             using Base::get_dispatchers;
-            using this_t = obj_allocation;
+            using this_t = box;
 
         public:
             template<typename T, typename... Args>
@@ -510,15 +517,18 @@ namespace stdsharp
         };
     }
 
+    template<allocation_obj_req Req, allocator_req Alloc>
+    using box = details::box<Req, Alloc>;
+
     template<typename T, allocator_req Alloc>
-    using obj_allocation_for = details::obj_allocation<allocation_value_type_req<Alloc, T>, Alloc>;
+    using box_for = box<allocation_value_type_req<Alloc, T>, Alloc>;
 
     template<allocator_req Alloc>
-    using trivial_obj_allocation = obj_allocation_for<trivial_object, Alloc>;
+    using trivial_box = box_for<trivial_object, Alloc>;
 
     template<allocator_req Alloc>
-    using normal_obj_allocation = obj_allocation_for<normal_object, Alloc>;
+    using normal_box = box_for<normal_object, Alloc>;
 
     template<allocator_req Alloc>
-    using unique_obj_allocation = obj_allocation_for<unique_object, Alloc>;
+    using unique_box = box_for<unique_object, Alloc>;
 }

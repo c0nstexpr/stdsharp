@@ -1,4 +1,4 @@
 #pragma once
 
-#include "small_object_optimization.h"
+#include "soo.h"
 #include "allocator_reference.h"

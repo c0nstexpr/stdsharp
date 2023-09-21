@@ -15,10 +15,10 @@ namespace stdsharp
     using allocation = allocator_aware_traits<Alloc>::allocation;
 
     template<allocator_req Alloc, typename ValueType = Alloc::value_type>
-    using allocation_for = allocator_aware_traits<Alloc>::template allocation_for<ValueType>;
+    using typed_allocation = allocator_aware_traits<Alloc>::template typed_allocation<ValueType>;
 
     template<allocator_req Alloc, typename ValueType = Alloc::value_type>
-    static constexpr auto allocation_value_type_req = allocation_for<Alloc, ValueType>::obj_req;
+    static constexpr auto allocation_value_type_req = typed_allocation<Alloc, ValueType>::obj_req;
 
     namespace details
     {
@@ -73,10 +73,10 @@ namespace stdsharp
     }
 
     template<typename T>
-    struct make_allocation_by_obj_fn
+    struct make_typed_allocation_fn
     {
         template<allocator_req allocator_type, typename... Args>
-        [[nodiscard]] constexpr allocation_for<allocator_type, T>
+        [[nodiscard]] constexpr typed_allocation<allocator_type, T>
             operator()(allocator_type& alloc, Args&&... args)
         {
             using traits = allocator_traits<allocator_type>;
@@ -88,7 +88,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    inline constexpr make_allocation_by_obj_fn<T> make_allocation_by_obj{};
+    inline constexpr make_typed_allocation_fn<T> make_typed_allocation{};
 
     template<allocator_req Alloc>
     struct allocator_aware_traits : allocator_traits<Alloc>
@@ -111,152 +111,7 @@ namespace stdsharp
         class allocation;
 
         template<typename ValueType = value_type>
-        class allocation_for;
-
-        template<typename ValueType>
-        [[nodiscard]] static constexpr allocation_for<ValueType>
-            copy_construct(allocator_type& alloc, const allocation_for<ValueType>& other)
-            requires(allocation_for<ValueType>::copy_constructible_req >= expr_req::well_formed)
-        {
-            allocation_for<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));
-            allocation.construct(alloc, other.get_const());
-            return allocation;
-        }
-
-        template<typename ValueType>
-        [[nodiscard]] static constexpr allocation_for<ValueType>
-            move_construct(allocator_type&, allocation_for<ValueType>& other) noexcept
-        {
-            return std::exchange(other, {});
-        }
-
-        template<typename ValueType>
-        static constexpr void
-            destroy(allocator_type& alloc, allocation_for<ValueType>& allocation) noexcept
-        {
-            allocation.destroy(alloc);
-        }
-
-    private:
-        template<typename ValueType>
-        static constexpr void assign_impl(
-            allocator_type& dst_alloc,
-            allocation_for<ValueType>& dst_allocation,
-            auto&& value
-        )
-        {
-            if(dst_allocation.has_value()) dst_allocation.get() = cpp_forward(value);
-            else dst_allocation.construct(dst_alloc, cpp_forward(value));
-        }
-
-        template<bool Propagate, typename ValueType>
-        static constexpr void assign_on_no_value(
-            allocator_type& dst_alloc,
-            allocation_for<ValueType>& dst_allocation,
-            auto&& src_alloc
-        )
-        {
-            if constexpr(Propagate)
-            {
-                [&]
-                {
-                    if constexpr(!always_equal_v)
-                        if(dst_alloc != src_alloc)
-                        {
-                            dst_allocation.deallocate(dst_alloc);
-                            return;
-                        }
-
-                    dst_allocation.destroy(dst_alloc);
-                }();
-
-                dst_alloc = src_alloc;
-            }
-            else dst_allocation.destroy(dst_alloc);
-        }
-
-    public:
-        template<typename ValueType>
-            requires(allocation_for<ValueType>::copy_assignable_req >= expr_req::well_formed)
-        static constexpr void copy_assign(
-            allocator_type& dst_alloc,
-            allocation_for<ValueType>& dst_allocation,
-            const allocator_type& src_alloc,
-            const allocation_for<ValueType>& src_allocation
-        ) noexcept(allocation_for<ValueType>::copy_assignable_req >= expr_req::no_exception)
-        {
-            if(!src_allocation.has_value())
-            {
-                assign_on_no_value<propagate_on_copy_v>(dst_alloc, dst_allocation, src_alloc);
-                return;
-            }
-
-            const auto& assign_fn = [&]
-            {
-                assign_impl(dst_alloc, dst_allocation, src_allocation.get_const()); //
-            };
-
-            if constexpr(propagate_on_copy_v && !always_equal_v)
-                if(dst_alloc != src_alloc)
-                {
-                    dst_allocation.deallocate(dst_alloc);
-                    dst_alloc = src_alloc;
-                    dst_allocation.allocate(dst_alloc);
-                    assign_fn();
-
-                    return;
-                }
-
-            if constexpr(propagate_on_copy_v) dst_alloc = src_alloc;
-            assign_fn();
-        }
-
-        template<typename ValueType>
-            requires(allocation_for<ValueType>::move_assignable_req >= expr_req::well_formed)
-        static constexpr void move_assign(
-            allocator_type& dst_alloc,
-            allocation_for<ValueType>& dst_allocation,
-            allocator_type& src_alloc,
-            allocation_for<ValueType>& src_allocation
-        ) noexcept(allocation_for<ValueType>::move_assignable_req >= expr_req::no_exception)
-        {
-            if(!src_allocation.has_value())
-            {
-                assign_on_no_value<propagate_on_move_v>(dst_alloc, dst_allocation, src_alloc);
-                return;
-            }
-
-            if constexpr(!always_equal_v && !propagate_on_move_v)
-                if(dst_alloc != src_alloc)
-                {
-                    assign_impl(dst_alloc, dst_allocation, cpp_move(src_allocation.get()));
-                    return;
-                }
-
-            dst_allocation.deallocate(dst_alloc);
-            if constexpr(propagate_on_move_v) dst_alloc = cpp_move(src_alloc);
-            dst_allocation = std::exchange(src_allocation, {});
-        }
-
-        static constexpr void swap(
-            allocator_type& dst_alloc,
-            allocation& dst_allocation,
-            allocator_type& src_alloc,
-            allocation& src_allocation
-        ) noexcept(!is_debug) // NOLINT(*-noexcept-swap)
-        {
-            precondition<std::invalid_argument>( //
-                [&dst_alloc, &src_alloc]
-                {
-                    if constexpr(!always_equal_v)
-                        if(dst_alloc != src_alloc) return false;
-
-                    return true;
-                }
-            );
-            std::swap(dst_allocation, src_allocation);
-            if constexpr(propagate_on_swap_v) std::ranges::swap(dst_alloc, src_alloc);
-        }
+        class typed_allocation;
     };
 
     template<allocator_req Allocator>
@@ -304,6 +159,25 @@ namespace stdsharp
         {
             traits::deallocate(alloc, ptr_, size_);
             *this = {};
+        }
+
+        constexpr void swap(
+            allocator_type& src_alloc,
+            allocator_type& dst_alloc,
+            allocation& dst_allocation
+        ) noexcept(!is_debug) // NOLINT(*-noexcept-swap)
+        {
+            precondition<std::invalid_argument>( //
+                [&dst_alloc, &src_alloc]
+                {
+                    if constexpr(!always_equal_v)
+                        if(dst_alloc != src_alloc) return false;
+
+                    return true;
+                }
+            );
+            std::swap(dst_allocation, *this);
+            if constexpr(propagate_on_swap_v) std::ranges::swap(dst_alloc, src_alloc);
         }
     };
 
@@ -392,22 +266,22 @@ namespace stdsharp
 
     template<allocator_req Allocator>
     template<typename ValueType>
-    class [[nodiscard]] allocator_aware_traits<Allocator>::allocation_for
+    class [[nodiscard]] allocator_aware_traits<Allocator>::typed_allocation
     {
     public:
         using value_type = ValueType;
 
-        static constexpr auto copy_constructible_req = std::min(
+        static constexpr auto cp_construct_req = std::min(
             traits::template construct_req<value_type, const value_type&>,
             expr_req::well_formed
         );
 
-        static constexpr auto copy_assignable_req = std::min(
+        static constexpr auto cp_assign_req = std::min(
             traits::template construct_req<value_type, const value_type&>,
             get_expr_req(copy_assignable<value_type>, !propagate_on_copy_v || always_equal_v)
         );
 
-        static constexpr auto move_assignable_req = propagate_on_move_v || always_equal_v ?
+        static constexpr auto mov_assign_req = propagate_on_move_v || always_equal_v ?
             expr_req::no_exception :
             std::min(
                 traits::template construct_req<value_type, value_type>,
@@ -415,9 +289,9 @@ namespace stdsharp
             );
 
         static constexpr allocation_obj_req obj_req{
-            copy_constructible_req,
-            move_assignable_req,
-            copy_assignable_req //
+            cp_construct_req,
+            mov_assign_req,
+            cp_assign_req //
         };
 
     private:
@@ -425,9 +299,9 @@ namespace stdsharp
         bool has_value_ = false;
 
     public:
-        allocation_for() = default;
+        typed_allocation() = default;
 
-        constexpr allocation_for(const allocation& allocation, const bool has_value = false) //
+        constexpr typed_allocation(const allocation& allocation, const bool has_value = false) //
             noexcept(!is_debug):
             allocation_(allocation), has_value_(has_value)
         {
@@ -510,6 +384,128 @@ namespace stdsharp
         }
 
         [[nodiscard]] constexpr auto& allocation() const noexcept { return allocation_; }
+
+        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc)
+            requires(cp_construct_req >= expr_req::well_formed)
+        {
+            typed_allocation<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));
+            allocation.construct(alloc, get_const());
+            return allocation;
+        }
+
+        [[nodiscard]] constexpr auto mov_construct(allocator_type&) noexcept
+        {
+            return std::exchange(*this, {});
+        }
+
+
+    private:
+        constexpr void assign_impl(
+            allocator_type& dst_alloc,
+            typed_allocation<ValueType>& dst_allocation,
+            auto&& value
+        )
+        {
+            if(dst_allocation.has_value()) dst_allocation.get() = cpp_forward(value);
+            else dst_allocation.construct(dst_alloc, cpp_forward(value));
+        }
+
+        template<bool Propagate>
+        constexpr void assign_on_no_value(
+            allocator_type& dst_alloc,
+            typed_allocation<ValueType>& dst_allocation,
+            auto&& src_alloc
+        )
+        {
+            if constexpr(Propagate)
+            {
+                [&]
+                {
+                    if constexpr(!always_equal_v)
+                        if(dst_alloc != src_alloc)
+                        {
+                            dst_allocation.deallocate(dst_alloc);
+                            return;
+                        }
+
+                    dst_allocation.destroy(dst_alloc);
+                }();
+
+                dst_alloc = src_alloc;
+            }
+            else dst_allocation.destroy(dst_alloc);
+        }
+
+    public:
+        constexpr void cp_assign(
+            const allocator_type& src_alloc,
+            allocator_type& dst_alloc,
+            typed_allocation& dst_allocation
+        ) noexcept(cp_assign_req >= expr_req::no_exception)
+            requires(cp_assign_req >= expr_req::well_formed)
+        {
+            if(!has_value())
+            {
+                assign_on_no_value<propagate_on_copy_v>(dst_alloc, dst_allocation, src_alloc);
+                return;
+            }
+
+            const auto& assign_fn = [&]
+            {
+                assign_impl(dst_alloc, dst_allocation, get_const()); //
+            };
+
+            if constexpr(propagate_on_copy_v && !always_equal_v)
+                if(dst_alloc != src_alloc)
+                {
+                    dst_allocation.deallocate(dst_alloc);
+                    dst_alloc = src_alloc;
+                    dst_allocation.allocate(dst_alloc);
+                    assign_fn();
+
+                    return;
+                }
+
+            if constexpr(propagate_on_copy_v) dst_alloc = src_alloc;
+            assign_fn();
+        }
+
+        constexpr void mov_assign(
+            allocator_type& src_alloc,
+            allocator_type& dst_alloc,
+            typed_allocation& dst_allocation
+        ) noexcept(mov_assign_req >= expr_req::no_exception)
+            requires(mov_assign_req >= expr_req::well_formed)
+        {
+            if(!has_value())
+            {
+                assign_on_no_value<propagate_on_move_v>(dst_alloc, dst_allocation, src_alloc);
+                return;
+            }
+
+            if constexpr(!always_equal_v && !propagate_on_move_v)
+                if(dst_alloc != src_alloc)
+                {
+                    assign_impl(dst_alloc, dst_allocation, cpp_move(get()));
+                    return;
+                }
+
+            dst_allocation.deallocate(dst_alloc);
+            if constexpr(propagate_on_move_v) dst_alloc = cpp_move(src_alloc);
+            dst_allocation = std::exchange(*this, {});
+        }
+
+        constexpr void swap(
+            allocator_type& src_alloc,
+            allocator_type& dst_alloc,
+            typed_allocation& dst_allocation
+        ) noexcept( // NOLINTNEXTLINE(*-noexcept-swap)
+            noexcept(allocation_.swap(src_alloc, dst_alloc, dst_allocation))
+        )
+        {
+            std::swap(has_value_, dst_allocation.has_value_);
+            allocation_.swap(src_alloc, dst_alloc, dst_allocation);
+        }
     };
 
     template<typename T>

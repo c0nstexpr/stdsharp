@@ -1,15 +1,15 @@
-#include "stdsharp/memory/small_object_optimization.h"
+#include "stdsharp/memory/soo.h"
 #include "test_worst_type.h"
 
 SCENARIO("soo allocation basic requirements", "[memory][small object optimization]") // NOLINT
 {
-    using normal_t = normal_soo_allocation<>;
-    using unique_t = unique_soo_allocation<>;
-    using worst_t = soo_allocation_for<test_worst_type>;
+    using normal_t = normal_soo_box<>;
+    using unique_t = unique_soo_box<>;
+    using worst_t = soo_box_for<test_worst_type>;
 
     STATIC_REQUIRE(::std::constructible_from<
-                   trivial_soo_allocation<>,
-                   trivial_soo_allocation<>::allocator_type>);
+                   trivial_soo_box<>,
+                   trivial_soo_box<>::allocator_type>);
     STATIC_REQUIRE(::std::constructible_from<normal_t, normal_t::allocator_type>);
     STATIC_REQUIRE(::std::constructible_from<unique_t, normal_t::allocator_type>);
     STATIC_REQUIRE(::std::constructible_from<worst_t, normal_t::allocator_type>);
@@ -19,5 +19,5 @@ SCENARIO("soo allocation basic requirements", "[memory][small object optimizatio
 
 SCENARIO("use soo allocation store value", "[memory][small object optimization]") // NOLINT
 {
-    allocation_functionality_test<normal_soo_allocation<>>();
+    allocation_functionality_test<normal_soo_box<>>();
 }

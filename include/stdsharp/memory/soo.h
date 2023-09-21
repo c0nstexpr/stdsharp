@@ -1,6 +1,6 @@
 #include "composed_allocator.h"
 #include "static_allocator.h"
-#include "object_allocation.h"
+#include "box.h"
 
 namespace stdsharp
 {
@@ -62,14 +62,14 @@ namespace stdsharp
         typename T,
         std::size_t Size = 1,
         details::soo_alloc Allocator = std::allocator<all_aligned>>
-    using soo_allocation_for = obj_allocation_for<T, soo_allocator<Size, Allocator>>;
+    using soo_box_for = box_for<T, soo_allocator<Size, Allocator>>;
 
     template<std::size_t Size = 1, details::soo_alloc Allocator = std::allocator<all_aligned>>
-    using trivial_soo_allocation = trivial_obj_allocation<soo_allocator<Size, Allocator>>;
+    using trivial_soo_box = trivial_box<soo_allocator<Size, Allocator>>;
 
     template<std::size_t Size = 1, details::soo_alloc Allocator = std::allocator<all_aligned>>
-    using normal_soo_allocation = normal_obj_allocation<soo_allocator<Size, Allocator>>;
+    using normal_soo_box = normal_box<soo_allocator<Size, Allocator>>;
 
     template<std::size_t Size = 1, details::soo_alloc Allocator = std::allocator<all_aligned>>
-    using unique_soo_allocation = unique_obj_allocation<soo_allocator<Size, Allocator>>;
+    using unique_soo_box = unique_box<soo_allocator<Size, Allocator>>;
 }
