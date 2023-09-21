@@ -37,7 +37,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
             const auto p1 = allocator.allocate(1);
 
             {
-                const base* base_ptr = p1;
+                const base* const base_ptr = p1;
                 constexpr int v = 42;
 
                 std::ranges::construct_at(p1, v);
@@ -51,7 +51,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
                 {
                     constexpr int v2 = 42;
-                    const base* base_ptr = p2;
+                    const base* const base_ptr = p2;
 
                     std::ranges::construct_at(p2, v2);
 
@@ -78,7 +78,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
                 std::ranges::construct_at(d_ptr, d);
 
-                const base* base_ptr = d_ptr;
+                const base* const base_ptr = d_ptr;
 
                 REQUIRE(base_ptr->foo() == d.foo());
 
@@ -92,7 +92,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
                 constexpr derived d3{65};
 
                 const auto ptr = allocator.allocate(1);
-                const base* base3_ptr = ptr;
+                const base* const base3_ptr = ptr;
 
                 std::ranges::construct_at(ptr, d3);
 

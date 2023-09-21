@@ -1,8 +1,42 @@
 ---
 Checks: # enabled
-  - 'boost-*,bugprone-*,cert-*,concurrency-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*,clang-analyzer-*,'
-  # disabled
-  - '-*-logical-op-parentheses,-*-dangling-else,-*-use-trailing-return-type,-*-named-parameter,-*-braces-around-statements,-*-misleading-indentation,-*-macro-usage,-*-non-private-member-variables-in-classes,-*-macro-parentheses,-*-forwarding-reference-overload,-*-pro-type-union-access,-*-identifier-length,-*-explicit-conversions,-*-c-copy-assignment-signature,-*-unconventional-assign-operator,-*-uppercase-literal-suffix,-*-qualified-auto,-*-pro-bounds-constant-array-index,-*-exception-escape,-*-const-or-ref-data-members,-cert-dcl21-cpp,-*-missing-std-forward,-*-rvalue-reference-param-not-moved,-*-include-cleaner,'
+  - 'bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  hicpp-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,'
+  # disabled useless checks
+  - '-*-logical-op-parentheses,
+  -*-dangling-else,
+  -*-use-trailing-return-type,
+  -*-named-parameter,
+  -*-braces-around-statements,
+  -*-misleading-indentation,
+  -*-macro-usage,
+  -*-non-private-member-variables-in-classes,
+  -*-macro-parentheses,
+  -*-forwarding-reference-overload,
+  -*-pro-type-union-access,
+  -*-identifier-length,
+  -*-explicit-conversions,
+  -*-c-copy-assignment-signature,
+  -*-unconventional-assign-operator,
+  -*-uppercase-literal-suffix,
+  -*-qualified-auto,
+  -*-pro-bounds-constant-array-index,
+  -*-exception-escape,
+  -*-const-or-ref-data-members,
+  -cert-dcl21-cpp,
+  -*-missing-std-forward,
+  -*-rvalue-reference-param-not-moved,
+  -*-include-cleaner,
+  -*-reserved-identifier'
   # disabled alias
   - '-bugprone-narrowing-conversions,
   -cert-con36-c,
@@ -167,3 +201,7 @@ Checks: # enabled
 WarningsAsErrors: '*'
 FormatStyle: 'file'
 HeaderFilterRegex: '(include/)|(src/)'
+CheckOptions:
+  misc-const-correctness.WarnPointersAsValues : true
+  misc-const-correctness.TransformValues : false
+  misc-const-correctness.TransformReferences  : false
