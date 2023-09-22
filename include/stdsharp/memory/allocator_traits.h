@@ -249,15 +249,13 @@ namespace stdsharp
             }
         }; // NOLINTEND(*-owning-memory)
 
+
+        using m_base = std::allocator_traits<Alloc>;
     public:
         using constructor =
             sequenced_invocables<custom_constructor, using_alloc_ctor, default_constructor>;
 
         static constexpr constructor construct{};
-
-        template<typename T, typename... Args>
-        static constexpr auto construct_req =
-            get_expr_req(std::invocable<constructor, Alloc&, T*, Args...>, nothrow_invocable<constructor, Alloc&, T*, Args...>);
 
     private:
         struct custom_destructor
@@ -284,15 +282,24 @@ namespace stdsharp
 
         static constexpr destructor destroy{};
 
-    private:
-        using base = std::allocator_traits<Alloc>;
-
         template<typename T, typename... Args>
         static constexpr auto constructible_from = std::invocable<constructor, Alloc&, T*, Args...>;
+
+        template<typename T>
+        static constexpr auto cp_constructible = constructible_from<T, const T&>;
+
+        template<typename T>
+        static constexpr auto mov_constructible = constructible_from<T, T>;
 
         template<typename T, typename... Args>
         static constexpr auto nothrow_constructible_from =
             nothrow_invocable<constructor, Alloc&, T*, Args...>;
+
+        template<typename T>
+        static constexpr auto nothrow_cp_constructible = nothrow_constructible_from<T, const T&>;
+
+        template<typename T>
+        static constexpr auto nothrow_mov_constructible = nothrow_constructible_from<T, T>;
 
         template<typename T>
         static constexpr auto destructible = std::invocable<destructor, Alloc&, T*>;
@@ -300,19 +307,18 @@ namespace stdsharp
         template<typename T>
         static constexpr auto nothrow_destructible = nothrow_invocable<destructor, Alloc&, T*>;
 
-    public:
-        using typename base::allocator_type;
-        using typename base::const_pointer;
-        using typename base::const_void_pointer;
-        using typename base::difference_type;
-        using typename base::is_always_equal;
-        using typename base::pointer;
-        using typename base::propagate_on_container_copy_assignment;
-        using typename base::propagate_on_container_move_assignment;
-        using typename base::propagate_on_container_swap;
-        using typename base::size_type;
-        using typename base::value_type;
-        using typename base::void_pointer;
+        using typename m_base::allocator_type;
+        using typename m_base::const_pointer;
+        using typename m_base::const_void_pointer;
+        using typename m_base::difference_type;
+        using typename m_base::is_always_equal;
+        using typename m_base::pointer;
+        using typename m_base::propagate_on_container_copy_assignment;
+        using typename m_base::propagate_on_container_move_assignment;
+        using typename m_base::propagate_on_container_swap;
+        using typename m_base::size_type;
+        using typename m_base::value_type;
+        using typename m_base::void_pointer;
 
         static constexpr auto propagate_on_copy_v = propagate_on_container_copy_assignment::value;
 
@@ -323,13 +329,13 @@ namespace stdsharp
         static constexpr auto always_equal_v = is_always_equal::value;
 
         template<typename U>
-        using rebind_alloc = base::template rebind_alloc<U>;
+        using rebind_alloc = m_base::template rebind_alloc<U>;
 
         template<typename U>
-        using rebind_traits = base::template rebind_traits<U>;
+        using rebind_traits = m_base::template rebind_traits<U>;
 
-        using base::max_size;
-        using base::select_on_container_copy_construction;
+        using m_base::max_size;
+        using m_base::select_on_container_copy_construction;
 
         static constexpr pointer allocate(
             allocator_type& alloc,
@@ -337,14 +343,14 @@ namespace stdsharp
             const const_void_pointer hint = nullptr
         )
         {
-            return hint == nullptr ? base::allocate(alloc, count) :
-                                     base::allocate(alloc, count, hint);
+            return hint == nullptr ? m_base::allocate(alloc, count) :
+                                     m_base::allocate(alloc, count, hint);
         }
 
         static constexpr void
             deallocate(allocator_type& alloc, pointer ptr, const size_type count) noexcept
         {
-            base::deallocate(alloc, ptr, count);
+            m_base::deallocate(alloc, ptr, count);
         }
 
         static constexpr pointer try_allocate(
@@ -393,30 +399,6 @@ namespace stdsharp
         {
             return std::allocate_at_least(alloc, count);
         }
-
-        template<typename T>
-        static constexpr special_mem_req mem_req_for{
-            constructible_from<T, T> ?
-                nothrow_constructible_from<T, T> ? expr_req::no_exception : expr_req::well_formed :
-                expr_req::ill_formed,
-            constructible_from<T, const T&> ? //
-                nothrow_constructible_from<T, const T&> ? //
-                    expr_req::no_exception :
-                    expr_req::well_formed :
-                expr_req::ill_formed,
-            move_assignable<T> ?
-                nothrow_move_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
-                expr_req::ill_formed,
-            copy_assignable<T> ?
-                nothrow_copy_assignable<T> ? expr_req::no_exception : expr_req::well_formed :
-                expr_req::ill_formed,
-            destructible<T> ?
-                nothrow_destructible<T> ? expr_req::no_exception : expr_req::well_formed :
-                expr_req::ill_formed,
-            std::swappable<T> ?
-                nothrow_swappable<T> ? expr_req::no_exception : expr_req::well_formed :
-                expr_req::ill_formed //
-        };
     };
 
     template<allocator_req Alloc>

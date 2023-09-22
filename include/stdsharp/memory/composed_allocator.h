@@ -163,15 +163,13 @@ namespace stdsharp
             return result;
         }
 
-        template<
-            typename T,
-            typename... Args,
-            auto Req = std::
-                min(first_traits::template construct_req<T, Args...>,
-                    second_traits::template construct_req<T, Args...>)>
-            requires(Req >= expr_req::well_formed)
+        template<typename T, typename... Args>
+            requires(first_traits::template constructible_from<T, Args...> && second_traits::template constructible_from<T, Args...>)
         constexpr void construct(T* const ptr, Args&&... args) //
-            noexcept(Req >= expr_req::no_exception)
+            noexcept(
+                first_traits::template nothrow_constructible_from<T, Args...> &&
+                second_traits::template nothrow_constructible_from<T, Args...> //
+            )
         {
             auto& [first, second] = alloc_pair_;
             if(first.contains(first_cvp_traits::to_pointer(to_void_pointer(ptr))))

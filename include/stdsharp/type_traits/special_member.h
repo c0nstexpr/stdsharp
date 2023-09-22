@@ -4,7 +4,7 @@
 
 namespace stdsharp
 {
-    struct special_mem_req
+    struct [[nodiscard]] special_mem_req
     {
         expr_req move_construct = expr_req::no_exception;
         expr_req copy_construct = expr_req::no_exception;

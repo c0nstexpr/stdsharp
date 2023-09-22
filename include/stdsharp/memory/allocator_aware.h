@@ -1,10 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <span>
 
 #include "allocator_traits.h"
 #include "pointer_traits.h"
 #include "../cassert/cassert.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -18,7 +20,8 @@ namespace stdsharp
     using typed_allocation = allocator_aware_traits<Alloc>::template typed_allocation<ValueType>;
 
     template<allocator_req Alloc, typename ValueType = Alloc::value_type>
-    static constexpr auto allocation_value_type_req = typed_allocation<Alloc, ValueType>::obj_req;
+    static constexpr auto allocation_constraints =
+        typed_allocation<Alloc, ValueType>::operation_constraints;
 
     namespace details
     {
@@ -181,89 +184,6 @@ namespace stdsharp
         }
     };
 
-    struct allocation_obj_req
-    {
-        static constexpr auto move_construct = expr_req::no_exception;
-        static constexpr auto swap = expr_req::no_exception;
-        static constexpr auto destruct = expr_req::no_exception;
-
-        expr_req copy_construct = expr_req::no_exception;
-        expr_req move_assign = expr_req::no_exception;
-        expr_req copy_assign = expr_req::no_exception;
-
-    private:
-        [[nodiscard]] constexpr auto to_array() const noexcept
-        {
-            return std::array{copy_construct, move_assign, copy_assign};
-        }
-
-        [[nodiscard]] friend constexpr bool
-            operator<(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
-        {
-            bool has_less = false;
-            const auto cmp = std::ranges::equal(
-                left.to_array(),
-                right.to_array(),
-                [&has_less](const expr_req left, const expr_req right)
-                {
-                    if(left < right)
-                    {
-                        has_less = true;
-                        return true;
-                    }
-
-                    return left == right;
-                }
-            );
-
-            return has_less && cmp;
-        }
-
-        [[nodiscard]] friend constexpr bool
-            operator>(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
-        {
-            bool has_greater = false;
-            const auto cmp = std::ranges::equal(
-                left.to_array(),
-                right.to_array(),
-                [&has_greater](const expr_req left, const expr_req right)
-                {
-                    if(left > right)
-                    {
-                        has_greater = true;
-                        return true;
-                    }
-
-                    return left == right;
-                }
-            );
-
-            return has_greater && cmp;
-        }
-
-        [[nodiscard]] friend constexpr bool
-            operator<=(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
-        {
-            return std::ranges::equal(left.to_array(), right.to_array(), std::ranges::less_equal{});
-        }
-
-        [[nodiscard]] friend constexpr bool
-            operator>=(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
-        {
-            return std::ranges::equal(
-                left.to_array(),
-                right.to_array(),
-                std::ranges::greater_equal{}
-            );
-        }
-
-        [[nodiscard]] friend constexpr bool
-            operator==(const allocation_obj_req& left, const allocation_obj_req& right) noexcept
-        {
-            return std::ranges::equal(left.to_array(), right.to_array());
-        }
-    };
-
     template<allocator_req Allocator>
     template<typename ValueType>
     class [[nodiscard]] allocator_aware_traits<Allocator>::typed_allocation
@@ -271,27 +191,64 @@ namespace stdsharp
     public:
         using value_type = ValueType;
 
-        static constexpr auto cp_construct_req = std::min(
-            traits::template construct_req<value_type, const value_type&>,
-            expr_req::well_formed
-        );
+        static constexpr auto mov_constructible = true;
+
+        static constexpr auto mov_construct_req = expr_req::no_exception;
+
+        static constexpr auto cp_constructible = traits::template cp_constructible<value_type>;
+
+        static constexpr auto cp_construct_req = get_expr_req(cp_constructible);
+
+        static constexpr auto cp_assignable = cp_constructible && copy_assignable<value_type>;
 
         static constexpr auto cp_assign_req = std::min(
-            traits::template construct_req<value_type, const value_type&>,
+            cp_construct_req,
             get_expr_req(copy_assignable<value_type>, !propagate_on_copy_v || always_equal_v)
         );
 
-        static constexpr auto mov_assign_req = propagate_on_move_v || always_equal_v ?
+    private:
+        static constexpr auto mov_allocation_v = !(always_equal_v || propagate_on_move_v);
+
+    public:
+        static constexpr auto mov_assignable = mov_allocation_v ||
+            traits::template mov_constructible<value_type> && move_assignable<value_type>;
+
+        static constexpr auto mov_assign_req = mov_allocation_v ?
             expr_req::no_exception :
             std::min(
-                traits::template construct_req<value_type, value_type>,
+                get_expr_req(
+                    traits::template mov_constructible<value_type>,
+                    traits::template nothrow_mov_constructible<value_type> //
+                ),
                 get_expr_req(move_assignable<value_type>, nothrow_move_assignable<value_type>)
             );
 
-        static constexpr allocation_obj_req obj_req{
+        static constexpr auto destructible = traits::template destructible<value_type>;
+
+        static constexpr auto destructible_req =
+            get_expr_req(destructible, traits::template nothrow_destructible<value_type>);
+
+        static constexpr auto swappable =
+            requires(allocator_type alloc, typed_allocation allocation) {
+                allocation.swap(alloc, alloc, allocation);
+            };
+
+        static constexpr auto swappable_req = get_expr_req(
+            swappable,
+            requires(allocator_type alloc, typed_allocation allocation) {
+                {
+                    allocation.swap(alloc, alloc, allocation)
+                } noexcept;
+            }
+        );
+
+        static constexpr special_mem_req operation_constraints{
+            expr_req::no_exception,
             cp_construct_req,
             mov_assign_req,
-            cp_assign_req //
+            cp_assign_req,
+            expr_req::no_exception,
+            destructible_req //
         };
 
     private:
@@ -301,8 +258,10 @@ namespace stdsharp
     public:
         typed_allocation() = default;
 
-        constexpr typed_allocation(const allocation& allocation, const bool has_value = false) //
-            noexcept(!is_debug):
+        constexpr typed_allocation(
+            const allocation& allocation,
+            const bool has_value = false
+        ) noexcept(!is_debug):
             allocation_(allocation), has_value_(has_value)
         {
             precondition<std::invalid_argument>( //
@@ -364,19 +323,19 @@ namespace stdsharp
             allocation_ = new_allocation;
         }
 
-        template<
-            typename... Args,
-            auto Req = traits::template construct_req<value_type, Args...> // clang-format off
-        > requires(Req >= expr_req::well_formed)
-        constexpr void construct(allocator_type& alloc, Args&&... args)
-            noexcept(Req >= expr_req::no_exception) // clang-format on
+        template<typename... Args>
+            requires(traits::template constructible_from<value_type, Args...>)
+        constexpr void construct(allocator_type& alloc, Args&&... args) //
+            noexcept(traits::template nothrow_constructible_from<value_type, Args...>)
         {
             destroy(alloc);
             traits::construct(alloc, ptr(), cpp_forward(args)...);
             has_value_ = true;
         }
 
-        constexpr void destroy(allocator_type& alloc) noexcept
+        constexpr void destroy(allocator_type& alloc) //
+            noexcept(destructible_req >= expr_req::no_exception)
+            requires destructible
         {
             if(!has_value()) return;
             traits::destroy(alloc, ptr());
@@ -386,7 +345,8 @@ namespace stdsharp
         [[nodiscard]] constexpr auto& allocation() const noexcept { return allocation_; }
 
         [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc)
-            requires(cp_construct_req >= expr_req::well_formed)
+            noexcept(cp_construct_req >= expr_req::no_exception)
+            requires cp_constructible
         {
             typed_allocation<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));
             allocation.construct(alloc, get_const());
@@ -397,7 +357,6 @@ namespace stdsharp
         {
             return std::exchange(*this, {});
         }
-
 
     private:
         constexpr void assign_impl(
@@ -442,7 +401,7 @@ namespace stdsharp
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
         ) noexcept(cp_assign_req >= expr_req::no_exception)
-            requires(cp_assign_req >= expr_req::well_formed)
+            requires cp_assignable
         {
             if(!has_value())
             {
@@ -475,7 +434,7 @@ namespace stdsharp
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
         ) noexcept(mov_assign_req >= expr_req::no_exception)
-            requires(mov_assign_req >= expr_req::well_formed)
+            requires mov_assignable
         {
             if(!has_value())
             {
@@ -499,86 +458,66 @@ namespace stdsharp
             allocator_type& src_alloc,
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
-        ) noexcept( // NOLINTNEXTLINE(*-noexcept-swap)
-            noexcept(allocation_.swap(src_alloc, dst_alloc, dst_allocation))
-        )
+        ) noexcept(swappable_req >= expr_req::no_exception) // NOLINT(*-noexcept-swap)
+            requires swappable
         {
             std::swap(has_value_, dst_allocation.has_value_);
             allocation_.swap(src_alloc, dst_alloc, dst_allocation);
         }
     };
 
-    template<typename T>
-        requires requires(const T t, T::allocator_type alloc) //
+    template<typename T, typename Alloc>
+    struct basic_allocator_aware : allocator_aware_traits<Alloc>
     {
-        requires std::derived_from<T, allocator_aware_traits<decltype(alloc)>>;
-        // clang-format off
-        { t.get_allocator() } noexcept ->
-            std::convertible_to<decltype(alloc)>; // clang-format on
-    }
-    struct allocator_aware_ctor : T
-    {
-        using this_t = allocator_aware_ctor;
-
-        using T::T;
-        using typename T::allocator_type;
-        using allocator_traits = allocator_traits<allocator_type>;
+        using allocator_type = Alloc;
+        using allocator_traits = allocator_aware_traits<allocator_type>;
 
     private:
-        template<typename... Args>
-        static constexpr auto alloc_last_ctor = constructible_from_test<T, Args..., allocator_type>;
+        constexpr auto& to_concrete() noexcept { return static_cast<T&>(*this); }
 
         template<typename... Args>
-        static constexpr auto alloc_arg_ctor =
-            constructible_from_test<T, std::allocator_arg_t, allocator_type, Args...>;
+        constexpr auto ctor(Args&&... args)
+        {
+            std::ranges::construct_at(static_cast<T*>(this), cpp_forward(args)...);
+        }
 
     public:
+        basic_allocator_aware() = default;
+
         template<typename... Args>
-            requires std::constructible_from<T, Args..., allocator_type>
-        constexpr allocator_aware_ctor(
+            requires std::is_constructible_v<T, Args..., allocator_type>
+        constexpr basic_allocator_aware(
             const std::allocator_arg_t,
             const allocator_type& alloc,
             Args&&... args
-        ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>):
-            T(cpp_forward(args)..., alloc)
+        ) noexcept(nothrow_constructible_from<T, Args..., allocator_type>)
         {
+            ctor(cpp_forward(args)..., alloc);
         }
 
-        constexpr allocator_aware_ctor(const this_t& other) //
+        constexpr basic_allocator_aware(const T& other) //
             noexcept(nothrow_constructible_from<T, const T&, allocator_type>)
-            requires std::constructible_from<T, const T&, allocator_type>
-            :
-            T( //
+            requires std::is_constructible_v<T, const T&, allocator_type> && requires {
+                {
+                    other.get_allocator()
+                } noexcept -> std::convertible_to<const Alloc&>;
+            }
+        {
+            ctor( //
                 static_cast<const T&>(other),
                 allocator_traits::select_on_container_copy_construction(other.get_allocator())
-            )
-        {
+            );
         }
 
-        constexpr allocator_aware_ctor(this_t&& other) // NOLINTBEGIN(*-noexcept-move*)
+        constexpr basic_allocator_aware(T&& other) // NOLINTBEGIN(*-noexcept-move*)
             noexcept(nothrow_constructible_from<T, T, allocator_type>)
-            requires std::constructible_from<T, T, allocator_type>
-            : T(static_cast<T&&>(other), other.get_allocator())
+            requires std::is_constructible_v<T, T, allocator_type> && requires {
+                {
+                    other.get_allocator()
+                } noexcept -> std::convertible_to<Alloc&>;
+            }
         {
+            ctor(static_cast<T&&>(other), other.get_allocator());
         }
-
-        constexpr this_t& operator=(const this_t& other) noexcept(nothrow_copy_assignable<T>)
-            requires copy_assignable<T>
-        {
-            if(&other == this) return *this;
-
-            static_cast<T&>(*this) = other;
-            return *this;
-        }
-
-        constexpr this_t& operator=(this_t&& other) //
-            noexcept(nothrow_move_assignable<T>) // NOLINTEND(*-noexcept-move*)
-            requires move_assignable<T>
-        {
-            static_cast<T&>(*this) = cpp_move(other);
-            return *this;
-        }
-
-        ~allocator_aware_ctor() = default;
     };
 }
