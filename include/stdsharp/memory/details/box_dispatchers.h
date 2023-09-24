@@ -16,7 +16,7 @@ namespace stdsharp::details
         using faked_typed_allocation = traits::template typed_allocation<fake_type_for<Req>>;
 
     public:
-        static constexpr auto req = faked_typed_allocation::operation_constraits;
+        static constexpr auto req = faked_typed_allocation::operation_constraints;
 
     private:
         template<expr_req ExprReq, typename... Args>
@@ -40,10 +40,10 @@ namespace stdsharp::details
             cp_assign_dispatcher,
             destroy_dispatcher,
             swap_dispatcher // clang-format off
-            >; // clang-format on
+        >; // clang-format on
 
         template<typename T, typename TypedAllocation = traits::template typed_allocation<T>>
-            requires(req <= TypedAllocation::operation_constraits)
+            requires(req <= TypedAllocation::operation_constraints)
         struct typed_dispatcher
         {
             static constexpr struct
@@ -78,7 +78,7 @@ namespace stdsharp::details
                     const bool has_value,
                     alloc& src_alloc,
                     allocation& src_allocation
-                ) const noexcept(req.move_assign >= expr_req::no_exception) //
+                ) const noexcept(req.move_assign >= expr_req::no_exception)
                     requires faked_typed_allocation::mov_assignable
                 {
                     TypedAllocation dst{dst_allocation, has_value};
@@ -93,13 +93,13 @@ namespace stdsharp::details
 
             static constexpr struct : empty_t
             {
-                constexpr auto operator()( //
+                constexpr auto operator()(
                     alloc& dst_alloc,
                     allocation& dst_allocation,
                     const bool has_value,
                     alloc_cref src_alloc,
-                    allocation_cref src_allocation //
-                ) const noexcept(req.copy_assign >= expr_req::no_exception) //
+                    allocation_cref src_allocation
+                ) const noexcept(req.copy_assign >= expr_req::no_exception)
                     requires faked_typed_allocation::cp_assignable
                 {
                     TypedAllocation dst{dst_allocation, has_value};
@@ -114,7 +114,7 @@ namespace stdsharp::details
             {
                 constexpr auto
                     operator()(alloc& alloc, allocation& allocation, const bool has_value) const
-                    noexcept(req.destroy >= expr_req::no_exception) //
+                    noexcept(req.destroy >= expr_req::no_exception)
                     requires faked_typed_allocation::destructible
                 {
                     TypedAllocation src{allocation, has_value};
@@ -125,13 +125,13 @@ namespace stdsharp::details
 
             static constexpr struct : empty_t
             {
-                constexpr auto operator()( //
+                constexpr auto operator()(
                     alloc& dst_alloc,
                     allocation& dst_allocation,
                     const bool has_value,
                     alloc_cref src_alloc,
-                    allocation_cref src_allocation //
-                ) const noexcept(req.swap >= expr_req::no_exception) //
+                    allocation_cref src_allocation
+                ) const noexcept(req.swap >= expr_req::no_exception)
                     requires faked_typed_allocation::swappable
                 {
                     TypedAllocation dst{dst_allocation, has_value};
@@ -165,9 +165,7 @@ namespace stdsharp::details
         }
 
         template<special_mem_req OtherReq>
-        constexpr box_dispatchers( //
-            const box_dispatchers<OtherReq, Alloc>& other
-        ) noexcept:
+        constexpr box_dispatchers(const box_dispatchers<OtherReq, Alloc>& other) noexcept:
             box_dispatchers(other.dispatchers_, other.current_type_, other.type_size_)
         {
         }
@@ -211,19 +209,19 @@ namespace stdsharp::details
         }
 
         constexpr void destroy(alloc& alloc, allocation& allocation, const bool has_value) const
-            noexcept(req.destroy >= expr_req::no_exception) //
+            noexcept(req.destroy >= expr_req::no_exception)
             requires faked_typed_allocation::destructible
         {
             get<4>(dispatchers_)(alloc, allocation, has_value);
         }
 
-        constexpr auto do_swap( //
+        constexpr auto do_swap(
             alloc& dst_alloc,
             allocation& dst_allocation,
             const bool has_value,
             alloc_cref src_alloc,
-            allocation_cref src_allocation //
-        ) const noexcept(req.swap >= expr_req::no_exception) //
+            allocation_cref src_allocation
+        ) const noexcept(req.swap >= expr_req::no_exception)
             requires faked_typed_allocation::swappable
         {
             get<5>(dispatchers_)( // NOLINT(*-magic-numbers)

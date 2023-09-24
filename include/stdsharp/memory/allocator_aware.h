@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <span>
 
 #include "allocator_traits.h"
 #include "pointer_traits.h"
@@ -344,8 +343,8 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto& allocation() const noexcept { return allocation_; }
 
-        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc)
-            noexcept(cp_construct_req >= expr_req::no_exception)
+        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc
+        ) noexcept(cp_construct_req >= expr_req::no_exception)
             requires cp_constructible
         {
             typed_allocation<ValueType> allocation = make_allocation(alloc, sizeof(ValueType));

@@ -17,6 +17,7 @@ namespace stdsharp
             using traits = allocator_aware_traits<allocator_type>;
             using m_base = basic_allocator_aware<box<Req, allocator_type>, allocator_type>;
             using dispatchers = box_dispatchers<Req, allocator_type>;
+            using typed = dispatchers::faked_typed_allocation;
             using typename traits::allocation;
             using compressed_t = stdsharp::indexed_values<dispatchers, allocator_type>;
 
@@ -79,6 +80,22 @@ namespace stdsharp
 
         private:
             constexpr auto& assign_impl(auto&& other)
+                requires requires(
+                    decltype(other.get_dispatchers()) other_dispatchers,
+                    dispatchers dispatchers,
+                    allocator_type alloc,
+                    allocation allocation
+                ) {
+                    requires typed::destructible;
+                    dispatchers = other_dispatchers;
+                    other_dispatchers.assign(
+                        alloc,
+                        allocation,
+                        dispatchers.has_value(),
+                        other.get_allocator(),
+                        other.get_allocation()
+                    );
+                }
             {
                 if(this == &other) return *this;
 
@@ -109,9 +126,8 @@ namespace stdsharp
 
         public:
             template<special_mem_req OtherReq>
-                requires((OtherReq >= Req) && (Req.copy_assign >= expr_req::well_formed) && ())
-            constexpr box& operator=(const box<OtherReq, allocator_type>& other) //
-                noexcept(Req.copy_assign >= expr_req::no_exception)
+            constexpr box& operator=(const box<OtherReq, allocator_type>& other)
+                requires requires { assign_impl(other); }
             {
                 return assign_impl(other);
             }
@@ -120,9 +136,9 @@ namespace stdsharp
                 requires false;
 
             template<special_mem_req OtherReq>
-                requires((OtherReq >= Req) && (Req.move_assign >= expr_req::well_formed))
             constexpr box& operator=(box<OtherReq, allocator_type>&& other) //
                 noexcept(traits::propagate_on_move_v || traits::always_equal_v)
+                requires requires { assign_impl(other); }
             {
                 return assign_impl(other);
             }
