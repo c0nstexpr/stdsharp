@@ -8,7 +8,7 @@ namespace stdsharp::details
     template<special_mem_req Req, typename Alloc>
     class box_dispatchers
     {
-        using traits = allocator_aware_traits<Alloc>;
+        using traits = allocator_traits<Alloc>;
         using alloc = traits::allocator_type;
         using alloc_cref = const alloc&;
         using allocation = traits::allocation;

@@ -8,18 +8,25 @@ namespace stdsharp
     namespace details
     {
         template<special_mem_req Req, allocator_req Alloc>
-        class box : public basic_allocator_aware<box<Req, Alloc>, Alloc>
+        class box :
+            public basic_allocator_aware<box<Req, Alloc>, Alloc> // NOLINTBEGIN(*-noexcept-*)
         {
+            template<special_mem_req, typename>
+            friend class box;
+
         public:
             using allocator_type = Alloc;
 
         private:
-            using traits = allocator_aware_traits<allocator_type>;
             using m_base = basic_allocator_aware<box<Req, allocator_type>, allocator_type>;
+            template<typename T>
+            using typed_allocation = m_base::template typed_allocation<T>;
             using dispatchers = box_dispatchers<Req, allocator_type>;
-            using typed = dispatchers::faked_typed_allocation;
-            using typename traits::allocation;
+            using faked_typed = dispatchers::faked_typed_allocation;
+            using typename m_base::allocation;
             using compressed_t = stdsharp::indexed_values<dispatchers, allocator_type>;
+
+            static constexpr auto req = dispatchers::req;
 
             compressed_t compressed_{};
             allocation allocation_{};
@@ -38,22 +45,25 @@ namespace stdsharp
                 typename ValueType = std::decay_t<T>,
                 typename Identity = std::type_identity<ValueType> // clang-format off
             > // clang-format on
-                requires std::constructible_from<compressed_t, Identity, const allocator_type&> &&
-                             std::invocable<make_typed_allocation_fn<T>, allocator_type&, Args...>
             constexpr box(
                 const std::allocator_arg_t,
                 const allocator_type& alloc,
                 const std::in_place_type_t<T>,
                 Args&&... args
-            ):
+            )
+                requires requires {
+                    requires std::constructible_from<compressed_t, Identity, const allocator_type&>;
+                    m_base::template construct<ValueType>(cpp_forward(args)...);
+                }
+                :
                 compressed_(Identity{}, alloc),
-                allocation_(make_typed_allocation<T>(get_allocator(), cpp_forward(args)...))
+                allocation_(m_base::template construct<ValueType>(cpp_forward(args)...))
             {
             }
 
-            template<special_mem_req OtherReq>
-                requires((OtherReq >= Req) && (Req.copy_construct >= expr_req::well_formed))
-            constexpr box(const box<OtherReq, allocator_type>& other, const allocator_type& alloc):
+            template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
+                requires OtherBox::faked_typed::cp_constructible
+            constexpr box(const OtherBox& other, const allocator_type& alloc):
                 compressed_(other.get_dispatchers(), alloc),
                 allocation_(
                     get_dispatchers() ?
@@ -63,12 +73,12 @@ namespace stdsharp
             {
             }
 
-            template<special_mem_req OtherReq>
-                requires(OtherReq >= Req)
+            template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
+                requires OtherBox::faked_typed::mov_constructible
             constexpr box(
                 box<OtherReq, allocator_type>&& other,
                 const allocator_type& alloc
-            ) noexcept:
+            ) noexcept(OtherBox::req.move_construct == expr_req::no_exception):
                 compressed_(other.get_dispatchers(), alloc),
                 allocation_(
                     get_dispatchers() ?
@@ -78,42 +88,39 @@ namespace stdsharp
             {
             }
 
-        private:
-            constexpr auto& assign_impl(auto&& other)
-                requires requires(
-                    decltype(other.get_dispatchers()) other_dispatchers,
-                    dispatchers dispatchers,
-                    allocator_type alloc,
-                    allocation allocation
-                ) {
-                    requires typed::destructible;
-                    dispatchers = other_dispatchers;
-                    other_dispatchers.assign(
-                        alloc,
-                        allocation,
-                        dispatchers.has_value(),
-                        other.get_allocator(),
-                        other.get_allocation()
-                    );
-                }
+            template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
+                requires std::is_constructible_v<box, const OtherBox&, const allocator_type&>
+            constexpr box(const OtherBox& other):
+                box(other, m_base::select_on_container_copy_construction(other.get_allocator()))
+            {
+            }
+
+            template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
+                requires std::is_constructible_v<box, OtherBox&, const allocator_type&>
+            constexpr box(OtherBox&& other) //
+                noexcept(nothrow_constructible_from<box, OtherBox, allocator_type>):
+                box(cpp_move(other), other.get_allocator())
+            {
+            }
+
+            constexpr box& operator=(const box& other)
+                requires faked_typed::destructible && faked_typed::cp_assignable
             {
                 if(this == &other) return *this;
 
                 auto& other_dispatchers = other.get_dispatchers();
+                auto& dispatchers = get_dispatchers();
+                auto& allocation = get_allocation();
 
-                if(other_dispatchers.has_value())
+                if(get_dispatchers().type() != other_dispatchers.type())
                 {
                     destroy();
-                    return *this;
+                    get_allocation().allocate(other_dispatchers.size());
                 }
-
-                auto& dispatchers = get_dispatchers();
-
-                if(dispatchers.type() != other_dispatchers.type()) destroy();
 
                 other_dispatchers.assign(
                     get_allocator(),
-                    get_allocation(),
+                    allocation,
                     dispatchers.has_value(),
                     other.get_allocator(),
                     other.get_allocation()
@@ -124,48 +131,46 @@ namespace stdsharp
                 return *this;
             }
 
-        public:
-            template<special_mem_req OtherReq>
-            constexpr box& operator=(const box<OtherReq, allocator_type>& other)
-                requires requires { assign_impl(other); }
+            constexpr box& operator=(box&& other) //
+                noexcept(req.move_construct >= expr_req::no_exception)
+                requires faked_typed::destructible && faked_typed::mov_assignable
             {
-                return assign_impl(other);
+                if(this == &other) return *this;
+
+                auto& other_dispatchers = other.get_dispatchers();
+                auto& dispatchers = get_dispatchers();
+                auto& allocation = get_allocation();
+
+                if(dispatchers.type() != other_dispatchers.type()) destroy();
+
+                other_dispatchers.assign(
+                    get_allocator(),
+                    allocation,
+                    dispatchers.has_value(),
+                    other.get_allocator(),
+                    other.get_allocation()
+                );
+
+                dispatchers = other_dispatchers;
+                return *this;
             }
 
-            box& operator=(box&)
-                requires false;
-
-            template<special_mem_req OtherReq>
-            constexpr box& operator=(box<OtherReq, allocator_type>&& other) //
-                noexcept(traits::propagate_on_move_v || traits::always_equal_v)
-                requires requires { assign_impl(other); }
-            {
-                return assign_impl(other);
-            }
-
-            box& operator=(box&&) noexcept
-                requires false;
-
-            constexpr ~box()
+            constexpr ~box() noexcept(req.destruct >= expr_req::no_exception)
+                requires faked_typed::destructible
             {
                 destroy();
                 get_allocation().deallocate(get_allocator());
             }
 
-            template<special_mem_req OtherReq>
-                requires(OtherReq >= Req)
-            constexpr void swap(box<OtherReq, allocator_type>& other) noexcept
+            constexpr void swap(box& other) noexcept(req.swap >= expr_req::no_exception)
+                requires faked_typed::swappable
             {
-                auto& other_dispatchers = other.get_dispatchers();
-
-                other_dispatchers.swap(
+                get_dispatchers().do_swap(
                     get_allocator(),
                     get_allocation(),
                     other.get_allocator(),
                     other.get_allocation()
                 );
-
-                std::swap(get_dispatchers(), other_dispatchers);
             }
 
             [[nodiscard]] constexpr allocator_type& get_allocator() const noexcept
@@ -208,15 +213,11 @@ namespace stdsharp
 
             [[nodiscard]] constexpr auto& get_allocation() const noexcept { return allocation_; }
 
-            using this_t = box;
-
         public:
             template<typename T, typename... Args>
             static constexpr auto emplace_constructible =
                 m_base::template constructible_from<std::decay_t<T>, Args...> &&
                 std::constructible_from<dispatchers, std::type_identity<std::decay_t<T>>>;
-
-            static constexpr auto req = Req;
 
             template<std::same_as<void> T = void>
             constexpr void emplace() noexcept
@@ -233,7 +234,9 @@ namespace stdsharp
                 destroy();
                 get_allocation().allocate(get_allocator(), sizeof(value_t));
 
-                this_t::construct(get_allocator(), ptr<value_t>(), cpp_forward(args)...);
+                typed_allocation<value_t> allocation{get_allocation()};
+
+                allocation.construct(get_allocator(), cpp_forward(args)...);
                 get_dispatchers() = dispatchers{std::type_identity<value_t>{}};
 
                 return get<value_t>();
@@ -289,7 +292,7 @@ namespace stdsharp
             {
                 return get_allocation().size();
             }
-        };
+        }; // NOLINTEND(*-noexcept-*)
     }
 
     template<special_mem_req Req, allocator_req Alloc>
