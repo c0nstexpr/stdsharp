@@ -1,6 +1,7 @@
 #pragma once
 
 #include "allocation.h"
+#include "../pointer_traits.h"
 
 namespace stdsharp::allocator_aware
 {
@@ -138,9 +139,7 @@ namespace stdsharp::allocator_aware
         }
 
         constexpr void shrink_to_fit(allocator_type& alloc)
-            requires(
-                traits::template construct_req<value_type, value_type> >= expr_req::well_formed
-            )
+            requires(traits::template constructible_from<value_type, value_type>)
         {
             if(allocation_.size() <= sizeof(value_type)) return;
 
@@ -172,8 +171,7 @@ namespace stdsharp::allocator_aware
             has_value_ = true;
         }
 
-        constexpr void destroy(allocator_type& alloc) //
-            noexcept(destructible_req >= expr_req::no_exception)
+        constexpr void destroy(allocator_type& alloc) noexcept(is_noexcept(destructible_req))
             requires destructible
         {
             if(!has_value()) return;
@@ -183,8 +181,8 @@ namespace stdsharp::allocator_aware
 
         [[nodiscard]] constexpr auto& allocation() const noexcept { return allocation_; }
 
-        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc
-        ) noexcept(cp_construct_req >= expr_req::no_exception)
+        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc) //
+            noexcept(is_noexcept(cp_construct_req))
             requires cp_constructible
         {
             typed_allocation<allocator_type, ValueType> allocation =
@@ -240,7 +238,7 @@ namespace stdsharp::allocator_aware
             const allocator_type& src_alloc,
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
-        ) noexcept(cp_assign_req >= expr_req::no_exception)
+        ) noexcept(is_noexcept(cp_assign_req))
             requires cp_assignable
         {
             if(!has_value())
@@ -273,7 +271,7 @@ namespace stdsharp::allocator_aware
             allocator_type& src_alloc,
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
-        ) noexcept(mov_assign_req >= expr_req::no_exception)
+        ) noexcept(is_noexcept(mov_assign_req))
             requires mov_assignable
         {
             if(!has_value())
@@ -298,7 +296,7 @@ namespace stdsharp::allocator_aware
             allocator_type& src_alloc,
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
-        ) noexcept(swappable_req >= expr_req::no_exception) // NOLINT(*-noexcept-swap)
+        ) noexcept(is_noexcept(swappable_req)) // NOLINT(*-noexcept-swap)
             requires swappable
         {
             std::swap(has_value_, dst_allocation.has_value_);

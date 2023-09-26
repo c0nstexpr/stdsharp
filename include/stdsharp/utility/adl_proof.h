@@ -1,19 +1,25 @@
 #pragma once
 
+#include <type_traits>
+
 namespace stdsharp
 {
-    namespace details
+    template<template<typename...> typename Inner, typename... T>
+    struct adl_proof_traits
     {
-        template<template<typename...> typename Inner, typename... T>
-        struct adl_proof
+        struct proofed_t : Inner<T...>
         {
-            struct t_ : Inner<T...>
-            {
-                using Inner<T...>::Inner;
-            };
+            using Inner<T...>::Inner;
+            using adl_traits = adl_proof_traits<Inner, T...>;
         };
-    }
+
+        template<
+            template<typename...>
+            typename Compared,
+            template<typename, typename> typename Predicate = std::is_same>
+        static constexpr auto same_as = Predicate<proofed_t, Compared<T...>>::value;
+    };
 
     template<template<typename...> typename Inner, typename... T>
-    using adl_proof_t = details::adl_proof<Inner, T...>::t_;
+    using adl_proof_t = typename adl_proof_traits<Inner, T...>::proofed_t;
 }

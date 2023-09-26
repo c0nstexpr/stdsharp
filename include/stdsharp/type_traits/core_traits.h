@@ -17,6 +17,9 @@ using namespace std::literals;
 
 namespace stdsharp
 {
+    template<typename T, typename U>
+    using is_derived_from = std::is_base_of<U, T>;
+
     template<typename T>
     concept nttp_able = requires { std::integer_sequence<T>{}; };
 
@@ -65,6 +68,11 @@ namespace stdsharp
     {
         return well_formed ? no_exception ? expr_req::no_exception : expr_req::well_formed :
                              expr_req::ill_formed;
+    }
+
+    constexpr auto is_noexcept(const expr_req req) noexcept
+    {
+        return req >= expr_req::no_exception;
     }
 
     template<typename T, typename Ret, typename... Args>

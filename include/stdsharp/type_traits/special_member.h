@@ -113,22 +113,22 @@ namespace stdsharp
     struct fake_type_for : empty_t // NOLINTBEGIN(*-use-equals-default,*-noexcept-*)
     {
         fake_type_for(fake_type_for&&) //
-            noexcept(Req.move_construct >= expr_req::no_exception)
+            noexcept(is_noexcept(Req.move_construct))
             requires(Req.move_construct >= expr_req::well_formed);
 
         fake_type_for(const fake_type_for&) //
-            noexcept(Req.copy_construct >= expr_req::no_exception)
+            noexcept(is_noexcept(Req.copy_construct))
             requires(Req.copy_construct >= expr_req::well_formed);
 
         fake_type_for& operator=(fake_type_for&&) //
-            noexcept(Req.move_assign >= expr_req::no_exception)
+            noexcept(is_noexcept(Req.move_assign))
             requires(Req.move_assign >= expr_req::well_formed);
 
         fake_type_for& operator=(const fake_type_for&) //
-            noexcept(Req.copy_assign >= expr_req::no_exception)
+            noexcept(is_noexcept(Req.copy_assign))
             requires(Req.copy_assign >= expr_req::well_formed);
 
-        ~fake_type_for() noexcept(Req.destruct >= expr_req::no_exception)
+        ~fake_type_for() noexcept(is_noexcept(Req.destruct))
             requires(Req.destruct >= expr_req::well_formed);
     }; // NOLINTEND(*-use-equals-default,*-noexcept-*)
 }

@@ -238,48 +238,59 @@ namespace stdsharp
 
     public:
         template<typename Indexed, typename Fn>
-            requires requires //
-        { impl(std::declval<Fn>(), std::declval<Indexed>(), index_sequence_by<Indexed>{}); }
-        constexpr decltype(auto) operator()(Fn&& fn, Indexed&& indexed) const noexcept( //
+            requires requires {
+                impl(std::declval<Fn>(), std::declval<Indexed>(), index_sequence_by<Indexed>{});
+            }
+        constexpr decltype(auto) operator()(Fn && fn, Indexed && indexed) const noexcept( //
             noexcept( //
                 impl(std::declval<Fn>(), std::declval<Indexed>(), index_sequence_by<Indexed>{})
             )
         )
         {
-            return impl(
-                cpp_forward(fn),
-                cpp_forward(indexed),
-                std::make_index_sequence<std::tuple_size_v<Indexed>>{}
-            );
+            return impl(cpp_forward(fn), cpp_forward(indexed), index_sequence_by<Indexed>{});
         }
     } indexed_apply{};
 }
 
 namespace std
 {
-    template<std::size_t I, template<typename...> typename Template, typename... T>
-        requires(std::same_as<stdsharp::regular_type_sequence<T...>, Template<T...>> || std::same_as<stdsharp::basic_type_sequence<T...>, Template<T...>>)
-    struct tuple_element<I, Template<T...>>
+    template<std::size_t I, typename T>
+        requires(T::adl_traits::
+                     template same_as<::stdsharp::basic_type_sequence, ::stdsharp::is_derived_from>)
+    struct tuple_element<I, T>
     {
-        using type = Template<T...>::template get_t<I>;
+        using type = T::template get_t<I>;
     };
 
-    template<template<typename...> typename Template, typename... T>
-        requires(std::same_as<stdsharp::regular_type_sequence<T...>, Template<T...>> || std::same_as<stdsharp::basic_type_sequence<T...>, Template<T...>>)
-    struct tuple_size<Template<T...>>
+    template<typename T>
+        requires(T::adl_traits::
+                     template same_as<::stdsharp::basic_type_sequence, ::stdsharp::is_derived_from>)
+    struct tuple_size<T>
     {
-        static constexpr auto value = Template<T...>::size();
+        static constexpr auto value = T::size();
+    };
+
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::basic_type_sequence<T...>>
+    {
+        using type = ::stdsharp::basic_type_sequence<T...>::template get_t<I>;
+    };
+
+    template<typename... T>
+    struct tuple_size<::stdsharp::basic_type_sequence<T...>>
+    {
+        static constexpr auto value = ::stdsharp::basic_type_sequence<T...>::size();
     };
 
     template<std::size_t I, template<auto...> typename Template, auto... V>
-        requires std::same_as<stdsharp::regular_value_sequence<V...>, Template<V...>>
+        requires derived_from<Template<V...>, ::stdsharp::regular_value_sequence<V...>>
     struct tuple_element<I, Template<V...>>
     {
         using type = Template<V...>::template get_t<I>;
     };
 
     template<template<auto...> typename Template, auto... V>
-        requires std::same_as<stdsharp::regular_value_sequence<V...>, Template<V...>>
+        requires derived_from<Template<V...>, ::stdsharp::regular_value_sequence<V...>>
     struct tuple_size<Template<V...>>
     {
         static constexpr auto value = Template<V...>::size();

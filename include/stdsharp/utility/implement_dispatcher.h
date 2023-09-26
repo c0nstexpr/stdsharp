@@ -8,7 +8,7 @@ namespace stdsharp
     namespace details
     {
         template<expr_req ExprReq, typename Ret, typename... Args>
-        using implement_dispatcher_func = Ret(Args...) noexcept(ExprReq == expr_req::no_exception);
+        using implement_dispatcher_func = Ret(Args...) noexcept(is_noexcept(ExprReq));
     }
 
     template<expr_req ExprReq, typename Ret, typename... Args>
@@ -28,11 +28,27 @@ namespace stdsharp
         }
         static constexpr auto encapsulate() noexcept
         {
-            return +[](Args... args) noexcept(ExprReq == expr_req::no_exception) -> Ret
+            return +[](Args... args) noexcept(is_noexcept(ExprReq)) -> Ret
             {
                 constexpr Closure c{};
-                return c(cpp_forward(args)...);
+                if constexpr(std::same_as<void, Ret>) c(cpp_forward(args)...);
+                else return c(cpp_forward(args)...);
             };
+        }
+
+        [[nodiscard]] static constexpr auto get_default() noexcept
+            requires requires {
+                requires std::default_initializable<Ret>;
+                requires(ExprReq < expr_req::no_exception) || noexcept(Ret{});
+            }
+        {
+            return [](const Args&...) noexcept(is_noexcept(ExprReq)) { return Ret{}; };
+        }
+
+        [[nodiscard]] static constexpr auto get_default() noexcept
+            requires std::same_as<void, Ret>
+        {
+            return empty;
         }
 
     public:
@@ -47,25 +63,12 @@ namespace stdsharp
         }
 
         constexpr implement_dispatcher() noexcept
-            requires std::same_as<void, Ret>
-            : implement_dispatcher([](const Args&...) noexcept {})
+            requires requires { get_default(); }
+            : implement_dispatcher(get_default())
         {
         }
 
-        constexpr implement_dispatcher() noexcept
-            requires requires //
-        {
-            requires std::default_initializable<Ret>;
-            requires(ExprReq != expr_req::no_exception) || noexcept(Ret{});
-        }
-            :
-            implement_dispatcher( //
-                [](Args...) noexcept(ExprReq == expr_req::no_exception) { return Ret{}; }
-            )
-        {
-        }
-
-        constexpr implement_dispatcher& operator=(func f) noexcept
+        constexpr implement_dispatcher& operator=(const func f) noexcept
         {
             this->get() = f;
             return *this;
