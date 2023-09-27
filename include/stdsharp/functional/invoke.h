@@ -6,7 +6,7 @@
 
 namespace stdsharp
 {
-    using ::ranges::invoke;
+    using ranges::invoke;
 
     inline constexpr struct empty_invoke_fn
     {

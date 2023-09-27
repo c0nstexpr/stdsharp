@@ -254,46 +254,48 @@ namespace stdsharp
 
 namespace std
 {
-    template<std::size_t I, typename T>
-        requires(T::adl_traits::
-                     template same_as<::stdsharp::basic_type_sequence, ::stdsharp::is_derived_from>)
-    struct tuple_element<I, T>
+    template<typename... T>
+    struct tuple_size<::stdsharp::basic_indexed_types<T...>> :
+        tuple_size<::stdsharp::regular_type_sequence<T...>>
     {
-        using type = T::template get_t<I>;
     };
 
-    template<typename T>
-        requires(T::adl_traits::
-                     template same_as<::stdsharp::basic_type_sequence, ::stdsharp::is_derived_from>)
-    struct tuple_size<T>
+    template<::stdsharp::adl_proofed_for<::stdsharp::indexed_types> T>
+    struct tuple_size<T> : tuple_size<typename T::basic_indexed_types>
     {
-        static constexpr auto value = T::size();
-    };
-
-    template<std::size_t I, typename... T>
-    struct tuple_element<I, ::stdsharp::basic_type_sequence<T...>>
-    {
-        using type = ::stdsharp::basic_type_sequence<T...>::template get_t<I>;
     };
 
     template<typename... T>
-    struct tuple_size<::stdsharp::basic_type_sequence<T...>>
+    struct tuple_size<::stdsharp::basic_indexed_values<T...>> :
+        tuple_size<::stdsharp::indexed_types<T...>>
     {
-        static constexpr auto value = ::stdsharp::basic_type_sequence<T...>::size();
     };
 
-    template<std::size_t I, template<auto...> typename Template, auto... V>
-        requires derived_from<Template<V...>, ::stdsharp::regular_value_sequence<V...>>
-    struct tuple_element<I, Template<V...>>
+    template<::stdsharp::adl_proofed_for<::stdsharp::indexed_values> T>
+    struct tuple_size<T> : tuple_size<typename T::basic_indexed_values>
     {
-        using type = Template<V...>::template get_t<I>;
     };
 
-    template<template<auto...> typename Template, auto... V>
-        requires derived_from<Template<V...>, ::stdsharp::regular_value_sequence<V...>>
-    struct tuple_size<Template<V...>>
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::basic_indexed_types<T...>>
     {
-        static constexpr auto value = Template<V...>::size();
+        using type = ::stdsharp::basic_indexed_types<T...>::template get_t<I>;
+    };
+
+    template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::indexed_types> T>
+    struct tuple_element<I, T> : tuple_element<I, typename T::basic_indexed_types>
+    {
+    };
+
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::basic_indexed_values<T...>>
+    {
+        using type = ::stdsharp::basic_indexed_values<T...>::template get_t<I>;
+    };
+
+    template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::indexed_values> T>
+    struct tuple_element<I, T> : tuple_element<I, typename T::basic_indexed_values>
+    {
     };
 }
 

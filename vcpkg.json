@@ -5,6 +5,7 @@
     "fmt",
     "range-v3",
     "ctre",
+    "ms-gsl",
     "catch2",
     "nameof"
   ]

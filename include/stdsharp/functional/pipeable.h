@@ -49,7 +49,7 @@ namespace stdsharp
 
     template<typename T, pipe_mode Mode = pipe_mode::left>
     concept pipeable = std::derived_from<std::decay_t<T>, pipeable_base<Mode>> || //
-        (Mode == pipe_mode::left && ::ranges::is_pipeable_v<std::decay_t<T>>);
+        (Mode == pipe_mode::left && ranges::is_pipeable_v<std::decay_t<T>>);
 
     template<typename Pipe>
         requires pipeable<Pipe> || pipeable<Pipe, pipe_mode::right>

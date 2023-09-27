@@ -3,7 +3,6 @@
 #include <array>
 #include <string_view>
 #include <algorithm>
-#include <version>
 
 #include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
@@ -11,7 +10,6 @@
 
 #include "../utility/adl_proof.h"
 #include "../macros.h"
-#include "../namespace_alias.h"
 
 using namespace std::literals;
 
@@ -153,7 +151,7 @@ namespace stdsharp
     using constant_value_type = constant<Value>::value_type;
 
     template<typename T>
-    inline constexpr const auto& static_const_v = ::ranges::static_const<T>::value;
+    inline constexpr const auto& static_const_v = ranges::static_const<T>::value;
 
     template<bool conditional, decltype(auto) Left, auto>
     inline constexpr auto conditional_v = Left;
@@ -505,5 +503,25 @@ namespace meta::extension
     struct apply<Fn, T<V...>>
     {
         using type = Fn::template invoke<V...>;
+    };
+}
+
+namespace std
+{
+    template<typename... T>
+    struct tuple_size<::stdsharp::basic_type_sequence<T...>>
+    {
+        static constexpr auto value = ::stdsharp::basic_type_sequence<T...>::size();
+    };
+
+    template<::stdsharp::adl_proofed_for<::stdsharp::regular_type_sequence> T>
+    struct tuple_size<T> : tuple_size<typename T::basic_type_sequence>
+    {
+    };
+
+    template<auto... V>
+    struct tuple_size<::stdsharp::regular_value_sequence<V...>>
+    {
+        static constexpr auto value = ::stdsharp::regular_value_sequence<V...>::size();
     };
 }

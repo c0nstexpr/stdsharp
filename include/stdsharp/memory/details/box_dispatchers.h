@@ -34,7 +34,7 @@ namespace stdsharp::details
         using destroy_dispatcher = write_dispatcher<req.destruct>;
         using swap_dispatcher = write_dispatcher<req.swap, alloc&, allocation&>;
 
-        using base_dispatchers = stdsharp::indexed_values<
+        using dispatchers = stdsharp::indexed_values<
             mov_ctor_dispatcher,
             cp_ctor_dispatcher,
             mov_assign_dispatcher,
@@ -42,22 +42,6 @@ namespace stdsharp::details
             destroy_dispatcher,
             swap_dispatcher // clang-format off
         >; // clang-format on
-
-        struct dispatchers : base_dispatchers
-        {
-            constexpr bool operator==(const dispatchers& other) const noexcept
-            {
-                return indexed_apply(
-                    [&other](const auto&... d1) {
-                        return indexed_apply(
-                            [&d1...](const auto&... d2) { return ((d1 == d2) && ...); },
-                            static_cast<const base_dispatchers&>(other)
-                        );
-                    },
-                    static_cast<const base_dispatchers&>(*this)
-                );
-            }
-        };
 
         static constexpr dispatchers empty_dispatchers{};
 

@@ -1,7 +1,5 @@
 #include "stdsharp/memory/box.h"
 #include "test_worst_type.h"
-#include <functional>
-
 
 using allocator_t = allocator<unsigned char>;
 
@@ -25,19 +23,17 @@ SCENARIO("box assign value", "[memory][box]") // NOLINT
     allocation_functionality_test<normal_box<allocator_t>>();
 }
 
-template<typename>
-struct my_t;
-
-template<template<template<typename...> typename, typename...> typename Template, template<typename...> typename Tmp, typename... T>
-struct my_t<Template<Tmp, T...>>
+auto bar(
+    const reference_wrapper<void (*)(int) noexcept> l,
+    const reference_wrapper<void (*)(int) noexcept> r
+)
 {
-    static constexpr auto value = Template<Tmp, T...>::size();
-};
+    auto l_f = static_cast<void (*)(int)>(l);
+    return l == r;
+}
 
 auto foo()
 {
-    static_assert(derived_from<regular_type_sequence<int, float>, basic_type_sequence<int, float>>);
-    constexpr auto v = my_t<regular_type_sequence<int, float>>::value;
     trivial_box<allocator<int>> allocation{};
     auto& value = allocation.emplace(1);
     value = 42;
