@@ -13,7 +13,8 @@ namespace stdsharp
         struct dispatcher_traits
         {
             using func = Ret (*)(Args...) noexcept(is_noexcept(ExprReq));
-            using not_null = gsl::not_null<func>;
+            using not_null =
+                std::conditional_t<ExprReq == expr_req::ill_formed, empty_t, gsl::not_null<func>>;
 
             class dispatcher : public not_null
             {
@@ -84,13 +85,9 @@ namespace stdsharp
                     return *this;
                 }
             };
-
-            struct dispatcher<expr_req::ill_formed, Ret, Arg...> : empty_t
-            {
-                static constexpr auto requirement = expr_req::ill_formed;
-            };
-        }
+        };
     }
 
-
+    template<expr_req ExprReq, typename Ret, typename... Args>
+    using dispatcher = typename details::dispatcher_traits<ExprReq, Ret, Args...>::dispatcher;
 }
