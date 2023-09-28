@@ -13,8 +13,7 @@ namespace stdsharp
         struct dispatcher_traits
         {
             using func = Ret (*)(Args...) noexcept(is_noexcept(ExprReq));
-            using not_null =
-                std::conditional_t<ExprReq == expr_req::ill_formed, empty_t, gsl::not_null<func>>;
+            using not_null = gsl::not_null<func>;
 
             class dispatcher : public not_null
             {
@@ -39,10 +38,7 @@ namespace stdsharp
                 }
 
                 [[nodiscard]] static constexpr auto get_default() noexcept
-                    requires requires {
-                        requires std::default_initializable<Ret>;
-                        requires(ExprReq < expr_req::no_exception) || noexcept(Ret{});
-                    }
+                    requires(is_noexcept(ExprReq) ? noexcept(Ret{}) : requires { Ret{}; })
                 {
                     return [](const Args&...) noexcept(is_noexcept(ExprReq)) { return Ret{}; };
                 }
@@ -50,12 +46,13 @@ namespace stdsharp
                 [[nodiscard]] static constexpr auto get_default() noexcept
                     requires std::same_as<void, Ret>
                 {
-                    return empty;
+                    return [](const Args&...) noexcept {};
                 }
 
             public:
                 using not_null::not_null;
                 using not_null::operator func;
+                using not_null::operator=;
 
                 static constexpr auto requirement = ExprReq;
 
@@ -71,19 +68,23 @@ namespace stdsharp
                 {
                 }
 
-                constexpr dispatcher& operator=(const func f) noexcept
-                {
-                    this->get() = f;
-                    return *this;
-                }
-
                 template<typename Closure>
                     requires requires { encapsulate<Closure>(); }
                 constexpr dispatcher& operator=(const Closure) noexcept
                 {
-                    this->get() = *encapsulate<Closure>();
-                    return *this;
+                    return (*this = encapsulate<Closure>());
                 }
+            };
+        };
+
+        template<typename Ret, typename... Args>
+        struct dispatcher_traits<expr_req::ill_formed, Ret, Args...>
+        {
+            struct dispatcher : empty_t
+            {
+                static constexpr auto requirement = expr_req::ill_formed;
+
+                constexpr operator nullptr_t() const noexcept { return nullptr; }
             };
         };
     }

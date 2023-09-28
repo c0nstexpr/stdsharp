@@ -27,12 +27,15 @@ namespace stdsharp
         using type = T<std::decay_t<Args>...>;
     };
 
+    template<template<typename...> typename T, typename... Args>
+    using deduction_t = typename deduction<T, Args...>::type;
+
     template<template<typename...> typename T>
     struct make_template_type_fn
     {
         template<typename... Args>
             requires requires { typename deduction<T, Args...>::type; }
-        using type = deduction<T, Args...>::type;
+        using type = deduction_t<T, Args...>;
 
         template<typename... Args>
             requires std::constructible_from<type<Args...>, Args...>
@@ -120,6 +123,8 @@ namespace stdsharp
         empty_t() = default;
 
         constexpr empty_t(const auto&...) noexcept {}
+
+        constexpr bool operator==(const empty_t) const noexcept { return true; }
     } empty;
 
     template<typename T>
@@ -203,16 +208,6 @@ namespace stdsharp
         using convert_to_value_sequence = regular_value_sequence<Converter<T>{}...>;
     };
 
-    template<typename T>
-    struct basic_type_sequence<T> : basic_type_constant<T>
-    {
-        [[nodiscard]] static constexpr auto size() noexcept { return 1; }
-
-        template<template<typename> typename Converter = std::type_identity>
-            requires requires { regular_value_sequence<Converter<T>{}>{}; }
-        using convert_to_value_sequence = regular_value_sequence<Converter<T>{}>;
-    };
-
     template<typename... T>
     using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
 
@@ -241,16 +236,6 @@ namespace stdsharp
         template<template<auto> typename Converter = constant>
             requires requires { regular_type_sequence<Converter<V>...>{}; }
         using convert_to_type_sequence = regular_type_sequence<Converter<V>...>;
-    };
-
-    template<auto V>
-    struct regular_value_sequence<V> : constant<V>
-    {
-        [[nodiscard]] static constexpr std::size_t size() noexcept { return 1; }
-
-        template<template<auto> typename Converter = constant>
-            requires requires { regular_type_sequence<Converter<V>>{}; }
-        using convert_to_type_sequence = regular_type_sequence<Converter<V>>;
     };
 
     template<typename TypeSeq, template<auto> typename Converter = constant>
@@ -417,10 +402,10 @@ namespace stdsharp
             struct get_element_fn
             {
                 [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-                    noexcept(noexcept(std::get<I>(cpp_forward(t))))
-                    requires requires { std::get<I>(cpp_forward(t)); }
+                    noexcept(noexcept(cpp_forward(t).template get<I>()))
+                    requires requires { cpp_forward(t).template get<I>(); }
                 {
-                    return std::get<I>(cpp_forward(t));
+                    return cpp_forward(t).template get<I>();
                 }
 
                 [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
@@ -428,7 +413,7 @@ namespace stdsharp
                     requires requires //
                 {
                     get<I>(cpp_forward(t));
-                    requires !requires { std::get<I>(cpp_forward(t)); };
+                    requires !requires { cpp_forward(t).template get<I>(); };
                 }
                 {
                     return get<I>(cpp_forward(t));

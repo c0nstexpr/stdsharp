@@ -10,27 +10,21 @@ namespace stdsharp
     struct basic_indexed_type : type_constant<T>
     {
         static constexpr type_constant<T> get_type(const index_constant<I>) noexcept { return {}; }
-
-        static constexpr basic_indexed_type get_indexed_type(const index_constant<I>) noexcept
-        {
-            return {};
-        }
     };
-
-    template<std::size_t Index, typename T>
-    [[nodiscard]] constexpr auto get_type(const basic_indexed_type<T, Index>& v) //
-        noexcept
-    {
-        return v.get_type(index_constant<Index>{});
-    }
 
     namespace details
     {
+        struct indexed_adl_accessor;
+
         template<typename T, std::size_t I>
         struct indexed_type
         {
             struct type : basic_indexed_type<T, I>
             {
+                friend struct indexed_adl_accessor;
+
+            private:
+                using m_base = basic_indexed_type<T, I>;
             };
         };
     }
@@ -53,9 +47,14 @@ namespace stdsharp
     inline constexpr make_indexed_type_fn<I> make_indexed_type{};
 
     template<typename T, std::size_t I>
-    struct STDSHARP_EBO basic_indexed_value : value_wrapper<T>, indexed_type<T, I>
+    struct STDSHARP_EBO indexed_value : private value_wrapper<T>
     {
-        using value_wrapper<T>::value_wrapper;
+    private:
+        using m_base = value_wrapper<T>;
+
+    public:
+        using m_base::m_base;
+        using m_base::v;
 
 #define STDSHARP_GET(const_, ref)                                                               \
     template<std::size_t Index>                                                                 \
@@ -70,37 +69,9 @@ namespace stdsharp
         STDSHARP_GET(const, &&)
 
 #undef STDSHARP_GET
+
+        [[nodiscard]] constexpr operator indexed_type<T, I>() const noexcept { return {}; }
     };
-
-#define STDSHARP_GET(const_, ref_)                                                         \
-    template<std::size_t Index, typename T>                                                \
-    [[nodiscard]] constexpr decltype(auto) get(const_ basic_indexed_value<T, Index> ref_ v \
-    ) noexcept                                                                             \
-    {                                                                                      \
-        return v.get(index_constant<Index>{});                                             \
-    }
-
-    STDSHARP_GET(, &)
-    STDSHARP_GET(const, &)
-    STDSHARP_GET(, &&)
-    STDSHARP_GET(const, &&)
-
-#undef STDSHARP_GET
-
-    namespace details
-    {
-        template<typename T, std::size_t I>
-        struct indexed_value
-        {
-            struct type : basic_indexed_value<T, I>
-            {
-                using basic_indexed_value<T, I>::basic_indexed_value;
-            };
-        };
-    }
-
-    template<typename T, std::size_t I>
-    using indexed_value = ::meta::_t<details::indexed_value<T, I>>;
 
     template<std::size_t I>
     struct make_indexed_value_fn
@@ -127,9 +98,10 @@ namespace stdsharp
 
             template<std::size_t... I>
             struct STDSHARP_EBO base<regular_value_sequence<I...>> :
-                stdsharp::indexed_type<T, I>...,
-                regular_type_sequence<T...>
+                private stdsharp::indexed_type<T, I>...
             {
+                using stdsharp::indexed_type<T, I>::get_type...;
+
                 base() = default;
 
                 template<typename... U>
@@ -139,15 +111,9 @@ namespace stdsharp
                     : stdsharp::indexed_type<T, I>(cpp_forward(u))...
                 {
                 }
-
-                static constexpr auto size() noexcept { return sizeof...(T); }
             };
 
-            struct impl : base<>
-            {
-                template<std::size_t J>
-                using get_t = ::meta::_t<decltype(get_type<J>(base{}))>;
-            };
+            using impl = base<>;
         };
     }
 
@@ -162,19 +128,6 @@ namespace stdsharp
     template<typename... T>
     using indexed_types = adl_proof_t<basic_indexed_types, T...>;
 
-    template<typename... T>
-        requires requires //
-    {
-        requires(
-            std::convertible_to<template_rebind<std::decay_t<T>, void>, std::type_identity<void>> &&
-            ...
-        );
-    }
-    struct deduction<indexed_types, T...>
-    {
-        using type = indexed_types<::meta::_t<T>...>;
-    };
-
     inline constexpr make_template_type_fn<indexed_types> make_indexed_types{};
 
     namespace details
@@ -185,11 +138,14 @@ namespace stdsharp
             template<typename = index_sequence_for<T...>>
             struct impl;
 
+            using indexed_types = stdsharp::indexed_types<T...>;
+
             template<std::size_t... I>
             struct STDSHARP_EBO impl<regular_value_sequence<I...>> :
-                stdsharp::indexed_value<T, I>...,
-                stdsharp::indexed_types<T...>
+                private stdsharp::indexed_value<T, I>...
             {
+                using stdsharp::indexed_value<T, I>::get...;
+
                 impl() = default;
 
                 template<typename... U>
@@ -199,23 +155,41 @@ namespace stdsharp
                     stdsharp::indexed_value<T, I>(cpp_forward(u))...
                 {
                 }
+
+                [[nodiscard]] explicit constexpr operator indexed_types() const noexcept
+                {
+                    return {};
+                }
+
+#define STDSHARP_GET(const_, ref)                                                       \
+    template<std::size_t Index>                                                         \
+    [[nodiscard]] constexpr decltype(auto) get() const_ ref noexcept                    \
+    {                                                                                   \
+        using indexed =                                                                 \
+            stdsharp::indexed_value<std::tuple_element_t<Index, indexed_types>, Index>; \
+        return static_cast<const_ indexed ref>(*this).get(index_constant<Index>{});     \
+    }
+
+                STDSHARP_GET(, &)
+                STDSHARP_GET(const, &)
+                STDSHARP_GET(, &&)
+                STDSHARP_GET(const, &&)
+
+#undef STDSHARP_GET
+
+                bool operator==(const impl&) const = default;
             };
         };
     }
 
     template<typename... T>
-    struct basic_indexed_values : details::indexed_values<T...>::template impl<>
+    struct indexed_values : details::indexed_values<T...>::template impl<>
     {
         using details::indexed_values<T...>::template impl<>::impl;
     };
 
     template<typename... T>
-    basic_indexed_values(T&&...) -> basic_indexed_values<std::decay_t<T>...>;
-
-    template<typename... T>
-    using indexed_values = adl_proof_t<basic_indexed_values, T...>;
-
-    inline constexpr make_template_type_fn<indexed_values> make_indexed_values{};
+    indexed_values(T&&...) -> indexed_values<std::decay_t<T>...>;
 
     template<typename Indexed>
     using index_sequence_by = std::make_index_sequence<std::tuple_size_v<std::decay_t<Indexed>>>;
@@ -252,6 +226,22 @@ namespace stdsharp
     } indexed_apply{};
 }
 
+namespace stdsharp::details
+{
+    struct indexed_adl_accessor
+    {
+        template<typename T, typename U, std::size_t I>
+        static consteval auto invoke(const basic_indexed_type<U, I>)
+        {
+            return std::same_as<T, indexed_type<U, I>>;
+        }
+
+        template<typename T>
+        static constexpr auto is_indexed_type =
+            requires { requires invoke<T>(typename T::m_base{}); };
+    };
+}
+
 namespace std
 {
     template<typename... T>
@@ -266,20 +256,37 @@ namespace std
     };
 
     template<typename... T>
-    struct tuple_size<::stdsharp::basic_indexed_values<T...>> :
+    struct tuple_size<::stdsharp::indexed_values<T...>> :
         tuple_size<::stdsharp::indexed_types<T...>>
     {
     };
 
-    template<::stdsharp::adl_proofed_for<::stdsharp::indexed_values> T>
-    struct tuple_size<T> : tuple_size<typename T::basic_indexed_values>
+    template<std::size_t I, typename T>
+    struct tuple_element<I, ::stdsharp::basic_indexed_type<T, I>>
     {
+        using type = T;
+    };
+
+    template<std::size_t I, typename T>
+        requires ::stdsharp::details::indexed_adl_accessor::is_indexed_type<T>
+    struct tuple_element<I, T> : tuple_element<I, typename T::basic_indexed_type>
+    {
+    };
+
+    template<std::size_t I, typename T>
+    struct tuple_element<I, ::stdsharp::indexed_value<T, I>>
+    {
+        using type = T;
     };
 
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::basic_indexed_types<T...>>
     {
-        using type = ::stdsharp::basic_indexed_types<T...>::template get_t<I>;
+        using type = ::meta::_t< //
+            decltype( //
+                ::stdsharp::basic_indexed_types<T...>{}.get_type(::stdsharp::index_constant<I>{}) //
+            ) // clang-format off
+        >; // clang-format on
     };
 
     template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::indexed_types> T>
@@ -288,13 +295,8 @@ namespace std
     };
 
     template<std::size_t I, typename... T>
-    struct tuple_element<I, ::stdsharp::basic_indexed_values<T...>>
-    {
-        using type = ::stdsharp::basic_indexed_values<T...>::template get_t<I>;
-    };
-
-    template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::indexed_values> T>
-    struct tuple_element<I, T> : tuple_element<I, typename T::basic_indexed_values>
+    struct tuple_element<I, ::stdsharp::indexed_values<T...>> :
+        tuple_element<I, ::stdsharp::indexed_types<T...>>
     {
     };
 }

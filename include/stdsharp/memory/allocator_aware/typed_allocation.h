@@ -78,12 +78,12 @@ namespace stdsharp::allocator_aware
         );
 
         static constexpr special_mem_req operation_constraints{
-            expr_req::no_exception,
+            mov_construct_req,
             cp_construct_req,
             mov_assign_req,
             cp_assign_req,
-            expr_req::no_exception,
-            destructible_req //
+            destructible_req,
+            swappable_req //
         };
 
     private:

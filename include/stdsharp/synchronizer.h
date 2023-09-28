@@ -5,6 +5,7 @@
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
+#include "stdsharp/macros.h"
 #include "type_traits/indexed_traits.h"
 #include "utility/value_wrapper.h"
 
@@ -58,31 +59,25 @@ namespace stdsharp
             return *this;
         }
 
-        struct read_fn
+        template<typename This, typename Func>
+        static constexpr void read_impl(This&& instance, Func&& func)
         {
-            template<typename This, typename Func>
-            constexpr void operator()(This&& instance, Func&& func) const
-            {
-                const std::shared_lock lock{instance.lockable()};
-                std::invoke(cpp_forward(func), cpp_forward(instance).object_);
-            }
-        };
+            const std::shared_lock lock{instance.lockable()};
+            std::invoke(cpp_forward(func), cpp_forward(instance).object_);
+        }
 
-        struct write_fn
+        template<typename Func>
+        static constexpr void write_impl(synchronizer&& instance, Func&& func)
         {
-            template<typename Func>
-            constexpr void operator()(synchronizer&& instance, Func&& func) const
-            {
-                std::invoke(cpp_forward(func), cpp_move(instance).object_);
-            }
+            std::invoke(cpp_forward(func), cpp_move(instance).object_);
+        }
 
-            template<typename Func>
-            constexpr void operator()(synchronizer& instance, Func&& func) const
-            {
-                const std::unique_lock lock{instance.lockable()};
-                std::invoke(cpp_forward(func), instance.object_);
-            }
-        };
+        template<typename Func>
+        static constexpr void write_impl(synchronizer& instance, Func&& func)
+        {
+            const std::unique_lock lock{instance.lockable()};
+            std::invoke(cpp_forward(func), instance.object_);
+        }
 
     public:
         using lock_type = Lockable;
@@ -103,7 +98,7 @@ namespace stdsharp
             std::tuple<TArgs...> t_arg,
             std::tuple<LockArgs...> lock_arg
         ):
-            object_(cpp_forward(t_arg)), lockable_(tag, cpp_move(lock_arg))
+            object_(tag, cpp_move(t_arg)), lockable_(tag, cpp_move(lock_arg))
         {
         }
 
@@ -165,34 +160,58 @@ namespace stdsharp
         template<std::invocable<const value_type&> Func>
         constexpr void read(Func&& func) const&
         {
-            read_fn{}(*this, cpp_forward(func));
+            read_impl(*this, cpp_forward(func));
         }
 
         template<std::invocable<const value_type> Func>
         constexpr void read(Func&& func) const&&
         {
-            read_fn{}(static_cast<const synchronizer&&>(*this), cpp_forward(func));
+            read_impl(static_cast<const synchronizer&&>(*this), cpp_forward(func));
         }
 
         template<std::invocable<value_type&> Func>
         constexpr void write(Func&& func) &
         {
-            write_fn{}(*this, cpp_forward(func));
+            write_impl(*this, cpp_forward(func));
         }
 
         template<std::invocable<value_type> Func>
         constexpr void write(Func&& func) &&
         {
-            write_fn{}(cpp_move(*this), cpp_forward(func));
+            write_impl(cpp_move(*this), cpp_forward(func));
         }
 
-        constexpr const auto& lockable() const noexcept { return lockable_; }
+        constexpr void operator()(auto&& func) &
+            requires requires { write(cpp_forward(func)); }
+        {
+            write(cpp_forward(func));
+        }
+
+        constexpr void operator()(auto&& func) &&
+            requires requires { write(cpp_forward(func)); }
+        {
+            write(cpp_forward(func));
+        }
+
+        constexpr void operator()(auto&& func) const&
+            requires requires { read(cpp_forward(func)); }
+        {
+            read(cpp_forward(func));
+        }
+
+        constexpr void operator()(auto&& func) const&&
+            requires requires { read(cpp_forward(func)); }
+        {
+            read(cpp_forward(func));
+        }
+
+        constexpr const Lockable& lockable() const noexcept { return lockable_; }
 
     private:
-        std::optional<T> object_{};
-        mutable Lockable lockable_{};
+        value_wrapper<std::optional<T>> object_{};
+        mutable value_wrapper<Lockable> lockable_{};
 
-        constexpr auto& lockable() noexcept { return lockable_; }
+        constexpr Lockable& lockable() noexcept { return lockable_; }
     };
 
     template<typename T>

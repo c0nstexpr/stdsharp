@@ -200,7 +200,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr allocator_type& get_allocator() const noexcept
         {
-            return stdsharp::get<1>(compressed_);
+            return cpo::get_element<1>(compressed_);
         }
 
         [[nodiscard]] constexpr operator bool() const noexcept
@@ -222,17 +222,17 @@ namespace stdsharp
     private:
         [[nodiscard]] constexpr auto& get_dispatchers() noexcept
         {
-            return stdsharp::get<0>(compressed_);
+            return cpo::get_element<0>(compressed_);
         }
 
         [[nodiscard]] constexpr auto& get_dispatchers() const noexcept
         {
-            return stdsharp::get<0>(compressed_);
+            return  cpo::get_element<0>(compressed_);
         }
 
         [[nodiscard]] constexpr allocator_type& get_allocator() noexcept
         {
-            return stdsharp::get<1>(compressed_);
+            return  cpo::get_element<1>(compressed_);
         }
 
         [[nodiscard]] constexpr auto& get_allocation() noexcept { return allocation_; }

@@ -26,16 +26,13 @@ namespace stdsharp
         };
 
         template<typename T>
-        arg_wrapper(T&) -> arg_wrapper<T&>;
-
-        template<typename T>
-        arg_wrapper(T&&) -> arg_wrapper<T>;
+        arg_wrapper(T&&) -> arg_wrapper<to_lvalue_t<T>>;
 
         static constexpr struct
         {
             template<typename T>
                 requires std::same_as<template_rebind<std::decay_t<T>, void>, arg_wrapper<void>>
-            [[nodiscard]] constexpr decltype(auto) operator()(T&& wrapper) const noexcept
+            [[nodiscard]] constexpr decltype(auto) operator()(T && wrapper) const noexcept
             {
                 return cpp_forward(wrapper).get();
             }
@@ -46,9 +43,6 @@ namespace stdsharp
             }
         } extract{};
 
-        template<typename T>
-        using extract_t = decltype(extract(std::declval<T>()));
-
     public:
         template<typename Func, typename... Args>
         constexpr auto operator()(Func&& func, Args&&... args) const noexcept( //
@@ -57,7 +51,7 @@ namespace stdsharp
                     projected_invoke,
                     cpp_forward(func),
                     extract,
-                    arg_wrapper{to_lvalue(cpp_forward(args))}...
+                    arg_wrapper{cpp_forward(args)}...
                 )
             )
         )
@@ -67,7 +61,7 @@ namespace stdsharp
                 projected_invoke,
                 cpp_forward(func),
                 extract,
-                arg_wrapper{to_lvalue(cpp_forward(args))}...
+                arg_wrapper{cpp_forward(args)}...
             );
         }
         {
@@ -75,7 +69,7 @@ namespace stdsharp
                 projected_invoke,
                 cpp_forward(func),
                 extract,
-                arg_wrapper{to_lvalue(cpp_forward(args))}...
+                arg_wrapper{cpp_forward(args)}...
             );
         }
     } bind_as_lvalue{};

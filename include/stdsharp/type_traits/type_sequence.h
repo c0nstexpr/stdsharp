@@ -15,13 +15,6 @@ namespace stdsharp
             template<typename... T>
             using regular_type_sequence = regular_type_sequence<T...>;
 
-            template<std::size_t I>
-                requires requires { requires I < Base::size(); }
-            [[nodiscard]] friend constexpr decltype(auto) get(const type_sequence) noexcept
-            {
-                return get<I>(Base{});
-            }
-
         public:
             using Base::adjacent_find;
             using Base::all_of;
@@ -112,14 +105,12 @@ namespace stdsharp
 
 namespace std
 {
-    template<typename Seq>
-        requires same_as<stdsharp::template_rebind<Seq>, stdsharp::type_sequence<>>
+    template<::stdsharp::adl_proofed_for<stdsharp::type_sequence> Seq>
     struct tuple_size<Seq> : stdsharp::index_constant<Seq::size()>
     {
     };
 
-    template<std::size_t I, typename Seq>
-        requires same_as<stdsharp::template_rebind<Seq>, stdsharp::type_sequence<>>
+    template<std::size_t I, ::stdsharp::adl_proofed_for<stdsharp::type_sequence> Seq>
     struct tuple_element<I, Seq>
     {
         using type = Seq::template type<I>;

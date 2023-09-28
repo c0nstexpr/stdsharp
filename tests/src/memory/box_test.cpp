@@ -23,15 +23,6 @@ SCENARIO("box assign value", "[memory][box]") // NOLINT
     allocation_functionality_test<normal_box<allocator_t>>();
 }
 
-auto bar(
-    const reference_wrapper<void (*)(int) noexcept> l,
-    const reference_wrapper<void (*)(int) noexcept> r
-)
-{
-    auto l_f = static_cast<void (*)(int)>(l);
-    return l == r;
-}
-
 auto foo()
 {
     trivial_box<allocator<int>> allocation{};

@@ -92,7 +92,7 @@ namespace stdsharp
         using regular_value_sequence<Values...>::size;
 
     private:
-        static constexpr basic_indexed_values values{Values...};
+        static constexpr indexed_values values{Values...};
 
         using values_t = std::decay_t<decltype(values)>;
 
@@ -138,7 +138,7 @@ namespace stdsharp
         using apply_t = T<Values...>;
 
         template<std::size_t I>
-        using value_type = values_t::template get_t<I>;
+        using value_type = std::tuple_element_t<I, values_t>;
 
         template<std::size_t I>
         static constexpr value_type<I> value = get<I>(values);

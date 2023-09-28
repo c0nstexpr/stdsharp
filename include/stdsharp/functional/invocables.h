@@ -11,32 +11,40 @@ namespace stdsharp
 {
     namespace details
     {
-        template<typename T, std::size_t I>
-        struct indexed_invocable : stdsharp::indexed_value<T, I>
+        template<typename... Func>
+        struct invocables_traits
         {
-            using base = stdsharp::indexed_value<T, I>;
+            using indexed_values = stdsharp::indexed_values<Func...>;
 
-            using base::base;
+            template<typename T, std::size_t I>
+            struct indexed_operator
+            {
+            private:
+                using func = std::tuple_element_t<I, indexed_values>;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                \
-    template<typename... Args, std::invocable<Args...> Fn = const_ T ref>             \
-    constexpr decltype(auto) operator()(Args&&... args)                               \
-        const_ ref noexcept(nothrow_invocable<Fn, Args...>)                           \
-    {                                                                                 \
-        return std::invoke(static_cast<const_ T ref>(this->v), cpp_forward(args)...); \
+            public:
+#define STDSHARP_OPERATOR(const_, ref)                                                      \
+    template<typename... Args, typename Fn = const_ func ref>                               \
+        requires ::std::invocable<Fn, Args...>                                              \
+    constexpr decltype(auto) operator()(Args&&... args)                                     \
+        const_ ref noexcept(nothrow_invocable<Fn, Args...>)                                 \
+    {                                                                                       \
+        return std::invoke(                                                                 \
+            cpo::get_element<I>(                                                            \
+                static_cast<const_ indexed_values ref>(static_cast<const_ type ref>(*this)) \
+            ),                                                                              \
+            cpp_forward(args)...                                                            \
+        );                                                                                  \
     }
 
-            STDSHARP_OPERATOR(, &)
-            STDSHARP_OPERATOR(const, &)
-            STDSHARP_OPERATOR(, &&)
-            STDSHARP_OPERATOR(const, &&)
+                STDSHARP_OPERATOR(, &)
+                STDSHARP_OPERATOR(const, &)
+                STDSHARP_OPERATOR(, &&)
+                STDSHARP_OPERATOR(const, &&)
 
 #undef STDSHARP_OPERATOR
-        };
+            };
 
-        template<typename... Func>
-        struct invocables
-        {
             template<typename = std::index_sequence_for<Func...>>
             struct impl;
 
@@ -44,35 +52,31 @@ namespace stdsharp
 
             template<std::size_t... I>
             struct impl<std::index_sequence<I...>> :
-                indexed_invocable<Func, I>...,
-                indexed_types<Func...>
+                indexed_operator<indexed_values, I>...,
+                stdsharp::indexed_values<Func...>
             {
-                impl() = default;
-
-                template<typename... Args>
-                    requires(std::constructible_from<Func, Args> && ...)
-                constexpr impl(Args&&... args) //
-                    noexcept((nothrow_constructible_from<Func, Args> && ...)):
-                    indexed_invocable<Func, I>(cpp_forward(args))...
-                {
-                }
+                using stdsharp::indexed_values<Func...>::indexed_values;
+                using indexed_operator<indexed_values, I>::operator()...;
             };
         };
     }
 
     template<typename... Func>
-    using invocables = ::meta::_t<details::invocables<Func...>>;
+    struct invocables : ::meta::_t<details::invocables_traits<Func...>>
+    {
+    private:
+        using m_base = ::meta::_t<details::invocables_traits<Func...>>;
 
-    using make_invocables_fn = make_template_type_fn<invocables>;
-
-    inline constexpr make_invocables_fn make_invocables{};
+    public:
+        using m_base::m_base;
+    };
 
     template<std::size_t Index>
     struct invoke_at_fn
     {
         template<typename T, typename... Args>
             requires std::invocable<get_element_t<Index, T>, Args...>
-        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
+        constexpr decltype(auto) operator()(T && t, Args&&... args) const
             noexcept(nothrow_invocable<get_element_t<Index, T>, Args...>)
         {
             return cpo::get_element<Index>(t)(cpp_forward(args)...);
@@ -82,31 +86,16 @@ namespace stdsharp
     template<auto Index>
     inline constexpr invoke_at_fn<Index> invoke_at{};
 
-    template<template<typename...> typename Predicator>
+    template<template<typename> typename Predicator>
     struct invoke_first_fn
     {
     private:
         template<typename T, typename... Args, std::size_t I = 0>
-            requires requires //
-        {
-            requires(Predicator<get_element_t<I, T>, Args...>::value); //
-        }
-        static constexpr std::size_t find_first_impl(const index_constant<I>) noexcept
-        {
-            return I;
-        }
-
-        template<typename T, typename... Args, std::size_t I = 0>
-        static constexpr std::size_t find_first_impl(const index_constant<I>) noexcept
-        {
-            return find_first<T, Args...>(index_constant<I + 1>{});
-        }
-
-        template<typename T, typename... Args, std::size_t I = 0>
         static constexpr std::size_t find_first(const index_constant<I> = {}) noexcept
         {
-            if constexpr(requires { typename get_element_t<I, T>; })
-                return find_first_impl<T, Args...>(index_constant<I>{});
+            if constexpr(I < std::tuple_size_v<std::decay_t<T>>)
+                if constexpr(Predicator<get_element_t<I, T>>::template value<Args...>) return I;
+                else return find_first<T, Args...>(index_constant<I + 1>{});
             else return static_cast<std::size_t>(-1);
         }
 
@@ -120,23 +109,23 @@ namespace stdsharp
     public:
         template<typename T, typename... Args>
             requires requires { typename invoke_at_t<T, Args...>; }
-        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
+        constexpr decltype(auto) operator()(T && t, Args&&... args) const
             noexcept(nothrow_invocable<invoke_at_t<T, Args...>, T, Args...>)
         {
             return invoke_at_t<T, Args...>{}(t, cpp_forward(args)...);
         }
     };
 
-    template<template<typename...> typename Predicator>
+    template<template<typename> typename Predicator>
     inline constexpr invoke_first_fn<Predicator> invoke_first{};
 
     namespace details
     {
-        template<typename Func, typename... Args>
-            requires std::invocable<Func, Args...>
+        template<typename Func>
         struct sequenced_invocables_predicate
         {
-            static constexpr auto value = true;
+            template<typename... Args>
+            static constexpr auto value = std::invocable<Func, Args...>;
         };
     }
 
@@ -145,7 +134,7 @@ namespace stdsharp
     inline constexpr sequenced_invoke_fn sequenced_invoke{};
 
     template<typename... Invocable>
-    struct basic_sequenced_invocables : invocables<Invocable...>
+    struct sequenced_invocables : invocables<Invocable...>
     {
         using base = invocables<Invocable...>;
 
@@ -171,10 +160,32 @@ namespace stdsharp
     };
 
     template<typename... T>
-    basic_sequenced_invocables(T&&...) -> basic_sequenced_invocables<std::decay_t<T>...>;
+    sequenced_invocables(T&&...) -> sequenced_invocables<std::decay_t<T>...>;
+}
 
-    template<typename... Invocable>
-    using sequenced_invocables = adl_proof_t<basic_sequenced_invocables, Invocable...>;
+namespace std
+{
+    template<typename... T>
+    struct tuple_size<::stdsharp::invocables<T...>> :
+        ::std::tuple_size<::stdsharp::indexed_types<T...>>
+    {
+    };
 
-    inline constexpr make_template_type_fn<sequenced_invocables> make_sequenced_invocables{};
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::invocables<T...>> :
+        ::std::tuple_element<I, ::stdsharp::indexed_types<T...>>
+    {
+    };
+
+    template<typename... T>
+    struct tuple_size<::stdsharp::sequenced_invocables<T...>> :
+        ::std::tuple_size<::stdsharp::invocables<T...>>
+    {
+    };
+
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::sequenced_invocables<T...>> :
+        ::std::tuple_element<I, ::stdsharp::invocables<T...>>
+    {
+    };
 }
