@@ -71,6 +71,9 @@ namespace stdsharp
         using m_base::m_base;
     };
 
+    template<typename... T>
+    invocables(T&&...) -> invocables<std::decay_t<T>...>;
+
     template<std::size_t Index>
     struct invoke_at_fn
     {

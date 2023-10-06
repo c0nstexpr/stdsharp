@@ -12,7 +12,6 @@ namespace stdsharp::allocator_aware
 
     template<allocator_req Allocator, typename ValueType>
     class [[nodiscard]] typed_allocation
-
     {
     public:
         using allocator_type = Allocator;
@@ -99,14 +98,15 @@ namespace stdsharp::allocator_aware
         ) noexcept(!is_debug):
             allocation_(allocation), has_value_(has_value)
         {
-            precondition<std::invalid_argument>( //
-                std::bind_front(
-                    std::ranges::greater_equal{},
-                    allocation_.size(),
-                    has_value_ ? sizeof(value_type) : 0
-                ),
-                "allocation size is too small for the value type"
-            );
+            if(has_value_)
+                precondition<std::invalid_argument>( //
+                    std::bind_front(
+                        std::ranges::greater_equal{},
+                        allocation_.size(),
+                        sizeof(value_type)
+                    ),
+                    "allocation size is too small for the value type"
+                );
         }
 
         [[nodiscard]] constexpr auto ptr() const noexcept
@@ -203,8 +203,14 @@ namespace stdsharp::allocator_aware
             auto&& value
         )
         {
-            if(dst_allocation.has_value()) dst_allocation.get() = cpp_forward(value);
-            else dst_allocation.construct(dst_alloc, cpp_forward(value));
+            if constexpr(move_assignable<value_type>)
+                if(dst_allocation.has_value())
+                {
+                    dst_allocation.get() = cpp_forward(value);
+                    return;
+                }
+
+            dst_allocation.construct(dst_alloc, cpp_forward(value));
         }
 
         template<bool Propagate>

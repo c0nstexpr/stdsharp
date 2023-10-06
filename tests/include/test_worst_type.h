@@ -21,23 +21,23 @@ private:
 template<typename Normal, typename Unique, typename Worst>
 void allocation_type_requirement_test()
 {
+    STATIC_REQUIRE(copyable<Normal>);
     STATIC_REQUIRE(nothrow_movable<Unique>);
     STATIC_REQUIRE(nothrow_swappable<Unique>);
-    STATIC_REQUIRE(copyable<Normal>);
     STATIC_REQUIRE(nothrow_movable<Worst>);
     STATIC_REQUIRE(nothrow_swappable<Worst>);
 }
 
 template<typename T, typename Value, typename Predicate>
-void allocation_emplace_value_test(T& allocation, const Value& value, Predicate predicate)
+void allocation_emplace_value_test(T& box, const Value& value, Predicate predicate)
 {
     WHEN(format("emplace a value, type id is {}", type_id<Value>))
     {
-        const auto& res = allocation.emplace(value);
+        const auto& res = box.emplace(value);
 
         THEN("the return value should correct") { predicate(res, value); }
 
-        AND_THEN("type should be expected") { REQUIRE(allocation.type() == type_id<Value>); }
+        AND_THEN("type should be expected") { REQUIRE(box.template is_type<Value>()); }
     }
 }
 

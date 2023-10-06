@@ -23,24 +23,24 @@ namespace stdsharp
     struct make_pipeable_fn
     {
         template<typename Fn>
-            requires requires //
+            requires requires(invocables<std::decay_t<Fn>> invocable) //
         {
-            requires std::invocable<make_invocables_fn, Fn>;
+            requires std::constructible_from<decltype(invocable), Fn>;
             requires std::invocable<
                 make_inherited_fn,
                 pipeable_base<Mode>,
-                std::invoke_result_t<make_invocables_fn, Fn> // clang-format off
+                decltype(invocable) // clang-format off
             >; // clang-format on
         }
         constexpr auto operator()(Fn&& fun) const noexcept( //
             nothrow_invocable<
                 make_inherited_fn,
                 pipeable_base<Mode>,
-                std::invoke_result_t<make_invocables_fn, Fn> // clang-format off
+                invocables<std::decay_t<Fn>> // clang-format off
             > // clang-format on
         )
         {
-            return make_inherited(pipeable_base<Mode>{}, make_invocables(cpp_forward(fun)));
+            return make_inherited(pipeable_base<Mode>{}, invocables{cpp_forward(fun)});
         }
     };
 
@@ -61,7 +61,7 @@ namespace stdsharp
         {
             template<typename Arg, pipeable<pipe_mode::left> Pipe>
                 requires std::invocable<Pipe, Arg>
-            friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe) //
+            friend constexpr decltype(auto) operator|(Arg && arg, Pipe && pipe) //
                 noexcept(nothrow_invocable<Pipe, Arg>)
             {
                 return std::invoke(pipe, cpp_forward(arg));
@@ -69,7 +69,7 @@ namespace stdsharp
 
             template<pipeable<pipe_mode::right> Pipe, typename Arg>
                 requires std::invocable<Pipe, Arg>
-            friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg) //
+            friend constexpr decltype(auto) operator|(Pipe && pipe, Arg && arg) //
                 noexcept(nothrow_invocable<Pipe, Arg>)
             {
                 return std::invoke(pipe, cpp_forward(arg));

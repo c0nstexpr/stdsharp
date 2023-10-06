@@ -141,7 +141,7 @@ namespace stdsharp
         using value_type = std::tuple_element_t<I, values_t>;
 
         template<std::size_t I>
-        static constexpr value_type<I> value = get<I>(values);
+        static constexpr value_type<I> value = values.template get<I>();
 
         template<std::size_t... I>
         using at_t = regular_value_sequence<value<I>...>;

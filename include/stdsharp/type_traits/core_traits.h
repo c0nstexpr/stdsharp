@@ -19,7 +19,9 @@ namespace stdsharp
     using is_derived_from = std::is_base_of<U, T>;
 
     template<typename T>
-    concept nttp_able = requires { std::integer_sequence<T>{}; };
+    concept nttp_able = requires {
+        []<T...> {}();
+    };
 
     template<template<typename...> typename T, typename... Args>
     struct deduction
@@ -171,10 +173,8 @@ namespace stdsharp
     template<typename T>
     struct basic_type_constant : std::type_identity<T>
     {
-    private:
         template<typename U>
-        [[nodiscard]] friend constexpr bool
-            operator==(const basic_type_constant, const basic_type_constant<U>) noexcept
+        [[nodiscard]] constexpr bool operator==(const basic_type_constant<U>) const noexcept
         {
             return std::same_as<T, U>;
         }

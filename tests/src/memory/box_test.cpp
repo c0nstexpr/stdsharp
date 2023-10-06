@@ -23,23 +23,15 @@ SCENARIO("box assign value", "[memory][box]") // NOLINT
     allocation_functionality_test<normal_box<allocator_t>>();
 }
 
-auto foo()
+SCENARIO("constexpr box", "[memory][box]") // NOLINT
 {
-    trivial_box<allocator<int>> allocation{};
-    auto& value = allocation.emplace(1);
-    value = 42;
-    return allocation.get<int>();
+    STATIC_REQUIRE(
+        []
+        {
+            trivial_box<allocator<int>> allocation{};
+            auto& value = allocation.emplace(1);
+            value = 42;
+            return allocation.get<int>();
+        }() == 42
+    );
 }
-
-// SCENARIO("constexpr box", "[memory][box]") // NOLINT
-// {
-//     STATIC_REQUIRE(
-//         []
-//         {
-//             trivial_box<allocator<int>> allocation{};
-//             auto& value = allocation.emplace(1);
-//             value = 42;
-//             return allocation.get<int>();
-//         }() == 42
-//     );
-// }

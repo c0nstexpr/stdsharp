@@ -74,6 +74,11 @@ namespace stdsharp
                 {
                     return (*this = encapsulate<Closure>());
                 }
+
+                constexpr bool operator==(const dispatcher other) const noexcept
+                {
+                    return this->get() == other.get();
+                }
             };
         };
 

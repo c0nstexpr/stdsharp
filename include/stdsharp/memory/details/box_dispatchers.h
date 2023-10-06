@@ -149,20 +149,23 @@ namespace stdsharp::details
                 dispatchers{mov_construct, cp_construct, mov_assign, cp_assign, destroy, swap};
         };
 
-        constexpr box_dispatchers(const dispatchers& b) noexcept: dispatchers_(b) {}
+        constexpr box_dispatchers(const dispatchers& b, const std::size_t size) noexcept:
+            dispatchers_(b), type_size_(size)
+        {
+        }
 
     public:
         box_dispatchers() = default;
 
         template<typename T, typename TD = typed_dispatcher<T>>
         explicit constexpr box_dispatchers(const std::type_identity<T>) noexcept:
-            box_dispatchers(TD::dispatchers)
+            box_dispatchers(TD::dispatchers, sizeof(T))
         {
         }
 
         template<special_mem_req OtherReq>
         explicit constexpr box_dispatchers(const box_dispatchers<OtherReq, Alloc>& other) noexcept:
-            box_dispatchers(other.dispatchers_)
+            box_dispatchers(other.dispatchers_, other.type_size_)
         {
         }
 
@@ -241,14 +244,32 @@ namespace stdsharp::details
             );
         }
 
-        [[nodiscard]] constexpr auto has_value() const noexcept
+        [[nodiscard]] constexpr auto has_value() const noexcept { return !same(empty_dispatchers); }
+
+        [[nodiscard]] constexpr bool operator==(const box_dispatchers& other) const noexcept
         {
-            return dispatchers_ == empty_dispatchers;
+            return same(other.dispatchers_);
         }
 
         [[nodiscard]] constexpr operator bool() const noexcept { return has_value(); }
 
+        [[nodiscard]] constexpr auto type_size() const noexcept { return type_size_; }
+
     private:
         dispatchers dispatchers_ = empty_dispatchers;
+        std::size_t type_size_ = 0;
+
+        [[nodiscard]] constexpr bool same(const dispatchers& other) const noexcept
+        {
+            return indexed_apply(
+                [&other](const auto&... d) {
+                    return indexed_apply(
+                        [&d...](const auto&... d2) { return ((d == d2) && ...); },
+                        other
+                    );
+                },
+                dispatchers_
+            );
+        }
     };
 }
