@@ -166,7 +166,7 @@ namespace std
     {
     };
 
-    template<::stdsharp::adl_proofed_for<::stdsharp::indexed_types> T>
+    template<::stdsharp::adl_proofed_for<::stdsharp::basic_indexed_types> T>
     struct tuple_size<T> : tuple_size<typename T::basic_indexed_types>
     {
     };
@@ -187,7 +187,7 @@ namespace std
         >; // clang-format on
     };
 
-    template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::indexed_types> T>
+    template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::basic_indexed_types> T>
     struct tuple_element<I, T> : tuple_element<I, typename T::basic_indexed_types>
     {
     };

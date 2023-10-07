@@ -509,7 +509,7 @@ namespace std
             locale_ = stdsharp::parse_locale_spec(ctx);
 
             {
-                const auto [from_unit] = ::ctre::starts_with<R"((?:[KMGTPE]i?)?B|b)">(ctx);
+                const auto from_unit = ::ctre::starts_with<R"((?:[KMGTPE]i?)?B|b)">(ctx);
 
                 if(from_unit)
                 {

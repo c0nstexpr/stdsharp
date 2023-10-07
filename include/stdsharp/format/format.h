@@ -156,7 +156,7 @@ namespace stdsharp
     template<typename CharT>
     [[nodiscard]] constexpr fill_spec<CharT> parse_fill_spec(details::parse_context<CharT>& ctx)
     {
-        const auto [fill] = ::ctre::starts_with<".">(ctx);
+        const auto& fill = ctre::starts_with<".">(ctx);
 
         if(fill)
         {
@@ -177,7 +177,7 @@ namespace stdsharp
     template<std::convertible_to<char> CharT>
     [[nodiscard]] constexpr auto parse_align_spec(details::parse_context<CharT>& ctx)
     {
-        const auto [align] = ::ctre::starts_with<"[<^>]">(ctx);
+        const auto& align = ctre::starts_with<"[<^>]">(ctx);
 
         if(align)
         {
@@ -197,15 +197,19 @@ namespace stdsharp
     [[nodiscard]] constexpr nested_spec<IntType>
         parse_nested_integer_spec(details::parse_context<CharT>& ctx)
     {
-        const auto [_, ref, value] = ::ctre::starts_with<R"(\{(\d*)\}|(\d*))">(ctx);
-        const auto end = _.end();
+        const auto& captures = ctre::starts_with<R"(\{(\d*)\}|(\d*))">(ctx);
+        const auto& ref = captures.template get<1>();
+        const auto& value = captures.template get<2>();
+        const auto end = captures.end();
 
         if(ref)
         {
             ctx.advance_to(end);
             return nested_arg_index{
-                std::ranges::empty(ref) ? ctx.next_arg_id() :
-                                          details::parse_integer<std::size_t>(ref)};
+                std::ranges::empty(ref) ? //
+                    ctx.next_arg_id() :
+                    details::parse_integer<std::size_t>(ref) //
+            };
         }
         if(value)
         {
@@ -225,7 +229,7 @@ namespace stdsharp
     constexpr precision_spec parse_precision_spec(details::parse_context<CharT>& ctx)
     {
         const auto origin_begin = ctx.begin();
-        const auto [dot] = ::ctre::starts_with<"\\.">(ctx);
+        const auto& dot = ctre::starts_with<"\\.">(ctx);
 
         if(dot)
         {
@@ -248,7 +252,7 @@ namespace stdsharp
     template<typename CharT>
     constexpr locale_spec parse_locale_spec(details::parse_context<CharT>& ctx)
     {
-        const auto [use_locale] = ::ctre::starts_with<"L">(ctx);
+        const auto& use_locale = ctre::starts_with<"L">(ctx);
         if(use_locale)
         {
             ctx.advance_to(use_locale.end());

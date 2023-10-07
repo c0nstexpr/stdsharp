@@ -18,7 +18,7 @@ namespace stdsharp
         using typed_allocation = allocator_aware::typed_allocation<allocator_type, U>;
 
     private:
-        constexpr auto& to_concrete() noexcept { return static_cast<T&>(*this); }
+        constexpr T& to_concrete() noexcept { return static_cast<T&>(*this); }
 
         static constexpr auto has_alloc_getter = requires(T t) {
             {

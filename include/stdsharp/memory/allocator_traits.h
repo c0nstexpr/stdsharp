@@ -249,8 +249,8 @@ namespace stdsharp
             }
         }; // NOLINTEND(*-owning-memory)
 
-
         using m_base = std::allocator_traits<Alloc>;
+
     public:
         using constructor =
             sequenced_invocables<custom_constructor, using_alloc_ctor, default_constructor>;
@@ -319,6 +319,10 @@ namespace stdsharp
         using typename m_base::size_type;
         using typename m_base::value_type;
         using typename m_base::void_pointer;
+
+#if __cpp_lib_allocate_at_least >= 202302L
+        using m_base::allocate_at_least;
+#endif
 
         static constexpr auto propagate_on_copy_v = propagate_on_container_copy_assignment::value;
 
@@ -393,11 +397,6 @@ namespace stdsharp
                 if(hint != nullptr) return alloc.try_allocate(count, hint);
 
             return alloc.try_allocate(count);
-        }
-
-        static constexpr auto allocate_at_least(allocator_type& alloc, const size_type count)
-        {
-            return std::allocate_at_least(alloc, count);
         }
     };
 

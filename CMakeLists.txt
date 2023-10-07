@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
 
-include(cmake/Utils.cmake)
-
 #
 # Project details
 #
@@ -9,6 +7,8 @@ project(
   stdsharp
   VERSION 0.6.4
   LANGUAGES CXX)
+
+include(cmake/Utils.cmake)
 
 config_lib(${PROJECT_NAME} INTERFACE STD 23)
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})

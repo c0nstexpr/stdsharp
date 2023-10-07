@@ -45,8 +45,9 @@ namespace stdsharp
         }
 
         [[nodiscard]] constexpr auto allocate_at_least(const size_type n) const
+            requires requires { traits::allocate_at_least(this->get(), n); }
         {
-            return std::allocate_at_least(this->get(), n);
+            return traits::allocate_at_least(this->get(), n);
         }
 
         template<typename U, typename... Args>

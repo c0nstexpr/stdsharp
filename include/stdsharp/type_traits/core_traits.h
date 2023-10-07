@@ -497,7 +497,7 @@ namespace std
         static constexpr auto value = ::stdsharp::basic_type_sequence<T...>::size();
     };
 
-    template<::stdsharp::adl_proofed_for<::stdsharp::regular_type_sequence> T>
+    template<::stdsharp::adl_proofed_for<::stdsharp::basic_type_sequence> T>
     struct tuple_size<T> : tuple_size<typename T::basic_type_sequence>
     {
     };

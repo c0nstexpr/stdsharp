@@ -5,15 +5,15 @@ option(
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   add_compile_options(-fdiagnostics-show-template-tree)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
   add_compile_options(/utf-8 /diagnostics:caret)
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
   message(STATUS "Debug mode.\n")
 else()
   message(

@@ -4,82 +4,82 @@
 #include "value_sequence.h"
 #include "../compilation_config_in.h"
 
-namespace stdsharp
+namespace stdsharp::details
 {
-    namespace details
+    template<typename Base, typename... Types>
+    struct STDSHARP_EBO type_sequence : private Base, regular_type_sequence<Types...>
     {
-        template<typename Base, typename... Types>
-        struct STDSHARP_EBO type_sequence : private Base, regular_type_sequence<Types...>
-        {
-        private:
-            template<typename... T>
-            using regular_type_sequence = regular_type_sequence<T...>;
+    private:
+        template<typename... T>
+        using regular_type_sequence = regular_type_sequence<T...>;
 
-        public:
-            using Base::adjacent_find;
-            using Base::all_of;
-            using Base::any_of;
-            using Base::contains;
-            using Base::count;
-            using Base::count_if;
-            using Base::count_if_not;
-            using Base::find;
-            using Base::find_if;
-            using Base::find_if_not;
-            using Base::for_each;
-            using Base::for_each_n;
-            using Base::none_of;
-            using Base::size;
+    public:
+        using Base::adjacent_find;
+        using Base::all_of;
+        using Base::any_of;
+        using Base::contains;
+        using Base::count;
+        using Base::count_if;
+        using Base::count_if_not;
+        using Base::find;
+        using Base::find_if;
+        using Base::find_if_not;
+        using Base::for_each;
+        using Base::for_each_n;
+        using Base::none_of;
+        using Base::size;
 
-            template<template<typename...> typename T>
-            using apply_t = T<Types...>;
+        template<template<typename...> typename T>
+        using apply_t = T<Types...>;
 
-            template<std::size_t I>
-            using type = Base::template value_type<I>::type;
+        template<std::size_t I>
+        using type = Base::template value_type<I>::type;
 
-            template<std::size_t... I>
-            using at_t = regular_type_sequence<type<I>...>;
+        template<std::size_t... I>
+        using at_t = regular_type_sequence<type<I>...>;
 
-            template<std::size_t Size>
-            using back_t = convert_from_value_sequence<typename Base::template back_t<Size>>;
+        template<std::size_t Size>
+        using back_t = convert_from_value_sequence<typename Base::template back_t<Size>>;
 
-            template<std::size_t Size>
-            using front_t = convert_from_value_sequence<typename Base::template front_t<Size>>;
+        template<std::size_t Size>
+        using front_t = convert_from_value_sequence<typename Base::template front_t<Size>>;
 
-            template<typename... Others>
-            using append_t = regular_type_sequence<Types..., Others...>;
+        template<typename... Others>
+        using append_t = regular_type_sequence<Types..., Others...>;
 
-            template<typename T = void>
-            using invoke_fn = Base::template invoke_fn<T>;
+        template<typename T = void>
+        using invoke_fn = Base::template invoke_fn<T>;
 
-            template<typename T = empty_t>
-            static constexpr invoke_fn<T> invoke{};
+        template<typename T = empty_t>
+        static constexpr invoke_fn<T> invoke{};
 
-            template<typename... Others>
-            using append_front_t = regular_type_sequence<Others..., Types...>;
+        template<typename... Others>
+        using append_front_t = regular_type_sequence<Others..., Types...>;
 
-            template<std::size_t Index, typename... Other>
-            using insert_t = convert_from_value_sequence< //
-                typename Base::template insert_t<
-                    Index,
-                    basic_type_constant<Other>{}... // clang-format off
+        template<std::size_t Index, typename... Other>
+        using insert_t = convert_from_value_sequence< //
+            typename Base::template insert_t<
+                Index,
+                basic_type_constant<Other>{}... // clang-format off
                 >
             >; // clang-format on
 
-            template<std::size_t... Index>
-            using remove_at_t =
-                convert_from_value_sequence<typename Base::template remove_at_t<Index...>>;
+        template<std::size_t... Index>
+        using remove_at_t =
+            convert_from_value_sequence<typename Base::template remove_at_t<Index...>>;
 
-            template<std::size_t Index, typename Other>
-            using replace_t = convert_from_value_sequence<
-                typename Base::template replace_t<Index, basic_type_constant<Other>{}>>;
+        template<std::size_t Index, typename Other>
+        using replace_t = convert_from_value_sequence<
+            typename Base::template replace_t<Index, basic_type_constant<Other>{}>>;
 
-            template<std::size_t From, std::size_t Size>
-            using select_range_t =
-                convert_from_value_sequence<typename Base::template select_range_t<From, Size>>;
-        };
-    }
+        template<std::size_t From, std::size_t Size>
+        using select_range_t =
+            convert_from_value_sequence<typename Base::template select_range_t<From, Size>>;
+    };
+}
 
+namespace stdsharp
+{
     template<typename... Types>
     using type_sequence = adl_proof_t<
         details::type_sequence,
@@ -105,12 +105,12 @@ namespace stdsharp
 
 namespace std
 {
-    template<::stdsharp::adl_proofed_for<stdsharp::type_sequence> Seq>
+    template<::stdsharp::adl_proofed_for<stdsharp::details::type_sequence> Seq>
     struct tuple_size<Seq> : stdsharp::index_constant<Seq::size()>
     {
     };
 
-    template<std::size_t I, ::stdsharp::adl_proofed_for<stdsharp::type_sequence> Seq>
+    template<std::size_t I, ::stdsharp::adl_proofed_for<stdsharp::details::type_sequence> Seq>
     struct tuple_element<I, Seq>
     {
         using type = Seq::template type<I>;

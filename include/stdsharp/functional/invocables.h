@@ -7,22 +7,20 @@
 
 #include "../type_traits/indexed_traits.h"
 
-namespace stdsharp
+namespace stdsharp::details
 {
-    namespace details
+    template<typename... Func>
+    struct invocables_traits
     {
-        template<typename... Func>
-        struct invocables_traits
+        using indexed_values = stdsharp::indexed_values<Func...>;
+
+        template<typename T, std::size_t I>
+        struct indexed_operator
         {
-            using indexed_values = stdsharp::indexed_values<Func...>;
+        private:
+            using func = std::tuple_element_t<I, indexed_values>;
 
-            template<typename T, std::size_t I>
-            struct indexed_operator
-            {
-            private:
-                using func = std::tuple_element_t<I, indexed_values>;
-
-            public:
+        public:
 #define STDSHARP_OPERATOR(const_, ref)                                                      \
     template<typename... Args, typename Fn = const_ func ref>                               \
         requires ::std::invocable<Fn, Args...>                                              \
@@ -37,38 +35,39 @@ namespace stdsharp
         );                                                                                  \
     }
 
-                STDSHARP_OPERATOR(, &)
-                STDSHARP_OPERATOR(const, &)
-                STDSHARP_OPERATOR(, &&)
-                STDSHARP_OPERATOR(const, &&)
+            STDSHARP_OPERATOR(, &)
+            STDSHARP_OPERATOR(const, &)
+            STDSHARP_OPERATOR(, &&)
+            STDSHARP_OPERATOR(const, &&)
 
 #undef STDSHARP_OPERATOR
-            };
-
-            template<typename = std::index_sequence_for<Func...>>
-            struct impl;
-
-            using type = impl<>;
-
-            template<std::size_t... I>
-            struct impl<std::index_sequence<I...>> :
-                indexed_operator<indexed_values, I>...,
-                stdsharp::indexed_values<Func...>
-            {
-                using stdsharp::indexed_values<Func...>::indexed_values;
-                using indexed_operator<indexed_values, I>::operator()...;
-            };
         };
-    }
+
+        template<typename = std::index_sequence_for<Func...>>
+        struct impl;
+
+        using type = impl<>;
+
+        template<std::size_t... I>
+        struct impl<std::index_sequence<I...>> :
+            indexed_operator<indexed_values, I>...,
+            stdsharp::indexed_values<Func...>
+        {
+            using stdsharp::indexed_values<Func...>::indexed_values;
+            using indexed_operator<indexed_values, I>::operator()...;
+        };
+    };
 
     template<typename... Func>
-    struct invocables : ::meta::_t<details::invocables_traits<Func...>>
-    {
-    private:
-        using m_base = ::meta::_t<details::invocables_traits<Func...>>;
+    using invocables = invocables_traits<Func...>::type;
+}
 
-    public:
-        using m_base::m_base;
+namespace stdsharp
+{
+    template<typename... Func>
+    struct invocables : details::invocables<Func...>
+    {
+        using details::invocables<Func...>::invocables;
     };
 
     template<typename... T>
@@ -79,7 +78,7 @@ namespace stdsharp
     {
         template<typename T, typename... Args>
             requires std::invocable<get_element_t<Index, T>, Args...>
-        constexpr decltype(auto) operator()(T && t, Args&&... args) const
+        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<get_element_t<Index, T>, Args...>)
         {
             return cpo::get_element<Index>(t)(cpp_forward(args)...);
@@ -112,7 +111,7 @@ namespace stdsharp
     public:
         template<typename T, typename... Args>
             requires requires { typename invoke_at_t<T, Args...>; }
-        constexpr decltype(auto) operator()(T && t, Args&&... args) const
+        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<invoke_at_t<T, Args...>, T, Args...>)
         {
             return invoke_at_t<T, Args...>{}(t, cpp_forward(args)...);
