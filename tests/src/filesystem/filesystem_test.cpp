@@ -11,10 +11,10 @@ SCENARIO("space size", "[filesystem]") // NOLINT
     using bytes = stdsharp::filesystem::bytes;
 
     STATIC_REQUIRE(default_initializable<bytes>);
-    STATIC_REQUIRE(invocable<::std::plus<>, bytes, int>);
+    STATIC_REQUIRE(invocable<plus<>, bytes, int>);
 
-    STATIC_REQUIRE(::std::invocable<::std::plus<>, int, bytes>);
-    STATIC_REQUIRE(::std::invocable<::std::plus<>, bytes, bytes>);
+    STATIC_REQUIRE(invocable<plus<>, int, bytes>);
+    STATIC_REQUIRE(invocable<plus<>, bytes, bytes>);
 
     STATIC_REQUIRE( //
         requires(bytes v) //
@@ -30,12 +30,12 @@ SCENARIO("space size", "[filesystem]") // NOLINT
     {
         constexpr auto v = 1'000'042_KB;
 
-        REQUIRE(::std::format("{:-<5MB}", v) == "1000MB42KB");
-        REQUIRE(::std::format("{:-<5.1GB}", v) == "1GB--");
-        REQUIRE(::std::format("{:->5.1GB}", v) == "--1GB");
-        REQUIRE(::std::format("{:-<5GB}", v) == "1GB0MB42KB");
-        REQUIRE(::std::format("{:-^5.1GB}", v) == "-1GB-");
-        REQUIRE(::std::format("{:.4GB}", v) == "1GB0MB42KB0B");
-        REQUIRE(::std::format("{}", 1.2_GB) == "1.2GB");
+        REQUIRE(format("{:-<5MB}", v) == "1000MB42KB");
+        REQUIRE(format("{:-<5.1GB}", v) == "1GB--");
+        REQUIRE(format("{:->5.1GB}", v) == "--1GB");
+        REQUIRE(format("{:-<5GB}", v) == "1GB0MB42KB");
+        REQUIRE(format("{:-^5.1GB}", v) == "-1GB-");
+        REQUIRE(format("{:.4GB}", v) == "1GB0MB42KB0B");
+        REQUIRE(format("{}", 1.2_GB) == "1.2GB");
     }
 };

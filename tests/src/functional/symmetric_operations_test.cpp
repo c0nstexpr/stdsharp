@@ -2,7 +2,6 @@
 #include "test.h"
 
 using namespace std;
-using namespace fmt;
 using namespace stdsharp;
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -14,7 +13,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     3
 )
 {
-    GIVEN(fmt::format("int value: {}", Value))
+    GIVEN(format("int value: {}", Value))
     {
         THEN("plus 1 and revert back")
         {

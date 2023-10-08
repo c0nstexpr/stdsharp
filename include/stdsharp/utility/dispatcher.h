@@ -11,7 +11,7 @@ namespace stdsharp::details
     struct dispatcher_traits
     {
         static constexpr auto req = ExprReq;
-        static constexpr auto no_exception = is_noexcept(req);
+        static constexpr bool no_exception = req >= expr_req::no_exception;
 
         using func = Ret (*)(Args...) noexcept(no_exception);
         using not_null = gsl::not_null<func>;

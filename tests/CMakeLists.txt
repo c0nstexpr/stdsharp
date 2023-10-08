@@ -27,7 +27,8 @@ set(src
     src/type_traits/value_sequence_test.cpp
     src/utility/utility_test.cpp
     src/pattern_match_test.cpp
-    src/synchronizer_test.cpp)
+    src/synchronizer_test.cpp
+    )
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 

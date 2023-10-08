@@ -2,7 +2,6 @@
   "name": "stdsharp",
   "version": "0.1.0",
   "dependencies": [
-    "fmt",
     "range-v3",
     "ctre",
     "ms-gsl",

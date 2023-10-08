@@ -26,11 +26,11 @@ SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
         }
 
         constexpr auto count = 5;
-        WHEN(fmt::format("allocate {} ints", count))
+        WHEN(format("allocate {} ints", count))
         {
             const auto ptr = alloc.allocate(count);
 
-            INFO(fmt::format("address: {}", to_void_pointer(ptr)));
+            INFO(format("address: {}", to_void_pointer(ptr)));
 
             THEN("write values")
             {

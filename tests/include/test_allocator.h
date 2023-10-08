@@ -20,7 +20,7 @@ struct test_allocator : allocator<T>
         const auto ptr = allocator<T>::allocate(n);
         const auto void_p = to_void_pointer(ptr);
 
-        INFO(fmt::format("{} = my_alloc::allocate({})\n", void_p, n));
+        INFO(format("{} = my_alloc::allocate({})\n", void_p, n));
         allocated.emplace_back(void_p);
         return ptr;
     }
@@ -29,7 +29,7 @@ struct test_allocator : allocator<T>
     {
         const auto void_p = to_void_pointer(p);
 
-        INFO(fmt::format("my_alloc::deallocate({}, {})\n", void_p, n));
+        INFO(format("my_alloc::deallocate({}, {})\n", void_p, n));
         allocator<T>::deallocate(p, n);
         deallocated.emplace_back(void_p);
     }

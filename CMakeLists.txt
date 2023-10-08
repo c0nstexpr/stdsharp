@@ -16,7 +16,6 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 #
 # Model project dependencies
 #
-find_package(fmt CONFIG REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
 find_package(ctre CONFIG REQUIRED)
 find_package(nameof CONFIG REQUIRED)
@@ -27,7 +26,7 @@ target_compile_options(
                             $<$<CXX_COMPILER_ID:Clang>: -fexperimental-library>)
 
 target_link_libraries(
-  ${PROJECT_NAME} INTERFACE fmt::fmt range-v3::range-v3 Microsoft.GSL::GSL
+  ${PROJECT_NAME} INTERFACE range-v3::range-v3 Microsoft.GSL::GSL
                             ctre::ctre nameof::nameof)
 
 verbose_message("Successfully added all dependencies and linked against them.")

@@ -30,3 +30,22 @@
 #else
     #define STDSHARP_ASSUME(...)
 #endif
+
+#define STDSHARP_MEM_PACK_IMPL(fn_name, cv, ref)                                                 \
+    template<typename... Args, typename This = cv t ref>                                         \
+    constexpr decltype(auto) fn_name(Args&&... args                                              \
+    ) noexcept(noexcept(t::fn_name##_impl(static_cast<This>(*this), cpp_forward(args)...)))      \
+        requires requires { t::fn_name##_impl(static_cast<This>(*this), cpp_forward(args)...); } \
+    {                                                                                            \
+        return t::fn_name##_impl(static_cast<This>(*this), cpp_forward(args)...);                \
+    }
+
+#define STDSHARP_MEM_PACK(fn_name)                      \
+    STDSHARP_MEM_PACK_IMPL(fn_name, const volatile, &)  \
+    STDSHARP_MEM_PACK_IMPL(fn_name, const volatile, &&) \
+    STDSHARP_MEM_PACK_IMPL(fn_name, const, &)           \
+    STDSHARP_MEM_PACK_IMPL(fn_name, const, &&)          \
+    STDSHARP_MEM_PACK_IMPL(fn_name, volatile, &)        \
+    STDSHARP_MEM_PACK_IMPL(fn_name, volatile, &&)       \
+    STDSHARP_MEM_PACK_IMPL(fn_name, , &)                \
+    STDSHARP_MEM_PACK_IMPL(fn_name, , &&)

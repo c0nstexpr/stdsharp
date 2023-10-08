@@ -4,7 +4,6 @@
 #include <string_view>
 #include <algorithm>
 
-#include <range/v3/utility/static_const.hpp>
 #include <meta/meta.hpp>
 #include <nameof.hpp>
 
@@ -152,12 +151,6 @@ namespace stdsharp
     template<auto Value>
     using constant = std::integral_constant<decltype(Value), Value>;
 
-    template<auto Value>
-    using constant_value_type = constant<Value>::value_type;
-
-    template<typename T>
-    inline constexpr const auto& static_const_v = ranges::static_const<T>::value;
-
     template<bool conditional, decltype(auto) Left, auto>
     inline constexpr auto conditional_v = Left;
 
@@ -202,58 +195,16 @@ namespace stdsharp
     struct basic_type_sequence
     {
         [[nodiscard]] static constexpr auto size() noexcept { return sizeof...(T); }
-
-        template<template<typename> typename Converter = std::type_identity>
-            requires requires { regular_value_sequence<Converter<T>{}...>{}; }
-        using convert_to_value_sequence = regular_value_sequence<Converter<T>{}...>;
     };
 
     template<typename... T>
     using regular_type_sequence = adl_proof_t<basic_type_sequence, T...>;
 
-    namespace details
-    {
-        template<auto V>
-        using value_seq_default_converter = ::meta::_t<decltype(V)>;
-    }
-
-    template<
-        typename ValueSeq,
-        template<auto> typename Converter = details::value_seq_default_converter // clang-format off
-    > // clang-format on
-    using convert_from_value_sequence = decltype( //
-        []<template<auto...> typename Inner, auto... V>(const Inner<V...>&) //
-        {
-            return regular_type_sequence<Converter<V>...>{}; //
-        }(std::declval<ValueSeq>())
-    );
-
     template<auto... V>
     struct regular_value_sequence
     {
         [[nodiscard]] static constexpr std::size_t size() noexcept { return sizeof...(V); }
-
-        template<template<auto> typename Converter = constant>
-            requires requires { regular_type_sequence<Converter<V>...>{}; }
-        using convert_to_type_sequence = regular_type_sequence<Converter<V>...>;
     };
-
-    template<typename TypeSeq, template<auto> typename Converter = constant>
-    using convert_from_type_sequence = decltype( //
-        []<template<typename...> typename Inner, auto... V> //
-        (const std::type_identity<Inner<Converter<V>...>>) //
-        {
-            return regular_value_sequence<V...>{}; //
-        }(std::type_identity<TypeSeq>{})
-    );
-
-    template<std::integral T, T First, std::same_as<T> auto... V>
-    struct regular_value_sequence<First, V...> : std::integer_sequence<T, First, V...>
-    {
-    };
-
-    template<typename T, T... V>
-    regular_value_sequence(std::integer_sequence<T, V...>) -> regular_value_sequence<V...>;
 
     namespace details
     {
@@ -392,43 +343,34 @@ namespace stdsharp
         requires requires { details::template_rebind_impl<T...>(std::declval<Template>()); }
     using template_rebind = decltype(details::template_rebind_impl<T...>(std::declval<Template>()));
 
-    namespace cpo
+    namespace cpo::inline cpo_impl
     {
-        namespace details
-        {
-            void get(auto&&) = delete;
+        void get(auto&&) = delete;
 
-            template<std::size_t I>
-            struct get_element_fn
+        template<std::size_t I>
+        struct get_element_fn
+        {
+            [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
+                noexcept(noexcept(cpp_forward(t).template get<I>()))
+                requires requires { cpp_forward(t).template get<I>(); }
             {
-                [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-                    noexcept(noexcept(cpp_forward(t).template get<I>()))
-                    requires requires { cpp_forward(t).template get<I>(); }
-                {
-                    return cpp_forward(t).template get<I>();
-                }
+                return cpp_forward(t).template get<I>();
+            }
 
-                [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-                    noexcept(noexcept(get<I>(cpp_forward(t))))
-                    requires requires //
-                {
-                    get<I>(cpp_forward(t));
-                    requires !requires { cpp_forward(t).template get<I>(); };
-                }
-                {
-                    return get<I>(cpp_forward(t));
-                }
-            };
-        }
+            [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
+                noexcept(noexcept(get<I>(cpp_forward(t))))
+                requires requires //
+            {
+                get<I>(cpp_forward(t));
+                requires !requires { cpp_forward(t).template get<I>(); };
+            }
+            {
+                return get<I>(cpp_forward(t));
+            }
+        };
 
-        inline namespace cpo_impl
-        {
-            template<std::size_t I>
-            using get_element_fn = details::get_element_fn<I>;
-
-            template<std::size_t I>
-            inline constexpr get_element_fn<I> get_element;
-        }
+        template<std::size_t I>
+        inline constexpr get_element_fn<I> get_element;
     }
 
     template<std::size_t I, typename T>

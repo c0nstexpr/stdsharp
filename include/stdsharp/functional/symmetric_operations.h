@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bind_as_lvlaue.h"
+#include "bind_lvalue.h"
 #include "operations.h"
 
 namespace stdsharp::cpo::inline cpo_impl
@@ -48,9 +48,9 @@ namespace stdsharp::cpo::inline cpo_impl
                 typename SymOp = ::meta::_t<arithmetic_operation<Operation>> // clang-format off
             > // clang-format on
             [[nodiscard]] constexpr auto operator()(const Operation, Args&&... args) const
-                noexcept(noexcept(bind_as_lvalue(SymOp{}, cpp_forward(args)...)))
+                noexcept(noexcept(bind_lvalue(SymOp{}, cpp_forward(args)...)))
             {
-                return bind_as_lvalue(SymOp{}, cpp_forward(args)...);
+                return bind_lvalue(SymOp{}, cpp_forward(args)...);
             }
         };
 

@@ -54,7 +54,7 @@ namespace stdsharp
         {
         }
 
-#define BS_OPERATOR(const_, ref)                                                              \
+#define STDSHARP_OPERATOR(const_, ref)                                                              \
     template<typename... Args>                                                                \
         requires std::invocable<details::compose_impl, Args..., empty_t, T...>                \
     constexpr decltype(auto) operator()(Args&&... args)                                       \
@@ -66,12 +66,12 @@ namespace stdsharp
             static_cast<const_ T ref>(value_wrapper<T>::value)...                             \
         );                                                                                    \
     }
-        BS_OPERATOR(, &)
-        BS_OPERATOR(const, &)
-        BS_OPERATOR(, &&)
-        BS_OPERATOR(const, &&)
+        STDSHARP_OPERATOR(, &)
+        STDSHARP_OPERATOR(const, &)
+        STDSHARP_OPERATOR(, &&)
+        STDSHARP_OPERATOR(const, &&)
 
-#undef BS_OPERATOR
+#undef STDSHARP_OPERATOR
     };
 
     template<typename... T>

@@ -2,7 +2,6 @@
 #include "test.h"
 
 using namespace std;
-using namespace fmt;
 using namespace stdsharp;
 
 struct my_class
@@ -20,7 +19,7 @@ struct my_class
 SCENARIO("member", "[type traits]") // NOLINT
 {
     GIVEN( //
-        fmt::format(
+        format(
             "custom class type\n name: {}\nmember type: {}\nmem func type: {}\nreturn: {}\nargs:"
             "{}",
             type_id<my_class>,

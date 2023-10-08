@@ -42,13 +42,10 @@ namespace stdsharp::details
         return t;
     }
 
-    template<
-        typename T,
-        template<typename...>
-        typename Proofed, // clang-format off
-        auto Traits = details::adl_proofed_traits<Proofed>(get_adl_traits(std::type_identity<T>{}))
-    > // clang-format on
-    inline constexpr auto adl_proofed_for = std::same_as<T, typename decltype(Traits)::proofed_t>;
+    template<typename T, template<typename...> typename Proofed>
+    inline constexpr auto adl_proofed_for = requires(
+        decltype(details::adl_proofed_traits<Proofed>(get_adl_traits(std::type_identity<T>{}))) v
+    ) { requires std::same_as<T, typename decltype(v)::proofed_t>; };
 }
 
 namespace stdsharp

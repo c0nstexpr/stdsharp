@@ -10,12 +10,10 @@ namespace gsl
 
 namespace ranges
 {
-
 }
 
 namespace ctre
 {
-
 }
 
 namespace stdsharp

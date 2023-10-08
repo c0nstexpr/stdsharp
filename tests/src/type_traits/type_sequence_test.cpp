@@ -2,7 +2,6 @@
 #include "test.h"
 
 using namespace std;
-using namespace fmt;
 using namespace stdsharp;
 
 using test_seq = type_sequence<int, float, char, unsigned, float>;

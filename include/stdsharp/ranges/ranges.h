@@ -8,7 +8,6 @@
 
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
-#include <fmt/ranges.h>
 
 #include "../utility/utility.h"
 

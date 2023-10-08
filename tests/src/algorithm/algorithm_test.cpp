@@ -2,7 +2,6 @@
 #include "test.h"
 
 using namespace std;
-using namespace fmt;
 using namespace stdsharp;
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT

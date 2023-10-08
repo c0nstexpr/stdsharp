@@ -2,7 +2,6 @@
 #include "stdsharp/synchronizer.h"
 
 using namespace std;
-using namespace fmt;
 using namespace stdsharp;
 
 SCENARIO("synchronizer", "[synchronizer]") // NOLINT

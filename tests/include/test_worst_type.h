@@ -53,7 +53,7 @@ void allocation_emplace_execution_test(T& allocation)
 
     WHEN("assign custom type twice")
     {
-        INFO(fmt::format("custom type: {}", type_id<local>));
+        INFO(format("custom type: {}", type_id<local>));
 
         allocation.template emplace<local>(invoked);
         allocation.template emplace<local>(invoked);
