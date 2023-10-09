@@ -50,7 +50,9 @@ namespace stdsharp
         template<empty_type T>
         struct value_wrapper<T>
         {
-            STDSHARP_NO_UNIQUE_ADDRESS T v{};
+            STDSHARP_NO_UNIQUE_ADDRESS T v;
+
+            value_wrapper() = default;
 
             template<typename... U>
                 requires std::constructible_from<T, U...>
@@ -69,18 +71,25 @@ namespace stdsharp
         using tuple_wise_ctor<value_wrapper<T>>::tuple_wise_ctor;
         using details::value_wrapper<T>::v;
 
-#define STDSHARP_OPERATOR(const_, ref)                                                        \
-    constexpr const_ T ref get() const_ ref noexcept { return static_cast<const_ T ref>(v); } \
-                                                                                              \
-    constexpr explicit operator const_ T ref() const_ ref noexcept { return get(); }
+#define STDSHARP_OPERATOR(cv, ref)                                                              \
+    [[nodiscard]] constexpr cv T ref get() cv ref noexcept { return static_cast<cv T ref>(v); } \
+                                                                                                \
+    [[nodiscard]] constexpr explicit operator cv T ref() cv ref noexcept { return get(); }
 
         STDSHARP_OPERATOR(, &)
         STDSHARP_OPERATOR(const, &)
         STDSHARP_OPERATOR(, &&)
         STDSHARP_OPERATOR(const, &&)
+        STDSHARP_OPERATOR(volatile, &)
+        STDSHARP_OPERATOR(const volatile, &)
+        STDSHARP_OPERATOR(volatile, &&)
+        STDSHARP_OPERATOR(const volatile, &&)
 
 #undef STDSHARP_OPERATOR
     };
+
+    template<typename T>
+    value_wrapper(T&&) -> value_wrapper<std::decay_t<T>>;
 }
 
 #include "../compilation_config_out.h"

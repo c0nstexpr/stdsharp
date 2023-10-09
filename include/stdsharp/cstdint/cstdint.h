@@ -42,23 +42,23 @@ namespace stdsharp
 
     inline namespace literals
     {
-#define BS_INT_LITERALS(literal)                                                               \
+#define STDSHARP_INT_LITERALS(literal)                                                               \
     [[nodiscard]] constexpr auto operator""_##literal(const unsigned long long value) noexcept \
     {                                                                                          \
         return static_cast<literal>(value);                                                    \
     }
 
-#define BS_SIGNS_INT_LITERALS(num) BS_INT_LITERALS(i##num) BS_INT_LITERALS(u##num)
+#define STDSHARP_SIGNS_INT_LITERALS(num) STDSHARP_INT_LITERALS(i##num) STDSHARP_INT_LITERALS(u##num)
 
-        BS_SIGNS_INT_LITERALS(8)
-        BS_SIGNS_INT_LITERALS(16)
-        BS_SIGNS_INT_LITERALS(32)
-        BS_SIGNS_INT_LITERALS(64)
+        STDSHARP_SIGNS_INT_LITERALS(8)
+        STDSHARP_SIGNS_INT_LITERALS(16)
+        STDSHARP_SIGNS_INT_LITERALS(32)
+        STDSHARP_SIGNS_INT_LITERALS(64)
 
-#undef BS_SIGNS_INT_LITERALS
+#undef STDSHARP_SIGNS_INT_LITERALS
 
-        BS_INT_LITERALS(byte)
+        STDSHARP_INT_LITERALS(byte)
 
-#undef BS_INT_LITERALS
+#undef STDSHARP_INT_LITERALS
     }
 }

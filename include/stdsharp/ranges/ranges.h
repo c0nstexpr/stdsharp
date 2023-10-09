@@ -9,6 +9,7 @@
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
 
+#include "../functional/invocables.h"
 #include "../utility/utility.h"
 
 namespace stdsharp

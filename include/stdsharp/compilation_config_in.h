@@ -31,21 +31,23 @@
     #define STDSHARP_ASSUME(...)
 #endif
 
-#define STDSHARP_MEM_PACK_IMPL(fn_name, cv, ref)                                                 \
-    template<typename... Args, typename This = cv t ref>                                         \
-    constexpr decltype(auto) fn_name(Args&&... args                                              \
-    ) noexcept(noexcept(t::fn_name##_impl(static_cast<This>(*this), cpp_forward(args)...)))      \
-        requires requires { t::fn_name##_impl(static_cast<This>(*this), cpp_forward(args)...); } \
-    {                                                                                            \
-        return t::fn_name##_impl(static_cast<This>(*this), cpp_forward(args)...);                \
+#define STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, cv, ref)                        \
+    constexpr decltype(auto) fn_name(auto&&... args) cv ref noexcept(                    \
+        noexcept(type::impl_name(static_cast<cv type ref>(*this), cpp_forward(args)...)) \
+    )                                                                                    \
+        requires requires {                                                              \
+            type::impl_name(static_cast<cv type ref>(*this), cpp_forward(args)...);      \
+        }                                                                                \
+    {                                                                                    \
+        return type::impl_name(static_cast<cv type ref>(*this), cpp_forward(args)...);   \
     }
 
-#define STDSHARP_MEM_PACK(fn_name)                      \
-    STDSHARP_MEM_PACK_IMPL(fn_name, const volatile, &)  \
-    STDSHARP_MEM_PACK_IMPL(fn_name, const volatile, &&) \
-    STDSHARP_MEM_PACK_IMPL(fn_name, const, &)           \
-    STDSHARP_MEM_PACK_IMPL(fn_name, const, &&)          \
-    STDSHARP_MEM_PACK_IMPL(fn_name, volatile, &)        \
-    STDSHARP_MEM_PACK_IMPL(fn_name, volatile, &&)       \
-    STDSHARP_MEM_PACK_IMPL(fn_name, , &)                \
-    STDSHARP_MEM_PACK_IMPL(fn_name, , &&)
+#define STDSHARP_MEM_PACK(fn_name, impl_name, type)                      \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, const volatile, &)  \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, const volatile, &&) \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, const, &)           \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, const, &&)          \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, volatile, &)        \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, volatile, &&)       \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, , &)                \
+    STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, , &&)

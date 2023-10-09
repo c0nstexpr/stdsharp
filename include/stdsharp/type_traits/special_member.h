@@ -14,7 +14,14 @@ namespace stdsharp
         expr_req swap = move_construct;
 
         template<typename T>
-        static const special_mem_req for_type;
+        static constexpr special_mem_req for_type{
+            get_expr_req(std::move_constructible<T>, nothrow_move_constructible<T>),
+            get_expr_req(std::copy_constructible<T>, nothrow_copy_constructible<T>),
+            get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
+            get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
+            get_expr_req(std::is_destructible_v<T>, std::is_nothrow_destructible_v<T>),
+            get_expr_req(std::swappable<T>, nothrow_swappable<T>) //
+        };
         static const special_mem_req trivial;
         static const special_mem_req normal;
         static const special_mem_req unique;
@@ -79,28 +86,21 @@ namespace stdsharp
     }
 
     template<typename T>
-    inline constexpr special_mem_req special_mem_req::for_type{
-        get_expr_req(std::move_constructible<T>, nothrow_move_constructible<T>),
-        get_expr_req(std::copy_constructible<T>, nothrow_copy_constructible<T>),
-        get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
-        get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
-        get_expr_req(std::is_destructible_v<T>, std::is_nothrow_destructible_v<T>),
-        get_expr_req(std::swappable<T>, nothrow_swappable<T>) //
-    };
+    constexpr special_mem_req special_mem_req::for_type;
 
-    inline constexpr special_mem_req special_mem_req::trivial{};
+    constexpr special_mem_req special_mem_req::trivial{};
 
-    inline constexpr special_mem_req special_mem_req::normal{
+    constexpr special_mem_req special_mem_req::normal{
         .copy_construct = expr_req::well_formed,
         .copy_assign = expr_req::well_formed,
     };
 
-    inline constexpr special_mem_req special_mem_req::unique{
+    constexpr special_mem_req special_mem_req::unique{
         .copy_construct = expr_req::ill_formed,
         .copy_assign = expr_req::ill_formed,
     };
 
-    inline constexpr special_mem_req special_mem_req::ill_formed{
+    constexpr special_mem_req special_mem_req::ill_formed{
         expr_req::ill_formed,
         expr_req::ill_formed,
         expr_req::ill_formed,

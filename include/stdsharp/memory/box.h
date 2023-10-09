@@ -359,7 +359,7 @@ namespace stdsharp
     }; // NOLINTEND(*-noexcept-*)
 
     template<typename T, allocator_req Alloc>
-    using box_for = box<allocator_aware::allocation_constraints<Alloc, T>, Alloc>;
+    using box_for = box<special_mem_req::template for_type<T>, Alloc>;
 
     template<allocator_req Alloc>
     using trivial_box = box_for<trivial_object, Alloc>;

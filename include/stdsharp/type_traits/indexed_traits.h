@@ -58,10 +58,10 @@ namespace stdsharp::details
     {
     private:
         template<typename U, std::size_t I>
-        struct indexed_value : value_wrapper<U>
+        struct indexed_value : stdsharp::value_wrapper<U>
         {
         private:
-            using m_base = value_wrapper<U>;
+            using m_base = stdsharp::value_wrapper<U>;
 
         public:
             using m_base::m_base;
@@ -93,18 +93,22 @@ namespace stdsharp::details
             using indexed_value_type = std::tuple_element_t<Index, indexed_types>;
 
         public:
-#define STDSHARP_GET(const_, ref)                                                          \
-    template<std::size_t Index>                                                            \
-    [[nodiscard]] constexpr const_ indexed_value_type<Index> ref get() const_ ref noexcept \
-    {                                                                                      \
-        using indexed = indexed_value<indexed_value_type<Index>, Index>;                   \
-        return static_cast<const_ indexed ref>(*this).v;                                   \
+#define STDSHARP_GET(cv, ref)                                                      \
+    template<std::size_t Index>                                                    \
+    [[nodiscard]] constexpr cv indexed_value_type<Index> ref get() cv ref noexcept \
+    {                                                                              \
+        using indexed = indexed_value<indexed_value_type<Index>, Index>;           \
+        return static_cast<cv indexed ref>(*this).v;                               \
     }
 
             STDSHARP_GET(, &)
             STDSHARP_GET(const, &)
             STDSHARP_GET(, &&)
             STDSHARP_GET(const, &&)
+            STDSHARP_GET(volatile, &)
+            STDSHARP_GET(const volatile, &)
+            STDSHARP_GET(volatile, &&)
+            STDSHARP_GET(const volatile, &&)
 
 #undef STDSHARP_GET
         };
@@ -113,7 +117,6 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
-
     template<typename... T>
     struct indexed_values : details::indexed_values<T...>::template impl<>
     {

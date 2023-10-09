@@ -31,24 +31,22 @@ namespace stdsharp::details
         }
 
     private:
-        template<typename This, typename... TArgs, typename Invocable = decltype(std::declval<This>().func_)>
-            requires std::invocable<Invocable,  Args ..., TArgs...>
-        static constexpr decltype(auto) operator_impl(This&& this_, TArgs&&... args)  
-            noexcept(nothrow_invocable<Invocable,  Args ..., TArgs...>)
+        template<
+            typename This,
+            typename... TArgs,
+            typename Invocable = cv_ref_align_t<This&&, invocable_t>>
+            requires std::invocable<Invocable, cv_ref_align_t<This&&, Args>..., TArgs...>
+        static constexpr decltype(auto) operator_impl(This&& this_, TArgs&&... args) //
+            noexcept(nothrow_invocable<Invocable, cv_ref_align_t<This&&, Args>..., TArgs...>)
         {
             return (cpp_forward(this_).func_)(
-                cpo::get_element<I>(static_cast< args_t >(args_))...,
+                cpo::get_element<I>(cpp_forward(this_).args_)...,
                 cpp_forward(args)...
             );
         }
 
     public:
-#define STDSHARP_OPERATOR(const_, ref)
-
-
-        STDSHARP_MEM_PACK(STDSHARP_OPERATOR)
-
-#undef STDSHARP_OPERATOR
+        STDSHARP_MEM_PACK(operator(), operator_impl, lvalue_binder)
     };
 
     template<typename Fn, typename... Args>

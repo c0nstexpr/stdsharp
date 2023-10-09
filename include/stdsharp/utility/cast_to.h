@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../concepts/concepts.h"
+#include "../type_traits/core_traits.h"
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp
@@ -22,23 +24,13 @@ namespace stdsharp
     template<typename T>
     struct cast_fwd_fn
     {
-#define STDSHARP_OPERATOR(const_, volatile_, ref)                                            \
-    STDSHARP_INTRINSIC constexpr const_ volatile_ T ref operator()(const_ volatile_ T ref t) \
-        const noexcept                                                                       \
-    {                                                                                        \
-        return static_cast<const_ volatile_ T ref>(t);                                       \
-    }
-
-        STDSHARP_OPERATOR(const, , &)
-        STDSHARP_OPERATOR(const, , &&)
-        STDSHARP_OPERATOR(const, volatile, &)
-        STDSHARP_OPERATOR(const, volatile, &&)
-        STDSHARP_OPERATOR(, volatile, &)
-        STDSHARP_OPERATOR(, volatile, &&)
-        STDSHARP_OPERATOR(, , &)
-        STDSHARP_OPERATOR(, , &&)
-
-#undef STDSHARP_OPERATOR
+        template<typename U>
+            requires explicitly_convertible<U, cv_ref_align_t<U&&, T>>
+        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(U && u) const
+            noexcept(nothrow_explicitly_convertible<U, cv_ref_align_t<U&&, T>>)
+        {
+            return static_cast<cv_ref_align_t<U&&, T>>(cpp_forward(u));
+        }
     };
 
     template<typename T>

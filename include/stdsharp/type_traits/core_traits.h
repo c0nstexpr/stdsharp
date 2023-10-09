@@ -146,7 +146,14 @@ namespace stdsharp
     >; // clang-format on
 
     template<typename T, typename U>
-    using const_ref_align_t = ref_align_t<T, const_align_t<T, U>>;
+    using volatile_align_t = std::conditional_t<
+        std::is_volatile_v<std::remove_reference_t<T>>,
+        std::add_volatile_t<U>, // clang-format off
+        U
+    >; // clang-format on
+
+    template<typename T, typename U>
+    using cv_ref_align_t = ref_align_t<T, volatile_align_t<T, const_align_t<T, U>>>;
 
     template<auto Value>
     using constant = std::integral_constant<decltype(Value), Value>;
