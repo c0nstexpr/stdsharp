@@ -14,6 +14,9 @@ using namespace std::literals;
 
 namespace stdsharp
 {
+    template<bool Noexcept, typename Ret, typename... Args>
+    using func_pointer = Ret (*)(Args...) noexcept(Noexcept);
+
     template<typename T, typename U>
     using is_derived_from = std::is_base_of<U, T>;
 
@@ -53,6 +56,36 @@ namespace stdsharp
         lvalue,
         rvalue
     };
+}
+
+namespace stdsharp::details
+{
+    template<bool, typename, typename, typename...>
+    struct mem_func_pointer;
+
+#define MEM_FUNC_POINTER(cv, ref)                                       \
+    template<bool Noexcept, typename Ret, typename T, typename... Args> \
+    struct mem_func_pointer<Noexcept, Ret, cv T ref, Args...>           \
+    {                                                                   \
+        using type = Ret (T::*)(Args...) cv ref noexcept(Noexcept);     \
+    };
+
+    MEM_FUNC_POINTER(const, &)
+    MEM_FUNC_POINTER(const, &&)
+    MEM_FUNC_POINTER(volatile, &)
+    MEM_FUNC_POINTER(volatile, &&)
+    MEM_FUNC_POINTER(const volatile, &)
+    MEM_FUNC_POINTER(const volatile, &&)
+    MEM_FUNC_POINTER( , &)
+    MEM_FUNC_POINTER(, &&)
+
+#undef MEM_FUNC_POINTER
+}
+
+namespace stdsharp
+{
+    template<bool Noexcept, typename Ret, typename T, typename... Args>
+    using mem_func_pointer = details::mem_func_pointer<Noexcept, Ret, T, Args...>::type;
 
     template<typename T>
     inline constexpr auto get_ref_qualifier = std::is_lvalue_reference_v<T> ? //

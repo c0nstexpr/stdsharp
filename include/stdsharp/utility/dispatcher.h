@@ -13,11 +13,7 @@ namespace stdsharp::details
         static constexpr auto req = ExprReq;
         static constexpr bool no_exception = is_noexcept(req);
 
-        // TODO: workaround for msvc compile error
-        template<bool Noexcept = no_exception>
-        using func_sig = Ret (*)(Args...) noexcept(Noexcept);
-
-        using func = func_sig<>;
+        using func = func_pointer<no_exception, Ret, Args...>;
 
         using not_null = gsl::not_null<func>;
 
