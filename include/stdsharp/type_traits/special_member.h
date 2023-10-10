@@ -4,7 +4,7 @@
 
 namespace stdsharp
 {
-    struct [[nodiscard]] special_mem_req
+    struct special_mem_req
     {
         expr_req move_construct = expr_req::no_exception;
         expr_req copy_construct = expr_req::no_exception;
@@ -14,7 +14,7 @@ namespace stdsharp
         expr_req swap = move_construct;
 
         template<typename T>
-        static constexpr special_mem_req for_type() noexcept
+        [[nodiscard]] static constexpr auto for_type() noexcept
         {
             return special_mem_req{
                 get_expr_req(std::is_move_constructible_v<T>, nothrow_move_constructible<T>),
@@ -26,27 +26,28 @@ namespace stdsharp
             };
         }
 
-        static constexpr special_mem_req trivial() noexcept { return {}; };
+        [[nodiscard]] static constexpr auto trivial() noexcept { return special_mem_req{}; };
 
-        static constexpr special_mem_req normal() noexcept
+        // TODO: replace with designated initializer when msvc fix
+        [[nodiscard]] static constexpr auto normal() noexcept
         {
-            return {
-                .copy_construct = expr_req::well_formed,
-                .copy_assign = expr_req::well_formed,
-            };
+            special_mem_req res{};
+            res.copy_construct = expr_req::well_formed;
+            res.copy_assign = expr_req::well_formed;
+            return res;
         }
 
-        static constexpr special_mem_req unique() noexcept
+        [[nodiscard]] static constexpr auto unique() noexcept
         {
-            return {
-                .copy_construct = expr_req::ill_formed,
-                .copy_assign = expr_req::ill_formed,
-            };
+            special_mem_req res{};
+            res.copy_construct = expr_req::ill_formed;
+            res.copy_assign = expr_req::ill_formed;
+            return res;
         }
 
-        static constexpr special_mem_req ill_formed() noexcept
+        [[nodiscard]] static constexpr auto ill_formed() noexcept
         {
-            return {
+            return special_mem_req{
                 expr_req::ill_formed,
                 expr_req::ill_formed,
                 expr_req::ill_formed,
