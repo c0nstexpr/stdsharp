@@ -46,7 +46,7 @@ namespace stdsharp
 
         template<typename Other>
             requires(other_assignable<Other>)
-        constexpr synchronizer(const empty_t, Other&& other)
+        constexpr synchronizer(const empty_t /*unused*/, Other&& other)
         {
             assign_value(object_, cpp_forward(other));
         }

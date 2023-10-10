@@ -7,7 +7,6 @@
 #include "../utility/auto_cast.h"
 #include "allocator_traits.h"
 #include "../cmath/cmath.h"
-#include "../compilation_config_in.h"
 #include "../cassert/cassert.h"
 
 namespace stdsharp
@@ -34,11 +33,14 @@ namespace stdsharp
 
         static_memory_resource(const static_memory_resource&) = delete;
 
-        constexpr static_memory_resource(static_memory_resource&&) noexcept { release(); }
+        constexpr static_memory_resource(static_memory_resource&& /*unused*/) noexcept
+        {
+            release();
+        }
 
         static_memory_resource& operator=(const static_memory_resource&) = delete;
 
-        constexpr static_memory_resource& operator=(static_memory_resource&&) noexcept
+        constexpr static_memory_resource& operator=(static_memory_resource&& /*unused*/) noexcept
         {
             release();
             return *this;
@@ -71,10 +73,7 @@ namespace stdsharp
         constexpr void deallocate(all_aligned* const ptr, const std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
-            precondition<std::out_of_range>(
-                [ptr, this] { return contains(ptr); },
-                "pointer does not belong to this resource"
-            );
+            Expects(contains(ptr));
             std::ranges::fill_n(map_state(ptr), auto_cast(required_size), false);
         }
 
@@ -146,5 +145,3 @@ namespace stdsharp
         return resource;
     }
 }
-
-#include "../compilation_config_out.h"

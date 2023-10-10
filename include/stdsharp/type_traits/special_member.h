@@ -14,18 +14,47 @@ namespace stdsharp
         expr_req swap = move_construct;
 
         template<typename T>
-        static constexpr special_mem_req for_type{
-            get_expr_req(std::move_constructible<T>, nothrow_move_constructible<T>),
-            get_expr_req(std::copy_constructible<T>, nothrow_copy_constructible<T>),
-            get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
-            get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
-            get_expr_req(std::is_destructible_v<T>, std::is_nothrow_destructible_v<T>),
-            get_expr_req(std::swappable<T>, nothrow_swappable<T>) //
-        };
-        static const special_mem_req trivial;
-        static const special_mem_req normal;
-        static const special_mem_req unique;
-        static const special_mem_req ill_formed;
+        static constexpr special_mem_req for_type() noexcept
+        {
+            return special_mem_req{
+                get_expr_req(std::is_move_constructible_v<T>, nothrow_move_constructible<T>),
+                get_expr_req(std::is_copy_constructible_v<T>, nothrow_copy_constructible<T>),
+                get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
+                get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
+                get_expr_req(std::is_destructible_v<T>, std::is_nothrow_destructible_v<T>),
+                get_expr_req(std::swappable<T>, nothrow_swappable<T>) //
+            };
+        }
+
+        static constexpr special_mem_req trivial() noexcept { return {}; };
+
+        static constexpr special_mem_req normal() noexcept
+        {
+            return {
+                .copy_construct = expr_req::well_formed,
+                .copy_assign = expr_req::well_formed,
+            };
+        }
+
+        static constexpr special_mem_req unique() noexcept
+        {
+            return {
+                .copy_construct = expr_req::ill_formed,
+                .copy_assign = expr_req::ill_formed,
+            };
+        }
+
+        static constexpr special_mem_req ill_formed() noexcept
+        {
+            return {
+                expr_req::ill_formed,
+                expr_req::ill_formed,
+                expr_req::ill_formed,
+                expr_req::ill_formed,
+                expr_req::ill_formed,
+                expr_req::ill_formed,
+            };
+        }
 
     private:
         [[nodiscard]] constexpr auto to_rng() const noexcept
@@ -84,30 +113,6 @@ namespace stdsharp
             std::max(left.swap, right.swap) //
         };
     }
-
-    template<typename T>
-    constexpr special_mem_req special_mem_req::for_type;
-
-    constexpr special_mem_req special_mem_req::trivial{};
-
-    constexpr special_mem_req special_mem_req::normal{
-        .copy_construct = expr_req::well_formed,
-        .copy_assign = expr_req::well_formed,
-    };
-
-    constexpr special_mem_req special_mem_req::unique{
-        .copy_construct = expr_req::ill_formed,
-        .copy_assign = expr_req::ill_formed,
-    };
-
-    constexpr special_mem_req special_mem_req::ill_formed{
-        expr_req::ill_formed,
-        expr_req::ill_formed,
-        expr_req::ill_formed,
-        expr_req::ill_formed,
-        expr_req::ill_formed,
-        expr_req::ill_formed,
-    };
 
     template<special_mem_req Req>
     struct fake_type_for : empty_t // NOLINTBEGIN(*-use-equals-default,*-noexcept-*)

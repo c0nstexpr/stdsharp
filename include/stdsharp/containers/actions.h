@@ -17,7 +17,8 @@ namespace stdsharp::actions
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires sequence_container<Container>
         constexpr decltype(auto) operator()(
-            Container& container,
+            Container &
+                container,
             const details::container_citer<Container> iter,
             Args&&... args
         ) const
@@ -27,7 +28,7 @@ namespace stdsharp::actions
 
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires associative_like_container<Container>
-        constexpr decltype(auto) operator()(Container& container, Args&&... args) const
+        constexpr decltype(auto) operator()(Container & container, Args&&... args) const
         {
             return container.emplace(cpp_forward(args)...);
         }
@@ -114,7 +115,7 @@ namespace stdsharp::actions
                     Container&,                                                                 \
                     details::container_citer<Container>,                                        \
                     Args...>                                                                    \
-            constexpr decltype(auto) operator()(Container& container, Args&&... args) const     \
+            constexpr decltype(auto) operator()(Container & container, Args&&... args) const    \
             {                                                                                   \
                 return *actions::emplace(container, container.c##iter(), cpp_forward(args)...); \
             }                                                                                   \
@@ -271,7 +272,7 @@ namespace stdsharp::actions
             template<typename... Args>
                 requires(std::invocable<actions::emplace_back_fn, Container&, Args> && ...)
             constexpr auto operator()(Args&&... args) const noexcept( //
-                (nothrow_invocable<actions::emplace_back_fn, Container&, Args>&&...) && //
+                (nothrow_invocable<actions::emplace_back_fn, Container&, Args> && ...) && //
                 noexcept(reserved<Container, sizeof...(Args)>())
             )
             {
@@ -284,7 +285,7 @@ namespace stdsharp::actions
             template<typename... Args>
                 requires(std::invocable<actions::emplace_fn, Container&, Args> && ...)
             constexpr auto operator()(Args&&... args) const noexcept( //
-                (nothrow_invocable<actions::emplace_fn, Container&, Args>&&...) && //
+                (nothrow_invocable<actions::emplace_fn, Container&, Args> && ...) && //
                 noexcept(reserved<Container, sizeof...(Args)>())
             )
             {
@@ -295,43 +296,12 @@ namespace stdsharp::actions
             }
         };
 
-        template<typename Container>
-        static constexpr auto regular_make_container = make_sequenced_invoke(
-            constructor<Container>{},
-            details::emplace_make_container_fn<Container>{} // clang-format off
-        ); // clang-format on
-
-        template<typename Container>
-        using regular_make_container_fn = decltype(regular_make_container<Container>);
-
-        template<typename Container>
-        struct make_container_from_tuple_fn
-        {
-            template<typename Tuple, typename ValueType = std::ranges::range_value_t<Container>>
-                requires requires //
-            {
-                std::apply(regular_make_container_fn<Container>{}, std::declval<Tuple>()); //
-            }
-            constexpr auto operator()(
-                const std::piecewise_construct_t,
-                Tuple&& tuple
-            ) const noexcept( //
-                noexcept( //
-                    std::apply(regular_make_container_fn<Container>{}, std::declval<Tuple>())
-                )
-            )
-            {
-                return std::apply(regular_make_container_fn<Container>{}, cpp_forward(tuple));
-            }
-        };
     }
 
     template<typename Container>
-    using make_container_fn = sequenced_invocables<
-        details::emplace_make_container_fn<Container>,
-        details::make_container_from_tuple_fn<Container> // clang-format off
-    >; // clang-format on
+    using make_container_fn =
+        sequenced_invocables<constructor<Container>, details::emplace_make_container_fn<Container>>;
 
     template<typename Container>
-    inline constexpr make_container_fn<Container> make_container;
+    static constexpr make_container_fn<Container> make_container{};
 }

@@ -40,7 +40,7 @@ namespace stdsharp
         basic_allocator_aware() = default;
 
         constexpr basic_allocator_aware(
-            const std::allocator_arg_t,
+            const std::allocator_arg_t /*unused*/,
             const allocator_type& alloc,
             auto&&... args
         ) noexcept(noexcept(ctor(cpp_forward(args)..., alloc)))
@@ -66,8 +66,7 @@ namespace stdsharp
 
         constexpr basic_allocator_aware(T&& other) //
             noexcept(noexcept(ctor(cpp_move(other), other.get_allocator())))
-            requires has_alloc_getter &&
-            requires { ctor(cpp_move(other), other.get_allocator()); }
+            requires has_alloc_getter && requires { ctor(cpp_move(other), other.get_allocator()); }
         {
             ctor(cpp_move(other), cpp_move(other).get_allocator());
         }

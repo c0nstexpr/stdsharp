@@ -81,7 +81,7 @@ namespace stdsharp
                 return std::invoke(comp, other, value);
             }
 
-            constexpr auto operator()(const auto&) const noexcept { return false; }
+            constexpr auto operator()(const auto& /*unused*/) const noexcept { return false; }
         };
     } // clang-format on
 
@@ -98,7 +98,7 @@ namespace stdsharp
 
         template<std::size_t I>
             requires requires { requires I < size(); }
-        [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence) noexcept
+        [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence /*unused*/) noexcept
         {
             return value<I>;
         }
@@ -312,13 +312,18 @@ namespace stdsharp
                     return std::invoke(comp, value<I>, value<I + 1>);
                 }
 
-                constexpr auto operator()(const auto&, const auto&) const noexcept { return false; }
+                constexpr auto
+                    operator()(const auto& /*unused*/, const auto& /*unused*/) const noexcept
+                {
+                    return false;
+                }
             };
 
             struct impl
             {
                 template<typename Comp, std::size_t... I>
-                constexpr auto operator()(Comp& comp, const std::index_sequence<I...>) const
+                constexpr auto
+                    operator()(Comp& comp, const std::index_sequence<I...> /*unused*/) const
                     noexcept((nothrow_invocable<by_index<I>, Comp> && ...))
                 {
                     std::size_t res{};
@@ -345,7 +350,7 @@ namespace stdsharp
                 return impl{}(comp);
             }
 
-            [[nodiscard]] constexpr auto operator()(const int = {}) const noexcept
+            [[nodiscard]] constexpr auto operator()(const int /*unused*/ = {}) const noexcept
             {
                 return size();
             }
@@ -380,8 +385,8 @@ namespace stdsharp
         {
             template<decltype(auto)... Others, decltype(auto)... Front, decltype(auto)... Back>
             static consteval regular_value_sequence<Front..., Others..., Back...> impl(
-                const regular_value_sequence<Front...>,
-                const regular_value_sequence<Back...> //
+                const regular_value_sequence<Front...> /*unused*/,
+                const regular_value_sequence<Back...> /*unused*/
             )
             {
                 return {};

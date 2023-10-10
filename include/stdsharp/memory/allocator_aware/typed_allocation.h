@@ -5,11 +5,6 @@
 
 namespace stdsharp::allocator_aware
 {
-    struct bad_allocation_construct_call : std::logic_error
-    {
-        using std::logic_error::logic_error;
-    };
-
     template<allocator_req Allocator, typename ValueType>
     class [[nodiscard]] typed_allocation
     {
@@ -62,14 +57,11 @@ namespace stdsharp::allocator_aware
         static constexpr auto destructible_req =
             get_expr_req(destructible, traits::template nothrow_destructible<value_type>);
 
-        static constexpr auto swappable =
-            requires(allocator_type alloc, typed_allocation allocation) {
-                allocation.swap(alloc, alloc, allocation);
-            };
+        static constexpr auto swappable = true;
 
         static constexpr auto swappable_req = get_expr_req(
             swappable,
-            requires(allocator_type alloc, typed_allocation allocation) {
+            requires(allocator_type alloc, allocation<allocator_type> allocation) {
                 {
                     allocation.swap(alloc, alloc, allocation)
                 } noexcept;
@@ -95,18 +87,11 @@ namespace stdsharp::allocator_aware
         constexpr typed_allocation(
             const allocation<allocator_type>& allocation,
             const bool has_value = false
-        ) noexcept(!is_debug):
+        ) noexcept:
             allocation_(allocation), has_value_(has_value)
         {
-            if(has_value_)
-                precondition<std::invalid_argument>( //
-                    std::bind_front(
-                        std::ranges::greater_equal{},
-                        allocation_.size(),
-                        sizeof(value_type)
-                    ),
-                    "allocation size is too small for the value type"
-                );
+            const auto size = allocation_.size();
+            Expects(size == 0 ? !has_value_ : (size >= sizeof(value_type)));
         }
 
         [[nodiscard]] constexpr auto ptr() const noexcept
@@ -161,10 +146,7 @@ namespace stdsharp::allocator_aware
         constexpr void construct(allocator_type& alloc, Args&&... args) //
             noexcept(traits::template nothrow_constructible_from<value_type, Args...>)
         {
-            precondition<bad_allocation_construct_call>(
-                [this] { return allocation_.size() >= sizeof(value_type); },
-                "no allocation owned when constructing the value type"
-            );
+            Expects(allocation_.size() >= sizeof(value_type));
 
             destroy(alloc);
             traits::construct(alloc, ptr(), cpp_forward(args)...);
@@ -191,7 +173,7 @@ namespace stdsharp::allocator_aware
             return allocation;
         }
 
-        [[nodiscard]] constexpr auto mov_construct(allocator_type&) noexcept
+        [[nodiscard]] constexpr auto mov_construct(allocator_type& /*unused*/) noexcept
         {
             return std::exchange(*this, {});
         }
@@ -305,8 +287,8 @@ namespace stdsharp::allocator_aware
         ) noexcept(is_noexcept(swappable_req)) // NOLINT(*-noexcept-swap)
             requires swappable
         {
+            allocation_.swap(src_alloc, dst_alloc, dst_allocation.allocation_);
             std::swap(has_value_, dst_allocation.has_value_);
-            allocation_.swap(src_alloc, dst_alloc, dst_allocation);
         }
     };
 

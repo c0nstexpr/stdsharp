@@ -12,7 +12,7 @@ namespace stdsharp
     {
     private:
         template<size_t... I>
-        constexpr tuple_wise_ctor(auto&& args, const std::index_sequence<I...>):
+        constexpr tuple_wise_ctor(auto&& args, const std::index_sequence<I...> /*unused*/):
             T(std::get<I>(cpp_forward(args))...)
         {
         }
@@ -23,7 +23,7 @@ namespace stdsharp
         template<typename... Args, typename Tuple = std::tuple<Args...>>
             requires std::is_constructible_v<T, Args...> &&
             (!std::is_constructible_v<T, const std::piecewise_construct_t&, Tuple>)
-        constexpr tuple_wise_ctor(const std::piecewise_construct_t, Tuple&& args) //
+        constexpr tuple_wise_ctor(const std::piecewise_construct_t /*unused*/, Tuple&& args) //
             noexcept(nothrow_constructible_from<T, Args...>):
             tuple_wise_ctor(cpp_forward(args), std::index_sequence_for<Args...>{})
         {

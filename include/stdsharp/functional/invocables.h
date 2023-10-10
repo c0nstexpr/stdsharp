@@ -91,7 +91,7 @@ namespace stdsharp
     {
     private:
         template<typename T, typename... Args, std::size_t I = 0>
-        static constexpr std::size_t find_first(const index_constant<I> = {}) noexcept
+        static constexpr std::size_t find_first(const index_constant<I> /*unused*/ = {}) noexcept
         {
             if constexpr( //
                 requires {

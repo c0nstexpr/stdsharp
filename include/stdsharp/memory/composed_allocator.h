@@ -1,7 +1,6 @@
 #pragma once
 
 #include "allocator_traits.h"
-#include "../exception/exception.h"
 #include "pointer_traits.h"
 
 namespace stdsharp

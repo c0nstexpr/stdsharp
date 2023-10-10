@@ -72,6 +72,11 @@ namespace stdsharp
                              expr_req::ill_formed;
     }
 
+    constexpr auto is_well_formed(const expr_req req) noexcept
+    {
+        return req >= expr_req::well_formed;
+    }
+
     constexpr auto is_noexcept(const expr_req req) noexcept
     {
         return req >= expr_req::no_exception;
@@ -110,7 +115,7 @@ namespace stdsharp
     using apply_qualifiers = apply_ref<apply_volatile<apply_const<T, Const>, Volatile>, ref>;
 
     template<typename...>
-    [[nodiscard]] constexpr auto dependent_false(const auto&...) noexcept
+    [[nodiscard]] constexpr auto dependent_false(const auto&... /*unused*/) noexcept
     {
         return false;
     }
@@ -123,9 +128,9 @@ namespace stdsharp
 
         empty_t() = default;
 
-        constexpr empty_t(const auto&...) noexcept {}
+        constexpr empty_t(const auto&... /*unused*/) noexcept {}
 
-        constexpr bool operator==(const empty_t) const noexcept { return true; }
+        constexpr bool operator==(const empty_t /*unused*/) const noexcept { return true; }
     } empty;
 
     template<typename T>
@@ -174,7 +179,8 @@ namespace stdsharp
     struct basic_type_constant : std::type_identity<T>
     {
         template<typename U>
-        [[nodiscard]] constexpr bool operator==(const basic_type_constant<U>) const noexcept
+        [[nodiscard]] constexpr bool
+            operator==(const basic_type_constant<U> /*unused*/) const noexcept
         {
             return std::same_as<T, U>;
         }

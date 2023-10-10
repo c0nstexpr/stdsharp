@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <stdexcept>
 
 #include "../ranges/ranges.h"
 #include "../cassert/cassert.h"
@@ -54,7 +53,6 @@ namespace stdsharp
             Proj proj = {}
         ) const // NOLINTEND(*-easily-swappable-parameters)
             noexcept( //
-                !is_debug ||
                 nothrow_predicate<
                     Compare,
                     std::projected<const T*, Proj>,
@@ -66,10 +64,7 @@ namespace stdsharp
             const auto& proj_min = std::invoke(proj, min);
             const auto& proj_t = std::invoke(proj, t);
 
-            precondition<std::invalid_argument>(
-                [&] { return !std::invoke(cmp, proj_max, proj_min); },
-                "max value should not less than min value"
-            );
+            Expects(!std::invoke(cmp, proj_max, proj_min));
 
             return !std::invoke(cmp, proj_t, proj_min) && !std::invoke(cmp, proj_max, proj_t);
         }
@@ -128,5 +123,3 @@ namespace stdsharp
         }
     } strict_compare{};
 }
-
-#undef INVALID_ARGUMENT

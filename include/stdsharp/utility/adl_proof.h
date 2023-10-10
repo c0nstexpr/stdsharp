@@ -17,7 +17,7 @@ namespace stdsharp
 
     private:
         friend consteval adl_proof_traits
-            get_adl_traits(const std::type_identity<proofed_t>) noexcept
+            get_adl_traits(const std::type_identity<proofed_t> /*unused*/) noexcept
         {
             return {};
         }

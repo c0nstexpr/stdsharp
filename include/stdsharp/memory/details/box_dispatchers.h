@@ -19,7 +19,7 @@ namespace stdsharp::details
 
         static constexpr auto req = faked_typed_allocation::operation_constraints;
 
-    // private:
+    private:
         template<expr_req ExprReq, typename... Args>
         using ctor_dispatcher = dispatcher<ExprReq, allocation, alloc&, Args...>;
 
@@ -132,8 +132,8 @@ namespace stdsharp::details
                     alloc& dst_alloc,
                     allocation& dst_allocation,
                     const bool has_value,
-                    alloc_cref src_alloc,
-                    allocation_cref src_allocation
+                    alloc& src_alloc,
+                    allocation& src_allocation
                 ) const noexcept(is_noexcept(req.swap))
                     requires faked_typed_allocation::swappable
                 {
@@ -149,16 +149,16 @@ namespace stdsharp::details
                 dispatchers{mov_construct, cp_construct, mov_assign, cp_assign, destroy, swap};
         };
 
-        constexpr box_dispatchers(const dispatchers& b, const std::size_t size) noexcept:
+        constexpr box_dispatchers(const dispatchers b, const std::size_t size) noexcept:
             dispatchers_(b), type_size_(size)
         {
         }
 
-    // public:
+    public:
         box_dispatchers() = default;
 
         template<typename T, typename TD = typed_dispatcher<T>>
-        explicit constexpr box_dispatchers(const std::type_identity<T>) noexcept:
+        explicit constexpr box_dispatchers(const std::type_identity<T> /*unused*/) noexcept:
             box_dispatchers(TD::dispatchers, sizeof(T))
         {
         }

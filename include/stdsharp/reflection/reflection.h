@@ -27,7 +27,7 @@ namespace stdsharp::reflection
         {
             template<typename T>
                 requires std::invocable<cast_fwd_fn<Reflected>, T>
-            constexpr decltype(auto) operator()(T&& t) const
+            constexpr decltype(auto) operator()(T && t) const
                 noexcept(nothrow_invocable<cast_fwd_fn<Reflected>, T>)
             {
                 return cast_fwd<Reflected>(cpp_forward(t)).*Ptr;
@@ -57,14 +57,14 @@ namespace stdsharp::reflection
     public:
         template<ltr... Name, typename... T>
             requires(cpp_is_constexpr(T{}) && ...)
-        static consteval meta_set<func_meta<Name, T>...> func_reflect(const T...)
+        static consteval meta_set<func_meta<Name, T>...> func_reflect(const T... /*unused*/)
         {
             return {};
         }
 
         template<ltr... Name, member_of<Reflected> auto... Ptr>
         static consteval meta_set<data_meta<Name, Ptr>...>
-            data_reflect(const regular_value_sequence<Ptr...>)
+            data_reflect(const regular_value_sequence<Ptr...> /*unused*/)
         {
             return {};
         }

@@ -1,7 +1,3 @@
-#ifdef __clang__
-    #pragma clang diagnostic pop
-#endif
-
 #undef STDSHARP_NO_UNIQUE_ADDRESS
 #undef STDSHARP_INTRINSIC
 #undef STDSHARP_ALWAYS_INLINE

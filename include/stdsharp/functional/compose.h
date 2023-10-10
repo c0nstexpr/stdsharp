@@ -14,7 +14,8 @@ namespace stdsharp::details
             typename... Arg,
             typename Fns,
             typename Res = std::invoke_result_t<get_element_t<I, Fns>, Arg...>>
-        constexpr decltype(auto) operator()(const index_constant<I>, Fns && fn, Arg&&... arg) const
+        constexpr decltype(auto
+        ) operator()(const index_constant<I> /*unused*/, Fns && fn, Arg&&... arg) const
             noexcept(nothrow_invocable<compose_impl, index_constant<I + 1>, Fns, Res>)
             requires std::invocable<compose_impl, index_constant<I + 1>, Fns, Res>
         {
@@ -25,7 +26,9 @@ namespace stdsharp::details
             );
         }
 
-        constexpr decltype(auto) operator()(const index_constant<Size>, auto&&, auto&& arg) const noexcept
+        constexpr decltype(auto
+        ) operator()(const index_constant<Size> /*unused*/, auto&& /*unused*/, auto&& arg)
+            const noexcept
         {
             return cpp_forward(arg);
         }

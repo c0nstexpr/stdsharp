@@ -6,6 +6,20 @@ namespace stdsharp
 {
     inline constexpr struct
     {
+    private:
+        static constexpr auto impl(const auto& condition, auto& cases)
+        {
+            auto&& [first, second] = cases;
+
+            if(std::invoke(first, condition))
+            {
+                std::invoke(second, condition);
+                return true;
+            }
+            return false;
+        }
+
+    public:
         template<
             typename Condition,
             std::predicate<const Condition&>... Predicate,
@@ -19,20 +33,7 @@ namespace stdsharp
                 (nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func, Condition>)&&...
             ))
         {
-            (
-                [&condition](std::pair<Predicate, Func>&& pair)
-                {
-                    auto&& [first, second] = cpp_move(pair);
-
-                    if(std::invoke(cpp_move(first), condition))
-                    {
-                        std::invoke(cpp_move(second), condition);
-                        return true;
-                    }
-                    return false;
-                }(cpp_move(cases)) ||
-                ... //
-            );
+            (impl(condition, cases) || ...);
         }
 
         template<
@@ -46,7 +47,7 @@ namespace stdsharp
         {
             (*this)(
                 condition,
-                make_pair(
+                std::make_pair(
                     std::bind_front(equal_to_v, cpp_move(cases.first)),
                     cpp_move(cases.second)
                 )...
@@ -62,27 +63,21 @@ namespace stdsharp
             struct impl
             {
             private:
-                template<typename Case>
-                static constexpr bool case_nothrow_invocable_ =
-                    logical_imply(std::invocable<Case, T>, nothrow_invocable<Case, T>);
+                static constexpr auto invoke(std::invocable<T> auto& c)
+                {
+                    std::invoke(c, T{});
+                    return true;
+                }
+
+                static constexpr auto invoke(const auto& /*unused*/) { return false; }
 
             public:
                 template<typename... Cases>
-                constexpr void operator()(Cases... cases) const
-                    noexcept((case_nothrow_invocable_<Cases> && ...))
+                constexpr void operator()(Cases... cases) const noexcept(
+                    (logical_imply(std::invocable<Cases, T>, nothrow_invocable<Cases, T>) && ...)
+                )
                 {
-                    (
-                        []([[maybe_unused]] Cases&& c) noexcept(case_nothrow_invocable_<Cases>)
-                        {
-                            if constexpr(std::invocable<Cases, T>)
-                            {
-                                std::invoke(cpp_forward(c), T{});
-                                return true;
-                            }
-                            else return false;
-                        }(cpp_move(cases)) ||
-                        ...
-                    );
+                    (invoke(cases) || ...);
                 }
             };
         }

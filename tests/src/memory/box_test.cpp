@@ -1,4 +1,6 @@
 #include "stdsharp/memory/box.h"
+#include "stdsharp/type_traits/object.h"
+#include "stdsharp/type_traits/special_member.h"
 #include "test_worst_type.h"
 
 using allocator_t = allocator<unsigned char>;
@@ -18,22 +20,20 @@ SCENARIO("box basic requirements", "[memory][box]") // NOLINT
     allocation_type_requirement_test<normal_t, unique_t, worst_t>();
 }
 
-
-
 SCENARIO("box assign value", "[memory][box]") // NOLINT
 {
     allocation_functionality_test<normal_box<allocator_t>>();
 }
 
-// SCENARIO("constexpr box", "[memory][box]") // NOLINT
-// {
-//     STATIC_REQUIRE(
-//         []
-//         {
-//             trivial_box<allocator<int>> allocation{};
-//             auto& value = allocation.emplace(1);
-//             value = 42;
-//             return allocation.get<int>();
-//         }() == 42
-//     );
-// }
+SCENARIO("constexpr box", "[memory][box]") // NOLINT
+{
+    STATIC_REQUIRE(
+        []
+        {
+            trivial_box<allocator<int>> allocation{};
+            auto& value = allocation.emplace(1);
+            value = 42;
+            return allocation.get<int>();
+        }() == 42
+    );
+}

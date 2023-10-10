@@ -42,7 +42,7 @@ namespace stdsharp
 
     inline namespace literals
     {
-#define STDSHARP_INT_LITERALS(literal)                                                               \
+#define STDSHARP_INT_LITERALS(literal)                                                         \
     [[nodiscard]] constexpr auto operator""_##literal(const unsigned long long value) noexcept \
     {                                                                                          \
         return static_cast<literal>(value);                                                    \

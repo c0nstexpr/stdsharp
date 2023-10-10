@@ -13,6 +13,7 @@ namespace stdsharp::details
         static constexpr auto req = ExprReq;
         static constexpr bool no_exception = is_noexcept(req);
 
+        // TODO: workaround for msvc compile error
         template<bool Noexcept = no_exception>
         using func_sig = Ret (*)(Args...) noexcept(Noexcept);
 
@@ -20,16 +21,19 @@ namespace stdsharp::details
 
         using not_null = gsl::not_null<func>;
 
-        template<invocable_r<Ret, Args...> Closure>
+        template<typename Closure>
             requires requires //
         {
             requires empty_type<Closure>;
+            requires !(is_well_formed(req)) || invocable_r<const Closure&, Ret, Args...>;
             requires cpp_is_constexpr(Closure{});
-            requires !no_exception || nothrow_invocable_r<Closure, Ret, Args...>;
+            requires !no_exception || nothrow_invocable_r<const Closure&, Ret, Args...>;
         }
         [[nodiscard]] static constexpr auto encapsulate() noexcept
         {
-            if constexpr(explicitly_convertible<Closure, func>) return static_cast<func>(Closure{});
+            if constexpr(!(is_well_formed(req))) return;
+            else if constexpr(explicitly_convertible<Closure, func>)
+                return static_cast<func>(Closure{});
             else
                 return +[](Args... args) noexcept(no_exception) -> Ret
                 {
@@ -65,7 +69,8 @@ namespace stdsharp::details
                     encapsulate<Closure>();
                     requires !std::convertible_to<Closure, func>;
                 }
-            constexpr dispatcher(const Closure) noexcept: not_null(encapsulate<Closure>())
+            constexpr dispatcher(const Closure /*unused*/) noexcept:
+                not_null(encapsulate<Closure>())
             {
             }
 
@@ -80,7 +85,7 @@ namespace stdsharp::details
                     encapsulate<Closure>();
                     requires !std::convertible_to<Closure, func>;
                 }
-            constexpr dispatcher& operator=(const Closure) noexcept
+            constexpr dispatcher& operator=(const Closure /*unused*/) noexcept
             {
                 return (*this = encapsulate<Closure>());
             }
@@ -105,20 +110,21 @@ namespace stdsharp::details
 
             dispatcher() = default;
 
-            template<typename Closure>
-                requires requires { encapsulate<Closure>(); }
-            constexpr dispatcher(const Closure) noexcept
-            {
-            }
+            constexpr dispatcher(const auto& /*unused*/) noexcept {}
 
-            template<typename Closure>
-                requires requires { encapsulate<Closure>(); }
-            constexpr dispatcher& operator=(const Closure) noexcept
-            {
-                return *this;
-            }
+            constexpr dispatcher(const func /*unused*/) noexcept {}
 
-            constexpr bool operator==(const dispatcher) const noexcept { return true; }
+            dispatcher(nullptr_t) = delete;
+            dispatcher(pointer auto) = delete;
+
+            constexpr dispatcher& operator=(const auto& /*unused*/) noexcept { return *this; }
+
+            constexpr dispatcher& operator=(const func /*unused*/) noexcept { return *this; }
+
+            dispatcher& operator=(nullptr_t) = delete;
+            dispatcher& operator=(pointer auto) = delete;
+
+            constexpr bool operator==(const dispatcher /*unused*/) const noexcept { return true; }
         };
     };
 }

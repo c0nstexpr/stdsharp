@@ -175,7 +175,8 @@ namespace stdsharp
         struct default_constructor
         {
             template<typename T, typename... Args>
-            constexpr decltype(auto) operator()(const Alloc&, T* const ptr, Args&&... args) const
+            constexpr decltype(auto
+            ) operator()(const Alloc& /*unused*/, T* const ptr, Args&&... args) const
                 noexcept(noexcept(std::ranges::construct_at(ptr, std::declval<Args>()...)))
                 requires requires { std::ranges::construct_at(ptr, std::declval<Args>()...); }
             {
@@ -184,9 +185,9 @@ namespace stdsharp
 
             template<typename T, typename... Args>
             constexpr decltype(auto) operator()(
-                const Alloc&,
+                const Alloc& /*unused*/,
                 void* const ptr,
-                const std::in_place_type_t<T>,
+                const std::in_place_type_t<T> /*unused*/,
                 Args&&... args
             ) const noexcept(noexcept(std::ranges::construct_at(ptr, std::declval<Args>()...)))
                 requires requires { std::ranges::construct_at(ptr, std::declval<Args>()...); }
@@ -218,7 +219,7 @@ namespace stdsharp
             constexpr void operator()(
                 const Alloc& alloc,
                 void* const ptr,
-                const std::in_place_type_t<T>,
+                const std::in_place_type_t<T> /*unused*/,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
@@ -230,7 +231,7 @@ namespace stdsharp
             constexpr void operator()(
                 const Alloc& alloc,
                 void* const ptr,
-                const std::in_place_type_t<T>,
+                const std::in_place_type_t<T> /*unused*/,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
@@ -271,7 +272,7 @@ namespace stdsharp
         struct default_destructor
         {
             template<typename U>
-            constexpr void operator()(const Alloc&, U* const ptr) const noexcept
+            constexpr void operator()(const Alloc& /*unused*/, U* const ptr) const noexcept
             {
                 std::ranges::destroy_at(ptr);
             }

@@ -49,9 +49,9 @@ namespace stdsharp
             typename Identity = std::type_identity<ValueType> // clang-format off
             > // clang-format on
         constexpr box(
-            const std::allocator_arg_t,
+            const std::allocator_arg_t /*unused*/,
             const allocator_type& alloc,
-            const std::in_place_type_t<T>,
+            const std::in_place_type_t<T> /*unused*/,
             Args&&... args
         )
             requires requires {
@@ -275,19 +275,20 @@ namespace stdsharp
         template<typename T, typename... Args>
         static constexpr auto emplace_constructible =
             m_base::template constructible_from<T, Args...> &&
-            std::constructible_from<dispatchers, std::type_identity<T>>;
+            std::constructible_from<dispatchers, std::type_identity<T>> &&
+            faked_typed::destructible;
 
     public:
         template<std::same_as<void> T = void>
+            requires faked_typed::destructible
         constexpr void emplace() noexcept(noexcept(destroy()))
-            requires requires { destroy(); }
         {
             destroy();
         }
 
         template<typename T, typename... Args>
+            requires emplace_constructible<T, Args...>
         constexpr decltype(auto) emplace(Args&&... args)
-            requires emplace_constructible<T, Args...> && requires { destroy(); }
         {
             destroy();
             get_allocation().allocate(get_allocator(), sizeof(T));
@@ -302,14 +303,14 @@ namespace stdsharp
 
         template<typename T, typename... Args, typename U>
         constexpr decltype(auto) emplace(const std::initializer_list<U> il, Args&&... args)
-            requires requires { emplace<T, decltype(il), Args...>(il, cpp_forward(args)...); }
+            requires emplace_constructible<T, decltype(il), Args...>
         {
             return emplace<T, decltype(il), Args...>(il, cpp_forward(args)...);
         }
 
         template<typename T>
+            requires emplace_constructible<std::decay_t<T>, T>
         constexpr decltype(auto) emplace(T&& t)
-            requires requires { emplace<std::decay_t<T>, T>(cpp_forward(t)); }
         {
             return emplace<std::decay_t<T>, T>(cpp_forward(t));
         }
@@ -359,7 +360,7 @@ namespace stdsharp
     }; // NOLINTEND(*-noexcept-*)
 
     template<typename T, allocator_req Alloc>
-    using box_for = box<special_mem_req::template for_type<T>, Alloc>;
+    using box_for = box<special_mem_req::for_type<T>(), Alloc>;
 
     template<allocator_req Alloc>
     using trivial_box = box_for<trivial_object, Alloc>;

@@ -117,21 +117,21 @@ namespace stdsharp::allocator_aware
             *this = {};
         }
 
+    private:
+        constexpr bool vaildate_alloc(const allocator_type& left, const allocator_type& right) noexcept
+        {
+            if constexpr(always_equal_v) return true;
+            else return left == right;
+        }
+
+    public:
         constexpr void swap(
             allocator_type& src_alloc,
             allocator_type& dst_alloc,
             allocation& dst_allocation
-        ) noexcept(!is_debug) // NOLINT(*-noexcept-swap)
+        ) noexcept
         {
-            precondition<std::invalid_argument>( //
-                [&dst_alloc, &src_alloc]
-                {
-                    if constexpr(!always_equal_v)
-                        if(dst_alloc != src_alloc) return false;
-
-                    return true;
-                }
-            );
+            Expects((vaildate_alloc(dst_alloc, src_alloc)));
             std::swap(dst_allocation, *this);
             if constexpr(propagate_on_swap_v) std::ranges::swap(dst_alloc, src_alloc);
         }

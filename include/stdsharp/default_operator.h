@@ -17,8 +17,8 @@ namespace stdsharp
     };
 
     template<typename T, typename Delegate = void>
-        requires cpp_is_constexpr(Delegate{})
-    class default_increase_and_decrease : default_unary_op<T>
+        requires cpp_is_constexpr
+    (Delegate{}) class default_increase_and_decrease : default_unary_op<T>
     {
         friend constexpr T& operator++(T& t) noexcept(noexcept(++Delegate{}(t)))
             requires requires { ++Delegate{}(t); }
@@ -58,7 +58,7 @@ namespace stdsharp
     class default_arithmetic_operation : default_increase_and_decrease<T, Delegate>
     {
 #define STDSHARP_ARITH_OP(op)                                             \
-    friend constexpr T& operator op##=(T& t, const T& u) noexcept(        \
+    friend constexpr T& operator op##=(T & t, const T & u) noexcept(      \
         noexcept(Delegate{}(t)op## = Delegate{}(u))                       \
     )                                                                     \
         requires requires { Delegate{}(t)op## = Delegate{}(u); }          \
@@ -67,7 +67,7 @@ namespace stdsharp
         return t;                                                         \
     }                                                                     \
                                                                           \
-    friend constexpr T& operator op##=(T& t, const auto& u) noexcept(     \
+    friend constexpr T& operator op##=(T & t, const auto& u) noexcept(    \
         noexcept(Delegate{}(t)op## = u)                                   \
     )                                                                     \
         requires requires { Delegate{}(t)op## = u; }                      \

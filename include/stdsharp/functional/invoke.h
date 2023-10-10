@@ -10,7 +10,7 @@ namespace stdsharp
 
     inline constexpr struct empty_invoke_fn
     {
-        constexpr empty_t operator()(const auto&...) const noexcept { return {}; }
+        constexpr empty_t operator()(const auto&... /*unused*/) const noexcept { return {}; }
     } empty_invoke{};
 
     inline constexpr sequenced_invocables optional_invoke{invoke, empty_invoke};
@@ -23,14 +23,16 @@ namespace stdsharp
     {
         template<std::invocable Func>
             requires(Condition)
-        constexpr decltype(auto) operator()(Func&& func, const auto& = empty_invoke) const
+        constexpr decltype(auto
+        ) operator()(Func && func, const auto& /*unused*/ = empty_invoke) const
             noexcept(nothrow_invocable<Func>)
         {
             return func();
         }
 
         template<std::invocable Func = empty_invoke_fn>
-        constexpr decltype(auto) operator()(const auto&, Func&& func = empty_invoke) const
+        constexpr decltype(auto
+        ) operator()(const auto& /*unused*/, Func && func = empty_invoke) const
             noexcept(nothrow_invocable<Func>)
         {
             return func();
@@ -75,7 +77,7 @@ namespace stdsharp
             requires(std::invocable<Projector, Args> && ...);
             requires std::invocable<Fn, std::invoke_result_t<Projector, Args>...>;
         }
-        constexpr decltype(auto) operator()(Fn&& fn, Projector projector, Args&&... args) const
+        constexpr decltype(auto) operator()(Fn && fn, Projector projector, Args&&... args) const
             noexcept(
                 (nothrow_invocable<Projector, Args> && ...) && //
                 nothrow_invocable<Fn, std::invoke_result_t<Projector, Args>...> //

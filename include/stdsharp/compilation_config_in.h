@@ -1,7 +1,4 @@
-#ifdef __clang__
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wconstant-evaluated"
-#endif
+#include <cassert>
 
 #ifdef __GNUG__
     #define STDSHARP_ALWAYS_INLINE [[gnu::always_inline]]
@@ -28,7 +25,7 @@
 #elif defined(_MSC_VER)
     #define STDSHARP_ASSUME(...) __assume(__VA_ARGS__)
 #else
-    #define STDSHARP_ASSUME(...)
+    #define STDSHARP_ASSUME(...) assert(__VA_ARGS__);
 #endif
 
 #define STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, cv, ref)                        \

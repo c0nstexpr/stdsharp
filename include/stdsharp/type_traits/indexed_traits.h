@@ -13,7 +13,7 @@ namespace stdsharp::details
         template<typename U, std::size_t I>
         struct indexed_type : type_constant<U>
         {
-            static constexpr type_constant<U> get_type(const index_constant<I>) noexcept
+            static constexpr type_constant<U> get_type(const index_constant<I> /*unused*/) noexcept
             {
                 return {};
             }
@@ -139,7 +139,7 @@ namespace stdsharp
         static constexpr decltype(auto) impl(
             Fn&& fn,
             Indexed&& indexed,
-            const std::index_sequence<I...> //
+            const std::index_sequence<I...> /*unused*/
         ) noexcept(nothrow_invocable<Fn, get_element_t<I, Indexed>...>)
         {
             return std::invoke(cpp_forward(fn), cpo::get_element<I>(cpp_forward(indexed))...);

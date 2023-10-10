@@ -55,7 +55,8 @@ namespace stdsharp::filesystem
         rep value_{};
 
         template<auto N, auto D>
-        static constexpr auto cast_from(const auto factor, const std::ratio<N, D>) noexcept
+        static constexpr auto
+            cast_from(const auto factor, const std::ratio<N, D> /*unused*/) noexcept
         {
             return static_cast<rep>(factor * denom * N / (num * D)); // NOLINT(*-integer-division)
         }
@@ -579,7 +580,8 @@ namespace std
 #define STDSHARP_MAKE_PAIR(str, type, next_str)                            \
     std::pair{                                                             \
         [](const std::string_view unit) noexcept { return unit == #str; }, \
-        format_case(identity<stdsharp::filesystem::type>{}, #next_str)}
+        format_case(identity<stdsharp::filesystem::type>{}, #next_str)     \
+    }
 
                         STDSHARP_MAKE_PAIR(b, bits, ),
                         STDSHARP_MAKE_PAIR(B, bytes, b),
