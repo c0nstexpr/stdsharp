@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 #
 project(
   stdsharp
-  VERSION 0.6.4
+  VERSION 0.7.0
   LANGUAGES CXX)
 
 include(cmake/Utils.cmake)
@@ -32,7 +32,7 @@ target_link_libraries(
 verbose_message("Successfully added all dependencies and linked against them.")
 
 target_install(${PROJECT_NAME} COMPATIBILITY SameMajorVersion DEPENDENCIES
-               fmt;ctre;range-v3;nameof)
+               ctre;range-v3;nameof;Microsoft.GSL)
 
 install(FILES cmake/Utils.cmake
         DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}/stdsharp)
