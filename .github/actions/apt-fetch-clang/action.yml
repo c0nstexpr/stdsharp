@@ -8,13 +8,13 @@ runs:
   using: composite
 
   steps:
-    - run: curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
-      shell: bash
-
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
         packages: clang-tidy-${{ inputs.llvm-ver }} clang-format-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev clang-${{ inputs.llvm-ver }} llvm-${{ inputs.llvm-ver }} lld-${{ inputs.llvm-ver }} clangd-${{ inputs.llvm-ver }}
         version: ${{ inputs.llvm-ver }}
+
+    - run: curl -s https://apt.llvm.org/llvm.sh | sudo bash -s ${{ inputs.llvm-ver }};
+      shell: bash
 
     - run: |
         sudo apt-get install llvm-${{ inputs.llvm-ver }} clang-tidy-${{ inputs.llvm-ver }} clang-format-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev clangd-${{ inputs.llvm-ver }};

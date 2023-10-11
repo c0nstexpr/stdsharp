@@ -5,5 +5,5 @@ runs:
 
   steps:
     - run: |
-        Start-Process -Wait -FilePath  "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "update --passive --norestart --installpath ""C:\Program Files\Microsoft Visual Studio\2022\Enterprise"""
+        Start-Process -Wait -FilePath  "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" -ArgumentList "update --passive --norestart --force --channelId VisualStudio.17.Release --installpath ""C:\Program Files\Microsoft Visual Studio\2022\Enterprise"""
       shell: pwsh
