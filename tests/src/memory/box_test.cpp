@@ -5,10 +5,13 @@ using allocator_t = allocator<unsigned char>;
 
 auto foo()
 {
-    trivial_box<allocator<int>> allocation{};
-    auto& value = allocation.emplace(1);
-    value = 42;
-    return allocation.get<int>();
+    using t0 = trivial_box<allocator<int>>;
+
+    static_assert(requires(t0 l) {
+        {
+            t0 { l }
+        };
+    });
 }
 
 SCENARIO("box basic requirements", "[memory][box]") // NOLINT
@@ -23,7 +26,7 @@ SCENARIO("box basic requirements", "[memory][box]") // NOLINT
     // STATIC_REQUIRE(default_initializable<unique_t>);
     // STATIC_REQUIRE(default_initializable<worst_t>);
 
-    // allocation_type_requirement_test<normal_t, unique_t, worst_t>();
+    allocation_type_requirement_test<normal_t, unique_t, worst_t>();
 }
 
 SCENARIO("box assign value", "[memory][box]") // NOLINT

@@ -45,7 +45,7 @@ namespace stdsharp
             return to_concrete().get_allocator();
         }
 
-        template<typename... Args, typename U = T>
+        template<typename U, typename... Args>
         constexpr auto ctor(Args&&... args) noexcept(nothrow_constructible_from<U, Args...>)
             requires std::is_constructible_v<U, Args...>
         {
@@ -68,21 +68,22 @@ namespace stdsharp
         basic_allocator_aware(const basic_allocator_aware&)
             requires false;
 
-        template<typename Cast = const T&>
-        constexpr basic_allocator_aware(const basic_allocator_aware& other) noexcept( //
+        template<std::same_as<basic_allocator_aware> U, typename Cast = const U&>
+        constexpr basic_allocator_aware(const U& other) //
             noexcept( //
-                ctor(
-                    static_cast<Cast>(other),
-                    select_on_container_copy_construction(other.get_allocator())
+                noexcept( //
+                    ctor<U>(
+                        static_cast<Cast>(other),
+                        select_on_container_copy_construction(other.get_allocator())
+                    )
                 )
             )
-        )
             requires requires(Cast t) {
-                // ctor(t, select_on_container_copy_construction(other.get_allocator()));
+                // ctor<U>(t, select_on_container_copy_construction(other.get_allocator()));
                 true;
             }
         {
-            ctor(
+            ctor<U>(
                 static_cast<Cast>(other),
                 select_on_container_copy_construction(other.get_allocator())
             );
@@ -91,14 +92,16 @@ namespace stdsharp
         basic_allocator_aware(basic_allocator_aware&&)
             requires false;
 
-        // template<typename Cast = T&&>
-        // constexpr basic_allocator_aware(basic_allocator_aware&& other) noexcept( //
-        //     noexcept(ctor(static_cast<Cast>(other), cpp_move(other).get_allocator()))
-        // )
-        //     requires requires { ctor(static_cast<Cast>(other), cpp_move(other).get_allocator()); }
-        // {
-        //     ctor(static_cast<Cast>(other), cpp_move(other).get_allocator());
-        // }
+        template<std::same_as<basic_allocator_aware> U, typename Cast = U&&>
+        constexpr basic_allocator_aware(U&& other) noexcept( //
+            noexcept(ctor<U>(static_cast<Cast>(other), cpp_move(other).get_allocator()))
+        )
+            requires requires {
+                ctor<U>(static_cast<Cast>(other), cpp_move(other).get_allocator());
+            }
+        {
+            ctor<U>(static_cast<Cast>(other), cpp_move(other).get_allocator());
+        }
 
         basic_allocator_aware& operator=(const basic_allocator_aware&) = default;
         basic_allocator_aware& operator=(basic_allocator_aware&&) = default;
