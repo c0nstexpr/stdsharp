@@ -125,9 +125,9 @@ namespace stdsharp
             );
         }
 
-        [[nodiscard]] constexpr composed_allocator select_on_container_copy_construction() const
+        [[nodiscard]] constexpr auto select_on_container_copy_construction() const
         {
-            return {
+            return composed_allocator{
                 first_traits::select_on_container_copy_construction(alloc_pair_.first),
                 second_traits::select_on_container_copy_construction(alloc_pair_.second) //
             };

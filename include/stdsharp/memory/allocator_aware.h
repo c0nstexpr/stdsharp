@@ -4,13 +4,14 @@
 
 namespace stdsharp
 {
-    template<typename T, typename Alloc>
+    template<typename T, typename Alloc> // NOLINTBEGIN(*-noexcept-*)
     struct basic_allocator_aware : allocator_traits<Alloc>
     {
         using allocator_type = Alloc;
         using allocator_traits = allocator_traits<allocator_type>;
         using typename allocator_traits::size_type;
         using typename allocator_traits::const_void_pointer;
+        using allocator_traits::select_on_container_copy_construction;
 
         using allocation = allocator_aware::allocation<allocator_type>;
 
@@ -20,18 +21,33 @@ namespace stdsharp
     private:
         constexpr T& to_concrete() noexcept { return static_cast<T&>(*this); }
 
-        static constexpr auto has_alloc_getter = requires(T t) {
-            {
-                t.get_allocator()
-            } noexcept -> ::std::convertible_to<allocator_type&>;
-            {
-                std::as_const(t).get_allocator()
-            } noexcept -> ::std::convertible_to<const allocator_type&>;
-        };
+        constexpr const T& to_concrete() const noexcept { return static_cast<const T&>(*this); }
 
-        template<typename... Args, typename Fn = decltype(std::ranges::construct_at)>
-            requires std::invocable<Fn, T*, Args...>
-        constexpr auto ctor(Args&&... args) noexcept(nothrow_invocable<Fn, T*, Args...>)
+        template<typename U = T>
+        constexpr allocator_type& get_allocator() noexcept
+            requires requires(U u) {
+                {
+                    u.get_allocator()
+                } noexcept -> ::std::convertible_to<allocator_type&>;
+            }
+        {
+            return to_concrete().get_allocator();
+        }
+
+        template<typename U = const T>
+        constexpr const allocator_type& get_allocator() const noexcept
+            requires requires(U u) {
+                {
+                    u.get_allocator()
+                } noexcept -> ::std::convertible_to<const allocator_type&>;
+            }
+        {
+            return to_concrete().get_allocator();
+        }
+
+        template<typename... Args, typename U = T>
+        constexpr auto ctor(Args&&... args) noexcept(nothrow_constructible_from<U, Args...>)
+            requires std::is_constructible_v<U, Args...>
         {
             std::ranges::construct_at(static_cast<T*>(this), cpp_forward(args)...);
         }
@@ -49,45 +65,62 @@ namespace stdsharp
             ctor(cpp_forward(args)..., alloc);
         }
 
-        constexpr basic_allocator_aware(const T& other) //
-            noexcept(noexcept(ctor(other, other.get_allocator())))
-            requires has_alloc_getter && requires {
+        basic_allocator_aware(const basic_allocator_aware&)
+            requires false;
+
+        template<typename Cast = const T&>
+        constexpr basic_allocator_aware(const basic_allocator_aware& other) noexcept( //
+            noexcept( //
                 ctor(
-                    other,
-                    allocator_traits::select_on_container_copy_construction(other.get_allocator())
-                );
+                    static_cast<Cast>(other),
+                    select_on_container_copy_construction(other.get_allocator())
+                )
+            )
+        )
+            requires requires(Cast t) {
+                // ctor(t, select_on_container_copy_construction(other.get_allocator()));
+                true;
             }
         {
             ctor(
-                other,
-                allocator_traits::select_on_container_copy_construction(other.get_allocator())
+                static_cast<Cast>(other),
+                select_on_container_copy_construction(other.get_allocator())
             );
         }
 
-        constexpr basic_allocator_aware(T&& other) //
-            noexcept(noexcept(ctor(cpp_move(other), other.get_allocator())))
-            requires has_alloc_getter && requires { ctor(cpp_move(other), other.get_allocator()); }
-        {
-            ctor(cpp_move(other), cpp_move(other).get_allocator());
-        }
+        basic_allocator_aware(basic_allocator_aware&&)
+            requires false;
+
+        // template<typename Cast = T&&>
+        // constexpr basic_allocator_aware(basic_allocator_aware&& other) noexcept( //
+        //     noexcept(ctor(static_cast<Cast>(other), cpp_move(other).get_allocator()))
+        // )
+        //     requires requires { ctor(static_cast<Cast>(other), cpp_move(other).get_allocator()); }
+        // {
+        //     ctor(static_cast<Cast>(other), cpp_move(other).get_allocator());
+        // }
+
+        basic_allocator_aware& operator=(const basic_allocator_aware&) = default;
+        basic_allocator_aware& operator=(basic_allocator_aware&&) = default;
+        ~basic_allocator_aware() = default;
 
     protected:
         constexpr void allocate(const size_type size, const const_void_pointer hint = nullptr)
-            requires has_alloc_getter
+            requires requires { get_allocator(); }
         {
-            return allocator_aware::make_allocation(to_concrete().get_allocator(), size, hint);
+            return allocator_aware::make_allocation(get_allocator(), size, hint);
         }
 
         constexpr void deallocate(allocation& alloc) noexcept
-            requires has_alloc_getter
+            requires requires { get_allocator(); }
         {
-            alloc.deallocate(to_concrete().get_allocator());
+            alloc.deallocate(get_allocator());
         }
 
         template<typename ValueT, typename... Args>
         [[nodiscard]] constexpr auto construct(Args&&... args)
             requires requires {
-                requires has_alloc_getter;
+                requires requires { get_allocator(); };
                 requires ::std::invocable<
                     allocator_aware::make_typed_allocation_fn<ValueT>,
                     allocator_type&,
@@ -96,7 +129,7 @@ namespace stdsharp
             }
         {
             return allocator_aware::make_typed_allocation<ValueT>(
-                to_concrete().get_allocator(),
+                get_allocator(),
                 cpp_forward(args)...
             );
         }
@@ -104,7 +137,7 @@ namespace stdsharp
         template<typename ValueT, typename... Args>
         [[nodiscard]] constexpr auto construct(allocation& hint, Args&&... args)
             requires requires {
-                requires has_alloc_getter;
+                requires requires { get_allocator(); };
                 requires ::std::invocable<
                     allocator_aware::make_typed_allocation_fn<ValueT>,
                     allocation&,
@@ -115,20 +148,17 @@ namespace stdsharp
         {
             return allocator_aware::make_typed_allocation<ValueT>(
                 hint,
-                to_concrete().get_allocator(),
+                get_allocator(),
                 cpp_forward(args)...
             );
         }
 
         template<typename ValueT>
         constexpr void destroy(typed_allocation<ValueT>& allocation) //
-            noexcept(noexcept(allocation.destroy(to_concrete().get_allocator())))
-            requires requires {
-                requires has_alloc_getter;
-                allocation.destroy(to_concrete().get_allocator());
-            }
+            noexcept(noexcept(allocation.destroy(get_allocator())))
+            requires requires { allocation.destroy(get_allocator()); }
         {
-            allocation.destroy(to_concrete().get_allocator());
+            allocation.destroy(get_allocator());
         }
-    };
+    }; // NOLINTEND(*-noexcept-*)
 }

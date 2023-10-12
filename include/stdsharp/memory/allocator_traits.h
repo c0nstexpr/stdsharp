@@ -340,7 +340,25 @@ namespace stdsharp
         using rebind_traits = m_base::template rebind_traits<U>;
 
         using m_base::max_size;
-        using m_base::select_on_container_copy_construction;
+
+        static constexpr allocator_type select_on_container_copy_construction( //
+            const allocator_type& alloc
+        ) noexcept
+        {
+            return alloc;
+        }
+
+        static constexpr allocator_type select_on_container_copy_construction( //
+            const allocator_type& alloc
+        ) noexcept(noexcept(alloc.select_on_container_copy_construction()))
+            requires requires {
+                {
+                    alloc.select_on_container_copy_construction()
+                } -> std::convertible_to<allocator_type>;
+            }
+        {
+            return alloc.select_on_container_copy_construction();
+        }
 
         static constexpr pointer allocate(
             allocator_type& alloc,

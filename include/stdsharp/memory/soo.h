@@ -49,6 +49,8 @@ namespace stdsharp
                 : soo_allocator(get_static_memory_resource<Size>())
             {
             }
+
+            constexpr soo_allocator(decay_same_as<Base> auto&& b) noexcept: Base(cpp_forward(b)) {}
         };
     }
 

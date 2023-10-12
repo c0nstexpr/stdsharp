@@ -170,15 +170,15 @@ namespace stdsharp::details
         }
 
         [[nodiscard]] constexpr auto construct(alloc& alloc, allocation& allocation) const
-            noexcept(is_noexcept(req.copy_construct))
-            requires faked_typed_allocation::cp_constructible
+            noexcept(is_noexcept(req.move_construct))
+            requires faked_typed_allocation::mov_constructible
         {
             return cpo::get_element<0>(dispatchers_)(alloc, allocation);
         }
 
         [[nodiscard]] constexpr auto construct(alloc& alloc, allocation_cref allocation) const
-            noexcept(is_noexcept(req.move_construct))
-            requires faked_typed_allocation::mov_constructible
+            noexcept(is_noexcept(req.copy_construct))
+            requires faked_typed_allocation::cp_constructible
         {
             return cpo::get_element<1>(dispatchers_)(alloc, allocation);
         }

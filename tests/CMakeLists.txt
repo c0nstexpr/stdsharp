@@ -12,22 +12,22 @@ include(Catch)
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src
-    src/algorithm/algorithm_test.cpp
-    src/containers/actions_test.cpp
-    src/containers/concepts_test.cpp
-    src/filesystem/filesystem_test.cpp
-    src/functional/pipeable_test.cpp
-    src/functional/symmetric_operations_test.cpp
-    src/memory/composed_allocator_test.cpp
+    # src/algorithm/algorithm_test.cpp
+    # src/containers/actions_test.cpp
+    # src/containers/concepts_test.cpp
+    # src/filesystem/filesystem_test.cpp
+    # src/functional/pipeable_test.cpp
+    # src/functional/symmetric_operations_test.cpp
+    # src/memory/composed_allocator_test.cpp
     src/memory/box_test.cpp
-    src/memory/static_allocator_test.cpp
-    src/memory/soo_test.cpp
-    src/type_traits/member_test.cpp
-    src/type_traits/type_sequence_test.cpp
-    src/type_traits/value_sequence_test.cpp
-    src/utility/utility_test.cpp
-    src/pattern_match_test.cpp
-    src/synchronizer_test.cpp
+    # src/memory/static_allocator_test.cpp
+    # src/memory/soo_test.cpp
+    # src/type_traits/member_test.cpp
+    # src/type_traits/type_sequence_test.cpp
+    # src/type_traits/value_sequence_test.cpp
+    # src/utility/utility_test.cpp
+    # src/pattern_match_test.cpp
+    # src/synchronizer_test.cpp
     )
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)

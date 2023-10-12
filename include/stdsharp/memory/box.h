@@ -34,11 +34,10 @@ namespace stdsharp
         static constexpr auto req = dispatchers::req;
 
         using m_base::m_base;
+
         box() = default;
-        box(const box&)
-            requires false;
-        box(box&&)
-            requires false;
+        box(const box&) noexcept(nothrow_copy_constructible<m_base>) = default;
+        box(box&&) noexcept(nothrow_move_constructible<m_base>) = default;
 
         constexpr box(const allocator_type& alloc): compressed_(dispatchers{}, alloc) {}
 
@@ -90,15 +89,16 @@ namespace stdsharp
         }
 
         template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
-            requires std::is_constructible_v<box, const OtherBox&, const allocator_type&>
-        explicit(OtherReq != Req) constexpr box(const box<OtherReq, allocator_type>& other):
+            requires std::is_constructible_v<box, const OtherBox&, const allocator_type&> &&
+            (OtherReq != Req)
+        explicit constexpr box(const box<OtherReq, allocator_type>& other):
             box(other, m_base::select_on_container_copy_construction(other.get_allocator()))
         {
         }
 
         template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
-            requires std::is_constructible_v<box, OtherBox, allocator_type>
-        explicit(OtherReq != Req) constexpr box(box<OtherReq, allocator_type>&& other) //
+            requires std::is_constructible_v<box, OtherBox, allocator_type> && (OtherReq != Req)
+        explicit constexpr box(box<OtherReq, allocator_type>&& other) //
             noexcept(nothrow_constructible_from<box, OtherBox, allocator_type>):
             box(cpp_move(other), other.get_allocator())
         {
@@ -231,11 +231,6 @@ namespace stdsharp
             swapper(*this, other);
         }
 
-        [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept
-        {
-            return cpo::get_element<1>(compressed_);
-        }
-
         [[nodiscard]] constexpr operator bool() const noexcept
         {
             return get_dispatchers().has_value();
@@ -252,6 +247,11 @@ namespace stdsharp
             dispatchers = {};
         }
 
+        [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept
+        {
+            return cpo::get_element<1>(compressed_);
+        }
+
     private:
         [[nodiscard]] constexpr dispatchers& get_dispatchers() noexcept
         {
@@ -263,14 +263,14 @@ namespace stdsharp
             return cpo::get_element<0>(compressed_);
         }
 
+        [[nodiscard]] constexpr auto& get_allocation() noexcept { return allocation_; }
+
+        [[nodiscard]] constexpr auto& get_allocation() const noexcept { return allocation_; }
+
         [[nodiscard]] constexpr allocator_type& get_allocator() noexcept
         {
             return cpo::get_element<1>(compressed_);
         }
-
-        [[nodiscard]] constexpr auto& get_allocation() noexcept { return allocation_; }
-
-        [[nodiscard]] constexpr auto& get_allocation() const noexcept { return allocation_; }
 
         template<typename T, typename... Args>
         static constexpr auto emplace_constructible =
