@@ -4,7 +4,7 @@
 
 namespace stdsharp
 {
-    template<typename T, typename Alloc> // NOLINTBEGIN(*-noexcept-*)
+    template<typename T, allocator_req Alloc> // NOLINTBEGIN(*-noexcept-*)
     struct basic_allocator_aware : allocator_traits<Alloc>
     {
         using allocator_type = Alloc;
@@ -59,24 +59,29 @@ namespace stdsharp
             const std::allocator_arg_t /*unused*/,
             const allocator_type& alloc,
             auto&&... args
-        ) noexcept(noexcept(ctor(cpp_forward(args)..., alloc)))
-            requires requires { ctor(cpp_forward(args)..., alloc); }
+        ) noexcept(noexcept(ctor<T>(cpp_forward(args)..., alloc)))
+            requires requires { ctor<T>(cpp_forward(args)..., alloc); }
         {
-            ctor(cpp_forward(args)..., alloc);
+            ctor<T>(cpp_forward(args)..., alloc);
         }
 
         basic_allocator_aware(const basic_allocator_aware&)
             requires false;
 
-        template<std::same_as<basic_allocator_aware> U, typename Cast = const U&>
+        template<
+            std::same_as<basic_allocator_aware> U,
+            typename Cast = const U&,
+            typename = std::enable_if_t<std::is_constructible_v<U, Cast, allocator_type>>
+        >
         constexpr basic_allocator_aware(const U& other) //
             noexcept( //
-                noexcept( //
-                    ctor<U>(
-                        static_cast<Cast>(other),
-                        select_on_container_copy_construction(other.get_allocator())
-                    )
-                )
+                // noexcept( //
+                //     ctor<U>(
+                //         static_cast<Cast>(other),
+                //         select_on_container_copy_construction(other.get_allocator())
+                //     )
+                // )
+                nothrow_constructible_from<U, Cast, allocator_type>
             )
             requires requires(Cast t) {
                 // ctor<U>(t, select_on_container_copy_construction(other.get_allocator()));

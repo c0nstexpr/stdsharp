@@ -5,7 +5,7 @@ using allocator_t = allocator<unsigned char>;
 
 auto foo()
 {
-    using t0 = trivial_box<allocator<int>>;
+    using t0 = basic_allocator_aware<trivial_box<allocator_t>, allocator_t>;
 
     static_assert(requires(t0 l) {
         {
