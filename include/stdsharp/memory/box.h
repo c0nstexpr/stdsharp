@@ -6,7 +6,7 @@
 namespace stdsharp
 {
     template<special_mem_req Req, allocator_req Alloc>
-    class box : public basic_allocator_aware<box<Req, Alloc>, Alloc> // NOLINTBEGIN(*-noexcept-*)
+    class box : basic_allocator_aware<box<Req, Alloc>, Alloc> // NOLINTBEGIN(*-noexcept-*)
     {
         template<special_mem_req, allocator_req>
         friend class box;
@@ -33,11 +33,22 @@ namespace stdsharp
     public:
         static constexpr auto req = dispatchers::req;
 
-        using m_base::m_base;
-
         box() = default;
-        box(const box&) noexcept(nothrow_copy_constructible<m_base>) = default;
-        box(box&&) noexcept(nothrow_move_constructible<m_base>) = default;
+        box(const box& other)
+            requires false;
+        box(box&&)
+            requires false;
+
+        template<typename... T>
+        constexpr box(
+            const std::allocator_arg_t /*unused*/,
+            const allocator_type& alloc,
+            T&&... args
+        ) noexcept(nothrow_constructible_from<box, T..., const allocator_type&>)
+            requires std::is_constructible_v<box, T..., const allocator_type&>
+            : box(cpp_forward<T>(args)..., alloc)
+        {
+        }
 
         constexpr box(const allocator_type& alloc): compressed_(dispatchers{}, alloc) {}
 
@@ -46,7 +57,7 @@ namespace stdsharp
             typename T,
             typename ValueType = std::decay_t<T>,
             typename Identity = std::type_identity<ValueType> // clang-format off
-            > // clang-format on
+        > // clang-format on
         constexpr box(
             const std::allocator_arg_t /*unused*/,
             const allocator_type& alloc,
@@ -63,10 +74,42 @@ namespace stdsharp
         {
         }
 
+        template<
+            typename... Args,
+            typename T,
+            typename ValueType = std::decay_t<T>,
+            typename Identity = std::type_identity<ValueType> // clang-format off
+        > // clang-format on
+        constexpr box(const std::in_place_type_t<T> /*unused*/, Args&&... args)
+            requires requires {
+                requires std::constructible_from<compressed_t, Identity>;
+                m_base::template construct<ValueType>(cpp_forward(args)...);
+            }
+            :
+            compressed_(Identity{}),
+            allocation_(m_base::template construct<ValueType>(cpp_forward(args)...))
+        {
+        }
+
         template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
             requires OtherBox::faked_typed::cp_constructible
         constexpr box(const box<OtherReq, allocator_type>& other, const allocator_type& alloc):
             compressed_(other.get_dispatchers(), alloc),
+            allocation_(
+                get_dispatchers() ?
+                    get_dispatchers().construct(get_allocator(), other.get_allocation()) :
+                    allocation{}
+            )
+        {
+        }
+
+        template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
+            requires std::is_constructible_v<box, const OtherBox&, const allocator_type&>
+        explicit(OtherReq != Req) constexpr box(const box<OtherReq, allocator_type>& other):
+            compressed_(
+                other.get_dispatchers(),
+                select_on_container_copy_construction(other.get_allocator())
+            ),
             allocation_(
                 get_dispatchers() ?
                     get_dispatchers().construct(get_allocator(), other.get_allocation()) :
@@ -89,18 +132,15 @@ namespace stdsharp
         }
 
         template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
-            requires std::is_constructible_v<box, const OtherBox&, const allocator_type&> &&
-            (OtherReq != Req)
-        explicit constexpr box(const box<OtherReq, allocator_type>& other):
-            box(other, m_base::select_on_container_copy_construction(other.get_allocator()))
-        {
-        }
-
-        template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
-            requires std::is_constructible_v<box, OtherBox, allocator_type> && (OtherReq != Req)
-        explicit constexpr box(box<OtherReq, allocator_type>&& other) //
-            noexcept(nothrow_constructible_from<box, OtherBox, allocator_type>):
-            box(cpp_move(other), other.get_allocator())
+            requires OtherBox::faked_typed::mov_constructible
+        explicit(OtherReq != Req) constexpr box(box<OtherReq, allocator_type>&& other) //
+            noexcept(is_noexcept(OtherBox::req.move_construct)):
+            compressed_(other.get_dispatchers(), cpp_move(other).get_allocator()),
+            allocation_(
+                get_dispatchers() ?
+                    get_dispatchers().construct(get_allocator(), cpp_move(other).get_allocation()) :
+                    allocation{}
+            )
         {
         }
 
