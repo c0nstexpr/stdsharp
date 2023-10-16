@@ -1,9 +1,11 @@
 #pragma once
 
 #include "allocator_aware/typed_allocation.h"
+#include "stdsharp/concepts/concepts.h"
 
 namespace stdsharp
 {
+
     template<typename T, allocator_req Alloc> // NOLINTBEGIN(*-noexcept-*)
     struct basic_allocator_aware : allocator_traits<Alloc>
     {

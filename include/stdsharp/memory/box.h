@@ -1,12 +1,13 @@
 #pragma once
 
-#include "details/box_dispatchers.h"
+#include "details/box_allocation.h"
+#include "allocator_aware/basic_aa.h"
 #include "../type_traits/object.h"
 
 namespace stdsharp
 {
     template<special_mem_req Req, allocator_req Alloc>
-    class box : basic_allocator_aware<box<Req, Alloc>, Alloc> // NOLINTBEGIN(*-noexcept-*)
+    class box : allocator_aware::basic_aa<details::box_allocation<Req, Alloc>>
     {
         template<special_mem_req, allocator_req>
         friend class box;
@@ -19,25 +20,12 @@ namespace stdsharp
         template<typename T>
         using typed_allocation = m_base::template typed_allocation<T>;
         using dispatchers = details::box_dispatchers<Req, allocator_type>;
-        using faked_typed = dispatchers::faked_typed_allocation;
-        using typename m_base::allocation;
-        using typename m_base::allocator_traits;
-        using compressed_t = stdsharp::indexed_values<dispatchers, allocator_type>;
-
-        static constexpr auto mov_allocation_v =
-            allocator_traits::propagate_on_move_v || allocator_traits::always_equal_v;
-
-        compressed_t compressed_{};
-        allocation allocation_{};
 
     public:
         static constexpr auto req = dispatchers::req;
 
+        using m_base::m_base;
         box() = default;
-        box(const box& other)
-            requires false;
-        box(box&&)
-            requires false;
 
         template<typename... T>
         constexpr box(
@@ -49,8 +37,6 @@ namespace stdsharp
             : box(cpp_forward<T>(args)..., alloc)
         {
         }
-
-        constexpr box(const allocator_type& alloc): compressed_(dispatchers{}, alloc) {}
 
         template<
             typename... Args,
@@ -142,133 +128,6 @@ namespace stdsharp
                     allocation{}
             )
         {
-        }
-
-        constexpr box& operator=(const box& other)
-            requires faked_typed::destructible && faked_typed::cp_assignable
-        {
-            if(this == &other) return *this;
-
-            auto& other_dispatchers = other.get_dispatchers();
-            auto& dispatchers = get_dispatchers();
-            auto& allocation = get_allocation();
-
-            if(dispatchers != other_dispatchers)
-            {
-                destroy();
-                allocation.allocate(other_dispatchers.type_size());
-            }
-
-            other_dispatchers.assign(
-                get_allocator(),
-                allocation,
-                dispatchers.has_value(),
-                other.get_allocator(),
-                other.get_allocation()
-            );
-
-            dispatchers = other_dispatchers;
-
-            return *this;
-        }
-
-        constexpr box& operator=(box&& other)
-            requires faked_typed::destructible && faked_typed::mov_assignable && (!mov_allocation_v)
-        {
-            if(this == &other) return *this;
-
-            auto& other_dispatchers = other.get_dispatchers();
-            auto& dispatchers = get_dispatchers();
-            auto& other_allocation = other.get_allocation();
-            auto& allocation = get_allocation();
-
-            if(get_allocator() == other.get_allocator()) destroy();
-            else if(dispatchers != other_dispatchers)
-            {
-                destroy();
-                allocation.allocate(other_dispatchers.type_size());
-            }
-
-            other_dispatchers.assign(
-                get_allocator(),
-                allocation,
-                dispatchers.has_value(),
-                other.get_allocator(),
-                other_allocation
-            );
-
-            dispatchers = other_dispatchers;
-            return *this;
-        }
-
-        constexpr box& operator=(box&& other) noexcept
-            requires faked_typed::destructible && mov_allocation_v
-        {
-            if(this == &other) return *this;
-
-            auto& other_dispatchers = other.get_dispatchers();
-            auto& dispatchers = get_dispatchers();
-
-            destroy();
-
-            other_dispatchers.assign(
-                get_allocator(),
-                get_allocation(),
-                dispatchers.has_value(),
-                other.get_allocator(),
-                other.get_allocation()
-            );
-
-            dispatchers = other_dispatchers;
-            return *this;
-        }
-
-        constexpr ~box() noexcept(is_noexcept(req.destruct))
-            requires faked_typed::destructible
-        {
-            destroy();
-            get_allocation().deallocate(get_allocator());
-        }
-
-    private:
-        static constexpr struct swap_by_move_fn
-        {
-            constexpr void operator()(box& lhs, box& rhs) const
-                noexcept(is_noexcept(req.move_construct))
-                requires faked_typed::mov_assignable
-            {
-                std::swap(lhs, rhs);
-            }
-        } swap_by_move{};
-
-        static constexpr struct swap_fn : swap_by_move_fn
-        {
-            constexpr void operator()(box& lhs, box& rhs) const
-                noexcept((is_noexcept(req.swap)) && nothrow_invocable<swap_by_move_fn&, box&, box&>)
-                requires faked_typed::swappable && std::invocable<swap_by_move_fn&, box&, box&>
-            {
-                auto& dispatchers = lhs.get_dispatchers();
-
-                if(dispatchers != rhs.get_dispatchers())
-                {
-                    swap_by_move(lhs, rhs);
-                    return;
-                }
-
-                dispatchers.do_swap(
-                    lhs.get_allocator(),
-                    lhs.get_allocation(),
-                    rhs.get_allocator(),
-                    rhs.get_allocation()
-                );
-            }
-        } swapper{};
-
-    public:
-        constexpr void swap(box& other) noexcept(nothrow_invocable<swap_fn&, box&, box&>)
-            requires std::invocable<swap_fn&, box&, box&>
-        {
-            swapper(*this, other);
         }
 
         [[nodiscard]] constexpr operator bool() const noexcept

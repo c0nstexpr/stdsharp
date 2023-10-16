@@ -59,14 +59,7 @@ namespace stdsharp::allocator_aware
 
         static constexpr auto swappable = true;
 
-        static constexpr auto swappable_req = get_expr_req(
-            swappable,
-            requires(allocator_type alloc, allocation<allocator_type> allocation) {
-                {
-                    allocation.swap(alloc, alloc, allocation)
-                } noexcept;
-            }
-        );
+        static constexpr auto swappable_req = expr_req::no_exception;
 
         static constexpr special_mem_req operation_constraints{
             mov_construct_req,
@@ -83,6 +76,12 @@ namespace stdsharp::allocator_aware
 
     public:
         typed_allocation() = default;
+        typed_allocation(const typed_allocation&) = default;
+        typed_allocation(typed_allocation&&) = default;
+        typed_allocation& operator=(const typed_allocation&) = default;
+        typed_allocation& operator=(typed_allocation&&) = default;
+
+        constexpr ~typed_allocation() noexcept { Expects(!has_value()); }
 
         constexpr typed_allocation(
             const allocation<allocator_type>& allocation,
@@ -116,7 +115,8 @@ namespace stdsharp::allocator_aware
             allocation_.allocate(alloc, sizeof(value_type), hint);
         }
 
-        constexpr void deallocate(allocator_type& alloc) noexcept
+        constexpr void deallocate(allocator_type& alloc) noexcept(is_noexcept(destructible_req))
+            requires destructible
         {
             if(!allocation_) return;
             destroy(alloc);
@@ -163,7 +163,7 @@ namespace stdsharp::allocator_aware
 
         [[nodiscard]] constexpr auto& allocation() const noexcept { return allocation_; }
 
-        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc) //
+        [[nodiscard]] constexpr auto cp_construct(allocator_type& alloc) const //
             noexcept(is_noexcept(cp_construct_req))
             requires cp_constructible
         {
@@ -179,13 +179,10 @@ namespace stdsharp::allocator_aware
         }
 
     private:
-        constexpr void assign_impl(
-            allocator_type& dst_alloc,
-            typed_allocation<allocator_type, ValueType>& dst_allocation,
-            auto&& value
-        )
+        constexpr void
+            assign_impl(allocator_type& dst_alloc, typed_allocation& dst_allocation, auto&& value)
         {
-            if constexpr(move_assignable<value_type>)
+            if constexpr(std::assignable_from<value_type, decltype(value)>)
                 if(dst_allocation.has_value())
                 {
                     dst_allocation.get() = cpp_forward(value);
@@ -226,7 +223,7 @@ namespace stdsharp::allocator_aware
             const allocator_type& src_alloc,
             allocator_type& dst_alloc,
             typed_allocation& dst_allocation
-        ) noexcept(is_noexcept(cp_assign_req))
+        ) const noexcept(is_noexcept(cp_assign_req))
             requires cp_assignable
         {
             if(!has_value())
@@ -278,17 +275,6 @@ namespace stdsharp::allocator_aware
             dst_allocation.deallocate(dst_alloc);
             if constexpr(propagate_on_move_v) dst_alloc = cpp_move(src_alloc);
             dst_allocation = std::exchange(*this, {});
-        }
-
-        constexpr void swap(
-            allocator_type& src_alloc,
-            allocator_type& dst_alloc,
-            typed_allocation& dst_allocation
-        ) noexcept(is_noexcept(swappable_req)) // NOLINT(*-noexcept-swap)
-            requires swappable
-        {
-            allocation_.swap(src_alloc, dst_alloc, dst_allocation.allocation_);
-            std::swap(has_value_, dst_allocation.has_value_);
         }
     };
 

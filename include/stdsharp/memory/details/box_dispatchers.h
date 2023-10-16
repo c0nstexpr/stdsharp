@@ -25,22 +25,20 @@ namespace stdsharp::details
 
         template<expr_req ExprReq, typename... Args>
         using write_dispatcher =
-            dispatcher<ExprReq, void, alloc&, allocation&, const bool, Args...>;
+            dispatcher<ExprReq, void, Args..., alloc&, allocation&, const bool>;
 
         using mov_ctor_dispatcher = ctor_dispatcher<req.move_construct, allocation&>;
         using cp_ctor_dispatcher = ctor_dispatcher<req.copy_construct, allocation_cref>;
         using mov_assign_dispatcher = write_dispatcher<req.move_assign, alloc&, allocation&>;
         using cp_assign_dispatcher = write_dispatcher<req.copy_assign, alloc_cref, allocation_cref>;
         using destroy_dispatcher = write_dispatcher<req.destruct>;
-        using swap_dispatcher = write_dispatcher<req.swap, alloc&, allocation&>;
 
         using dispatchers = stdsharp::indexed_values<
             mov_ctor_dispatcher,
             cp_ctor_dispatcher,
             mov_assign_dispatcher,
             cp_assign_dispatcher,
-            destroy_dispatcher,
-            swap_dispatcher // clang-format off
+            destroy_dispatcher // clang-format off
         >; // clang-format on
 
         static constexpr dispatchers empty_dispatchers{};
@@ -76,11 +74,11 @@ namespace stdsharp::details
             static constexpr struct
             {
                 constexpr void operator()(
+                    alloc& src_alloc,
+                    allocation& src_allocation,
                     alloc& dst_alloc,
                     allocation& dst_allocation,
-                    const bool has_value,
-                    alloc& src_alloc,
-                    allocation& src_allocation
+                    const bool has_value
                 ) const noexcept(is_noexcept(req.move_assign))
                     requires faked_typed_allocation::mov_assignable
                 {
@@ -97,11 +95,11 @@ namespace stdsharp::details
             static constexpr struct
             {
                 constexpr void operator()(
+                    alloc_cref src_alloc,
+                    allocation_cref src_allocation,
                     alloc& dst_alloc,
                     allocation& dst_allocation,
-                    const bool has_value,
-                    alloc_cref src_alloc,
-                    allocation_cref src_allocation
+                    const bool has_value
                 ) const noexcept(is_noexcept(req.copy_assign))
                     requires faked_typed_allocation::cp_assignable
                 {
@@ -126,27 +124,13 @@ namespace stdsharp::details
                 }
             } destroy{};
 
-            static constexpr struct
-            {
-                constexpr auto operator()(
-                    alloc& dst_alloc,
-                    allocation& dst_allocation,
-                    const bool has_value,
-                    alloc& src_alloc,
-                    allocation& src_allocation
-                ) const noexcept(is_noexcept(req.swap))
-                    requires faked_typed_allocation::swappable
-                {
-                    TypedAllocation dst{dst_allocation, has_value};
-                    TypedAllocation src{src_allocation, true};
-
-                    src.swap(src_alloc, dst_alloc, dst);
-                    dst_allocation = dst.allocation();
-                }
-            } swap{};
-
-            static constexpr dispatchers
-                dispatchers{mov_construct, cp_construct, mov_assign, cp_assign, destroy, swap};
+            static constexpr dispatchers dispatchers{
+                mov_construct,
+                cp_construct,
+                mov_assign,
+                cp_assign,
+                destroy,
+            };
         };
 
         constexpr box_dispatchers(const dispatchers b, const std::size_t size) noexcept:
@@ -164,6 +148,7 @@ namespace stdsharp::details
         }
 
         template<special_mem_req OtherReq>
+            requires(box_dispatchers<OtherReq, Alloc>::req >= req)
         explicit constexpr box_dispatchers(const box_dispatchers<OtherReq, Alloc>& other) noexcept:
             box_dispatchers(other.dispatchers_, other.type_size_)
         {
@@ -184,38 +169,38 @@ namespace stdsharp::details
         }
 
         constexpr void assign(
+            alloc& src_alloc,
+            allocation& src_allocation,
             alloc& dst_alloc,
             allocation& dst_allocation,
-            const bool has_value,
-            alloc& src_alloc,
-            allocation& src_allocation
+            const bool has_value
         ) const noexcept(is_noexcept(req.move_assign))
             requires faked_typed_allocation::mov_assignable
         {
             cpo::get_element<2>(dispatchers_)(
+                src_alloc,
+                src_allocation,
                 dst_alloc,
                 dst_allocation,
-                has_value,
-                src_alloc,
-                src_allocation
+                has_value
             );
         }
 
         constexpr void assign(
+            alloc_cref src_alloc,
+            allocation_cref src_allocation,
             alloc& dst_alloc,
             allocation& dst_allocation,
-            const bool has_value,
-            alloc_cref src_alloc,
-            allocation_cref src_allocation
+            const bool has_value
         ) const noexcept(is_noexcept(req.copy_assign))
             requires faked_typed_allocation::cp_assignable
         {
             cpo::get_element<3>(dispatchers_)(
+                src_alloc,
+                src_allocation,
                 dst_alloc,
                 dst_allocation,
-                has_value,
-                src_alloc,
-                src_allocation
+                has_value
             );
         }
 
@@ -224,24 +209,6 @@ namespace stdsharp::details
             requires faked_typed_allocation::destructible
         {
             cpo::get_element<4>(dispatchers_)(alloc, allocation, has_value);
-        }
-
-        constexpr auto do_swap(
-            alloc& dst_alloc,
-            allocation& dst_allocation,
-            const bool has_value,
-            alloc_cref src_alloc,
-            allocation_cref src_allocation
-        ) const noexcept(is_noexcept(req.swap))
-            requires faked_typed_allocation::swappable
-        {
-            cpo::get_element<5>(dispatchers_)( // NOLINT(*-magic-numbers)
-                dst_alloc,
-                dst_allocation,
-                has_value,
-                src_alloc,
-                src_allocation
-            );
         }
 
         [[nodiscard]] constexpr auto has_value() const noexcept { return !same(empty_dispatchers); }

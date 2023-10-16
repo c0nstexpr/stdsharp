@@ -72,9 +72,6 @@ namespace stdsharp::allocator_aware
     private:
         friend details::allocation_access;
 
-        static auto constexpr always_equal_v = traits::always_equal_v;
-        static auto constexpr propagate_on_swap_v = traits::propagate_on_swap_v;
-
         pointer ptr_ = nullptr;
         size_type size_ = 0;
 
@@ -115,25 +112,6 @@ namespace stdsharp::allocator_aware
         {
             traits::deallocate(alloc, ptr_, size_);
             *this = {};
-        }
-
-    private:
-        constexpr bool vaildate_alloc(const allocator_type& left, const allocator_type& right) noexcept
-        {
-            if constexpr(always_equal_v) return true;
-            else return left == right;
-        }
-
-    public:
-        constexpr void swap(
-            allocator_type& src_alloc,
-            allocator_type& dst_alloc,
-            allocation& dst_allocation
-        ) noexcept
-        {
-            Expects((vaildate_alloc(dst_alloc, src_alloc)));
-            std::swap(dst_allocation, *this);
-            if constexpr(propagate_on_swap_v) std::ranges::swap(dst_alloc, src_alloc);
         }
     };
 }
