@@ -18,7 +18,8 @@ namespace stdsharp::details
         using traits = allocator_traits<allocator_type>;
         using dispatchers = details::box_dispatchers<Req, allocator_type>;
         using faked_typed = dispatchers::faked_typed_allocation;
-        using allocation = traits::allocation;
+        using allocation = allocator_aware::allocation<allocator_type>;
+        using allocation_traits = allocator_aware::allocation_traits<allocation>;
         using size_type = traits::size_type;
         using cvp = traits::const_void_pointer;
 
@@ -31,19 +32,41 @@ namespace stdsharp::details
     public:
         static constexpr auto req = dispatchers::req;
 
-        constexpr box_allocation cp_construct(allocator_type& alloc) //
+        box_allocation() = default;
+
+        constexpr box_allocation(const dispatchers dispatchers, const allocation allocation) //
+            noexcept:
+            dispatchers_{dispatchers}, allocation_{allocation}
+        {
+        }
+
+    private:
+        template<special_mem_req DstReq>
+        static constexpr auto is_compatible = box_allocation<DstReq, allocator_type>::req <= req;
+
+    public:
+        template<special_mem_req DstReq>
+            requires is_compatible<DstReq>
+        constexpr box_allocation<DstReq, allocator_type> cp_construct(allocator_type& alloc) //
             noexcept(is_noexcept(req.copy_construct))
             requires faked_typed::cp_constructible
         {
-            return dispatchers_ ? dispatchers_.construct(alloc, allocation_) : allocation{};
+            return {
+                dispatchers_,
+                dispatchers_ ? dispatchers_.construct(alloc, allocation_) : allocation{}
+            };
         }
 
-        constexpr box_allocation mov_construct(allocator_type& alloc) //
+        template<special_mem_req DstReq>
+            requires is_compatible<DstReq>
+        constexpr box_allocation<DstReq, allocator_type> mov_construct(allocator_type& alloc) //
             noexcept(is_noexcept(req.move_construct))
             requires faked_typed::mov_constructible
         {
-            return dispatchers_ ? dispatchers_.construct(alloc, cpp_move(allocation_)) :
-                                  allocation{};
+            return {
+                dispatchers_,
+                dispatchers_ ? dispatchers_.construct(alloc, cpp_move(allocation_)) : allocation{}
+            };
         }
 
     private:
@@ -62,74 +85,54 @@ namespace stdsharp::details
             dst_dispatchers = dispatchers_;
         }
 
+        constexpr void prepare_for(allocator_type& dst_alloc, auto& dst_allocation) const
+        {
+            if(dispatchers_ != dst_allocation.dispatchers_)
+            {
+                dst_allocation.destroy(dst_alloc);
+                if(dst_allocation.size() < dispatchers_.type_size())
+                    dst_allocation.allocate(dst_alloc, dispatchers_.type_size());
+            }
+        }
+
     public:
-        template<special_mem_req DstReq>
-            requires(box_allocation<DstReq, allocator_type>::req <= req)
         constexpr void cp_assign(
             const allocator_type& src_alloc,
             allocator_type& dst_alloc,
-            box_allocation<DstReq, allocator_type>& dst_allocation
+            box_allocation& dst_allocation
         )
             requires faked_typed::destructible && faked_typed::cp_assignable
         {
-            auto& dst_dispatchers = dst_allocation.dispatchers_;
-
-            if(dispatchers_ != dst_dispatchers)
-            {
-                dst_allocation.destroy();
-                dst_allocation.allocate(dispatchers_.type_size());
-            }
-
+            prepare_for(dst_alloc, dst_allocation);
             do_assign(src_alloc, dst_alloc, dst_allocation);
         }
 
-        template<special_mem_req DstReq>
-            requires(box_allocation<DstReq, allocator_type>::req <= req)
         constexpr void mov_assign(
-            const allocator_type& src_alloc,
+            allocator_type& src_alloc,
             allocator_type& dst_alloc,
-            box_allocation<DstReq, allocator_type>& dst_allocation
+            box_allocation& dst_allocation
         )
             requires faked_typed::destructible && faked_typed::mov_assignable && (!mov_allocation_v)
         {
-            auto& dst_dispatchers = dst_allocation.dispatchers_;
-
-            if(src_alloc == dst_alloc) dst_allocation.destroy();
-            else if(dispatchers_ != dst_dispatchers)
-            {
-                dst_allocation.destroy();
-                dst_allocation.allocate(dst_dispatchers.type_size());
-            }
-
+            prepare_for(dst_alloc, dst_allocation);
             do_assign(src_alloc, dst_alloc, dst_allocation);
         }
 
-        template<special_mem_req DstReq>
-            requires(box_allocation<DstReq, allocator_type>::req <= req)
         constexpr void mov_assign(
-            const allocator_type& src_alloc,
+            allocator_type& src_alloc,
             allocator_type& dst_alloc,
-            box_allocation<DstReq, allocator_type>& dst_allocation
+            box_allocation& dst_allocation
         ) noexcept
             requires faked_typed::destructible && mov_allocation_v
         {
-            destroy();
+            dst_allocation.destroy(dst_alloc);
             do_assign(src_alloc, dst_alloc, dst_allocation);
         }
 
-        template<special_mem_req DstReq>
-        constexpr void swap(
-            const allocator_type& src_alloc,
-            allocator_type& dst_alloc,
-            box_allocation<DstReq, allocator_type>& dst
-        ) noexcept
+        constexpr void
+            swap(allocator_type& src_alloc, allocator_type& dst_alloc, box_allocation& dst) noexcept
         {
-            allocator_aware::allocation_traits<allocation>::swap(
-                allocation_,
-                src_alloc,
-                dst.allocation_,
-                dst_alloc
-            );
+            allocation_traits::swap(allocation_, src_alloc, dst.allocation_, dst_alloc);
         }
 
         constexpr void
@@ -138,7 +141,12 @@ namespace stdsharp::details
             allocation_.allocate(alloc, size, hint);
         }
 
-        constexpr void deallocate(allocator_type& alloc) { allocation_.deallocate(alloc); }
+        constexpr void deallocate(allocator_type& alloc) noexcept(is_noexcept(req.destruct))
+            requires faked_typed::destructible
+        {
+            destroy(alloc);
+            allocation_.deallocate(alloc);
+        }
 
         template<typename T>
         constexpr T& construct(allocator_type& alloc, auto&&... args)
@@ -148,15 +156,15 @@ namespace stdsharp::details
                 requires faked_typed::destructible;
             }
         {
-            destroy();
+            destroy(alloc);
             allocate(alloc, sizeof(T));
 
-            allocator_aware::typed_allocation<allocator_type, T> allocation{allocation_};
+            T& value =
+                allocation_traits::template construct<T>(allocation_, alloc, cpp_forward(args)...);
 
-            allocation.construct(alloc, cpp_forward(args)...);
             dispatchers_ = dispatchers{std::type_identity<T>{}};
 
-            return allocation.get();
+            return value;
         }
 
         constexpr void destroy(allocator_type& alloc) noexcept(is_noexcept(req.destruct))
@@ -187,5 +195,7 @@ namespace stdsharp::details
         }
 
         [[nodiscard]] constexpr auto size() const noexcept { return allocation_.size(); }
+
+        [[nodiscard]] constexpr auto type_size() const noexcept { return dispatchers_.type_size(); }
     };
 }

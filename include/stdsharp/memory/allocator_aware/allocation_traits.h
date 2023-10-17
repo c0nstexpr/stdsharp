@@ -24,8 +24,8 @@ namespace stdsharp::allocator_aware
             Allocation allocation,
             const Allocation callocation,
             Allocation::allocator_type alloc,
-            allocator_traits<decltype(alloc)>::size_type n,
-            const Allocation::const_void_pointer hint
+            const allocator_size_type<decltype(alloc)> n,
+            const allocator_cvp<decltype(alloc)> hint
         ) {
             requires nothrow_copyable<Allocation>;
             {
@@ -36,9 +36,9 @@ namespace stdsharp::allocator_aware
                 callocation.empty()
             } noexcept -> boolean_testable;
 
-            alloc.deallocate(alloc);
+            requires noexcept(allocation.deallocate(alloc));
         }
-    struct allocation_traits
+    struct allocation_traits : details::allocation_traits_value_type<Allocation>
     {
         using allocation_type = Allocation;
         using callocation = const allocation_type;
@@ -66,22 +66,78 @@ namespace stdsharp::allocator_aware
             return allocation.allocate(alloc, cpp_forward(args)...);
         }
 
-        static constexpr void deallocate(allocation_type& allocation, allocator_type& alloc) //
-            noexcept(noexcept(allocation.deallocate(alloc)))
+        static constexpr void
+            deallocate(allocation_type& allocation, allocator_type& alloc) noexcept
         {
             return allocation.deallocate(alloc);
         }
 
-        static constexpr void
-            construct(allocation_type& allocation, allocator_type& alloc, auto&&... args)
-            requires requires { allocation.construct(alloc, cpp_forward(args)...); }
+        template<
+            typename T,
+            typename... Args,
+            bool Noexcept = allocator_traits::template nothrow_constructible_from<T, Args...>>
+        static constexpr T&
+            construct(allocation_type& allocation, allocator_type& alloc, Args&&... args) //
+            noexcept(Noexcept)
+            requires requires {
+                requires !requires { typename allocation_traits::value_type; };
+
+                requires allocator_traits::template constructible_from<T, Args...>&& requires {
+                    {
+                        allocation.template construct<T>(alloc, cpp_forward(args)...)
+                    } -> std::same_as<T&>;
+                };
+
+                requires !Noexcept ||
+                    noexcept(allocation.template construct<T>(alloc, cpp_forward(args)...));
+            }
         {
-            return allocation.construct(alloc, cpp_forward(args)...);
+            return allocation.template construct<T>(alloc, cpp_forward(args)...);
+        }
+
+        static constexpr auto&
+            construct(allocation_type& allocation, allocator_type& alloc, auto&&... args) //
+            noexcept(noexcept(allocation.template construct(alloc, cpp_forward(args)...)))
+            requires requires(typename allocation_traits::value_type v) {
+                requires allocator_traits::
+                    template constructible_from<decltype(v), decltype(args)...>&& requires {
+                        {
+                            allocation.template construct(alloc, cpp_forward(args)...)
+                        } -> std::same_as<decltype(v)&>;
+                    };
+
+                requires !allocator_traits::
+                             template nothrow_constructible_from<decltype(v), decltype(args)...> ||
+                    noexcept(allocation.template construct(alloc, cpp_forward(args)...));
+            }
+        {
+            return allocation.template construct(alloc, cpp_forward(args)...);
+        }
+
+        template<typename T>
+        static constexpr void destroy(allocation_type& allocation, allocator_type& alloc) //
+            noexcept(allocator_traits::template nothrow_destructible<T>)
+            requires requires {
+                requires allocator_traits::template destructible<T>&& requires {
+                    allocation.template destroy<T>(alloc);
+                };
+
+                requires !allocator_traits::template nothrow_destructible<T> ||
+                    noexcept(allocation.template destroy<T>(alloc));
+            }
+        {
+            return allocation.template destroy<T>(alloc);
         }
 
         static constexpr void destroy(allocation_type& allocation, allocator_type& alloc) //
-            noexcept(noexcept(allocation.destroy(alloc)))
-            requires requires { allocation.destroy(alloc); }
+            noexcept(allocator_traits::template nothrow_destructible<
+                     typename allocation_traits::value_type>)
+            requires requires(typename allocation_traits::value_type v) {
+                requires allocator_traits::template destructible<decltype(v)>;
+                requires !allocator_traits::template nothrow_destructible<
+                             typename allocation_traits::value_type> ||
+                    noexcept(allocation.destroy(alloc));
+            }
         {
             return allocation.destroy(alloc);
         }
@@ -131,7 +187,6 @@ namespace stdsharp::allocator_aware
         {
             return allocation.mov_assign(alloc, other_alloc, other);
         }
-
 
     private:
         static constexpr bool

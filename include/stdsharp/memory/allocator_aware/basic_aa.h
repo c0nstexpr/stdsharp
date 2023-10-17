@@ -2,14 +2,11 @@
 
 #include "allocation_traits.h"
 
-#include "../../compilation_config_in.h"
-
 namespace stdsharp::allocator_aware
 {
     template<typename Allocation>
         requires requires { typename allocation_traits<Allocation>; }
-    STDSHARP_EBO class basic_aa :
-        allocation_traits<Allocation>::allocator_type // NOLINTBEGIN(*-noexcept-*)
+    class basic_aa : allocation_traits<Allocation>::allocator_type // NOLINTBEGIN(*-noexcept-*)
     {
     public:
         using allocation_traits = allocation_traits<Allocation>;
@@ -21,12 +18,34 @@ namespace stdsharp::allocator_aware
     private:
         allocation_type allocation_{};
 
-        constexpr allocator_type& get_allocator() noexcept { return *this; }
-
+    protected:
         constexpr allocation_type& get_allocation() noexcept { return allocation_; }
 
+        constexpr const allocation_type& get_allocation() const noexcept { return allocation_; }
+
+        constexpr allocator_type& get_allocator() noexcept { return *this; }
+
+        template<typename T, typename U>
+            requires std::constructible_from<allocator_type, T> &&
+                         std::constructible_from<allocation_type, U>
+        constexpr basic_aa(T&& allocator, U&& allocation) //
+            noexcept(nothrow_constructible_from<allocator_type, T> && nothrow_constructible_from<allocation_type, U>):
+            allocator_type(cpp_forward(allocator)), allocation_(cpp_forward(allocation))
+        {
+        }
+
+        template<typename T, invocable_r<allocation_type, allocator_type> U>
+            requires std::constructible_from<allocator_type, T>
+        constexpr basic_aa(T&& allocator, U&& deferred_allocation) //
+            noexcept(nothrow_constructible_from<allocator_type, T> && nothrow_invocable_r<U, allocation_type, allocator_type>):
+            allocator_type(cpp_forward(allocator)),
+            allocation_(std::invoke_r(cpp_forward(deferred_allocation), get_allocator()))
+        {
+        }
 
     public:
+        constexpr const allocator_type& get_allocator() const noexcept { return *this; }
+
         basic_aa() = default;
 
         constexpr basic_aa(const basic_aa& other, const allocator_type& alloc) noexcept( //
@@ -180,18 +199,14 @@ namespace stdsharp::allocator_aware
         {
         }
 
-        constexpr const allocator_type& get_allocator() const noexcept { return *this; }
-
     protected:
-        constexpr const allocation_type& get_allocation() const noexcept { return allocation_; }
-
         constexpr void allocate(auto&&... args)
             requires requires {
                 allocation_traits:: //
                     allocate(get_allocation(), get_allocator(), cpp_forward(args)...);
             }
         {
-            return allocation_traits:: //
+            allocation_traits:: //
                 allocate(get_allocation(), get_allocator(), cpp_forward(args)...);
         }
 
@@ -201,18 +216,23 @@ namespace stdsharp::allocator_aware
             allocation_traits::deallocate(get_allocation(), get_allocator());
         }
 
-        constexpr void construct(auto&&... args) noexcept( //
+        template<typename T>
+        constexpr T& construct(auto&&... args) noexcept( //
             noexcept( //
                 allocation_traits:: //
-                construct(get_allocation(), get_allocator(), cpp_forward(args)...)
+                template construct<T>(get_allocation(), get_allocator(), cpp_forward(args)...)
             )
         )
-            requires requires {
-                allocation_traits:: //
-                    construct(get_allocation(), get_allocator(), cpp_forward(args)...);
-            }
+            // requires requires {
+            //     allocation_traits:: //
+            //         template construct<T>(get_allocation(), get_allocator(), cpp_forward(args)...);
+            // }
         {
-            allocation_traits::construct(get_allocation(), get_allocator(), cpp_forward(args)...);
+            return allocation_traits::template construct<T>(
+                get_allocation(),
+                get_allocator(),
+                cpp_forward(args)...
+            );
         }
 
         constexpr void destroy() //
@@ -223,5 +243,3 @@ namespace stdsharp::allocator_aware
         }
     }; // NOLINTEND(*-noexcept-*)
 }
-
-#include "../../compilation_config_out.h"

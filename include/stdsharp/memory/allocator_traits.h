@@ -175,9 +175,11 @@ namespace stdsharp
         struct default_constructor
         {
             template<typename T, typename... Args>
-            constexpr decltype(auto
-            ) operator()(const Alloc& /*unused*/, T* const ptr, Args&&... args) const
-                noexcept(noexcept(std::ranges::construct_at(ptr, std::declval<Args>()...)))
+            constexpr decltype(auto) operator()( //
+                const Alloc& /*unused*/,
+                T* const ptr,
+                Args&&... args
+            ) const noexcept(noexcept(std::ranges::construct_at(ptr, std::declval<Args>()...)))
                 requires requires { std::ranges::construct_at(ptr, std::declval<Args>()...); }
             {
                 return std::ranges::construct_at(ptr, cpp_forward(args)...);

@@ -56,9 +56,16 @@ namespace stdsharp::details
         {
         public:
             using not_null::not_null;
+
             using not_null::operator=;
 
             static constexpr auto requirement = ExprReq;
+
+            dispatcher(const dispatcher&) noexcept = default;
+            dispatcher(dispatcher&&) noexcept = default;
+            dispatcher& operator=(const dispatcher&) noexcept = default;
+            dispatcher& operator=(dispatcher&&) noexcept = default;
+            ~dispatcher() noexcept = default;
 
             template<typename Closure>
                 requires requires {
@@ -96,6 +103,12 @@ namespace stdsharp::details
             constexpr Ret operator()(U&&... args) const noexcept(no_exception)
             {
                 return (*(this->get()))(cpp_forward(args)...);
+            }
+
+            constexpr dispatcher& operator=(const func p) noexcept
+            {
+                this->get() = p;
+                return *this;
             }
         };
 

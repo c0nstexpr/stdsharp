@@ -1,7 +1,7 @@
 #pragma once
 
 #include "allocation.h"
-#include "../pointer_traits.h"
+#include "allocation_traits.h"
 
 namespace stdsharp::allocator_aware
 {
@@ -12,14 +12,22 @@ namespace stdsharp::allocator_aware
         using allocator_type = Allocator;
         using value_type = ValueType;
         using traits = allocator_traits<allocator_type>;
-        using const_void_pointer = typename traits::const_void_pointer;
+        using cvp = typename traits::const_void_pointer;
 
     private:
         static constexpr auto propagate_on_copy_v = traits::propagate_on_copy_v;
         static constexpr auto propagate_on_move_v = traits::propagate_on_move_v;
         static constexpr auto always_equal_v = traits::always_equal_v;
 
+        using allocation_type = allocation<allocator_type>;
+        using allocation_traits = allocation_traits<allocation_type>;
+
     public:
+        static constexpr auto destructible = traits::template destructible<value_type>;
+
+        static constexpr auto destructible_req =
+            get_expr_req(destructible, traits::template nothrow_destructible<value_type>);
+
         static constexpr auto mov_constructible = true;
 
         static constexpr auto mov_construct_req = expr_req::no_exception;
@@ -28,34 +36,36 @@ namespace stdsharp::allocator_aware
 
         static constexpr auto cp_construct_req = get_expr_req(cp_constructible);
 
-        static constexpr auto cp_assignable = cp_constructible && copy_assignable<value_type>;
+        static constexpr auto cp_assignable = cp_constructible && destructible;
 
-        static constexpr auto cp_assign_req = std::min(
-            cp_construct_req,
-            get_expr_req(copy_assignable<value_type>, !propagate_on_copy_v || always_equal_v)
+        static constexpr auto cp_assign_req = std::min( //
+            {
+                cp_construct_req,
+                destructible_req,
+                get_expr_req(true, !copy_assignable<value_type> || nothrow_copy_assignable<value_type>),
+                get_expr_req(true, !propagate_on_copy_v || always_equal_v) //
+            }
         );
 
     private:
-        static constexpr auto mov_allocation_v = !(always_equal_v || propagate_on_move_v);
+        static constexpr auto mov_allocation_v = always_equal_v || propagate_on_move_v;
 
     public:
-        static constexpr auto mov_assignable = mov_allocation_v ||
-            traits::template mov_constructible<value_type> && move_assignable<value_type>;
+        static constexpr auto mov_assignable =
+            mov_allocation_v || traits::template mov_constructible<value_type> && destructible;
 
         static constexpr auto mov_assign_req = mov_allocation_v ?
             expr_req::no_exception :
-            std::min(
-                get_expr_req(
-                    traits::template mov_constructible<value_type>,
-                    traits::template nothrow_mov_constructible<value_type> //
-                ),
-                get_expr_req(move_assignable<value_type>, nothrow_move_assignable<value_type>)
+            std::min( //
+                {
+                    get_expr_req(
+                        traits::template mov_constructible<value_type>,
+                        traits::template nothrow_mov_constructible<value_type> //
+                    ),
+                    destructible_req,
+                    get_expr_req(true, !move_assignable<value_type> || nothrow_move_assignable<value_type>) //
+                }
             );
-
-        static constexpr auto destructible = traits::template destructible<value_type>;
-
-        static constexpr auto destructible_req =
-            get_expr_req(destructible, traits::template nothrow_destructible<value_type>);
 
         static constexpr auto swappable = true;
 
@@ -71,7 +81,7 @@ namespace stdsharp::allocator_aware
         };
 
     private:
-        allocation<allocator_type> allocation_{};
+        allocation_type allocation_{};
         bool has_value_ = false;
 
     public:
@@ -84,7 +94,7 @@ namespace stdsharp::allocator_aware
         constexpr ~typed_allocation() noexcept { Expects(!has_value()); }
 
         constexpr typed_allocation(
-            const allocation<allocator_type>& allocation,
+            const allocation_type& allocation,
             const bool has_value = false
         ) noexcept:
             allocation_(allocation), has_value_(has_value)
@@ -109,17 +119,15 @@ namespace stdsharp::allocator_aware
 
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
-        constexpr void allocate(allocator_type& alloc, const const_void_pointer hint = nullptr)
+        constexpr void allocate(allocator_type& alloc, const cvp hint = nullptr)
         {
-            destroy(alloc);
-            allocation_.allocate(alloc, sizeof(value_type), hint);
+            allocation_traits::allocate(allocation_, alloc, sizeof(value_type), hint);
         }
 
         constexpr void deallocate(allocator_type& alloc) noexcept(is_noexcept(destructible_req))
             requires destructible
         {
-            if(!allocation_) return;
-            destroy(alloc);
+            Expects(!has_value_);
             allocation_.deallocate(alloc);
         }
 
@@ -142,22 +150,37 @@ namespace stdsharp::allocator_aware
         }
 
         template<typename... Args>
-            requires(traits::template constructible_from<value_type, Args...>)
-        constexpr void construct(allocator_type& alloc, Args&&... args) //
-            noexcept(traits::template nothrow_constructible_from<value_type, Args...>)
+        constexpr value_type& construct(allocator_type& alloc, Args&&... args) noexcept( //
+            noexcept( //
+                allocation_traits:: //
+                template construct<value_type>(allocation_, alloc, cpp_forward(args)...)
+            )
+        )
+            requires requires {
+                allocation_traits::template construct<value_type>(
+                    allocation_,
+                    alloc,
+                    cpp_forward(args)...
+                );
+            }
         {
-            Expects(allocation_.size() >= sizeof(value_type));
+            Expects(!has_value_);
 
-            destroy(alloc);
-            traits::construct(alloc, ptr(), cpp_forward(args)...);
+            allocation_traits::template construct<value_type>(
+                allocation_,
+                alloc,
+                cpp_forward(args)...
+            );
             has_value_ = true;
+
+            return get();
         }
 
         constexpr void destroy(allocator_type& alloc) noexcept(is_noexcept(destructible_req))
             requires destructible
         {
             if(!has_value()) return;
-            traits::destroy(alloc, ptr());
+            allocation_traits::template destroy<value_type>(allocation_, alloc);
             has_value_ = false;
         }
 
@@ -167,8 +190,7 @@ namespace stdsharp::allocator_aware
             noexcept(is_noexcept(cp_construct_req))
             requires cp_constructible
         {
-            typed_allocation<allocator_type, ValueType> allocation =
-                make_allocation(alloc, sizeof(ValueType));
+            typed_allocation allocation = make_allocation(alloc, sizeof(ValueType));
             allocation.construct(alloc, get_const());
             return allocation;
         }
@@ -179,7 +201,7 @@ namespace stdsharp::allocator_aware
         }
 
     private:
-        constexpr void
+        static constexpr void
             assign_impl(allocator_type& dst_alloc, typed_allocation& dst_allocation, auto&& value)
         {
             if constexpr(std::assignable_from<value_type, decltype(value)>)
@@ -189,31 +211,25 @@ namespace stdsharp::allocator_aware
                     return;
                 }
 
+            dst_allocation.destroy(dst_alloc);
             dst_allocation.construct(dst_alloc, cpp_forward(value));
         }
 
         template<bool Propagate>
-        constexpr void assign_on_no_value(
+        static constexpr void assign_on_no_value(
             allocator_type& dst_alloc,
-            typed_allocation<allocator_type, ValueType>& dst_allocation,
+            typed_allocation& dst_allocation,
             auto&& src_alloc
         )
         {
             if constexpr(Propagate)
             {
-                [&]
-                {
-                    if constexpr(!always_equal_v)
-                        if(dst_alloc != src_alloc)
-                        {
-                            dst_allocation.deallocate(dst_alloc);
-                            return;
-                        }
+                dst_allocation.destroy(dst_alloc);
 
-                    dst_allocation.destroy(dst_alloc);
-                }();
+                if constexpr(!always_equal_v)
+                    if(dst_alloc != src_alloc) dst_allocation.deallocate(dst_alloc);
 
-                dst_alloc = src_alloc;
+                dst_alloc = cpp_forward(src_alloc);
             }
             else dst_allocation.destroy(dst_alloc);
         }
@@ -226,6 +242,9 @@ namespace stdsharp::allocator_aware
         ) const noexcept(is_noexcept(cp_assign_req))
             requires cp_assignable
         {
+            Expects(allocation_);
+            Expects(dst_allocation.allocation_);
+
             if(!has_value())
             {
                 assign_on_no_value<propagate_on_copy_v>(dst_alloc, dst_allocation, src_alloc);
@@ -237,18 +256,23 @@ namespace stdsharp::allocator_aware
                 assign_impl(dst_alloc, dst_allocation, get_const()); //
             };
 
-            if constexpr(propagate_on_copy_v && !always_equal_v)
-                if(dst_alloc != src_alloc)
+            if constexpr(propagate_on_copy_v)
+                while(true)
                 {
-                    dst_allocation.deallocate(dst_alloc);
-                    dst_alloc = src_alloc;
-                    dst_allocation.allocate(dst_alloc);
-                    assign_fn();
+                    if constexpr(!always_equal_v)
+                        if(dst_alloc != src_alloc)
+                        {
+                            dst_allocation.deallocate(dst_alloc);
+                            dst_alloc = src_alloc;
+                            dst_allocation.allocate(dst_alloc);
 
-                    return;
+                            break;
+                        }
+
+                    dst_alloc = src_alloc;
+                    break;
                 }
 
-            if constexpr(propagate_on_copy_v) dst_alloc = src_alloc;
             assign_fn();
         }
 
@@ -259,6 +283,9 @@ namespace stdsharp::allocator_aware
         ) noexcept(is_noexcept(mov_assign_req))
             requires mov_assignable
         {
+            Expects(allocation_);
+            Expects(dst_allocation.allocation_);
+
             if(!has_value())
             {
                 assign_on_no_value<propagate_on_move_v>(dst_alloc, dst_allocation, src_alloc);
@@ -272,6 +299,7 @@ namespace stdsharp::allocator_aware
                     return;
                 }
 
+            dst_allocation.destroy(dst_alloc);
             dst_allocation.deallocate(dst_alloc);
             if constexpr(propagate_on_move_v) dst_alloc = cpp_move(src_alloc);
             dst_allocation = std::exchange(*this, {});

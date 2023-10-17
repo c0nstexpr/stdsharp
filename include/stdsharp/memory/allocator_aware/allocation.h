@@ -1,43 +1,12 @@
 #pragma once
 
 #include "../allocator_traits.h"
+#include "../pointer_traits.h"
 
 namespace stdsharp::allocator_aware
 {
     template<allocator_req>
     class allocation;
-
-    namespace details
-    {
-        struct allocation_access
-        {
-            template<typename allocator_type>
-            static constexpr allocation<allocator_type> make_allocation(
-                allocator_type& alloc,
-                const allocator_size_type<allocator_type> size,
-                const allocator_cvp<allocator_type> hint = nullptr
-            )
-            {
-                if(size == 0) [[unlikely]]
-                    return {};
-
-                return {allocator_traits<allocator_type>::allocate(alloc, size, hint), size};
-            }
-
-            template<typename allocator_type>
-            static constexpr allocation<allocator_type> try_make_allocation(
-                allocator_type& alloc,
-                const allocator_size_type<allocator_type> size,
-                const allocator_cvp<allocator_type> hint = nullptr
-            ) noexcept
-            {
-                if(size == 0) [[unlikely]]
-                    return {};
-
-                return {allocator_traits<allocator_type>::try_allocate(alloc, size, hint), size};
-            }
-        };
-    }
 
     template<allocator_req allocator_type>
     constexpr allocation<allocator_type> make_allocation(
@@ -46,7 +15,9 @@ namespace stdsharp::allocator_aware
         const allocator_cvp<allocator_type> hint = nullptr
     )
     {
-        return details::allocation_access::make_allocation(alloc, size, hint);
+        if(size == 0) [[unlikely]]
+            return {};
+        return {allocator_traits<allocator_type>::allocate(alloc, size, hint), size};
     }
 
     template<allocator_req allocator_type>
@@ -56,7 +27,9 @@ namespace stdsharp::allocator_aware
         const allocator_cvp<allocator_type> hint = nullptr
     ) noexcept
     {
-        return details::allocation_access::try_make_allocation(alloc, size, hint);
+        if(size == 0) [[unlikely]]
+            return {};
+        return {allocator_traits<allocator_type>::try_allocate(alloc, size, hint), size};
     }
 
     template<allocator_req Allocator>
@@ -70,16 +43,13 @@ namespace stdsharp::allocator_aware
         using size_type = traits::size_type;
 
     private:
-        friend details::allocation_access;
-
         pointer ptr_ = nullptr;
         size_type size_ = 0;
 
-    protected:
-        constexpr allocation(pointer ptr, const size_type size) noexcept: ptr_(ptr), size_(size) {}
-
     public:
         allocation() = default;
+
+        constexpr allocation(pointer ptr, const size_type size) noexcept: ptr_(ptr), size_(size) {}
 
         [[nodiscard]] constexpr auto begin() const noexcept { return ptr_; }
 
@@ -91,9 +61,9 @@ namespace stdsharp::allocator_aware
 
         [[nodiscard]] constexpr auto size() const noexcept { return size_; }
 
-        [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ != nullptr; }
+        [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ == nullptr; }
 
-        constexpr operator bool() const noexcept { return empty(); }
+        constexpr operator bool() const noexcept { return !empty(); }
 
         constexpr void allocate(
             allocator_type& alloc,
@@ -101,10 +71,7 @@ namespace stdsharp::allocator_aware
             const allocator_cvp<allocator_type> hint = nullptr
         )
         {
-            if(size_ >= size) return;
-
-            if(ptr_ != nullptr) deallocate(alloc);
-
+            Expects(empty());
             *this = make_allocation(alloc, size, hint);
         }
 
@@ -112,6 +79,26 @@ namespace stdsharp::allocator_aware
         {
             traits::deallocate(alloc, ptr_, size_);
             *this = {};
+        }
+
+        template<typename T, typename... Args>
+            requires(traits::template constructible_from<T, Args...>)
+        constexpr T& construct(allocator_type& alloc, Args&&... args) //
+            noexcept(traits::template nothrow_constructible_from<T, Args...>)
+        {
+            Expects(size() >= sizeof(T));
+
+            traits::construct(alloc, ptr_, cpp_forward(args)...);
+
+            return *pointer_cast<T>(begin());
+        }
+
+        template<typename T>
+            requires std::is_destructible_v<T>
+        constexpr void destroy(allocator_type& alloc) noexcept(std::destructible<T>)
+        {
+            if(empty()) return;
+            traits::destroy(alloc, pointer_cast<T>(begin()));
         }
     };
 }

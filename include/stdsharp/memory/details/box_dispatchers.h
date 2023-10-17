@@ -148,8 +148,8 @@ namespace stdsharp::details
         }
 
         template<special_mem_req OtherReq>
-            requires(box_dispatchers<OtherReq, Alloc>::req >= req)
-        explicit constexpr box_dispatchers(const box_dispatchers<OtherReq, Alloc>& other) noexcept:
+            requires(box_dispatchers<OtherReq, Alloc>::req > req)
+        explicit constexpr box_dispatchers(const box_dispatchers<OtherReq, Alloc> other) noexcept:
             box_dispatchers(other.dispatchers_, other.type_size_)
         {
         }
