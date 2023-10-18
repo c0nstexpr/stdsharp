@@ -425,10 +425,22 @@ namespace stdsharp
     using allocator_pointer = allocator_traits<Alloc>::pointer;
 
     template<allocator_req Alloc>
+    using allocator_const_pointer = allocator_traits<Alloc>::const_pointer;
+
+    template<allocator_req Alloc>
+    using allocator_value_type = allocator_traits<Alloc>::value_type;
+
+    template<allocator_req Alloc>
     using allocator_size_type = allocator_traits<Alloc>::size_type;
 
     template<allocator_req Alloc>
     using allocator_cvp = allocator_traits<Alloc>::const_void_pointer;
+
+    template<allocator_req Alloc>
+    using allocator_void_pointer = allocator_traits<Alloc>::void_pointer;
+
+    template<allocator_req Alloc>
+    using allocator_difference_type = allocator_traits<Alloc>::difference_type;
 
     template<typename>
     struct allocator_of;

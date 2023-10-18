@@ -3,44 +3,16 @@
 #include "../allocator_traits.h"
 #include "../pointer_traits.h"
 
-namespace stdsharp::allocator_aware
+namespace stdsharp
 {
-    template<allocator_req>
-    class allocation;
-
-    template<allocator_req allocator_type>
-    constexpr allocation<allocator_type> make_allocation(
-        allocator_type& alloc,
-        const allocator_size_type<allocator_type> size,
-        const allocator_cvp<allocator_type> hint = nullptr
-    )
-    {
-        if(size == 0) [[unlikely]]
-            return {};
-        return {allocator_traits<allocator_type>::allocate(alloc, size, hint), size};
-    }
-
-    template<allocator_req allocator_type>
-    constexpr allocation<allocator_type> try_make_allocation(
-        allocator_type& alloc,
-        const allocator_size_type<allocator_type> size,
-        const allocator_cvp<allocator_type> hint = nullptr
-    ) noexcept
-    {
-        if(size == 0) [[unlikely]]
-            return {};
-        return {allocator_traits<allocator_type>::try_allocate(alloc, size, hint), size};
-    }
-
-    template<allocator_req Allocator>
+    template<allocator_req Alloc>
     class [[nodiscard]] allocation
     {
     public:
-        using allocator_type = Allocator;
-        using traits = allocator_traits<allocator_type>;
-        using pointer = traits::pointer;
-        using const_pointer = traits::const_pointer;
-        using size_type = traits::size_type;
+        using pointer = allocator_pointer<Alloc>;
+        using size_type = allocator_size_type<Alloc>;
+        using value_type = allocator_value_type<Alloc>;
+        using const_pointer = allocator_const_pointer<Alloc>;
 
     private:
         pointer ptr_ = nullptr;
@@ -49,7 +21,10 @@ namespace stdsharp::allocator_aware
     public:
         allocation() = default;
 
-        constexpr allocation(pointer ptr, const size_type size) noexcept: ptr_(ptr), size_(size) {}
+        constexpr allocation(const pointer ptr, const size_type size) noexcept:
+            ptr_(ptr), size_(size)
+        {
+        }
 
         [[nodiscard]] constexpr auto begin() const noexcept { return ptr_; }
 
@@ -59,46 +34,74 @@ namespace stdsharp::allocator_aware
 
         [[nodiscard]] constexpr const_pointer cend() const noexcept { return end(); }
 
-        [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+        [[nodiscard]] constexpr pointer data() const noexcept { return begin(); }
 
-        [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ == nullptr; }
+        [[nodiscard]] constexpr const_pointer cdata() const noexcept { return cbegin(); }
 
-        constexpr operator bool() const noexcept { return !empty(); }
-
-        constexpr void allocate(
-            allocator_type& alloc,
-            const size_type size,
-            const allocator_cvp<allocator_type> hint = nullptr
-        )
+        template<typename T>
+        [[nodiscard]] constexpr auto data() const noexcept
         {
-            Expects(empty());
-            *this = make_allocation(alloc, size, hint);
-        }
-
-        constexpr void deallocate(allocator_type& alloc) noexcept
-        {
-            traits::deallocate(alloc, ptr_, size_);
-            *this = {};
-        }
-
-        template<typename T, typename... Args>
-            requires(traits::template constructible_from<T, Args...>)
-        constexpr T& construct(allocator_type& alloc, Args&&... args) //
-            noexcept(traits::template nothrow_constructible_from<T, Args...>)
-        {
-            Expects(size() >= sizeof(T));
-
-            traits::construct(alloc, ptr_, cpp_forward(args)...);
-
-            return *pointer_cast<T>(begin());
+            return pointer_cast<T>(data());
         }
 
         template<typename T>
-            requires std::is_destructible_v<T>
-        constexpr void destroy(allocator_type& alloc) noexcept(std::destructible<T>)
+        [[nodiscard]] constexpr auto cdata() const noexcept
         {
-            if(empty()) return;
-            traits::destroy(alloc, pointer_cast<T>(begin()));
+            return pointer_cast<T>(cdata());
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr decltype(auto) get() const noexcept
+        {
+            Expects(!empty());
+            return *data<T>();
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr decltype(auto) cget() const noexcept
+        {
+            Expects(!empty());
+            return *cdata<T>();
+        }
+
+        [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+
+        [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ == nullptr; }
+    };
+
+    template<allocator_req Alloc>
+    class [[nodiscard]] callocation : allocation<Alloc>
+    {
+        using allocation = allocation<Alloc>;
+        using typename allocation::value_type;
+        using allocation::allocation;
+        using allocation::cbegin;
+        using allocation::cend;
+        using allocation::size;
+        using allocation::empty;
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr auto cdata() const noexcept
+        {
+            return allocation::template cdata<T>();
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr decltype(auto) cget() const noexcept
+        {
+            return allocation::template cget<T>();
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr auto data() const noexcept
+        {
+            return cdata<T>();
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr decltype(auto) get() const noexcept
+        {
+            return cget<T>();
         }
     };
 }

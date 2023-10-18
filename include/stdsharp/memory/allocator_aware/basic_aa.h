@@ -9,8 +9,7 @@ namespace stdsharp::allocator_aware
     class basic_aa : allocation_traits<Allocation>::allocator_type // NOLINTBEGIN(*-noexcept-*)
     {
     public:
-        using allocation_traits = allocation_traits<Allocation>;
-        using allocation_type = allocation_traits::allocation_type;
+        using allocation_type = Allocation;
         using callocation = allocation_traits::callocation;
         using allocator_type = allocation_traits::allocator_type;
         using allocator_traits = allocation_traits::allocator_traits;
