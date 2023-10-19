@@ -9,10 +9,11 @@ namespace stdsharp
     class [[nodiscard]] allocation
     {
     public:
-        using pointer = allocator_pointer<Alloc>;
-        using size_type = allocator_size_type<Alloc>;
-        using value_type = allocator_value_type<Alloc>;
-        using const_pointer = allocator_const_pointer<Alloc>;
+        using allocator_type = Alloc;
+        using pointer = allocator_pointer<allocator_type>;
+        using size_type = allocator_size_type<allocator_type>;
+        using value_type = allocator_value_type<allocator_type>;
+        using const_pointer = allocator_const_pointer<allocator_type>;
 
     private:
         pointer ptr_ = nullptr;
@@ -34,31 +35,29 @@ namespace stdsharp
 
         [[nodiscard]] constexpr const_pointer cend() const noexcept { return end(); }
 
-        [[nodiscard]] constexpr pointer data() const noexcept { return begin(); }
-
-        [[nodiscard]] constexpr const_pointer cdata() const noexcept { return cbegin(); }
-
-        template<typename T>
-        [[nodiscard]] constexpr auto data() const noexcept
+        template<typename T = value_type>
+        [[nodiscard]] constexpr decltype(auto) data() const noexcept
         {
-            return pointer_cast<T>(data());
-        }
-
-        template<typename T>
-        [[nodiscard]] constexpr auto cdata() const noexcept
-        {
-            return pointer_cast<T>(cdata());
+            if constexpr(std::same_as<T, value_type>) return begin();
+            else return pointer_cast<T>(begin());
         }
 
         template<typename T = value_type>
-        [[nodiscard]] constexpr decltype(auto) get() const noexcept
+        [[nodiscard]] constexpr decltype(auto) cdata() const noexcept
+        {
+            if constexpr(std::same_as<T, value_type>) return cbegin();
+            else return pointer_cast<T>(cbegin());
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr T& get() const noexcept
         {
             Expects(!empty());
             return *data<T>();
         }
 
         template<typename T = value_type>
-        [[nodiscard]] constexpr decltype(auto) cget() const noexcept
+        [[nodiscard]] constexpr const T& cget() const noexcept
         {
             Expects(!empty());
             return *cdata<T>();
@@ -69,10 +68,10 @@ namespace stdsharp
         [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ == nullptr; }
     };
 
-    template<allocator_req Alloc>
-    class [[nodiscard]] callocation : allocation<Alloc>
+    template<typename Allocation>
+    class [[nodiscard]] callocation : Allocation
     {
-        using allocation = allocation<Alloc>;
+        using allocation = Allocation;
         using typename allocation::value_type;
         using allocation::allocation;
         using allocation::cbegin;
@@ -87,21 +86,21 @@ namespace stdsharp
         }
 
         template<typename T = value_type>
-        [[nodiscard]] constexpr decltype(auto) cget() const noexcept
-        {
-            return allocation::template cget<T>();
-        }
-
-        template<typename T = value_type>
         [[nodiscard]] constexpr auto data() const noexcept
         {
             return cdata<T>();
         }
 
         template<typename T = value_type>
-        [[nodiscard]] constexpr decltype(auto) get() const noexcept
+        [[nodiscard]] constexpr T& get() const noexcept
         {
-            return cget<T>();
+            return allocation::template get<T>();
+        }
+
+        template<typename T = value_type>
+        [[nodiscard]] constexpr const T& cget() const noexcept
+        {
+            return allocation::template cget<T>();
         }
     };
 }

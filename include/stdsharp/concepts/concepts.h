@@ -67,28 +67,67 @@ namespace stdsharp
     concept floating_point = std::is_floating_point_v<T>;
 
     template<typename T, typename U = T>
-    concept arithmetic_like =
-        std::three_way_comparable<T> && requires(T t1, U t2) { // clang-format off
-        { t1 + t2 } -> std::same_as<T>;
-        { t1 - t2 } -> std::same_as<T>;
-        { t1 * t2 } -> std::same_as<T>;
-        { t1 / t2 } -> std::same_as<T>;
-        { t1 % t2 } -> std::same_as<T>;
-        { t1 & t2 } -> std::same_as<T>;
-        { t1 | t2 } -> std::same_as<T>;
-        { t1 ^ t2 } -> std::same_as<T>;
-        { t1 << t2 } -> std::same_as<T>;
-        { t1 >> t2 } -> std::same_as<T>;
-        { t1 += t2 } -> std::same_as<T&>;
-        { t1 -= t2 } -> std::same_as<T&>;
-        { t1 *= t2 } -> std::same_as<T&>;
-        { t1 /= t2 } -> std::same_as<T&>;
-        { t1 %= t2 } -> std::same_as<T&>;
-        { t1 &= t2 } -> std::same_as<T&>;
-        { t1 |= t2 } -> std::same_as<T&>;
-        { t1 ^= t2 } -> std::same_as<T&>;
-        { t1 <<= t2 } -> std::same_as<T&>;
-        { t1 >>= t2 } -> std::same_as<T&>;
+    concept arithmetic_like = std::three_way_comparable<T> && requires(T t1, U t2) {
+        {
+            t1 + t2
+        } -> std::same_as<T>;
+        {
+            t1 - t2
+        } -> std::same_as<T>;
+        {
+            t1* t2
+        } -> std::same_as<T>;
+        {
+            t1 / t2
+        } -> std::same_as<T>;
+        {
+            t1 % t2
+        } -> std::same_as<T>;
+        {
+            t1& t2
+        } -> std::same_as<T>;
+        {
+            t1 | t2
+        } -> std::same_as<T>;
+        {
+            t1 ^ t2
+        } -> std::same_as<T>;
+        {
+            t1 << t2
+        } -> std::same_as<T>;
+        {
+            t1 >> t2
+        } -> std::same_as<T>;
+        {
+            t1 += t2
+        } -> std::same_as<T&>;
+        {
+            t1 -= t2
+        } -> std::same_as<T&>;
+        {
+            t1 *= t2
+        } -> std::same_as<T&>;
+        {
+            t1 /= t2
+        } -> std::same_as<T&>;
+        {
+            t1 %= t2
+        } -> std::same_as<T&>;
+        {
+            t1 &= t2
+        } -> std::same_as<T&>;
+        {
+            t1 |= t2
+        } -> std::same_as<T&>;
+        {
+            t1 ^= t2
+        } -> std::same_as<T&>;
+        {
+            t1 <<= t2
+        } -> std::same_as<T&>;
+        {
+            t1 >>= t2
+        } -> std::same_as<T&>;
     };
 
     template<typename T>
@@ -134,104 +173,7 @@ namespace stdsharp
     concept final = std::is_final_v<T>;
 
     template<typename T>
-    concept inheritable = class_<T> && !final<T>;
-
-    template<typename T>
     concept trivial = std::is_trivial_v<T>;
-
-    template<typename T, typename U>
-    concept assignable = std::is_assignable_v<T, U>;
-
-    template<typename T, typename U>
-    concept assignable_to = std::assignable_from<U, T>;
-
-    template<typename T>
-    concept move_assignable = std::assignable_from<std::add_lvalue_reference_t<T>, T>;
-
-    template<typename T>
-    concept copy_assignable = move_assignable<T> && //
-        std::assignable_from<std::add_lvalue_reference_t<T>, std::add_const_t<T>> && //
-        std::assignable_from<//
-            std::add_lvalue_reference_t<T>,
-            std::add_lvalue_reference_t<T>
-        > &&
-        std::assignable_from< //
-            std::add_lvalue_reference_t<T>,
-            std::add_lvalue_reference_t<std::add_const_t<T>>
-        >;
-
-    template<typename B> // clang-format off
-    concept boolean_testable = std::convertible_to<B, bool> && requires(B&& b)
-    {
-        { !cpp_forward(b) } -> std::convertible_to<bool>;
-    }; // clang-format on
-
-    template<typename T, typename U>
-    concept weakly_equality_comparable_with = requires(
-        const std::remove_reference_t<T>& t,
-        const std::remove_reference_t<U>& u
-    ) // clang-format off
-    {
-        { t == u } -> boolean_testable;
-        { t != u } -> boolean_testable;
-        { u == t } -> boolean_testable;
-        { u != t } -> boolean_testable; // clang-format on
-    };
-
-    template<typename T, typename U>
-    concept nothrow_weakly_equality_comparable_with = weakly_equality_comparable_with<T, U> &&
-        requires(const std::remove_reference_t<T>& t,
-                 const std::remove_reference_t<U>& u) //
-    {
-        noexcept(t == u);
-        noexcept(t != u);
-        noexcept(u == t);
-        noexcept(u != t);
-    };
-
-    template<typename T>
-    concept weakly_equality_comparable = weakly_equality_comparable_with<T, T>;
-
-    template<typename T>
-    concept nothrow_weakly_equality_comparable = nothrow_weakly_equality_comparable_with<T, T>;
-
-    template<typename T, typename U>
-    concept partial_ordered_with = requires(
-        const std::remove_reference_t<T>& t,
-        const std::remove_reference_t<U>& u
-    ) // clang-format off
-    {
-        { t <  u } -> boolean_testable;
-        { t >  u } -> boolean_testable;
-        { t <= u } -> boolean_testable;
-        { t <= u } -> boolean_testable;
-        { u <  t } -> boolean_testable;
-        { u >  t } -> boolean_testable;
-        { u <= t } -> boolean_testable;
-        { u <= t } -> boolean_testable; // clang-format on
-    };
-
-    template<typename T, typename... Args>
-    concept list_initializable_from = requires { T{std::declval<Args>()...}; };
-
-    template<typename T, typename... Args>
-    concept nothrow_list_initializable_from =
-        requires { requires noexcept(T{std::declval<Args>()...}); };
-
-    template<typename T, typename... Args>
-    concept implicitly_constructible_from = std::constructible_from<T, Args...> &&
-        requires { std::declval<void(const T&)>()({std::declval<Args>()...}); };
-
-    template<typename T>
-    concept implicitly_move_constructible =
-        std::move_constructible<T> && implicitly_constructible_from<T, T>;
-
-    template<typename T>
-    concept implicitly_copy_constructible = std::copy_constructible<T> && //
-        implicitly_move_constructible<T> && //
-        implicitly_constructible_from<T, T&> && //
-        implicitly_constructible_from<T, const T> && //
-        implicitly_constructible_from<T, const T&>;
 
     template<typename T>
     concept trivial_copyable = std::is_trivially_copyable_v<T>;
@@ -252,69 +194,25 @@ namespace stdsharp
     concept trivial_move_assignable = std::is_trivially_move_assignable_v<T>;
 
     template<typename T, typename U>
-    concept not_same_as = !std::same_as<T, U>;
-
-    template<typename T, typename U>
-    concept decay_same_as = std::same_as<std::decay_t<T>, U>;
-
-    template<typename T>
-    concept decay_constructible = std::constructible_from<std::decay_t<T>, T>;
-
-    template<typename T, typename... Args>
-    concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
-
-    template<typename T>
-    concept nothrow_decay_constructible = nothrow_constructible_from<std::decay_t<T>, T>;
-
-    template<typename T>
-    concept nothrow_default_initializable =
-        std::default_initializable<T> && std::is_nothrow_default_constructible_v<T>;
-
-    template<typename T>
-    concept nothrow_move_constructible = std::is_nothrow_move_constructible_v<T>;
-
-    template<typename T>
-    concept nothrow_copy_constructible = std::is_nothrow_copy_constructible_v<T>;
+    concept assignable = std::is_assignable_v<T, U>;
 
     template<typename T, typename U>
     concept nothrow_assignable = std::is_nothrow_assignable_v<T, U>;
 
-    template<typename T, typename U>
-    concept nothrow_assignable_from = std::is_nothrow_assignable_v<T, U>;
+    template<typename T>
+    concept move_assignable = std::is_move_assignable_v<T>;
 
     template<typename T>
-    concept nothrow_copy_assignable = std::is_nothrow_copy_assignable_v<T>;
-
-    template<typename T>
-    concept nothrow_move_assignable = std::is_nothrow_move_assignable_v<T>;
-
-    template<typename T, typename U>
-    concept nothrow_swappable_with =
-        requires(T& t, U& u) { requires noexcept(std::ranges::swap(t, u)); };
-
-    template<typename T>
-    concept nothrow_swappable = nothrow_swappable_with<T, T>;
-
-    template<typename T>
-    concept nothrow_movable = std::movable<T> && //
-        nothrow_move_constructible<T> &&
-        nothrow_assignable_from<std::add_lvalue_reference_t<T>, T> && //
-        nothrow_swappable<T>;
-
-    template<typename T>
-    concept nothrow_copyable = nothrow_movable<T> && //
-        nothrow_copy_constructible<T> && //
-        nothrow_assignable_from< //
-                                   std::add_lvalue_reference_t<T>,
-                                   std::add_lvalue_reference_t<T> // clang-format off
-        > && // clang-format on
-        nothrow_assignable_from<std::add_lvalue_reference_t<T>, std::add_const_t<T>> &&
-        nothrow_assignable_from<std::add_lvalue_reference_t<T>,
-                                std::add_lvalue_reference_t<std::add_const_t<T>> // clang-format off
-        >; // clang-format on
+    concept copy_assignable = std::is_copy_assignable_v<T>;
 
     template<typename T, typename U>
     concept nothrow_convertible_to = std::is_nothrow_convertible_v<T, U>;
+
+    template<typename T>
+    concept inheritable = class_<T> && !final<T>;
+
+    template<typename T, typename U>
+    concept assignable_to = assignable<U, T>;
 
     template<typename From, typename To>
     concept explicitly_convertible = requires(From&& v) { static_cast<To>(cpp_forward(v)); };
@@ -350,6 +248,171 @@ namespace stdsharp
     concept nothrow_explicitly_inter_convertible =
         nothrow_explicitly_convertible<T, U> && nothrow_explicitly_convertible_from<T, U>;
 
+    template<typename B>
+    concept boolean_testable = std::convertible_to<B, bool> && requires(B&& b) {
+        {
+            !cpp_forward(b)
+        } -> std::convertible_to<bool>;
+    };
+
+    template<typename B>
+    concept nothrow_boolean_testable = nothrow_convertible_to<B, bool> && requires(B&& b) {
+        {
+            !cpp_forward(b)
+        } noexcept -> nothrow_convertible_to<bool>;
+    };
+
+    template<typename T, typename U>
+    concept weakly_equality_comparable_with =
+        requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
+            {
+                t == u
+            } -> boolean_testable;
+            {
+                t != u
+            } -> boolean_testable;
+            {
+                u == t
+            } -> boolean_testable;
+            {
+                u != t
+            } -> boolean_testable;
+        };
+
+    template<typename T, typename U>
+    concept nothrow_weakly_equality_comparable_with =
+        requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
+            {
+                t == u
+            } noexcept -> nothrow_boolean_testable;
+            {
+                t != u
+            } noexcept -> nothrow_boolean_testable;
+            {
+                u == t
+            } noexcept -> nothrow_boolean_testable;
+            {
+                u != t
+            } noexcept -> nothrow_boolean_testable;
+        };
+
+    template<typename T>
+    concept weakly_equality_comparable = weakly_equality_comparable_with<T, T>;
+
+    template<typename T>
+    concept nothrow_weakly_equality_comparable = nothrow_weakly_equality_comparable_with<T, T>;
+
+    template<typename T, typename U>
+    concept partial_ordered_with =
+        requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
+            {
+                t < u
+            } -> boolean_testable;
+            {
+                t > u
+            } -> boolean_testable;
+            {
+                t <= u
+            } -> boolean_testable;
+            {
+                t <= u
+            } -> boolean_testable;
+            {
+                u < t
+            } -> boolean_testable;
+            {
+                u > t
+            } -> boolean_testable;
+            {
+                u <= t
+            } -> boolean_testable;
+            {
+                u <= t
+            } -> boolean_testable;
+        };
+
+    template<typename T, typename... Args>
+    concept list_initializable_from = requires { T{std::declval<Args>()...}; };
+
+    template<typename T, typename... Args>
+    concept nothrow_list_initializable_from =
+        requires { requires noexcept(T{std::declval<Args>()...}); };
+
+    template<typename T, typename... Args>
+    concept implicitly_constructible_from = std::constructible_from<T, Args...> &&
+        requires { std::declval<void(const T&)>()({std::declval<Args>()...}); };
+
+    template<typename T>
+    concept implicitly_move_constructible =
+        std::move_constructible<T> && implicitly_constructible_from<T, T>;
+
+    template<typename T>
+    concept implicitly_copy_constructible = std::copy_constructible<T> && //
+        implicitly_move_constructible<T> && //
+        implicitly_constructible_from<T, T&> && //
+        implicitly_constructible_from<T, const T> && //
+        implicitly_constructible_from<T, const T&>;
+
+    template<typename T, typename U>
+    concept not_same_as = !std::same_as<T, U>;
+
+    template<typename T, typename U>
+    concept decay_same_as = std::same_as<std::decay_t<T>, U>;
+
+    template<typename T>
+    concept decay_constructible = std::constructible_from<std::decay_t<T>, T>;
+
+    template<typename T, typename... Args>
+    concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
+
+    template<typename T>
+    concept nothrow_decay_constructible = nothrow_constructible_from<std::decay_t<T>, T>;
+
+    template<typename T>
+    concept nothrow_default_initializable =
+        std::default_initializable<T> && std::is_nothrow_default_constructible_v<T>;
+
+    template<typename T>
+    concept nothrow_move_constructible = std::is_nothrow_move_constructible_v<T>;
+
+    template<typename T>
+    concept nothrow_copy_constructible = std::is_nothrow_copy_constructible_v<T>;
+
+    template<typename T, typename U>
+    concept nothrow_assignable_from = std::is_nothrow_assignable_v<T, U>;
+
+    template<typename T>
+    concept nothrow_copy_assignable = std::is_nothrow_copy_assignable_v<T>;
+
+    template<typename T>
+    concept nothrow_move_assignable = std::is_nothrow_move_assignable_v<T>;
+
+    template<typename T, typename U>
+    concept nothrow_swappable_with =
+        requires(T& t, U& u) { requires noexcept(std::ranges::swap(t, u)); };
+
+    template<typename T>
+    concept nothrow_swappable = nothrow_swappable_with<T, T>;
+
+    template<typename T>
+    concept nothrow_movable = std::movable<T> && //
+        nothrow_move_constructible<T> &&
+        nothrow_assignable_from<std::add_lvalue_reference_t<T>, T> && //
+        nothrow_swappable<T>;
+
+    template<typename T>
+    concept nothrow_copyable = requires(
+        std::add_lvalue_reference_t<T> ref,
+        std::add_const_t<T> const_,
+        std::add_lvalue_reference_t<decltype(const_)> const_ref
+    ) {
+        requires nothrow_movable<T>;
+        requires nothrow_copy_constructible<T>;
+        requires nothrow_assignable_from<decltype(ref), decltype(ref)>;
+        requires nothrow_assignable_from<decltype(ref), decltype(const_)>;
+        requires nothrow_assignable_from<decltype(ref), decltype(const_ref)>;
+    };
+
     template<typename Func, typename... Args>
     concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
 
@@ -381,8 +444,12 @@ namespace stdsharp
     template<typename T>
     concept referenceable = requires { typename std::add_lvalue_reference<T>; };
 
-    template<typename T> // clang-format off
-    concept dereferenceable = requires(T& t) { { *t } -> referenceable; }; // clang-format on
+    template<typename T>
+    concept dereferenceable = requires(T& t) {
+        {
+            *t
+        } -> referenceable;
+    };
 
     template<typename T, template<typename...> typename Impl, typename... U>
     concept proxy_concept = Impl<T, U...>::value;
