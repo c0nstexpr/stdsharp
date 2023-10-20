@@ -69,6 +69,10 @@ namespace stdsharp::allocator_aware
         ();
     };
 
+    template<typename Rng, typename Allocation>
+    concept allocations_view = allocation_req<Allocation> && std::ranges::input_range<Rng> &&
+        std::same_as<std::ranges::range_value_t<Rng>, std::reference_wrapper<Allocation>>;
+
     template<allocation_req Allocation>
     struct allocation_traits
     {
@@ -76,9 +80,12 @@ namespace stdsharp::allocator_aware
         using allocator_traits = allocator_traits<allocator_type>;
         using value_type = allocator_traits::value_type;
         using size_type = allocator_traits::size_type;
+        using difference_type = allocator_traits::difference_type;
         using cvp = allocator_traits::const_void_pointer;
         using pointer = allocator_traits::pointer;
         using const_pointer = allocator_traits::const_pointer;
+        using void_pointer = allocator_traits::void_pointer;
+        using const_void_pointer = allocator_traits::const_void_pointer;
 
         using allocation_type = Allocation;
         using callocation = callocation<Allocation>;
@@ -86,34 +93,60 @@ namespace stdsharp::allocator_aware
         using allocation_cref = const callocation&;
         using allocator_cref = const allocator_type&;
 
-        struct destination
+        using deault_allocations_t =
+            std::ranges::single_view<std::reference_wrapper<allocation_type>>;
+
+        template<allocations_view<Allocation> Allocations = deault_allocations_t>
+        struct target
         {
             std::reference_wrapper<allocator_type> allocator;
-            std::reference_wrapper<allocation_type> allocation;
+            Allocations allocations;
         };
 
+        template<typename T>
+        target(auto&, T) -> target<T>;
+
+        template<allocations_view<Allocation> Allocations = deault_allocations_t>
         struct const_source
         {
             std::reference_wrapper<const allocator_type> allocator;
-            std::reference_wrapper<const callocation> allocation;
+            Allocations allocations;
         };
 
+        template<typename T>
+        const_source(auto&, T) -> const_source<T>;
+
+        template<allocations_view<Allocation> Allocations = deault_allocations_t>
         struct source
         {
             std::reference_wrapper<allocator_type> allocator;
-            std::reference_wrapper<allocation_type> allocation;
+            Allocations allocations;
 
-            constexpr operator const_source() const noexcept
+            constexpr auto to_const() const noexcept
             {
-                return {allocator.get(), allocation.get()};
+                return const_source{
+                    allocator.get(),
+                    std::views::transform(
+                        allocations,
+                        [](const std::reference_wrapper<allocation_type> wrapper)
+                        { return std::cref(wrapper.get()); }
+                    )
+                };
             }
         };
 
+        template<typename T>
+        source(auto&, T) -> source<T>;
+
+        template<allocations_view<Allocation> Allocations = deault_allocations_t>
         struct construction_result
         {
             allocator_type allocator;
             allocation_type allocation;
         };
+
+        template<typename T>
+        construction_result(auto&, T) -> construction_result<T>;
 
         static constexpr allocation_type
             allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
@@ -130,11 +163,15 @@ namespace stdsharp::allocator_aware
             return {allocator_traits::try_allocate(alloc, size, hint), size};
         }
 
-        static constexpr void deallocate(const destination dst) noexcept
+        template<typename T>
+        static constexpr void deallocate(const target<T> dst) noexcept
         {
-            auto& allocation = dst.allocation.get();
-            allocator_traits::deallocate(dst.allocator, allocation.data(), allocation.size());
-            allocation = {};
+            for(const auto wrapper : dst.allocations)
+            {
+                auto& allocation = wrapper.get();
+                allocator_traits::deallocate(dst.allocator, allocation.data(), allocation.size());
+                allocation = {};
+            }
         }
     };
 }

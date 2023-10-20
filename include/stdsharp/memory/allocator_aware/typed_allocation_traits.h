@@ -1,7 +1,8 @@
 #pragma once
 
 #include "allocation_traits.h"
-#include "stdsharp/concepts/concepts.h"
+#include "../type_dispatchers.h"
+#include <type_traits>
 
 namespace stdsharp::allocator_aware
 {
@@ -9,21 +10,17 @@ namespace stdsharp::allocator_aware
     struct typed_allocation_traits : allocation_traits<Allocation>
     {
         using allocation_traits = allocation_traits<Allocation>;
-        using typename allocation_traits::allocation_type;
-        using typename allocation_traits::callocation;
-        using typename allocation_traits::allocator_traits;
-        using typename allocation_traits::allocation;
         using typename allocation_traits::allocator_type;
-        using typename allocation_traits::allocation_cref;
-        using typename allocation_traits::allocator_cref;
-        using typename allocation_traits::destination;
+        using typename allocation_traits::target;
         using typename allocation_traits::source;
         using typename allocation_traits::const_source;
         using typename allocation_traits::construction_result;
+        using typename allocation_traits::allocation_cref;
+        using allocator_traits = allocator_traits<allocator_type>;
 
         template<typename... Args>
             requires(allocator_traits::template constructible_from<T, Args...>)
-        static constexpr T& construct(const destination dst, Args&&... args) //
+        static constexpr T& construct(const target dst, Args&&... args) //
             noexcept(allocator_traits::template nothrow_constructible_from<T, Args...>)
         {
             auto& allocation = dst.allocation.get();
@@ -38,7 +35,7 @@ namespace stdsharp::allocator_aware
             return allocation.template get<T>();
         }
 
-        static constexpr void destroy(const destination dst) //
+        static constexpr void destroy(const target dst) //
             noexcept(allocator_traits::template nothrow_destructible<T>)
             requires(allocator_traits::template destructible<T>)
         {
@@ -79,7 +76,7 @@ namespace stdsharp::allocator_aware
         }
 
     public:
-        static constexpr void on_assign(const const_source src, const destination dst) //
+        static constexpr void on_assign(const const_source src, const target dst) //
             noexcept(nothrow_copy_assignable<T>)
             requires allocator_traits::propagate_on_copy_v && always_equal_v && copy_assignable<T>
         {
@@ -91,7 +88,7 @@ namespace stdsharp::allocator_aware
             dst_allocation.template get<T>() = src_allocation.template cget<T>();
         }
 
-        static constexpr void on_assign(const const_source src, const destination dst)
+        static constexpr void on_assign(const const_source src, const target dst)
             requires requires {
                 requires allocator_traits::propagate_on_copy_v;
                 requires copy_assignable<T>;
@@ -119,7 +116,7 @@ namespace stdsharp::allocator_aware
             }
         }
 
-        static constexpr void on_assign(const const_source src, const destination dst) //
+        static constexpr void on_assign(const const_source src, const target dst) //
             noexcept(nothrow_copy_assignable<T>)
             requires copy_assignable<T>
         {
@@ -130,7 +127,7 @@ namespace stdsharp::allocator_aware
         }
 
     private:
-        static constexpr void mov_allocation(const source src, const destination dst) //
+        static constexpr void mov_allocation(const source src, const target dst) //
             noexcept(noexcept(destroy(dst)))
             requires requires { destroy(dst); }
         {
@@ -140,7 +137,7 @@ namespace stdsharp::allocator_aware
         }
 
     public:
-        static constexpr void on_assign(const source src, const destination dst) //
+        static constexpr void on_assign(const source src, const target dst) //
             noexcept(noexcept(mov_allocation(src, dst)))
             requires requires {
                 requires allocator_traits::propagate_on_move_v;
@@ -152,7 +149,7 @@ namespace stdsharp::allocator_aware
             dst.allocator.get() = cpp_move(src.allocator.get());
         }
 
-        static constexpr void on_assign(const source src, const destination dst) //
+        static constexpr void on_assign(const source src, const target dst) //
             noexcept(noexcept(mov_allocation(src, dst)))
             requires requires {
                 requires !allocator_traits::propagate_on_move_v;
@@ -165,7 +162,7 @@ namespace stdsharp::allocator_aware
             mov_allocation(src, dst);
         }
 
-        static constexpr void on_assign(const source src, const destination dst) //
+        static constexpr void on_assign(const source src, const target dst) //
             noexcept(nothrow_move_assignable<T>)
             requires move_assignable<T>
         {
@@ -174,7 +171,7 @@ namespace stdsharp::allocator_aware
                 cpp_move(src.allocation.get().template get<T>());
         }
 
-        static constexpr void on_swap(const source lhs, const destination rhs) noexcept
+        static constexpr void on_swap(const source lhs, const target rhs) noexcept
             requires std::swappable<T>
         {
             if constexpr(allocator_traits::propagate_on_swap_v)
@@ -184,71 +181,84 @@ namespace stdsharp::allocator_aware
         }
     };
 
-    template<typename Allocation>
-        requires requires(const callocation<Allocation> callocation) {
-            {
-                Allocation::is_value_assignable(callocation, callocation)
-            } noexcept -> nothrow_boolean_testable;
-
-            {
-                callocation.has_value()
-            } noexcept -> nothrow_boolean_testable;
-
-            {
-                callocation.capacity()
-            } noexcept -> std::same_as<typename allocation_traits<Allocation>::size_type>;
-        }
+    template<allocation_req Allocation>
     struct typed_allocation_traits<Allocation, void> : allocation_traits<Allocation>
     {
         using allocation_traits = allocation_traits<Allocation>;
-        using typename allocation_traits::allocator_traits;
         using typename allocation_traits::allocation_type;
         using typename allocation_traits::callocation;
+        using typename allocation_traits::allocator_traits;
+        using typename allocation_traits::allocation;
         using typename allocation_traits::allocator_type;
         using typename allocation_traits::allocation_cref;
         using typename allocation_traits::allocator_cref;
-        using typename allocation_traits::destination;
-        using typename allocation_traits::source;
-        using typename allocation_traits::const_source;
-        using typename allocation_traits::construction_result;
 
-        static constexpr decltype(auto) construct(const destination dst, auto&&... args) //
-            noexcept(noexcept(allocation_type::construct(dst, cpp_forward(args)...)))
-            requires requires { allocation_type::construct(dst, cpp_forward(args)...); }
+        template<special_mem_req Req>
+        struct target : allocation_traits::target
         {
-            return allocation_type::construct(dst, cpp_forward(args)...);
+            type_dispatchers<Req, allocator_type> dispatchers;
+        };
+
+        template<special_mem_req Req>
+        struct source : allocation_traits::source
+        {
+            type_dispatchers<Req, allocator_type> dispatchers;
+        };
+
+        template<special_mem_req Req>
+        struct const_source : allocation_traits::const_source
+        {
+            type_dispatchers<Req, allocator_type> dispatchers;
+        };
+
+        template<special_mem_req Req>
+        struct construction_result : allocation_traits::construction_result
+        {
+            type_dispatchers<Req, allocator_type> dispatchers;
+        };
+
+    private:
+        template<typename T>
+        using traits = typed_allocation_traits<Allocation, T>;
+
+    public:
+        template<typename T, special_mem_req Req, typename... Args>
+            requires std::constructible_from<
+                         type_dispatchers<Req, allocator_type>,
+                         std::type_identity<T>> &&
+            (allocator_traits::template constructible_from<T, Args...>)
+        static constexpr T& construct(const target<Req> dst, Args&&... args) //
+            noexcept(allocator_traits::template nothrow_constructible_from<T, Args...>)
+        {
+            auto& v = traits<T>::construct(dst, cpp_forward(args)...);
+            dst.dispatchers = type_dispatchers<Req, allocator_type>{std::type_identity<T>{}};
+
+            return v;
         }
 
-        template<typename T, typename... Args, auto InPlace = std::in_place_type_t<T>{}>
-        static constexpr T& construct(const destination dst, auto&&... args) //
-            noexcept(noexcept(static_cast<T&>(construct(dst, InPlace, cpp_forward(args)...))))
-            requires requires {
-                {
-                    construct(dst, InPlace, cpp_forward(args)...)
-                } -> std::convertible_to<T&>;
-            }
+        template<special_mem_req Req>
+        static constexpr void destroy(const target<Req> dst) //
+            noexcept(is_noexcept(Req.destruct))
+            requires (is_well_formed(Req.destruct))
         {
-            return construct(dst, InPlace, cpp_forward(args)...);
+            auto& allocation = dst.allocation.get();
+            if(allocation.empty()) return;
+            dst.dispatchers.destruct(allocation.data(), dst.allocator);
+            dst.dispatchers = {};
         }
 
-        static constexpr void destroy(const destination dst) //
-            noexcept(noexcept(allocation_type::destroy(dst)))
-            requires requires { allocation_type::destroy(dst); }
+        template<special_mem_req Req>
+        [[nodiscard]] static constexpr construction_result<Req> on_construct(const const_source<Req> src)
+            requires requires(construction_result<Req> result) { traits::on_construct(src, result); }
         {
-            allocation_type::destroy(dst);
-        }
-
-        [[nodiscard]] static constexpr construction_result on_construct(const const_source src)
-            requires requires(construction_result result) {
-                allocation_type::on_construct(src, result);
-            }
-        {
-            auto alloc = src.allocator;
-            construction_result result{
-                allocation_traits::allocate(alloc, src.allocation.get().size()),
-                allocator_traits::select_on_container_copy_construction(alloc)
+            auto& src_allocator = src.allocator;
+            auto& src_allocation = src.allocation.get();
+            construction_result<Req> result{
+                allocation_traits::allocate(src_allocator, src_allocation.size()),
+                allocator_traits::select_on_container_copy_construction(src_allocator),
+                src.dispatchers
             };
-            allocation_type::on_construct(src, result);
+            result.dispatchers.copy_construct(result.allocation, result.allocator, , src_allocation.template cget<T>());
             return result;
         }
 
@@ -271,7 +281,7 @@ namespace stdsharp::allocator_aware
         }
 
     private:
-        static constexpr void do_assign(const auto src, const destination dst) noexcept(
+        static constexpr void do_assign(const auto src, const target dst) noexcept(
             noexcept(allocation_type::on_assign(src, dst))
         )
             requires requires { allocation_type::on_assign(src, dst); }
@@ -280,7 +290,7 @@ namespace stdsharp::allocator_aware
             dst.allocation.get().type() = src.allocation.get().type();
         }
 
-        static constexpr void prepare_for(const auto src, const destination dst)
+        static constexpr void prepare_for(const auto src, const target dst)
             requires requires { destroy(dst); }
         {
             auto& src_allocation = src.allocation.get();
@@ -299,5 +309,21 @@ namespace stdsharp::allocator_aware
         }
 
     public:
+    };
+
+    template<typename Allocation>
+    struct typed_allocation_traits<Allocation, void> : allocation_traits<Allocation>
+    {
+        using allocation_traits = allocation_traits<Allocation>;
+        using typename allocation_traits::allocator_traits;
+        using typename allocation_traits::allocation_type;
+        using typename allocation_traits::callocation;
+        using typename allocation_traits::allocator_type;
+        using typename allocation_traits::allocation_cref;
+        using typename allocation_traits::allocator_cref;
+        using typename allocation_traits::target;
+        using typename allocation_traits::source;
+        using typename allocation_traits::const_source;
+        using typename allocation_traits::construction_result;
     };
 }

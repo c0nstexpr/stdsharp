@@ -105,12 +105,12 @@ namespace stdsharp
                              expr_req::ill_formed;
     }
 
-    constexpr auto is_well_formed(const expr_req req) noexcept
+    constexpr bool is_well_formed(const expr_req req) noexcept
     {
         return req >= expr_req::well_formed;
     }
 
-    constexpr auto is_noexcept(const expr_req req) noexcept
+    constexpr bool is_noexcept(const expr_req req) noexcept
     {
         return req >= expr_req::no_exception;
     }
