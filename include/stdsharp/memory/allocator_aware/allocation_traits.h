@@ -71,7 +71,11 @@ namespace stdsharp::allocator_aware
 
     template<typename Rng, typename Allocation>
     concept allocations_view = allocation_req<Allocation> && std::ranges::input_range<Rng> &&
-        std::same_as<std::ranges::range_value_t<Rng>, std::reference_wrapper<Allocation>>;
+        std::same_as<std::ranges::range_value_t<Rng>, Allocation>;
+
+    template<typename Rng, typename Allocation>
+    concept callocations_view = allocation_req<Allocation> && std::ranges::input_range<Rng> &&
+        std::same_as<std::ranges::range_value_t<Rng>, const Allocation>;
 
     template<allocation_req Allocation>
     struct allocation_traits
@@ -93,10 +97,9 @@ namespace stdsharp::allocator_aware
         using allocation_cref = const callocation&;
         using allocator_cref = const allocator_type&;
 
-        using deault_allocations_t =
-            std::ranges::single_view<std::reference_wrapper<allocation_type>>;
+        using default_allocations_t = std::ranges::single_view<allocation_type>;
 
-        template<allocations_view<Allocation> Allocations = deault_allocations_t>
+        template<allocations_view<Allocation> Allocations = default_allocations_t>
         struct target
         {
             std::reference_wrapper<allocator_type> allocator;
@@ -106,7 +109,7 @@ namespace stdsharp::allocator_aware
         template<typename T>
         target(auto&, T) -> target<T>;
 
-        template<allocations_view<Allocation> Allocations = deault_allocations_t>
+        template<callocations_view<Allocation> Allocations = default_allocations_t>
         struct const_source
         {
             std::reference_wrapper<const allocator_type> allocator;
@@ -116,7 +119,7 @@ namespace stdsharp::allocator_aware
         template<typename T>
         const_source(auto&, T) -> const_source<T>;
 
-        template<allocations_view<Allocation> Allocations = deault_allocations_t>
+        template<allocations_view<Allocation> Allocations = default_allocations_t>
         struct source
         {
             std::reference_wrapper<allocator_type> allocator;
@@ -125,12 +128,11 @@ namespace stdsharp::allocator_aware
             constexpr auto to_const() const noexcept
             {
                 return const_source{
-                    allocator.get(),
-                    std::views::transform(
-                        allocations,
-                        [](const std::reference_wrapper<allocation_type> wrapper)
-                        { return std::cref(wrapper.get()); }
-                    )
+                    allocator.get(), // TODO: replace with std::views::as_const
+                    std::ranges::subrange{
+                        std::ranges::cbegin(allocations),
+                        std::ranges::cend(allocations)
+                    }
                 };
             }
         };
@@ -138,15 +140,15 @@ namespace stdsharp::allocator_aware
         template<typename T>
         source(auto&, T) -> source<T>;
 
-        template<allocations_view<Allocation> Allocations = deault_allocations_t>
+        template<allocations_view<Allocation> Allocations = default_allocations_t>
         struct construction_result
         {
             allocator_type allocator;
-            allocation_type allocation;
+            Allocations allocation;
         };
 
         template<typename T>
-        construction_result(auto&, T) -> construction_result<T>;
+        construction_result(auto, T) -> construction_result<T>;
 
         static constexpr allocation_type
             allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
@@ -154,11 +156,9 @@ namespace stdsharp::allocator_aware
             return {allocator_traits::allocate(alloc, size, hint), size};
         }
 
-        static constexpr allocation_type try_allocate(
-            allocator_type& alloc,
-            const size_type size,
-            const cvp hint = nullptr
-        ) noexcept
+        static constexpr allocation_type
+            try_allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr) //
+            noexcept
         {
             return {allocator_traits::try_allocate(alloc, size, hint), size};
         }
@@ -166,9 +166,8 @@ namespace stdsharp::allocator_aware
         template<typename T>
         static constexpr void deallocate(const target<T> dst) noexcept
         {
-            for(const auto wrapper : dst.allocations)
+            for(const auto allocation : dst.allocations)
             {
-                auto& allocation = wrapper.get();
                 allocator_traits::deallocate(dst.allocator, allocation.data(), allocation.size());
                 allocation = {};
             }
