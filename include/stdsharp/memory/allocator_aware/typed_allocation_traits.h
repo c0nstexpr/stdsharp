@@ -55,49 +55,13 @@ namespace stdsharp::allocator_aware
         }
 
     private:
-        template<typename Allocations, typename Fn>
-        struct copy_invoker
-        {
-            Allocations src_allocations;
-            Fn fn;
+        template<typename Fn>
+        static constexpr auto copy_ctor = std::copy_constructible<Fn> &&
+            std::invocable<Fn&, callocation, allocation_type&, allocator_type&>;
 
-        private:
-            struct transformer
-            {
-                std::reference_wrapper<allocator_type> allocator;
-                std::reference_wrapper<Fn> fn;
-
-                constexpr auto operator()(const auto src_allocation) const
-                {
-                    auto allocation = allocation_traits::allocate(allocator, src_allocation.size());
-                    std::invoke(fn, src_allocation, allocation, allocator);
-                    return allocation;
-                }
-            };
-
-        public:
-            constexpr auto operator()(allocator_type& allocator) const noexcept
-            {
-                return std::ranges::transform(
-                    src_allocations | callocations_transformer,
-                    transformer{allocator, fn}
-                );
-            }
-        };
-
-        template<typename Allocations>
-        struct move_invoker
-        {
-            Allocations src_allocations;
-
-            constexpr auto operator()(allocator_type& /*unused*/) const noexcept
-            {
-                return std::ranges::transform(
-                    src_allocations | allocations_transformer,
-                    [](auto& src_allocation) noexcept { return std::exchange(src_allocation, {}); }
-                );
-            }
-        };
+        template<typename Fn>
+        static constexpr auto move_ctor = std::copy_constructible<Fn> &&
+            std::invocable<Fn&, allocation_type&, allocation_type&, allocator_type&>;
 
     public:
         template<typename Allocations, std::copy_constructible CopyFn>
@@ -109,7 +73,27 @@ namespace stdsharp::allocator_aware
         {
             return ctor_input_allocation{
                 allocator_traits::select_on_container_copy_construction(src.allocator),
-                copy_invoker{src.allocations, cpp_forward(fn)}
+                std::bind_front(
+                    [](const auto src, CopyFn& fn, allocator_type& allocator) noexcept
+                    {
+                        return std::ranges::views::transform(
+                            src,
+                            std::bind_front(
+                                [](allocator_type& allocator, CopyFn& fn, const auto src)
+                                {
+                                    auto allocation =
+                                        allocation_traits::allocate(allocator, src.size());
+                                    std::invoke(fn, src, allocation, allocator);
+                                    return allocation;
+                                },
+                                allocator,
+                                fn
+                            )
+                        );
+                    },
+                    src.allocations | callocations_transformer,
+                    cpp_forward(fn)
+                )
             };
         }
 
@@ -142,7 +126,17 @@ namespace stdsharp::allocator_aware
         [[nodiscard]] static constexpr auto
             on_construct(const source_allocations<allocator_type, Allocations> src) noexcept
         {
-            return ctor_input_allocation{cpp_move(src.allocator), move_invoker{src.allocations}};
+            return ctor_input_allocation{
+                cpp_move(src.allocator),
+                std::bind_front(
+                    [](const auto src, auto&) noexcept { return src; },
+                    std::ranges::transform(
+                        src.allocations | allocations_transformer,
+                        [](auto& src) noexcept { return std::exchange(src, {}); }
+                    )
+
+                )
+            };
         }
 
     private:
