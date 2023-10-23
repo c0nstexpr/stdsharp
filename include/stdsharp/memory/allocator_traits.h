@@ -252,15 +252,28 @@ namespace stdsharp
             }
         }; // NOLINTEND(*-owning-memory)
 
+        struct nullptr_constructor
+        {
+            void operator()(Alloc&, nullptr_t, auto&&...) const = delete;
+        };
+
         using m_base = std::allocator_traits<Alloc>;
 
     public:
-        using constructor =
-            sequenced_invocables<custom_constructor, using_alloc_ctor, default_constructor>;
+        using constructor = sequenced_invocables<
+            nullptr_constructor,
+            custom_constructor,
+            using_alloc_ctor,
+            default_constructor>;
 
         static constexpr constructor construct{};
 
     private:
+        struct nullptr_destructor
+        {
+            void operator()(Alloc&, nullptr_t) = delete;
+        };
+
         struct custom_destructor
         {
             template<typename U>
@@ -281,7 +294,8 @@ namespace stdsharp
         };
 
     public:
-        using destructor = sequenced_invocables<custom_destructor, default_destructor>;
+        using destructor =
+            sequenced_invocables<nullptr_destructor, custom_destructor, default_destructor>;
 
         static constexpr destructor destroy{};
 
