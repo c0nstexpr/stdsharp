@@ -136,10 +136,7 @@ namespace stdsharp
         {
             return const_source_allocations{
                 allocator.get(), // TODO: replace with std::views::as_const
-                std::ranges::subrange{
-                    std::ranges::cbegin(allocations),
-                    std::ranges::cend(allocations)
-                }
+                allocations | views::cast<callocation<Allocator>>
             };
         }
     };
@@ -154,15 +151,34 @@ namespace stdsharp
                          std::ranges::range_reference_t<decltype(result)>,
                          allocation<Allocator>>;
         }
-    struct ctor_input_allocation
+    struct ctor_input_allocations
     {
         Allocator allocator;
         DeferAllocations deferred_allocations;
     };
 
     template<typename T, typename U>
-    ctor_input_allocation(T, U) -> ctor_input_allocation<T, U>;
+    ctor_input_allocations(T, U) -> ctor_input_allocations<T, U>;
 
     template<typename T, typename UDefer>
-    ctor_input_allocation(T, UDefer) -> ctor_input_allocation<T, std::invoke_result<UDefer, T&>>;
+    ctor_input_allocations(T, UDefer) -> ctor_input_allocations<T, std::invoke_result<UDefer, T&>>;
+
+    template<typename Rng, typename Alloc>
+    concept owning_allocations_view =
+        std::ranges::input_range<Rng> && std::ranges::output_range<Rng, allocation<Alloc>>;
+
+    template<allocator_req Allocator, owning_allocations_view<Allocator> Allocations>
+    class owning_allocations : Allocator
+    {
+        Allocations allocations_;
+
+    public:
+        template<typename... Args>
+            requires std::constructible_from<Allocator, Args...>
+        constexpr owning_allocations(Args&&... args) //
+            noexcept(nothrow_constructible_from<Allocator, Args...>):
+            Allocator(cpp_forward(args)...)
+        {
+        }
+    };
 }

@@ -4,11 +4,11 @@
 #pragma once
 
 #include <ranges>
-#include "../iterator/iterator.h"
 
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
 
+#include "../iterator/iterator.h"
 #include "../functional/invocables.h"
 #include "../utility/utility.h"
 
@@ -39,14 +39,19 @@ namespace stdsharp
 #endif
 
     template<typename T>
-    using forwarding_views = std::ranges::transform_view<T, forward_like_fn<T>>;
+    using forwarding_view = std::ranges::transform_view<T, forward_like_fn<T>>;
+
+    template<typename T, typename U>
+    using cast_view = std::ranges::transform_view<T, cast_to_fn<U>>;
 
     namespace views
     {
-        inline constexpr nodiscard_invocable forwarding =
-            []<typename T>(T&& t) noexcept(nothrow_constructible_from<forwarding_views<T>, T>)
+        inline constexpr nodiscard_invocable forwarding = []<typename T>(T&& t) noexcept
         {
-            return forwarding_views<T>{cpp_forward(t)}; //
+            return t | std::ranges::views::transform(forward_like<T>); //
         };
+
+        template<typename U>
+        inline constexpr nodiscard_invocable cast = std::ranges::views::transform(cast_to<U>);
     }
 }

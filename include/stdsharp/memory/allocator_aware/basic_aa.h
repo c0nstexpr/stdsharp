@@ -1,32 +1,32 @@
 #pragma once
 
-#include "allocation_traits.h"
+#include "allocation_value_operation.h"
 
 namespace stdsharp::allocator_aware
 {
-    template<typename Allocation>
-        requires requires { typename allocation_traits<Allocation>; }
-    class basic_aa : allocation_traits<Allocation>::allocator_type // NOLINTBEGIN(*-noexcept-*)
+    template<allocator_req Allocator, typename Allocations, typename ValueType = Allocator::value_type>
+    class basic_aa : Allocator, allocation_value_operation<Allocator, ValueType> // NOLINTBEGIN(*-noexcept-*)
     {
     public:
-        using allocation_type = Allocation;
+        using allocation_traits = allocation_traits<Allocator>;
+        using allocation_type = allocation_traits::allocation_type;
         using callocation = allocation_traits::callocation;
-        using allocator_type = allocation_traits::allocator_type;
+        using allocator_type = Allocator;
         using allocator_traits = allocation_traits::allocator_traits;
 
     private:
-        allocation_type allocation_{};
+        Allocations allocation_{};
 
     protected:
-        constexpr allocation_type& get_allocation() noexcept { return allocation_; }
+        constexpr auto& get_allocation() noexcept { return allocation_; }
 
-        constexpr const allocation_type& get_allocation() const noexcept { return allocation_; }
+        constexpr const auto& get_allocation() const noexcept { return allocation_; }
 
         constexpr allocator_type& get_allocator() noexcept { return *this; }
 
         template<typename T, typename U>
             requires std::constructible_from<allocator_type, T> &&
-                         std::constructible_from<allocation_type, U>
+                         std::constructible_from<Allocations, U>
         constexpr basic_aa(T&& allocator, U&& allocation) //
             noexcept(nothrow_constructible_from<allocator_type, T> && nothrow_constructible_from<allocation_type, U>):
             allocator_type(cpp_forward(allocator)), allocation_(cpp_forward(allocation))

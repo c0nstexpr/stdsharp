@@ -34,6 +34,7 @@ Checks: # enabled
   -*-missing-std-forward,
   -*-rvalue-reference-param-not-moved,
   -*-include-cleaner,
+  -*-swappable-parameters,
   -*-reserved-identifier'
   # disabled alias
   - '-bugprone-narrowing-conversions,
