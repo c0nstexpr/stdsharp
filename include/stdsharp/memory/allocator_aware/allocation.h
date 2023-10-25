@@ -53,14 +53,14 @@ namespace stdsharp
         [[nodiscard]] constexpr T& get() const noexcept
         {
             Expects(!empty());
-            return *data<T>();
+            return *std::launder(data<T>());
         }
 
         template<typename T = value_type>
         [[nodiscard]] constexpr const T& cget() const noexcept
         {
             Expects(!empty());
-            return *cdata<T>();
+            return *std::launder(cdata<T>());
         }
 
         [[nodiscard]] constexpr auto size() const noexcept { return size_; }
@@ -144,13 +144,7 @@ namespace stdsharp
     template<typename T, typename U>
     source_allocations(T&, U) -> source_allocations<T, U>;
 
-    template<allocator_req Allocator, std::invocable<Allocator> DeferAllocations>
-        requires requires(std::invoke_result_t<DeferAllocations>, allocation<Allocator> result) {
-            requires std::ranges::input_range<decltype(result)> &&
-                nothrow_convertible_to<
-                         std::ranges::range_reference_t<decltype(result)>,
-                         allocation<Allocator>>;
-        }
+    template<allocator_req Allocator, std::invocable<Allocator&> DeferAllocations>
     struct ctor_input_allocations
     {
         Allocator allocator;
@@ -162,23 +156,4 @@ namespace stdsharp
 
     template<typename T, typename UDefer>
     ctor_input_allocations(T, UDefer) -> ctor_input_allocations<T, std::invoke_result<UDefer, T&>>;
-
-    template<typename Rng, typename Alloc>
-    concept owning_allocations_view =
-        std::ranges::input_range<Rng> && std::ranges::output_range<Rng, allocation<Alloc>>;
-
-    template<allocator_req Allocator, owning_allocations_view<Allocator> Allocations>
-    class owning_allocations : Allocator
-    {
-        Allocations allocations_;
-
-    public:
-        template<typename... Args>
-            requires std::constructible_from<Allocator, Args...>
-        constexpr owning_allocations(Args&&... args) //
-            noexcept(nothrow_constructible_from<Allocator, Args...>):
-            Allocator(cpp_forward(args)...)
-        {
-        }
-    };
 }

@@ -451,6 +451,13 @@ namespace stdsharp
         } -> referenceable;
     };
 
+    template<typename T>
+    concept nothrow_dereferenceable = dereferenceable<T> && requires(T& t) {
+        {
+            *t
+        } noexcept;
+    };
+
     template<typename T, template<typename...> typename Impl, typename... U>
     concept proxy_concept = Impl<T, U...>::value;
 

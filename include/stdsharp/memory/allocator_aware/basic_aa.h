@@ -4,41 +4,34 @@
 
 namespace stdsharp::allocator_aware
 {
-    template<allocator_req Allocator, typename Allocations, typename ValueType = Allocator::value_type>
-    class basic_aa : Allocator, allocation_value_operation<Allocator, ValueType> // NOLINTBEGIN(*-noexcept-*)
+    template<
+        allocator_req Allocator,
+        typename Allocations,
+        typename ValueType = Allocator::value_type>
+    class basic_aa :
+        Allocator,
+        allocation_value_operation<Allocator, ValueType> // NOLINTBEGIN(*-noexcept-*)
     {
     public:
         using allocation_traits = allocation_traits<Allocator>;
-        using allocation_type = allocation_traits::allocation_type;
-        using callocation = allocation_traits::callocation;
         using allocator_type = Allocator;
         using allocator_traits = allocation_traits::allocator_traits;
 
     private:
-        Allocations allocation_{};
+        Allocations allocations_{};
 
     protected:
-        constexpr auto& get_allocation() noexcept { return allocation_; }
+        constexpr auto& get_allocation() noexcept { return allocations_; }
 
-        constexpr const auto& get_allocation() const noexcept { return allocation_; }
+        constexpr const auto& get_allocation() const noexcept { return allocations_; }
 
         constexpr allocator_type& get_allocator() noexcept { return *this; }
 
-        template<typename T, typename U>
-            requires std::constructible_from<allocator_type, T> &&
-                         std::constructible_from<Allocations, U>
-        constexpr basic_aa(T&& allocator, U&& allocation) //
-            noexcept(nothrow_constructible_from<allocator_type, T> && nothrow_constructible_from<allocation_type, U>):
-            allocator_type(cpp_forward(allocator)), allocation_(cpp_forward(allocation))
-        {
-        }
-
-        template<typename T, invocable_r<allocation_type, allocator_type> U>
-            requires std::constructible_from<allocator_type, T>
-        constexpr basic_aa(T&& allocator, U&& deferred_allocation) //
-            noexcept(nothrow_constructible_from<allocator_type, T> && nothrow_invocable_r<U, allocation_type, allocator_type>):
-            allocator_type(cpp_forward(allocator)),
-            allocation_(std::invoke_r(cpp_forward(deferred_allocation), get_allocator()))
+        template<typename Fn, typename Result = std::invoke_result_t<Fn, allocator_type&>>
+        constexpr basic_aa(ctor_input_allocations<allocator_type, Fn>&& input) //
+            noexcept(nothrow_invocable<Fn, allocator_type&> && nothrow_constructible_from<Allocations, Result>):
+            allocator_type(cpp_move(input.allocator)),
+            allocations_(std::invoke(cpp_move(input.deferred_allocations), get_allocator()))
         {
         }
 
@@ -55,7 +48,7 @@ namespace stdsharp::allocator_aware
             }
             :
             allocator_type(alloc),
-            allocation_(allocation_traits::cp_construct(other.get_allocation(), get_allocator()))
+            allocations_(allocation_traits::cp_construct(other.get_allocation(), get_allocator()))
         {
         }
 
@@ -72,7 +65,7 @@ namespace stdsharp::allocator_aware
             allocator_type(
                 allocator_traits::select_on_container_copy_construction(other.get_allocator())
             ),
-            allocation_(allocation_traits::cp_construct(other.get_allocation(), get_allocator()))
+            allocations_(allocation_traits::cp_construct(other.get_allocation(), get_allocator()))
         {
         }
 
@@ -84,7 +77,7 @@ namespace stdsharp::allocator_aware
             }
             :
             allocator_type(alloc),
-            allocation_(allocation_traits::mov_construct(other.get_allocation(), get_allocator()))
+            allocations_(allocation_traits::mov_construct(other.get_allocation(), get_allocator()))
         {
         }
 
@@ -96,7 +89,7 @@ namespace stdsharp::allocator_aware
             }
             :
             allocator_type(cpp_move(other.get_allocator())),
-            allocation_(allocation_traits::mov_construct(other.get_allocation(), get_allocator()))
+            allocations_(allocation_traits::mov_construct(other.get_allocation(), get_allocator()))
         {
         }
 
@@ -222,10 +215,10 @@ namespace stdsharp::allocator_aware
                 template construct<T>(get_allocation(), get_allocator(), cpp_forward(args)...)
             )
         )
-            // requires requires {
-            //     allocation_traits:: //
-            //         template construct<T>(get_allocation(), get_allocator(), cpp_forward(args)...);
-            // }
+        // requires requires {
+        //     allocation_traits:: //
+        //         template construct<T>(get_allocation(), get_allocator(), cpp_forward(args)...);
+        // }
         {
             return allocation_traits::template construct<T>(
                 get_allocation(),

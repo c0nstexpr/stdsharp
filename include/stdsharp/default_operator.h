@@ -17,8 +17,8 @@ namespace stdsharp
     };
 
     template<typename T, typename Delegate = void>
-        requires cpp_is_constexpr
-    (Delegate{}) class default_increase_and_decrease : default_unary_op<T>
+        requires(cpp_is_constexpr(Delegate{}))
+    class default_increase_and_decrease : default_unary_op<T>
     {
         friend constexpr T& operator++(T& t) noexcept(noexcept(++Delegate{}(t)))
             requires requires { ++Delegate{}(t); }

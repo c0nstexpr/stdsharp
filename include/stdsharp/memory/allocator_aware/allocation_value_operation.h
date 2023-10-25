@@ -1,10 +1,9 @@
 #pragma once
 
-#include <span>
-
 #include "allocation_traits.h"
 #include "../../type_traits/special_member.h"
 #include "../../utility/dispatcher.h"
+#include "../launder_iterator.h"
 
 namespace stdsharp::allocator_aware
 {
@@ -119,10 +118,12 @@ namespace stdsharp::allocator_aware
         {
             size_validate(src_allocation, dst_allocation);
 
-            const std::span<const T> src_span{src_allocation.template cdata<T>(), size_};
-            const std::span<T> dst_span{dst_allocation.template data<T>(), size_};
             for(std::size_t i = 0; i < size_; ++i)
-                allocator_traits::template construct<T>(allocator, dst_span[i], src_span[i]);
+                allocator_traits::template construct<T>(
+                    allocator,
+                    dst_allocation.template data<T>() + i,
+                    std::launder(src_allocation.template data<T>() + i)
+                );
         }
 
         constexpr void operator()(
@@ -134,9 +135,9 @@ namespace stdsharp::allocator_aware
             size_validate(src_allocation, dst_allocation);
 
             std::ranges::copy_n(
-                src_allocation.template cdata<T>(),
+                launder_iterator{src_allocation.template cdata<T>()},
                 size_,
-                dst_allocation.template data<T>()
+                launder_iterator{dst_allocation.template data<T>()}
             );
         }
 
@@ -149,9 +150,9 @@ namespace stdsharp::allocator_aware
             size_validate(src_allocation, dst_allocation);
 
             std::ranges::copy_n(
-                std::make_move_iterator(src_allocation.template data<T>()),
+                std::make_move_iterator(launder_iterator{src_allocation.template data<T>()}),
                 size_,
-                dst_allocation.template data<T>()
+                launder_iterator{dst_allocation.template data<T>()}
             );
         }
 
@@ -161,8 +162,7 @@ namespace stdsharp::allocator_aware
         {
             Expects(allocation.size() * sizeof(value_type) >= sizeof(T) * size_);
 
-            const std::span<T> span{allocation.template data<T>(), size_};
-            for(std::size_t i = 0; i < size_; ++i) allocator_traits::destroy(allocator, span[i]);
+            for(std::size_t i = 0; i < size_; ++i) allocator_traits::destroy(allocator, std::launder(allocation.template data<T>() + i));
         }
     };
 }

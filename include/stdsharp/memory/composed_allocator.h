@@ -164,7 +164,7 @@ namespace stdsharp
 
         template<typename T, typename... Args>
             requires(first_traits::template constructible_from<T, Args...> && second_traits::template constructible_from<T, Args...>)
-        constexpr void construct(T* const ptr, Args&&... args) //
+        constexpr decltype(auto) construct(T* const ptr, Args&&... args) //
             noexcept(
                 first_traits::template nothrow_constructible_from<T, Args...> &&
                 second_traits::template nothrow_constructible_from<T, Args...> //
@@ -172,8 +172,8 @@ namespace stdsharp
         {
             auto& [first, second] = alloc_pair_;
             if(first.contains(first_cvp_traits::to_pointer(to_void_pointer(ptr))))
-                first_traits::construct(first, ptr, cpp_forward(args)...);
-            else second_traits::construct(second, ptr, cpp_forward(args)...);
+                return first_traits::construct(first, ptr, cpp_forward(args)...);
+            return second_traits::construct(second, ptr, cpp_forward(args)...);
         }
 
         constexpr bool contains(const value_type* const ptr) const noexcept

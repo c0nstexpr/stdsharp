@@ -52,7 +52,7 @@ namespace stdsharp::allocator_aware
             construct(const target_allocations<allocator_type, View> dst, Args&&... args) //
             noexcept(allocator_traits::template nothrow_constructible_from<T, Args...>)
         {
-            for(auto& allocation : dst.allocations | views::cast<allocation_type&>)
+            for(allocation_type& allocation : dst.allocations)
             {
                 Expects(allocation.size() * sizeof(value_type) >= sizeof(T));
 

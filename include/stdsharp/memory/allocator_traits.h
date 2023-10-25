@@ -179,20 +179,19 @@ namespace stdsharp
                 const Alloc& /*unused*/,
                 T* const ptr,
                 Args&&... args
-            ) const noexcept(noexcept(std::ranges::construct_at(ptr, std::declval<Args>()...)))
-                requires requires { std::ranges::construct_at(ptr, std::declval<Args>()...); }
+            ) const noexcept(stdsharp::nothrow_constructible_from<T, Args...>)
             {
                 return std::ranges::construct_at(ptr, cpp_forward(args)...);
             }
 
-            template<typename T, typename... Args>
+            template<typename T>
             constexpr decltype(auto) operator()(
                 const Alloc& /*unused*/,
                 void* const ptr,
                 const std::in_place_type_t<T> /*unused*/,
-                Args&&... args
-            ) const noexcept(noexcept(std::ranges::construct_at(ptr, std::declval<Args>()...)))
-                requires requires { std::ranges::construct_at(ptr, std::declval<Args>()...); }
+                auto&&... args
+            ) const noexcept(noexcept(::new(ptr) T{cpp_forward(args)...}))
+                requires requires { ::new(ptr) T{cpp_forward(args)...}; }
             {
                 return ::new(ptr) T{cpp_forward(args)...};
             }
@@ -201,54 +200,70 @@ namespace stdsharp
         struct using_alloc_ctor
         {
             template<typename T, typename... Args>
-                requires std::constructible_from<T, Args..., const Alloc&>
-            constexpr void operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
-                const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
-            {
-                std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
-            }
-
-            template<typename T, typename... Args, typename Tag = std::allocator_arg_t>
-                requires std::constructible_from<T, Tag, const Alloc&, Args...>
-            constexpr void operator()(const Alloc& alloc, T* const ptr, Args&&... args) //
-                const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
-            {
-                std::ranges::construct_at(ptr, std::allocator_arg, alloc, cpp_forward(args)...);
-            }
-
-            template<typename T, typename... Args>
-                requires std::constructible_from<T, Args..., const Alloc&>
-            constexpr void operator()(
-                const Alloc& alloc,
-                void* const ptr,
-                const std::in_place_type_t<T> /*unused*/,
-                Args&&... args
+            constexpr decltype(auto) operator()(
+                const Alloc &
+                    alloc,
+                T* const ptr,
+                Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
-                ::new(ptr) T{cpp_forward(args)..., alloc};
+                return std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
             }
 
             template<typename T, typename... Args, typename Tag = std::allocator_arg_t>
-                requires std::constructible_from<T, Tag, const Alloc&, Args...>
-            constexpr void operator()(
-                const Alloc& alloc,
-                void* const ptr,
-                const std::in_place_type_t<T> /*unused*/,
-                Args&&... args
+            constexpr decltype(auto) operator()(
+                const Alloc &
+                    alloc,
+                T* const ptr,
+                Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
-                ::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...};
+                return std::ranges::construct_at(
+                    ptr,
+                    std::allocator_arg,
+                    alloc,
+                    cpp_forward(args)...
+                );
+            }
+
+            template<typename T>
+            constexpr decltype(auto) operator()(
+                const Alloc &
+                    alloc,
+                void* const ptr,
+                const std::in_place_type_t<T> /*unused*/,
+                auto&&... args
+            ) const noexcept(noexcept(::new(ptr) T{cpp_forward(args)..., alloc}))
+                requires requires {
+                    ::new(ptr) T{cpp_forward(args)..., alloc};
+                }
+            {
+                return ::new(ptr) T{cpp_forward(args)..., alloc};
+            }
+
+            template<typename T>
+            constexpr decltype(auto) operator()(
+                const Alloc &
+                    alloc,
+                void* const ptr,
+                const std::in_place_type_t<T> /*unused*/,
+                auto&&... args
+            ) const noexcept(noexcept(::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...}))
+                requires requires {
+                    ::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...};
+                }
+            {
+                return ::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...};
             }
         };
 
         struct custom_constructor
         {
             template<typename T, typename... Args>
-            constexpr void operator()(Alloc& a, T* const ptr, Args&&... args) const
+            constexpr decltype(auto) operator()(Alloc & a, T* const ptr, Args&&... args) const
                 noexcept(noexcept(a.construct(ptr, std::declval<Args>()...)))
-                requires requires { a.construct(ptr, std::declval<Args>()...); }
             {
-                a.construct(ptr, cpp_forward(args)...);
+                return a.construct(ptr, cpp_forward(args)...);
             }
         }; // NOLINTEND(*-owning-memory)
 
