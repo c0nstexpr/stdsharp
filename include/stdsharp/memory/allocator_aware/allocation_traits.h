@@ -2,6 +2,17 @@
 
 #include "allocation.h"
 
+namespace stdsharp::allocator_aware::details
+{
+template<typename Allocator, typename Allocation>
+    struct allocation_rng_traits{
+        using allocator_traits = allocator_traits<Allocator>;
+        using value_type = allocator_traits::value_type;
+
+
+    };
+}
+
 namespace stdsharp::allocator_aware
 {
     template<allocator_req Allocator>
@@ -18,16 +29,16 @@ namespace stdsharp::allocator_aware
         using void_pointer = allocator_traits::void_pointer;
         using const_void_pointer = allocator_traits::const_void_pointer;
 
-        using allocation_type = allocation<allocator_type>;
-        using callocation = callocation<allocation_type>;
+        using allocation = allocation<allocator_type>;
+        using callocation = callocation<allocation>;
 
-        static constexpr allocation_type
+        static constexpr allocation
             allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
         {
             return {allocator_traits::allocate(alloc, size, hint), size};
         }
 
-        static constexpr allocation_type
+        static constexpr allocation
             try_allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr) //
             noexcept
         {
@@ -39,10 +50,11 @@ namespace stdsharp::allocator_aware
             const target_allocations<allocator_type, View> dst
         ) noexcept
         {
-            for(allocation_type& allocation : dst.allocations)
+            for(auto& dst_allocation : dst.allocations)
             {
-                allocator_traits::deallocate(dst.allocator, allocation.data(), allocation.size());
-                allocation = {};
+                auto casted = static_cast<allocation>(dst_allocation);
+                allocator_traits::deallocate(dst.allocator, casted.data(), casted.size());
+                dst_allocation = allocation{};
             }
         }
 
@@ -52,13 +64,13 @@ namespace stdsharp::allocator_aware
             construct(const target_allocations<allocator_type, View> dst, Args&&... args) //
             noexcept(allocator_traits::template nothrow_constructible_from<T, Args...>)
         {
-            for(allocation_type& allocation : dst.allocations)
+            for(const allocation dst_allocation : dst.allocations)
             {
-                Expects(allocation.size() * sizeof(value_type) >= sizeof(T));
+                Expects(dst_allocation.size() * sizeof(value_type) >= sizeof(T));
 
                 allocator_traits::construct(
                     dst.allocator,
-                    allocation.template data<T>(),
+                    dst_allocation.template data<T>(),
                     cpp_forward(args)...
                 );
             }
@@ -67,35 +79,35 @@ namespace stdsharp::allocator_aware
     private:
         template<typename Fn>
         static constexpr auto copy_ctor = std::copy_constructible<Fn> &&
-            std::invocable<Fn&, const callocation&, const allocation_type&, allocator_type&>;
+            std::invocable<Fn&, const callocation&, const allocation&, allocator_type&>;
 
         template<typename Fn>
         static constexpr auto copy_assign_op = std::copy_constructible<Fn> &&
-            std::invocable<Fn&, const callocation&, const allocation_type&>;
+            std::invocable<Fn&, const callocation&, const allocation&>;
 
         template<typename Fn>
         static constexpr auto move_assign_op = std::copy_constructible<Fn> &&
-            std::invocable<Fn&, const allocation_type&, const allocation_type&>;
+            std::invocable<Fn&, const allocation&, const allocation&>;
 
         template<typename Fn>
-        static constexpr auto dtor = std::copy_constructible<Fn> &&
-            std::invocable<Fn&, const allocation_type&, allocator_type&>;
+        static constexpr auto dtor =
+            std::copy_constructible<Fn> && std::invocable<Fn&, const allocation&, allocator_type&>;
 
         template<typename Fn>
         static constexpr auto nothrow_copy_ctor = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&, const callocation&, const allocation_type&, allocator_type&>;
+            nothrow_invocable<Fn&, const callocation&, const allocation&, allocator_type&>;
 
         template<typename Fn>
         static constexpr auto nothrow_copy_assign_op = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&, const callocation&, const allocation_type&>;
+            nothrow_invocable<Fn&, const callocation&, const allocation&>;
 
         template<typename Fn>
         static constexpr auto nothrow_move_assign_op = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&, const allocation_type&, const allocation_type&>;
+            nothrow_invocable<Fn&, const allocation&, const allocation&>;
 
         template<typename Fn>
         static constexpr auto nothrow_dtor = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&, const allocation_type&, allocator_type&>;
+            nothrow_invocable<Fn&, const allocation&, allocator_type&>;
 
     public:
         template<typename View, typename Fn>
@@ -103,8 +115,8 @@ namespace stdsharp::allocator_aware
         static constexpr void destroy(const target_allocations<allocator_type, View> dst, Fn fn) //
             noexcept(nothrow_dtor<Fn>)
         {
-            for(const allocation_type allocation : dst.allocations)
-                std::invoke(fn, allocation, dst.allocator);
+            auto& alloc = dst.allocator.get();
+            for(const allocation allocation : dst.allocations) std::invoke(fn, allocation, alloc);
         }
 
         template<typename Allocations, typename Fn>
@@ -112,12 +124,12 @@ namespace stdsharp::allocator_aware
         [[nodiscard]] static constexpr auto on_construct(
             const const_source_allocations<allocator_type, Allocations> src,
             Fn fn
-        ) noexcept
+        ) noexcept(nothrow_move_constructible<std::decay_t<Fn>>)
         {
             return ctor_input_allocations{
                 allocator_traits::select_on_container_copy_construction(src.allocator),
                 std::bind_front(
-                    [](const callocation src, Fn& fn, allocator_type& allocator) noexcept
+                    [](const callocation src, auto& fn, allocator_type& allocator) noexcept
                     {
                         return std::ranges::views::transform(
                             src,
@@ -149,7 +161,7 @@ namespace stdsharp::allocator_aware
                     [](const auto src, auto&) noexcept { return src; },
                     std::ranges::views::transform(
                         src.allocations,
-                        [](allocation_type& src) noexcept { return std::exchange(src, {}); }
+                        [](auto& src) noexcept { return std::exchange(src, allocation{}); }
                     )
                 )
             };
@@ -158,8 +170,10 @@ namespace stdsharp::allocator_aware
     private:
         static constexpr auto always_equal_v = allocator_traits::always_equal_v;
 
-        static constexpr void
-            validate_allocations_on_assign(callocation src_allocation, callocation dst_allocation)
+        static constexpr void validate_allocations_on_assign(
+            const callocation src_allocation,
+            const callocation dst_allocation
+        )
         {
             Expects(!src_allocation.empty());
             Expects(!dst_allocation.empty());
@@ -183,12 +197,12 @@ namespace stdsharp::allocator_aware
             const const_source_allocations<allocator_type, SrcView> src,
             const target_allocations<allocator_type, TargetView> dst,
             Fn assign
-        ) noexcept(nothrow_invocable<Fn, callocation, allocation_type>)
+        ) noexcept(nothrow_invocable<Fn, callocation, allocation>)
         {
             dst.allocator = src.allocator;
             value_cp_assign(
                 src.allocations | views::cast<callocation>,
-                dst.allocations | views::cast<allocation_type>,
+                dst.allocations | views::cast<allocation>,
                 assign
             );
         }
@@ -210,7 +224,7 @@ namespace stdsharp::allocator_aware
             auto& src_alloc = src.allocator;
             auto& dst_alloc = dst.allocator;
             const auto src_allocations = src.allocations | views::cast<callocation>;
-            const auto dst_allocations = dst.allocations | views::cast<allocation_type&>;
+            const auto dst_allocations = dst.allocations | views::cast<allocation>;
 
             if(dst_alloc == src_alloc)
             {
@@ -228,7 +242,12 @@ namespace stdsharp::allocator_aware
                     std::views::zip(src_allocations, dst_allocations))
                 {
                     dst_allocation = allocate(dst_alloc, src_allocation.size());
-                    std::invoke(fn, src_allocation, dst_allocation, dst_alloc);
+                    std::invoke(
+                        fn,
+                        static_cast<callocation>(src_allocation),
+                        static_cast<allocation>(dst_allocation),
+                        dst_alloc
+                    );
                 }
             }
         }
@@ -243,7 +262,7 @@ namespace stdsharp::allocator_aware
         {
             value_cp_assign(
                 src.allocations | views::cast<callocation>,
-                dst.allocations | views::cast<allocation_type&>,
+                dst.allocations | views::cast<allocation>,
                 fn
             );
         }
@@ -259,7 +278,7 @@ namespace stdsharp::allocator_aware
             for(auto& [src_allocation, dst_allocation] : std::views::zip(src, dst))
             {
                 validate_allocations_on_assign(src_allocation, dst_allocation);
-                dst_allocation = std::exchange(src_allocation, {});
+                dst_allocation = static_cast<allocation>(std::exchange(src_allocation, allocation{}));
             }
         }
 
@@ -271,27 +290,15 @@ namespace stdsharp::allocator_aware
             Fn fn
         ) noexcept( //
             noexcept( //
-                mov_allocation(
-                    src.allocations | views::cast<allocation_type&>,
-                    dst.allocations | views::cast<allocation_type&>,
-                    fn
-                )
+                mov_allocation(src.allocations, dst.allocations, fn)
             )
         )
             requires requires {
                 requires allocator_traits::propagate_on_move_v;
-                mov_allocation(
-                    src.allocations | views::cast<allocation_type&>,
-                    dst.allocations | views::cast<allocation_type&>,
-                    fn
-                );
+                mov_allocation(src.allocations, dst.allocations, fn);
             }
         {
-            mov_allocation(
-                src.allocations | views::cast<allocation_type&>,
-                dst.allocations | views::cast<allocation_type&>,
-                fn
-            );
+            mov_allocation(src.allocations, dst.allocations, fn);
             dst.allocator.get() = cpp_move(src.allocator.get());
         }
 
@@ -300,30 +307,14 @@ namespace stdsharp::allocator_aware
             const source_allocations<allocator_type, SrcView> src,
             const target_allocations<allocator_type, TargetView> dst,
             Fn fn
-        ) noexcept( //
-            noexcept( //
-                mov_allocation(
-                    src.allocations | views::cast<allocation_type&>,
-                    dst.allocations | views::cast<allocation_type&>,
-                    fn
-                )
-            )
-        )
+        ) noexcept(noexcept(mov_allocation(src.allocations, dst.allocations, fn)))
             requires requires {
                 requires !allocator_traits::propagate_on_move_v;
                 requires allocator_traits::always_equal_v;
-                mov_allocation(
-                    src.allocations | views::cast<allocation_type&>,
-                    dst.allocations | views::cast<allocation_type&>,
-                    fn
-                );
+                mov_allocation(src.allocations, dst.allocations, fn);
             }
         {
-            mov_allocation(
-                src.allocations | views::cast<allocation_type&>,
-                dst.allocations | views::cast<allocation_type&>,
-                fn
-            );
+            mov_allocation(src.allocations, dst.allocations, fn);
         }
 
         template<typename SrcView, typename TargetView, typename Fn>
@@ -336,8 +327,8 @@ namespace stdsharp::allocator_aware
         {
             for(const auto [src_allocation, dst_allocation] : //
                 std::views::zip(
-                    src.allocations | views::cast<allocation_type>,
-                    dst.allocations | views::cast<allocation_type> //
+                    src.allocations | views::cast<allocation>,
+                    dst.allocations | views::cast<allocation> //
                 ))
             {
                 validate_allocations_on_assign(src_allocation, dst_allocation);
@@ -355,10 +346,7 @@ namespace stdsharp::allocator_aware
                 std::swap(lhs.allocator.get(), rhs.allocator.get());
             else if constexpr(!always_equal_v) Expects(lhs.allocator.get() == rhs.allocator.get());
 
-            std::ranges::swap_ranges(
-                lhs.allocations | views::cast<allocation_type&>,
-                rhs.allocations | views::cast<allocation_type&> //
-            );
+            std::ranges::swap_ranges(lhs.allocations, rhs.allocations);
         }
     };
 }

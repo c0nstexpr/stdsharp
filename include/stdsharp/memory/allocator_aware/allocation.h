@@ -3,107 +3,72 @@
 #include "../allocator_traits.h"
 #include "../pointer_traits.h"
 
-namespace stdsharp
+namespace stdsharp::allocator_aware
 {
-    template<allocator_req Alloc>
-    class [[nodiscard]] allocation
-    {
-    public:
-        using allocator_type = Alloc;
-        using pointer = allocator_pointer<allocator_type>;
-        using size_type = allocator_size_type<allocator_type>;
-        using value_type = allocator_value_type<allocator_type>;
-        using const_pointer = allocator_const_pointer<allocator_type>;
-
-    private:
-        pointer ptr_ = nullptr;
-        size_type size_ = 0;
-
-    public:
-        allocation() = default;
-
-        constexpr allocation(const pointer ptr, const size_type size) noexcept:
-            ptr_(ptr), size_(size)
+    template<typename T, typename Alloc>
+    concept allocation = std::ranges::sized_range<T> && requires(const T t) {
         {
-        }
-
-        [[nodiscard]] constexpr auto begin() const noexcept { return ptr_; }
-
-        [[nodiscard]] constexpr auto end() const noexcept { return ptr_ + size_; }
-
-        [[nodiscard]] constexpr const_pointer cbegin() const noexcept { return begin(); }
-
-        [[nodiscard]] constexpr const_pointer cend() const noexcept { return end(); }
-
-        template<typename T = value_type>
-        [[nodiscard]] constexpr decltype(auto) data() const noexcept
+            std::ranges::cdata(t)
+        } noexcept -> std::same_as<allocator_const_pointer<Alloc>>;
         {
-            if constexpr(std::same_as<T, value_type>) return begin();
-            else return pointer_cast<T>(begin());
-        }
-
-        template<typename T = value_type>
-        [[nodiscard]] constexpr decltype(auto) cdata() const noexcept
+            std::ranges::data(t)
+        } noexcept -> std::same_as<allocator_pointer<Alloc>>;
         {
-            if constexpr(std::same_as<T, value_type>) return cbegin();
-            else return pointer_cast<T>(cbegin());
-        }
-
-        template<typename T = value_type>
-        [[nodiscard]] constexpr T& get() const noexcept
-        {
-            Expects(!empty());
-            return *std::launder(data<T>());
-        }
-
-        template<typename T = value_type>
-        [[nodiscard]] constexpr const T& cget() const noexcept
-        {
-            Expects(!empty());
-            return *std::launder(cdata<T>());
-        }
-
-        [[nodiscard]] constexpr auto size() const noexcept { return size_; }
-
-        [[nodiscard]] constexpr auto empty() const noexcept { return ptr_ == nullptr; }
+            std::ranges::empty(t)
+        } noexcept;
     };
 
-    template<allocator_req Alloc>
-    class [[nodiscard]] callocation : allocation<Alloc>
-    {
-        using allocation = allocation<Alloc>;
-        using typename allocation::value_type;
-        using allocation::allocation;
-        using allocation::cbegin;
-        using allocation::cend;
-        using allocation::size;
-        using allocation::empty;
-
-        [[nodiscard]] constexpr auto begin() const noexcept { return allocation::cbegin(); }
-
-        [[nodiscard]] constexpr auto end() const noexcept { return allocation::cend(); }
-
-        template<typename T = value_type>
-        [[nodiscard]] constexpr auto data() const noexcept
+    template<typename T, typename Alloc>
+    concept allocation = std::ranges::sized_range<T> && requires(const T t) {
         {
-            return allocation::template cdata<T>();
-        }
-
-        template<typename T = value_type>
-        [[nodiscard]] constexpr T& get() const noexcept
+            std::ranges::cdata(t)
+        } noexcept -> std::same_as<allocator_const_pointer<Alloc>>;
         {
-            return allocation::template cget<T>();
-        }
+            std::ranges::data(t)
+        } noexcept -> std::same_as<allocator_pointer<Alloc>>;
+        {
+            std::ranges::empty(t)
+        } noexcept;
     };
+
+    template<allocator_req Alloc, typename T = Alloc::value_type>
+    static constexpr decltype(auto) data =
+        []() noexcept
+    {
+        if constexpr(std::same_as<T, value_type>) return begin();
+        else return pointer_cast<T>(begin());
+    }
+
+    template<typename T = value_type>
+    [[nodiscard]] constexpr decltype(auto) cdata() const noexcept
+    {
+        if constexpr(std::same_as<T, value_type>) return cbegin();
+        else return pointer_cast<T>(cbegin());
+    }
+
+    template<typename T = value_type>
+    [[nodiscard]] constexpr T& get() const noexcept
+    {
+        Expects(!empty());
+        return *std::launder(data<T>());
+    }
+
+    template<typename T = value_type>
+    [[nodiscard]] constexpr const T& cget() const noexcept
+    {
+        Expects(!empty());
+        return *std::launder(cdata<T>());
+    }
 
     template<typename Alloc, typename Rng>
     concept callocations_view = std::ranges::input_range<Rng> && //
         std::ranges::view<Rng> && //
-        nothrow_convertible_to<std::ranges::range_value_t<Rng>, callocation<Alloc>>;
+        callocation<std::ranges::range_value_t<Rng>>;
 
     template<typename Rng, typename Alloc>
-    concept allocations_view = callocations_view<Alloc, Rng> &&
-        nothrow_convertible_to<std::ranges::range_reference_t<Rng>, allocation<Alloc>&> &&
+    concept allocations_view = std::ranges::input_range<Rng> && //
+        std::ranges::view<Rng> && //
+        callocation<std::ranges::range_value_t<Rng>> &&
         std::ranges::output_range<Rng, allocation<Alloc>>;
 
     template<allocator_req Allocator, allocations_view<Allocator> Allocations>
