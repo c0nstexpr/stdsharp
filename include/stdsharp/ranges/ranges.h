@@ -44,7 +44,19 @@ namespace stdsharp
     template<typename T, typename U>
     using cast_view = std::ranges::transform_view<T, cast_to_fn<U>>;
 
-    namespace views
+    template<class T>
+    concept constant_iterator =
+        std::input_iterator<T> && std::same_as<iter_const_reference_t<T>, std::iter_reference_t<T>>;
+
+    template<class T>
+    concept constant_range =
+#if __cpp_lib_ranges_as_const >= 202207L
+        std::ranges::constant_range<T>
+#else
+        std::ranges::input_range<T> && constant_iterator<ranges::iterator_t<T>>;
+#endif
+
+        namespace views
     {
         inline constexpr nodiscard_invocable forwarding = []<typename T>(T&& t) noexcept
         {

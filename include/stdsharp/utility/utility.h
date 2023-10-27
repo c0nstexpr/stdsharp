@@ -3,7 +3,6 @@
 
 #include "auto_cast.h"
 #include "cast_to.h"
-#include "defer.h"
 #include "constructor.h"
 #include "to_lvalue.h"
 
