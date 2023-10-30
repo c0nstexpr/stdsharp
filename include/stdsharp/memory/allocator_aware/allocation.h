@@ -16,31 +16,34 @@ namespace stdsharp::allocator_aware
     };
 
     template<typename T, typename Alloc>
-    concept allocation = callocation<T, Alloc> && //
-        requires(const T& ct,
-                 std::decay_t<T> decay_t,
-                 allocator_pointer<Alloc> p,
-                 allocator_size_type<Alloc> size) {
-            {
-                std::ranges::begin(ct)
-            } noexcept -> std::same_as<decltype(p)>;
+    concept allocation = requires(
+        const T& ct,
+        std::decay_t<T> decay_t,
+        allocator_pointer<Alloc> p,
+        allocator_size_type<Alloc> size
+    ) {
+        requires callocation<T, Alloc>;
 
-            requires nothrow_default_initializable<decltype(decay_t)>;
-            requires nothrow_constructible_from<decltype(decay_t), decltype(p), decltype(size)>;
-            requires nothrow_movable<decltype(decay_t)>;
-            requires[]
-            {
-                struct local
-                {
-                    constexpr decltype(p) begin() const noexcept;
-                    constexpr decltype(p) end() const noexcept;
-                    constexpr decltype(size) size() const noexcept;
-                };
+        {
+            std::ranges::begin(ct)
+        } noexcept -> std::same_as<decltype(p)>;
 
-                return nothrow_constructible_from<decltype(decay_t), local>;
-            }
-            ();
-        };
+        requires nothrow_default_initializable<decltype(decay_t)>;
+        requires nothrow_constructible_from<decltype(decay_t), decltype(p), decltype(size)>;
+        requires nothrow_movable<decltype(decay_t)>;
+        requires[]
+        {
+            struct local
+            {
+                constexpr decltype(p) begin() const noexcept;
+                constexpr decltype(p) end() const noexcept;
+                constexpr decltype(size) size() const noexcept;
+            };
+
+            return nothrow_constructible_from<decltype(decay_t), local>;
+        }
+        ();
+    };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
     struct allocation_data_fn
@@ -149,19 +152,16 @@ namespace stdsharp::allocator_aware
         GetAllocator get_allocator;
         GetAllocations get_allocations;
 
+        using allocator_type = std::invoke_result_t<GetAllocator>;
+
         template<typename Dst>
-        static constexpr auto allocations_gettable =
-            requires(std::invoke_result_t<GetAllocator> alloc) {
-                requires allocations_view<Dst, decltype(alloc)>;
-                requires std::invocable<GetAllocations, const Dst&, decltype(alloc)>;
-            };
+        static constexpr auto allocations_gettable = allocations_view<Dst, allocator_type> &&
+            std::invocable<GetAllocations, const Dst&, allocator_type>;
 
         template<typename Dst>
         static constexpr auto nothrow_allocations_gettable =
-            requires(std::invoke_result_t<GetAllocator> alloc) {
-                requires allocations_view<Dst, decltype(alloc)>;
-                requires nothrow_invocable<GetAllocations, const Dst&, decltype(alloc)>;
-            };
+            allocations_view<Dst, allocator_type> &&
+            nothrow_invocable<GetAllocations, const Dst&, allocator_type>;
     };
 
     template<typename T, typename U>

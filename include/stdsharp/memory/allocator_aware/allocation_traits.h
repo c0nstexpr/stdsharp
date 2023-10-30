@@ -152,14 +152,13 @@ namespace stdsharp::allocator_aware
                     src.allocator
                 ),
                 std::bind_front(
-                    []<typename Dst>(
+                    []<allocations_view<allocator_type> Dst>(
                         const auto src,
                         auto& fn,
                         const Dst dst,
                         allocator_type& allocator
-                    ) noexcept
-                        requires allocations_view<Dst, allocator_type> &&
-                                     allocation_ctor<Fn, Src, Dst>
+                    )
+                        requires allocation_ctor<Fn, Src, Dst>
                     {
                         for(auto&& [src_allocation, dst_allocation] : std::views::zip(src, dst))
                         {
@@ -176,6 +175,29 @@ namespace stdsharp::allocator_aware
                 };
         }
 
+    private:
+        struct mov_allocation_fn
+        {
+            template<allocations_view<allocator_type> Src, allocations_view<allocator_type> Dst>
+            constexpr void
+                operator()(const Src src, const Dst dst, const auto&... /*unused*/) const noexcept
+            {
+                std::ranges::move(
+                    std::views::transform(
+                        src,
+                        [](auto& allocation)
+                        {
+                            return std::ranges::range_value_t<Dst>{
+                                std::exchange(allocation, std::ranges::range_value_t<Src>{})
+                            };
+                        }
+                    ),
+                    std::ranges::begin(dst)
+                );
+            }
+        };
+
+    public:
         template<typename Src>
         [[nodiscard]] static constexpr auto
             on_construct(const source_allocations<allocator_type, Src> src) noexcept
@@ -185,29 +207,7 @@ namespace stdsharp::allocator_aware
                     [](auto&& alloc) noexcept { return cpp_move(alloc.get()); },
                     src.allocator
                 ),
-                std::bind_front(
-                    [
-                    ]<allocations_view<allocator_type> Dst,
-                      std::constructible_from<std::ranges::range_rvalue_reference_t<Src>> DstValue =
-                          std::ranges::range_value_t<Dst>>(
-                        const auto src,
-                        const Dst dst,
-                        allocator_type& //
-                    ) noexcept(nothrow_constructible_from<DstValue, std::ranges::range_rvalue_reference_t<Src>>) {
-                        std::ranges::move(
-                            std::views::transform(
-                                src,
-                                [](auto& allocation) {
-                                    return DstValue{
-                                        std::exchange(allocation, std::ranges::range_value_t<Src>{})
-                                    };
-                                }
-                            ),
-                            std::ranges::begin(dst)
-                        );
-                    },
-                    src.allocations
-                )
+                std::bind_front(mov_allocation_fn{}, src.allocations)
             };
         }
 
@@ -302,13 +302,7 @@ namespace stdsharp::allocator_aware
         {
             destroy(dst, std::ref(fn));
             deallocate(dst);
-
-            for(auto& [src_allocation, dst_allocation] : std::views::zip(src, dst))
-            {
-                validate_allocations_on_assign(src_allocation, dst_allocation);
-                dst_allocation =
-                    std::exchange(src_allocation, std::decay_t<decltype(src_allocation)>{});
-            }
+            mov_allocation_fn{}(src, dst);
         }
 
     public:
@@ -317,65 +311,63 @@ namespace stdsharp::allocator_aware
             const source_allocations<allocator_type, Src> src,
             const source_allocations<allocator_type, Dst> dst,
             Fn fn
-        ) noexcept( //
-            noexcept( //
-                mov_allocation(src.allocations, dst.allocations, fn)
-            )
-        )
-            requires requires {
-                requires allocator_traits::propagate_on_move_v;
-                requires allocation_dtor<Fn, Dst>;
-            }
+        ) noexcept(nothrow_allocation_dtor<Fn, Dst>)
+            requires allocator_traits::propagate_on_move_v && allocation_dtor<Fn, Dst>
         {
             mov_allocation(src.allocations, dst.allocations, fn);
             dst.allocator.get() = cpp_move(src.allocator.get());
         }
 
-        template<typename SrcView, typename TargetView, typename Fn>
+        template<typename Src, typename Dst, typename Fn>
         static constexpr void on_assign(
-            const source_allocations<allocator_type, SrcView> src,
-            const source_allocations<allocator_type, TargetView> dst,
+            const source_allocations<allocator_type, Src> src,
+            const source_allocations<allocator_type, Dst> dst,
             Fn fn
-        ) noexcept(noexcept(mov_allocation(src.allocations, dst.allocations, fn)))
+        ) noexcept(nothrow_allocation_dtor<Fn, Dst>)
             requires requires {
                 requires !allocator_traits::propagate_on_move_v;
                 requires allocator_traits::always_equal_v;
-                mov_allocation(src.allocations, dst.allocations, fn);
+                requires allocation_dtor<Fn, Dst>;
             }
         {
             mov_allocation(src.allocations, dst.allocations, fn);
         }
 
-        template<typename SrcView, typename TargetView, typename Fn>
+        template<typename Src, typename Dst, typename Fn>
         static constexpr void on_assign(
-            const source_allocations<allocator_type, SrcView> src,
-            const source_allocations<allocator_type, TargetView> dst,
+            const source_allocations<allocator_type, Src> src,
+            const source_allocations<allocator_type, Dst> dst,
             Fn fn
-        ) noexcept(nothrow_move_assign_op<Fn>)
-            requires move_assign_op<Fn>
+        ) noexcept(nothrow_allocation_assign_op<Fn, Src, Dst>)
+            requires allocation_assign_op<Fn, Src, Dst>
         {
-            for(const auto [src_allocation, dst_allocation] : //
-                std::views::zip(
-                    src.allocations | views::cast<allocation>,
-                    dst.allocations | views::cast<allocation> //
-                ))
+            for(const auto [src_allocation, dst_allocation] :
+                std::views::zip(src.allocations, dst.allocations))
             {
                 validate_allocations_on_assign(src_allocation, dst_allocation);
                 std::invoke(fn, src_allocation, dst_allocation);
             }
         }
 
-        template<typename SrcView, typename TargetView>
+        template<typename Src, typename Dst>
         static constexpr void on_swap(
-            const source_allocations<allocator_type, SrcView> lhs,
-            const source_allocations<allocator_type, TargetView> rhs
+            const source_allocations<allocator_type, Src> lhs,
+            const source_allocations<allocator_type, Dst> rhs
         ) noexcept
         {
             if constexpr(allocator_traits::propagate_on_swap_v)
-                std::swap(lhs.allocator.get(), rhs.allocator.get());
+                std::ranges::swap(lhs.allocator.get(), rhs.allocator.get());
             else if constexpr(!always_equal_v) Expects(lhs.allocator.get() == rhs.allocator.get());
 
-            std::ranges::swap_ranges(lhs.allocations, rhs.allocations);
+            for(auto& [l, r] : std::views::zip(lhs.allocations, rhs.allocations))
+            {
+                using lhs_value_type = std::ranges::range_value_t<Src>;
+                using rhs_value_type = std::ranges::range_value_t<Dst>;
+
+                lhs_value_type l_tmp = cpp_move(l);
+                l = lhs_value_type{cpp_move(r)};
+                r = rhs_value_type{cpp_move(l_tmp)};
+            }
         }
     };
 }

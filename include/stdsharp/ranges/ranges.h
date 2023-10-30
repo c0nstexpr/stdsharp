@@ -51,19 +51,21 @@ namespace stdsharp
     template<class T>
     concept constant_range =
 #if __cpp_lib_ranges_as_const >= 202207L
-        std::ranges::constant_range<T>
+        std::ranges::constant_range<T>;
 #else
         std::ranges::input_range<T> && constant_iterator<ranges::iterator_t<T>>;
 #endif
 
-        namespace views
+    namespace views
     {
-        inline constexpr nodiscard_invocable forwarding = []<typename T>(T&& t) noexcept
-        {
-            return t | std::ranges::views::transform(forward_like<T>); //
+        inline constexpr nodiscard_invocable forwarding{
+            []<typename T>(T&& t) noexcept
+            {
+                return t | std::ranges::views::transform(forward_like<T>); //
+            }
         };
 
         template<typename U>
-        inline constexpr nodiscard_invocable cast = std::ranges::views::transform(cast_to<U>);
+        inline constexpr nodiscard_invocable cast{std::ranges::views::transform(cast_to<U>)};
     }
 }

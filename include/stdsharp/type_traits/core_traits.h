@@ -10,6 +10,8 @@
 #include "../utility/adl_proof.h"
 #include "../macros.h"
 
+#include "../compilation_config_in.h"
+
 using namespace std::literals;
 
 namespace stdsharp
@@ -76,7 +78,7 @@ namespace stdsharp::details
     MEM_FUNC_POINTER(volatile, &&)
     MEM_FUNC_POINTER(const volatile, &)
     MEM_FUNC_POINTER(const volatile, &&)
-    MEM_FUNC_POINTER( , &)
+    MEM_FUNC_POINTER(, &)
     MEM_FUNC_POINTER(, &&)
 
 #undef MEM_FUNC_POINTER
@@ -251,64 +253,66 @@ namespace stdsharp
     {
         [[nodiscard]] static constexpr std::size_t size() noexcept { return sizeof...(V); }
     };
+}
 
-    namespace details
-    {
-        template<template<auto...> typename T, decltype(auto)... V>
-        consteval regular_value_sequence<V...> to_regular_value_sequence(const T<V...>&);
+namespace stdsharp::details
+{
+    template<template<auto...> typename T, decltype(auto)... V>
+    consteval regular_value_sequence<V...> to_regular_value_sequence(const T<V...>&);
 
-        template<typename T, decltype(auto)... V>
-        consteval regular_value_sequence<V...>
-            to_regular_value_sequence(std::integer_sequence<T, V...>);
+    template<typename T, decltype(auto)... V>
+    consteval regular_value_sequence<V...>
+        to_regular_value_sequence(std::integer_sequence<T, V...>);
 
-        template<auto From, auto PlusF, std::size_t... I>
-            requires requires { regular_value_sequence<std::invoke(PlusF, From, I)...>{}; }
-        consteval regular_value_sequence<std::invoke(PlusF, From, I)...>
-            make_value_sequence(std::index_sequence<I...>) noexcept;
+    template<auto From, auto PlusF, std::size_t... I>
+        requires requires { regular_value_sequence<std::invoke(PlusF, From, I)...>{}; }
+    consteval regular_value_sequence<std::invoke(PlusF, From, I)...>
+        make_value_sequence(std::index_sequence<I...>) noexcept;
 
-        template<std::array Array, std::size_t... Index>
-            requires nttp_able<typename decltype(Array)::value_type>
-        consteval regular_value_sequence<(Array[Index])...>
-            array_to_sequence(std::index_sequence<Index...>);
+    template<std::array Array, std::size_t... Index>
+        requires nttp_able<typename decltype(Array)::value_type>
+    consteval regular_value_sequence<(Array[Index])...>
+        array_to_sequence(std::index_sequence<Index...>);
 
-        template<
-            constant_value T,
-            typename Range = decltype(T::value),
-            nttp_able ValueType = std::ranges::range_value_t<Range> // clang-format off
+    template<
+        constant_value T,
+        typename Range = decltype(T::value),
+        nttp_able ValueType = std::ranges::range_value_t<Range> // clang-format off
         > // clang-format on
-            requires requires //
-        {
-            index_constant<std::ranges::size(T::value)>{};
-            std::array<ValueType, 1>{};
-            requires std::copyable<ValueType>;
-        }
-        struct rng_to_sequence
-        {
-            static constexpr auto rng = T::value;
-            static constexpr auto size = std::ranges::size(rng);
+        requires requires //
+    {
+        index_constant<std::ranges::size(T::value)>{};
+        std::array<ValueType, 1>{};
+        requires std::copyable<ValueType>;
+    }
+    struct rng_to_sequence
+    {
+        static constexpr auto rng = T::value;
+        static constexpr auto size = std::ranges::size(rng);
 
-            static constexpr auto array = []
-            {
-                if constexpr( //
+        static constexpr auto array = []
+        {
+            if constexpr( //
                     requires { array_to_sequence<rng>(std::make_index_sequence<size>{}); }
                 )
-                    return rng;
-                else
-                {
-                    std::array<ValueType, size> array{};
-                    std::ranges::copy(rng, array.begin());
-                    return array;
-                }
-            }();
+                return rng;
+            else
+            {
+                std::array<ValueType, size> array{};
+                std::ranges::copy(rng, array.begin());
+                return array;
+            }
+        }();
 
-            using type =
-                decltype(array_to_sequence<array>(std::make_index_sequence<array.size()>{}));
-        };
+        using type = decltype(array_to_sequence<array>(std::make_index_sequence<array.size()>{}));
+    };
 
-        template<typename... T, template<typename...> typename Inner, typename... U>
-        consteval Inner<T...> template_rebind_impl(Inner<U...>);
-    }
+    template<typename... T, template<typename...> typename Inner, typename... U>
+    consteval Inner<T...> template_rebind_impl(Inner<U...>);
+}
 
+namespace stdsharp
+{
     template<typename Seq>
     using to_regular_value_sequence =
         decltype(details::to_regular_value_sequence(std::declval<Seq>()));
@@ -388,37 +392,40 @@ namespace stdsharp
     template<typename Template, typename... T>
         requires requires { details::template_rebind_impl<T...>(std::declval<Template>()); }
     using template_rebind = decltype(details::template_rebind_impl<T...>(std::declval<Template>()));
+}
 
-    namespace cpo::inline cpo_impl
+namespace stdsharp::cpo::inline cpo_impl
+{
+    void get(auto&&) = delete;
+
+    template<std::size_t I>
+    struct get_element_fn
     {
-        void get(auto&&) = delete;
-
-        template<std::size_t I>
-        struct get_element_fn
+        [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
+            noexcept(noexcept(cpp_forward(t).template get<I>()))
+            requires requires { cpp_forward(t).template get<I>(); }
         {
-            [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-                noexcept(noexcept(cpp_forward(t).template get<I>()))
-                requires requires { cpp_forward(t).template get<I>(); }
-            {
-                return cpp_forward(t).template get<I>();
-            }
+            return cpp_forward(t).template get<I>();
+        }
 
-            [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-                noexcept(noexcept(get<I>(cpp_forward(t))))
-                requires requires //
-            {
-                get<I>(cpp_forward(t));
-                requires !requires { cpp_forward(t).template get<I>(); };
-            }
-            {
-                return get<I>(cpp_forward(t));
-            }
-        };
+        [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
+            noexcept(noexcept(get<I>(cpp_forward(t))))
+            requires requires //
+        {
+            get<I>(cpp_forward(t));
+            requires !requires { cpp_forward(t).template get<I>(); };
+        }
+        {
+            return get<I>(cpp_forward(t));
+        }
+    };
 
-        template<std::size_t I>
-        inline constexpr get_element_fn<I> get_element;
-    }
+    template<std::size_t I>
+    inline constexpr get_element_fn<I> get_element;
+}
 
+namespace stdsharp
+{
     template<std::size_t I, typename T>
     using get_element_t = decltype(cpo::get_element<I>(std::declval<T>()));
 
@@ -467,6 +474,34 @@ namespace stdsharp
     }
 }
 
+namespace stdsharp::details
+{
+    template<typename T>
+    struct ebo_union
+    {
+        union type
+        {
+            T v;
+        };
+    };
+
+    template<typename T>
+        requires std::is_empty_v<T>
+    struct ebo_union<T>
+    {
+        union type
+        {
+            STDSHARP_NO_UNIQUE_ADDRESS T v;
+        };
+    };
+}
+
+namespace stdsharp
+{
+    template<typename T>
+    using ebo_union = details::ebo_union<T>::type;
+}
+
 namespace meta::extension
 {
     template<typename Fn, template<auto...> typename T, decltype(auto)... V>
@@ -496,3 +531,5 @@ namespace std
         static constexpr auto value = ::stdsharp::regular_value_sequence<V...>::size();
     };
 }
+
+#include "../compilation_config_out.h"
