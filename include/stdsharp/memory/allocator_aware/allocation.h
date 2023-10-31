@@ -121,36 +121,36 @@ namespace stdsharp::allocator_aware
     };
 
     template<allocator_req Allocator, callocations_view<Allocator> Allocations>
-    struct const_source_allocations
+    struct src_callocations
     {
         std::reference_wrapper<const Allocator> allocator;
         Allocations allocations;
     };
 
     template<typename T, typename U>
-    const_source_allocations(T&, U) -> const_source_allocations<T, U>;
+    src_callocations(T&, U) -> src_callocations<T, U>;
 
     template<allocator_req Allocator, allocations_view<Allocator> Allocations>
-    struct source_allocations
+    struct src_allocations
     {
         std::reference_wrapper<Allocator> allocator;
         Allocations allocations;
 
-        constexpr operator const_source_allocations<Allocator, Allocations>() const noexcept
+        constexpr operator src_callocations<Allocator, Allocations>() const noexcept
         {
             return {allocator, allocations};
         }
     };
 
     template<typename T, typename U>
-    source_allocations(T&, U) -> source_allocations<T, U>;
+    src_allocations(T&, U) -> src_allocations<T, U>;
 
     template<std::invocable GetAllocator, typename GetAllocations>
         requires allocator_req<std::invoke_result_t<GetAllocator>>
     struct [[nodiscard]] defer_allocations
     {
         GetAllocator get_allocator;
-        GetAllocations get_allocations;
+        GetAllocations set_allocations;
 
         using allocator_type = std::invoke_result_t<GetAllocator>;
 

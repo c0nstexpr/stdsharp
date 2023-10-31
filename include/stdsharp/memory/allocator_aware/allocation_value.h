@@ -22,7 +22,7 @@ namespace stdsharp::allocator_aware
             const callocation dst_allocation
         ) noexcept
         {
-            constexpr auto value_type_size = sizeof(Allocator::value_type);
+            constexpr auto value_type_size = sizeof(allocator_type::value_type);
 
             Expects(std::ranges::size(src_allocation) * value_type_size >= sizeof(T));
             Expects(std::ranges::size(dst_allocation) * value_type_size >= sizeof(T));
@@ -184,7 +184,6 @@ namespace stdsharp::allocator_aware::details
         using allocation_type = allocation_traits::allocation_type;
         using allocator_type = allocation_traits::allocator_type;
         using callocation = allocation_traits::callocation;
-
         using fake_type = fake_type_for<Req>;
 
         using dispatchers = invocables<
@@ -227,20 +226,28 @@ namespace stdsharp::allocator_aware
             details::allocation_dynamic_value_operation<Allocator, Req>::dispatchers;
 
     public:
-        allocation_value() = default;
+        static constexpr auto req = Req;
 
-        explicit constexpr allocation_value(const m_dispatchers dispatchers) noexcept:
-            m_dispatchers(dispatchers)
-        {
-        }
+        allocation_value() = default;
 
         bool operator==(const allocation_value&) const = default;
 
         template<typename T, typename Op = allocation_value<T>>
             requires std::constructible_from<m_dispatchers, Op, Op, Op, Op>
-        explicit constexpr allocation_value(const std::type_identity<T> /*unused*/) //
-            noexcept:
-            allocation_value(Op{}, Op{}, Op{}, Op{})
+        explicit constexpr allocation_value(const std::type_identity<T> /*unused*/) noexcept:
+            m_dispatchers(Op{}, Op{}, Op{}, Op{})
+        {
+        }
+
+        template<
+            special_mem_req OtherReq,
+            typename Other = const allocation_value<Allocator, allocation_dynamic_type<OtherReq>>&>
+            requires std::constructible_from<m_dispatchers, Other, Other, Other, Other> &&
+            (Req != OtherReq)
+        explicit constexpr allocation_value(
+            const allocation_value<Allocator, allocation_dynamic_type<OtherReq>> other
+        ) noexcept:
+            m_dispatchers(other, other, other, other)
         {
         }
 

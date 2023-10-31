@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gsl/pointers>
 #include <iterator>
 #include <memory>
 
@@ -177,7 +178,7 @@ namespace stdsharp
             template<typename T, typename... Args>
             constexpr decltype(auto) operator()( //
                 const Alloc& /*unused*/,
-                T* const ptr,
+                const gsl::not_null<T*> ptr,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args...>)
             {
@@ -187,7 +188,7 @@ namespace stdsharp
             template<typename T>
             constexpr decltype(auto) operator()(
                 const Alloc& /*unused*/,
-                void* const ptr,
+                const gsl::not_null<void*> ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 auto&&... args
             ) const noexcept(noexcept(::new(ptr) T{cpp_forward(args)...}))
@@ -203,7 +204,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                T* const ptr,
+                const gsl::not_null<T*> ptr,
                 Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
@@ -214,7 +215,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                T* const ptr,
+                const gsl::not_null<T*> ptr,
                 Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
@@ -230,7 +231,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                void* const ptr,
+                const gsl::not_null<void*> ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 auto&&... args
             ) const noexcept(noexcept(::new(ptr) T{cpp_forward(args)..., alloc}))
@@ -245,10 +246,11 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                void* const ptr,
+                const gsl::not_null<void*> ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 auto&&... args
-            ) const noexcept(noexcept(::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...}))
+            ) const
+                noexcept(noexcept(::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...}))
                 requires requires {
                     ::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...};
                 }
@@ -260,39 +262,27 @@ namespace stdsharp
         struct custom_constructor
         {
             template<typename T, typename... Args>
-            constexpr decltype(auto) operator()(Alloc & a, T* const ptr, Args&&... args) const
+            constexpr decltype(auto
+            ) operator()(Alloc & a, const gsl::not_null<T*> ptr, Args&&... args) const
                 noexcept(noexcept(a.construct(ptr, std::declval<Args>()...)))
             {
                 return a.construct(ptr, cpp_forward(args)...);
             }
         }; // NOLINTEND(*-owning-memory)
 
-        struct nullptr_constructor
-        {
-            void operator()(Alloc&, nullptr_t, auto&&...) const = delete;
-        };
-
         using m_base = std::allocator_traits<Alloc>;
 
     public:
-        using constructor = sequenced_invocables<
-            nullptr_constructor,
-            custom_constructor,
-            using_alloc_ctor,
-            default_constructor>;
+        using constructor =
+            sequenced_invocables<custom_constructor, using_alloc_ctor, default_constructor>;
 
         static constexpr constructor construct{};
 
     private:
-        struct nullptr_destructor
-        {
-            void operator()(Alloc&, nullptr_t) = delete;
-        };
-
         struct custom_destructor
         {
-            template<typename U>
-            constexpr void operator()(Alloc& a, U* const ptr) const noexcept
+            template<typename T>
+            constexpr void operator()(Alloc& a, const gsl::not_null<T*> ptr) const noexcept
                 requires(noexcept(a.destroy(ptr)))
             {
                 a.destroy(ptr);
@@ -301,16 +291,16 @@ namespace stdsharp
 
         struct default_destructor
         {
-            template<typename U>
-            constexpr void operator()(const Alloc& /*unused*/, U* const ptr) const noexcept
+            template<typename T>
+            constexpr void
+                operator()(const Alloc& /*unused*/, const gsl::not_null<T*> ptr) const noexcept
             {
                 std::ranges::destroy_at(ptr);
             }
         };
 
     public:
-        using destructor =
-            sequenced_invocables<nullptr_destructor, custom_destructor, default_destructor>;
+        using destructor = sequenced_invocables<custom_destructor, default_destructor>;
 
         static constexpr destructor destroy{};
 
@@ -448,6 +438,51 @@ namespace stdsharp
 
             return alloc.try_allocate(count);
         }
+
+        struct adaptor : allocator_type
+        {
+            using allocator_type::allocator_type;
+
+            adaptor() = default;
+
+            constexpr adaptor(const std::in_place_t /*unused*/, auto&&... args) //
+                noexcept(noexcept(allocator_type(cpp_forward(args)...)))
+                requires requires { allocator_type(cpp_forward(args)...); }
+                : allocator_type(cpp_forward(args)...)
+            {
+            }
+
+            constexpr adaptor(const allocator_type& other) noexcept:
+                allocator_type(select_on_container_copy_construction(other.get_allocator()))
+            {
+            }
+
+            constexpr adaptor(allocator_type&& other) noexcept:
+                allocator_type(cpp_move(other.get_allocator()))
+            {
+            }
+
+            constexpr adaptor& operator=(const allocator_type& other) noexcept
+            {
+                if constexpr(propagate_on_copy_v)
+                    static_cast<allocator_type>(*this) = other.allocator;
+                return *this;
+            }
+
+            constexpr adaptor& operator=(allocator_type&& other) noexcept
+            {
+                if constexpr(propagate_on_move_v)
+                    static_cast<allocator_type>(*this) = other.allocator;
+                return *this;
+            }
+
+            [[nodiscard]] constexpr allocator_type& get_allocator() noexcept { return *this; }
+
+            [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept
+            {
+                return *this;
+            }
+        };
     };
 
     template<allocator_req Alloc>

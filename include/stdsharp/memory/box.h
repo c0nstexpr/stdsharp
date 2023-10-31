@@ -1,143 +1,221 @@
 #pragma once
 
-#include "details/box_allocation.h"
-#include "allocator_aware/basic_aa.h"
+#include "box_allocation_value.h"
 #include "../type_traits/object.h"
-#include "stdsharp/concepts/concepts.h"
 
 namespace stdsharp
 {
     template<special_mem_req Req, allocator_req Alloc>
-    class box : allocator_aware::basic_aa<details::box_allocation<Req, Alloc>>
+    class box
     {
         template<special_mem_req, allocator_req>
         friend class box;
 
-        using m_base = allocator_aware::basic_aa<details::box_allocation<Req, Alloc>>;
-        using typename m_base::allocation_traits;
-        using typename m_base::allocation_type;
-        using typename m_base::callocation;
-        using typename m_base::allocator_traits;
-
-        using m_base::get_allocation;
-        using m_base::get_allocator;
+        using allocation_traits = allocator_aware::allocation_traits<Alloc>;
 
     public:
-        using typename m_base::allocator_type;
+        using allocator_type = allocation_traits::allocator_type;
+        using allocator_traits = allocation_traits::allocator_traits;
 
-        static constexpr auto req = details::box_allocation<Req, Alloc>::req;
+    private:
+        struct allocation_type
+        {
+            allocation_traits::pointer ptr;
+            allocation_traits::size_type diff;
 
-        using m_base::m_base;
+            [[nodiscard]] constexpr auto begin() const noexcept { return ptr; }
 
-        using m_base::destroy;
+            [[nodiscard]] constexpr auto end() const noexcept { return ptr + diff; }
+
+            [[nodiscard]] constexpr auto size() const noexcept { return diff; }
+        };
+
+        using adaptor_t = allocation_traits::template adaptor<std::array<allocation_type, 1>>;
+        using box_allocation_value = allocator_aware::allocation_value<allocation_type, allocation_box_type<Req>>;
+
+        adaptor_t adaptor_;
+        box_allocation_value allocation_value_{};
+
+        constexpr auto& get_allocation() noexcept { return adaptor_.allocations.front(); }
+
+        constexpr auto& get_allocation() const noexcept { return adaptor_.allocations.front(); }
+
+        constexpr auto& get_allocator() noexcept { return adaptor_.allocator_adt.get_allocator(); }
+
+    public:
+        constexpr auto& get_allocator() const noexcept
+        {
+            return adaptor_.allocator_adt.get_allocator();
+        }
+
+        static constexpr auto req = Req;
 
         box() = default;
 
         template<typename T>
-        constexpr box(
-            const std::allocator_arg_t /*unused*/,
-            const allocator_type& alloc,
-            const std::in_place_type_t<T> /*unused*/,
-            auto&&... args
-        ) noexcept(noexcept(emplace<T>(cpp_forward(args)...)))
-            requires requires { emplace<T>(cpp_forward(args)...); }
-            : m_base(alloc)
+        static constexpr auto is_type_compatible =
+            std::constructible_from<box_allocation_value, std::in_place_type_t<T>>;
+
+        box(const box&)
+            requires false;
+        box(box&&) noexcept
+            requires false;
+
+    private:
+        template<special_mem_req OtherReq>
+        static constexpr auto is_compatible = std::constructible_from<
+            box_allocation_value,
+            typename box<OtherReq, allocator_type>::box_allocation_value>;
+
+        constexpr void deallocate() noexcept
         {
-            emplace<T>(cpp_forward(args)...);
+            allocation_traits::deallocate(adaptor_.to_src_allocations());
         }
 
-        template<typename T>
-        constexpr box(const std::in_place_type_t<T> /*unused*/, auto&&... args) //
-            noexcept(noexcept(emplace<T>(cpp_forward(args)...)))
-            requires requires { emplace<T>(cpp_forward(args)...); }
-        {
-            emplace<T>(cpp_forward(args)...);
-        }
-
-        template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
-        explicit constexpr box(const box<OtherReq, allocator_type>& other) //
-            noexcept(noexcept(other.get_allocation().template cp_construct<Req>(get_allocator())))
-            requires requires(allocator_type alloc) {
-                requires OtherReq != Req;
-                other.get_allocation().template cp_construct<Req>(alloc);
+    public:
+        template<special_mem_req OtherReq>
+        explicit(OtherReq != Req) constexpr box(const box<OtherReq, allocator_type>& other)
+            requires requires {
+                requires is_compatible<OtherReq>;
+                adaptor_.on_construct(
+                    other.adaptor_.allocations | std::views::all,
+                    other.allocation_value_
+                );
             }
             :
-            m_base(
-                cpp_move(other.get_allocator()),
-                [&allocation = other.get_allocation()](auto& alloc)
-                {
-                    return allocation.template cp_construct<Req>(alloc); //
-                }
-            )
+            adaptor_{.allocator_adt = other.adaptor_.allocator_adt.get_allocator()},
+            allocation_value_(other.allocation_value_)
         {
+            adaptor_.on_construct(
+                other.adaptor_.allocations | std::views::all,
+                other.allocation_value_
+            );
         }
 
         template<special_mem_req OtherReq>
-        explicit constexpr box(
+        explicit(OtherReq != Req) constexpr box(
             const box<OtherReq, allocator_type>& other,
-            const allocator_type& alloc
-        ) noexcept(noexcept(other.get_allocation().template cp_construct<Req>(alloc)))
+            const allocator_type& alloc //
+        )
             requires requires {
-                requires OtherReq != Req;
-                other.get_allocation().template cp_construct<Req>(alloc);
+                requires is_compatible<OtherReq>;
+                adaptor_.on_construct(
+                    other.adaptor_.allocations | std::views::all,
+                    other.allocation_value_
+                );
             }
-            :
-            m_base(
-                alloc,
-                [&allocation = other.get_allocation()](auto& alloc)
-                {
-                    return allocation.template cp_construct<Req>(alloc); //
-                }
-            )
+            : adaptor_{.allocator_adt = alloc}, allocation_value_(other.allocation_value_)
         {
+            adaptor_.on_construct(
+                other.adaptor_.allocations | std::views::all,
+                other.allocation_value_
+            );
         }
 
-        template<special_mem_req OtherReq, typename OtherBox = box<OtherReq, allocator_type>>
-        explicit constexpr box(box<OtherReq, allocator_type>&& other) //
-            noexcept(noexcept(other.get_allocation().template mov_construct<Req>(get_allocator())))
-            requires requires(allocator_type alloc) {
-                requires OtherReq != Req;
-                other.get_allocation().template mov_construct<Req>(alloc);
-            }
-            :
-            m_base(
-                cpp_move(other.get_allocator()),
-                [&allocation = other.get_allocation()](auto& alloc)
-                {
-                    return allocation.template mov_construct<Req>(alloc); //
-                }
-            )
+        template<special_mem_req OtherReq>
+            requires is_compatible<OtherReq>
+        explicit(OtherReq != Req) constexpr box(box<OtherReq, allocator_type>&& other) noexcept:
+            adaptor_(cpp_move(other.adaptor_)), allocation_value_(other.allocation_value_)
         {
         }
 
         template<special_mem_req OtherReq>
-        explicit constexpr box(
+            requires is_compatible<OtherReq>
+        explicit(OtherReq != Req) constexpr box(
             box<OtherReq, allocator_type>&& other,
-            const allocator_type& alloc
-        ) noexcept(noexcept(other.get_allocation().template mov_construct<Req>(alloc)))
-            requires requires {
-                requires OtherReq != Req;
-                other.get_allocation().template mov_construct<Req>(alloc);
-            }
-            :
-            m_base(
-                alloc,
-                [&allocation = other.get_allocation()](auto& alloc)
-                {
-                    return allocation.template mov_construct<Req>(alloc); //
-                }
-            )
+            const allocator_type& alloc //
+        ) noexcept:
+            adaptor_(alloc, cpp_move(other.adaptor_.allocations)),
+            allocation_value_(other.allocation_value_)
         {
         }
 
-        [[nodiscard]] constexpr operator bool() const noexcept { return has_value(); }
+        constexpr void reset() noexcept(
+            noexcept(allocation_traits::destroy(adaptor_.to_src_allocations(), allocation_value_))
+        )
+            requires requires {
+                allocation_traits::destroy(adaptor_.to_src_allocations(), allocation_value_);
+            }
+        {
+            allocation_traits::destroy(adaptor_.to_src_allocations(), allocation_value_);
+        }
+
+        constexpr box& operator=(const box& other)
+            requires requires {
+                reset();
+                allocation_traits::on_assign(
+                    adaptor_.to_src_allocations(),
+                    adaptor_.to_src_allocations(),
+                    allocation_value_
+                );
+                adaptor_.on_construct(adaptor_.to_src_allocations(), allocation_value_);
+            }
+        {
+            if(allocation_value_ == other.allocation_value_)
+                allocation_traits::on_assign(
+                    other.adaptor_.to_src_allocations(),
+                    adaptor_.to_src_allocations(),
+                    other.allocation_value_
+                );
+            else
+            {
+                reset();
+                adaptor_.on_construct(other.adaptor_.to_src_allocations(), other.allocation_value_);
+                allocation_value_ = other.allocation_value_;
+            }
+
+            return *this;
+        }
+
+        constexpr box& operator=(box&& other) noexcept(noexcept(allocation_traits::on_assign(
+            adaptor_.to_src_allocations(),
+            adaptor_.to_src_allocations(),
+            allocation_value_
+        )))
+            requires requires {
+                reset();
+                allocation_traits::on_assign(
+                    adaptor_.to_src_allocations(),
+                    adaptor_.to_src_allocations(),
+                    allocation_value_
+                );
+            }
+        {
+            if(allocation_value_ == other.allocation_value_)
+                allocation_traits::on_assign(
+                    other.adaptor_.to_src_allocations(),
+                    adaptor_.to_src_allocations(),
+                    other.allocation_value_
+                );
+            else
+            {
+                reset();
+                deallocate();
+                adaptor_.on_construct(other.adaptor_.to_src_allocations(), other.allocation_value_);
+                allocation_value_ = other.allocation_value_;
+            }
+
+            return *this;
+        }
 
         template<typename T, typename... U>
-        constexpr decltype(auto) emplace(U&&... args) //
-            noexcept(noexcept(this->construct<T>(cpp_forward(args)...)))
-            requires requires { this->construct<T>(cpp_forward(args)...); }
+            requires is_type_compatible<T>
+        constexpr decltype(auto) emplace(U&&... args)
+            requires requires {
+                allocation_traits::template construct<T>(
+                    adaptor_.to_src_allocations(),
+                    cpp_forward(args)...
+                );
+            }
         {
-            return this->construct<T>(cpp_forward(args)...);
+            allocation_traits::template construct<T>(
+                adaptor_.to_src_allocations(),
+                cpp_forward(args)...
+            );
+
+            allocation_value_ = box_allocation_value{std::in_place_type_t<T>{}};
+
+            return get<T>();
         }
 
         template<
@@ -161,26 +239,46 @@ namespace stdsharp
         }
 
         template<typename T>
+        constexpr box(
+            const std::allocator_arg_t /*unused*/,
+            const allocator_type& alloc,
+            const std::in_place_type_t<T> /*unused*/,
+            auto&&... args
+        )
+            requires requires { emplace<T>(cpp_forward(args)...); }
+            : adaptor_(alloc)
+        {
+            emplace<T>(cpp_forward(args)...);
+        }
+
+        template<typename T>
+        constexpr box(const std::in_place_type_t<T> /*unused*/, auto&&... args)
+            requires requires { emplace<T>(cpp_forward(args)...); }
+        {
+            emplace<T>(cpp_forward(args)...);
+        }
+
+        template<typename T>
         [[nodiscard]] constexpr T& get() noexcept
         {
-            return get_allocation().template get<T>();
+            return allocator_aware::allocation_get<allocator_type, T>(get_allocation());
         }
 
         template<typename T>
         [[nodiscard]] constexpr const T& get() const noexcept
         {
-            return get_allocation().template get<const T>();
+            return allocator_aware::allocation_cget<allocator_type, T>(get_allocation());
         }
 
         [[nodiscard]] constexpr bool has_value() const noexcept
         {
-            return !allocation_traits::empty(get_allocation());
+            return !allocation_value_.empty();
         }
 
         template<typename T>
         [[nodiscard]] constexpr auto is_type() const noexcept
         {
-            return get_allocation().template is_type<T>();
+            return allocation_value_.template is_type<T>();
         }
 
         [[nodiscard]] constexpr auto size() const noexcept { return get_allocation().size(); }
