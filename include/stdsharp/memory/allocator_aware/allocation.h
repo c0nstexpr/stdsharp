@@ -31,18 +31,6 @@ namespace stdsharp::allocator_aware
         requires nothrow_default_initializable<decltype(decay_t)>;
         requires nothrow_constructible_from<decltype(decay_t), decltype(p), decltype(size)>;
         requires nothrow_movable<decltype(decay_t)>;
-        requires[]
-        {
-            struct local
-            {
-                constexpr decltype(p) begin() const noexcept;
-                constexpr decltype(p) end() const noexcept;
-                constexpr decltype(size) size() const noexcept;
-            };
-
-            return nothrow_constructible_from<decltype(decay_t), local>;
-        }
-        ();
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
@@ -61,7 +49,7 @@ namespace stdsharp::allocator_aware
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
-    static constexpr allocation_data_fn<Alloc, T> allocation_data{};
+    inline constexpr allocation_data_fn<Alloc, T> allocation_data{};
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
     struct allocation_cdata_fn
@@ -79,7 +67,7 @@ namespace stdsharp::allocator_aware
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
-    static constexpr allocation_cdata_fn<Alloc, T> allocation_cdata{};
+    inline constexpr allocation_cdata_fn<Alloc, T> allocation_cdata{};
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
     struct allocation_get_fn
@@ -92,7 +80,7 @@ namespace stdsharp::allocator_aware
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
-    static constexpr allocation_get_fn<Alloc, T> allocation_get{};
+    inline constexpr allocation_get_fn<Alloc, T> allocation_get{};
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
     struct allocation_cget_fn
@@ -105,20 +93,64 @@ namespace stdsharp::allocator_aware
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
-    static constexpr allocation_cget_fn<Alloc, T> allocation_cget{};
+    inline constexpr allocation_cget_fn<Alloc, T> allocation_cget{};
 
-    template<typename Rng, typename Alloc>
-    concept callocations_view = std::ranges::view<Rng> && requires(const Rng& crng) {
-        requires std::ranges::input_range<decltype(crng)>;
-        requires callocation<range_const_reference_t<decltype(crng)>, Alloc>;
+    template<allocator_req Alloc>
+    struct make_callocation_fn
+    {
+    private:
+        class callocation_t
+        {
+            allocator_const_pointer<Alloc> p_{};
+            allocator_size_type<Alloc> size_{};
+
+        public:
+            constexpr callocation_t(
+                const allocator_const_pointer<Alloc> p,
+                const allocator_size_type<Alloc> size
+            ) noexcept:
+                p_(p), size_(size)
+            {
+            }
+
+            [[nodiscard]] constexpr auto begin() const noexcept { return p_; }
+
+            [[nodiscard]] constexpr auto end() const noexcept { return p_ + size_; }
+
+            [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+        };
+
+    public:
+        constexpr callocation_t operator()(const callocation<Alloc> auto rng) const noexcept
+        {
+            return {std::ranges::cbegin(rng), std::ranges::size(rng)};
+        }
     };
 
+    template<allocator_req Alloc>
+    inline constexpr make_callocation_fn<Alloc> make_callocation{};
+
     template<typename Rng, typename Alloc>
-    concept allocations_view = callocations_view<Rng, Alloc> && requires(const Rng& crng) {
-        requires std::ranges::
-            output_range<decltype(crng), std::ranges::range_rvalue_reference_t<decltype(crng)>>;
-        requires allocation<std::ranges::range_value_t<decltype(crng)>, Alloc>;
+    concept callocations_view = std::ranges::borrowed_range<Rng> && //
+        std::ranges::input_range<Rng&> && //
+        callocation<range_const_reference_t<Rng&>, Alloc>;
+
+    template<typename Rng, typename Alloc>
+    concept allocations_view = callocations_view<Rng, Alloc> && //
+        range_movable<Rng&, Rng&> && //
+        allocation<std::ranges::range_value_t<Rng&>, Alloc>;
+
+    template<allocator_req Alloc>
+    struct make_callocations_fn
+    {
+        constexpr auto operator()(const callocations_view<Alloc> auto rng) const noexcept
+        {
+            return rng | std::views::transform(make_callocation<Alloc>);
+        }
     };
+
+    template<allocator_req Alloc>
+    inline constexpr make_callocations_fn<Alloc> make_callocations{};
 
     template<allocator_req Allocator, callocations_view<Allocator> Allocations>
     struct src_callocations
@@ -144,26 +176,4 @@ namespace stdsharp::allocator_aware
 
     template<typename T, typename U>
     src_allocations(T&, U) -> src_allocations<T, U>;
-
-    template<std::invocable GetAllocator, typename GetAllocations>
-        requires allocator_req<std::invoke_result_t<GetAllocator>>
-    struct [[nodiscard]] defer_allocations
-    {
-        GetAllocator get_allocator;
-        GetAllocations set_allocations;
-
-        using allocator_type = std::invoke_result_t<GetAllocator>;
-
-        template<typename Dst>
-        static constexpr auto allocations_gettable = allocations_view<Dst, allocator_type> &&
-            std::invocable<GetAllocations, const Dst&, allocator_type>;
-
-        template<typename Dst>
-        static constexpr auto nothrow_allocations_gettable =
-            allocations_view<Dst, allocator_type> &&
-            nothrow_invocable<GetAllocations, const Dst&, allocator_type>;
-    };
-
-    template<typename T, typename U>
-    defer_allocations(T&&, U&&) -> defer_allocations<std::decay_t<T>, std::decay_t<U>>;
 }

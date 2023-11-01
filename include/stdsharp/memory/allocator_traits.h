@@ -462,20 +462,6 @@ namespace stdsharp
             {
             }
 
-            constexpr adaptor& operator=(const allocator_type& other) noexcept
-            {
-                if constexpr(propagate_on_copy_v)
-                    static_cast<allocator_type>(*this) = other.allocator;
-                return *this;
-            }
-
-            constexpr adaptor& operator=(allocator_type&& other) noexcept
-            {
-                if constexpr(propagate_on_move_v)
-                    static_cast<allocator_type>(*this) = other.allocator;
-                return *this;
-            }
-
             [[nodiscard]] constexpr allocator_type& get_allocator() noexcept { return *this; }
 
             [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept

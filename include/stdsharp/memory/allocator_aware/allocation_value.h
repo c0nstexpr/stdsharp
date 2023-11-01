@@ -24,8 +24,8 @@ namespace stdsharp::allocator_aware
         {
             constexpr auto value_type_size = sizeof(allocator_type::value_type);
 
-            Expects(std::ranges::size(src_allocation) * value_type_size >= sizeof(T));
-            Expects(std::ranges::size(dst_allocation) * value_type_size >= sizeof(T));
+            Expects(std::ranges::size(src_allocation) * value_type_size >= value_size());
+            Expects(std::ranges::size(dst_allocation) * value_type_size >= value_size());
         }
 
     public:
@@ -75,9 +75,11 @@ namespace stdsharp::allocator_aware
             noexcept(allocator_traits::template nothrow_destructible<T>)
             requires(allocator_traits::template destructible<T>)
         {
-            Expects(std::ranges::size(allocation) >= sizeof(T));
+            Expects(std::ranges::size(allocation) >= value_size());
             allocator_traits::destroy(allocator, allocation_data<T>(allocation));
         }
+
+        [[nodiscard]] static constexpr auto value_size() noexcept { return sizeof(T); }
     };
 
     template<allocator_req Allocator, typename T>
@@ -90,7 +92,7 @@ namespace stdsharp::allocator_aware
         using callocation = allocation_traits::callocation;
         using size_type = allocator_traits::size_type;
 
-        static constexpr auto value_size = sizeof(allocation_traits::value_type);
+        static constexpr auto element_size = sizeof(allocation_traits::value_type);
 
         size_type size_;
 
@@ -99,16 +101,18 @@ namespace stdsharp::allocator_aware
             const callocation dst_allocation
         ) const noexcept
         {
-            const auto sum_size = sizeof(T) * size_;
+            const auto size = value_size();
 
-            Expects(std::ranges::size(src_allocation) * value_size >= sum_size);
-            Expects(std::ranges::size(dst_allocation) * value_size >= sum_size);
+            Expects(std::ranges::size(src_allocation) * element_size >= size);
+            Expects(std::ranges::size(dst_allocation) * element_size >= size);
         }
 
     public:
         constexpr explicit allocation_value(const size_type size) noexcept: size_(size) {}
 
         [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+
+        [[nodiscard]] constexpr auto value_size() const noexcept { return size() * sizeof(T); }
 
         bool operator==(const allocation_value&) const = default;
 
@@ -163,7 +167,7 @@ namespace stdsharp::allocator_aware
             noexcept(allocator_traits::template nothrow_destructible<T>)
             requires(allocator_traits::template destructible<T>)
         {
-            Expects(allocation.size() * value_size >= sizeof(T) * size_);
+            Expects(allocation.size() * element_size >= sizeof(T) * size_);
 
             for(size_type i = 0; i < size_; ++i)
                 allocator_traits::destroy(
@@ -225,7 +229,11 @@ namespace stdsharp::allocator_aware
         using m_dispatchers =
             details::allocation_dynamic_value_operation<Allocator, Req>::dispatchers;
 
+        std::size_t value_size_{};
+
     public:
+        using m_dispatchers::operator();
+
         static constexpr auto req = Req;
 
         allocation_value() = default;
@@ -235,7 +243,7 @@ namespace stdsharp::allocator_aware
         template<typename T, typename Op = allocation_value<T>>
             requires std::constructible_from<m_dispatchers, Op, Op, Op, Op>
         explicit constexpr allocation_value(const std::type_identity<T> /*unused*/) noexcept:
-            m_dispatchers(Op{}, Op{}, Op{}, Op{})
+            m_dispatchers(Op{}, Op{}, Op{}, Op{}), value_size_(sizeof(T))
         {
         }
 
@@ -243,18 +251,14 @@ namespace stdsharp::allocator_aware
             special_mem_req OtherReq,
             typename Other = const allocation_value<Allocator, allocation_dynamic_type<OtherReq>>&>
             requires std::constructible_from<m_dispatchers, Other, Other, Other, Other> &&
-            (Req != OtherReq)
+                         (Req != OtherReq)
         explicit constexpr allocation_value(
             const allocation_value<Allocator, allocation_dynamic_type<OtherReq>> other
         ) noexcept:
-            m_dispatchers(other, other, other, other)
+            m_dispatchers(other, other, other, other), value_size_(other.value_size_)
         {
         }
 
-        template<typename... T, std::invocable<T...> Dispatchers = const m_dispatchers&>
-        constexpr void operator()(T&&... t) const noexcept(nothrow_invocable<Dispatchers, T...>)
-        {
-            static_cast<Dispatchers>(*this)(cpp_forward(t)...);
-        }
+        [[nodiscard]] constexpr auto value_size() const noexcept { return value_size_; }
     };
 }

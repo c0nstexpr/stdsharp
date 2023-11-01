@@ -44,17 +44,27 @@ namespace stdsharp
     template<typename T, typename U>
     using cast_view = std::ranges::transform_view<T, cast_to_fn<U>>;
 
-    template<class T>
+    template<typename T>
     concept constant_iterator =
         std::input_iterator<T> && std::same_as<iter_const_reference_t<T>, std::iter_reference_t<T>>;
 
-    template<class T>
+    template<typename T>
     concept constant_range =
 #if __cpp_lib_ranges_as_const >= 202207L
         std::ranges::constant_range<T>;
 #else
-        std::ranges::input_range<T> && constant_iterator<ranges::iterator_t<T>>;
+        std::ranges::input_range<T> && constant_iterator<std::ranges::iterator_t<T>>;
 #endif
+
+    template<typename Out, typename In>
+    concept range_movable = std::ranges::input_range<In> &&
+        std::ranges::output_range<Out, std::ranges::range_rvalue_reference_t<In>> &&
+        std::indirectly_movable<std::ranges::iterator_t<In>, std::ranges::iterator_t<Out>>;
+
+    template<typename Out, typename In>
+    concept range_copyble = std::ranges::input_range<In> &&
+        std::ranges::output_range<Out, std::ranges::range_reference_t<Out>> &&
+        std::indirectly_copyable<std::ranges::iterator_t<In>, std::ranges::iterator_t<Out>>;
 
     namespace views
     {
