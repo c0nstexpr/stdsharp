@@ -16,7 +16,7 @@ namespace stdsharp::details
     template<special_mem_req Req, allocator_req Alloc>
     struct box_allocation_value_traits
     {
-        using allocation_traits = allocator_aware::allocation_traits<Alloc>;
+        using allocation_traits = allocation_traits<Alloc>;
         using allocator_traits = allocation_traits::allocator_traits;
         using allocation_type = allocation_traits::allocation_type;
         using allocator_type = allocation_traits::allocator_type;
@@ -30,7 +30,7 @@ namespace stdsharp::details
             allocator_type&>;
 
         using allocation_value =
-            allocator_aware::allocation_value<Alloc, allocator_aware::allocation_dynamic_type<Req>>;
+            allocation_value<Alloc, allocation_dynamic_type<Req>>;
 
         using type = stdsharp::invocables<allocation_value, mov_dispatcher>;
     };
@@ -48,7 +48,7 @@ namespace stdsharp::details
 
         using m_base = traits::type;
 
-        using allocation_traits = allocator_aware::allocation_traits<Alloc>;
+        using allocation_traits = allocation_traits<Alloc>;
         using allocation_type = allocation_traits::allocation_type;
         using allocator_type = allocation_traits::allocator_type;
         using allocator_traits = allocation_traits::allocator_traits;
@@ -119,7 +119,7 @@ namespace stdsharp::details
     };
 }
 
-namespace stdsharp::allocator_aware
+namespace stdsharp
 {
     template<special_mem_req Req, allocator_req Alloc>
     class allocation_value<Alloc, allocation_box_type<Req>> :

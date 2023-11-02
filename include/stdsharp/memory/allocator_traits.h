@@ -2,32 +2,62 @@
 
 #include <gsl/pointers>
 #include <iterator>
-#include <memory>
 
-#include "../functional/invocables.h"
 #include "../type_traits/special_member.h"
 #include "../utility/constructor.h"
+#include "pointer_traits.h"
 
 namespace stdsharp
 {
     using max_alignment = std::alignment_of<std::max_align_t>;
 
     inline constexpr auto max_alignment_v = max_alignment::value;
+}
 
-    namespace details
+namespace stdsharp::details
+{
+    struct allocator_concept_traits
     {
-        struct alloc_req_dummy_t
+    private:
+        struct shadow_type
         {
             int v;
         };
 
-        template<typename T>
-        concept allocator_pointer =
-            nullable_pointer<T> && nothrow_default_initializable<T> && nothrow_movable<T> &&
-            nothrow_swappable<T> && nothrow_copyable<T> && nothrow_weakly_equality_comparable<T> &&
-            nothrow_weakly_equality_comparable_with<T, std::nullptr_t>;
-    }
+    public:
+        template<typename Traits>
+        using rebind_traits = Traits::template rebind_traits<shadow_type>;
+    };
 
+    template<typename T>
+    concept is_allocator_pointer =
+        nullable_pointer<T> && nothrow_default_initializable<T> && nothrow_movable<T> &&
+        nothrow_swappable<T> && nothrow_copyable<T> && nothrow_weakly_equality_comparable<T> &&
+        nothrow_weakly_equality_comparable_with<T, std::nullptr_t>;
+
+    template<typename T>
+    struct make_obj_using_allocator_fn
+    {
+        template<typename Alloc, typename... Args>
+            requires std::constructible_from<T, Args..., const Alloc&>
+        constexpr T operator()(const Alloc& alloc, Args&&... args) const
+            noexcept(nothrow_constructible_from<T, Args..., const Alloc&>)
+        {
+            return T{cpp_forward(args)..., alloc};
+        }
+
+        template<typename Alloc, typename... Args>
+            requires std::constructible_from<T, std::allocator_arg_t, const Alloc&, Args...>
+        constexpr T operator()(const Alloc& alloc, Args&&... args) const
+            noexcept(nothrow_constructible_from<T, std::allocator_arg_t, const Alloc&, Args...>)
+        {
+            return T{std::allocator_arg, alloc, cpp_forward(args)...};
+        }
+    };
+}
+
+namespace stdsharp
+{
     template<typename Alloc>
     concept allocator_req = requires //
     {
@@ -43,20 +73,18 @@ namespace stdsharp
             decltype(t_traits)::const_void_pointer const_void_p,
             decltype(t_traits)::value_type v,
             decltype(t_traits)::size_type size,
-            decltype(t_traits):: //
-            template rebind_traits<details::alloc_req_dummy_t> u_traits,
+            details::allocator_concept_traits::rebind_traits<decltype(v)> u_traits,
             decltype(t_traits)::is_always_equal always_equal,
             decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
             decltype(t_traits)::propagate_on_container_move_assignment move_assign,
-            decltype(t_traits)::propagate_on_container_swap swap // clang-format off
-        ) // clang-format on
-        {
+            decltype(t_traits)::propagate_on_container_swap swap
+        ) {
             requires !const_volatile<decltype(v)>;
 
-            requires details::allocator_pointer<decltype(p)> &&
-                details::allocator_pointer<decltype(const_p)> &&
-                details::allocator_pointer<decltype(void_p)> &&
-                details::allocator_pointer<decltype(const_void_p)>;
+            requires details::is_allocator_pointer<decltype(p)> &&
+                details::is_allocator_pointer<decltype(const_p)> &&
+                details::is_allocator_pointer<decltype(void_p)> &&
+                details::is_allocator_pointer<decltype(const_void_p)>;
 
             requires std::random_access_iterator<decltype(p)> &&
                 std::contiguous_iterator<decltype(p)>;
@@ -72,9 +100,7 @@ namespace stdsharp
             requires nothrow_convertible_to<decltype(p), decltype(const_void_p)> &&
                 nothrow_convertible_to<decltype(const_p), decltype(const_void_p)> &&
                 nothrow_explicitly_convertible<decltype(const_void_p), decltype(const_p)> &&
-                nothrow_convertible_to<
-                         decltype(void_p),
-                         decltype(const_void_p)> &&
+                nothrow_convertible_to<decltype(void_p), decltype(const_void_p)> &&
                 std::same_as< // clang-format off
                     decltype(const_void_p),
                     typename decltype(u_traits)::const_void_pointer
@@ -86,45 +112,61 @@ namespace stdsharp
 
             requires std::
                 same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, Alloc>;
-            // clang-format off
 
-            { *p } -> std::same_as<std::add_lvalue_reference_t<decltype(v)>>;
-            { *const_p } -> std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
-            { *const_p } -> std::same_as<add_const_lvalue_ref_t<decltype(v)>>; // clang-format on
+            {
+                *p
+            } -> std::same_as<std::add_lvalue_reference_t<decltype(v)>>;
+            {
+                *const_p
+            } -> std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
+            {
+                *const_p
+            } -> std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
 
             requires requires(
                 decltype(u_traits)::pointer other_p,
                 decltype(u_traits)::const_pointer other_const_p,
-                decltype(u_traits)::allocator_type u_alloc,
-                decltype(t_traits)::allocator_type another_alloc // clang-format off
-            )
-            {
+                decltype(u_traits)::allocator_type u_alloc
+            ) {
                 nothrow_constructible_from<Alloc, const decltype(u_alloc)&>;
                 nothrow_constructible_from<Alloc, decltype(u_alloc)>;
 
-                { other_p->v } -> std::same_as<decltype(((*other_p).v))>;
-                { other_const_p->v } -> std::same_as<decltype(((*other_const_p).v))>;
+                {
+                    other_p->v
+                } -> std::same_as<decltype(((*other_p).v))>;
+                {
+                    other_const_p->v
+                } -> std::same_as<decltype(((*other_const_p).v))>;
 
                 t_traits.construct(alloc, other_p);
                 t_traits.destroy(alloc, other_p);
+            };
 
-                requires noexcept(alloc == another_alloc) && noexcept(alloc != another_alloc);
-            }; // clang-format on
+            requires noexcept(alloc == alloc)&& noexcept(alloc != alloc);
 
-            std::pointer_traits<decltype(p)>::pointer_to(v); // clang-format off
+            pointer_traits<decltype(p)>::pointer_to(v);
 
-            { t_traits.allocate(alloc, size) } -> std::same_as<decltype(p)>;
-            { t_traits.allocate(alloc, size, const_void_p) } -> std::same_as<decltype(p)>;
-            noexcept(alloc.deallocate(p, size));
-            { t_traits.max_size(alloc) } -> std::same_as<decltype(size)>;
-            // clang-format on
+            {
+                t_traits.allocate(alloc, size)
+            } -> std::same_as<decltype(p)>;
+            {
+                t_traits.allocate(alloc, size, const_void_p)
+            } -> std::same_as<decltype(p)>;
+
+            {
+                alloc.deallocate(p, size)
+            } noexcept;
+
+            {
+                t_traits.max_size(alloc)
+            } noexcept -> std::same_as<decltype(size)>;
 
             requires std::derived_from<decltype(always_equal), std::true_type> ||
                 std::derived_from<decltype(always_equal), std::false_type>;
 
-            // clang-format off
-            { t_traits.select_on_container_copy_construction(alloc) } -> std::same_as<Alloc>;
-            // clang-format on
+            {
+                t_traits.select_on_container_copy_construction(alloc)
+            } -> std::same_as<Alloc>;
 
             requires std::derived_from<decltype(copy_assign), std::true_type> &&
                     nothrow_copy_assignable<Alloc> ||
@@ -139,35 +181,25 @@ namespace stdsharp
         };
     };
 
-    namespace details
-    {
-        template<typename T>
-        struct make_obj_using_allocator_fn
-        {
-            template<typename Alloc, typename... Args>
-                requires std::constructible_from<T, Args..., const Alloc&>
-            constexpr T operator()(const Alloc& alloc, Args&&... args) const
-                noexcept(nothrow_constructible_from<T, Args..., const Alloc&>)
-            {
-                return T{cpp_forward(args)..., alloc};
-            }
-
-            template<typename Alloc, typename... Args>
-                requires std::constructible_from<T, std::allocator_arg_t, const Alloc&, Args...>
-            constexpr T operator()(const Alloc& alloc, Args&&... args) const
-                noexcept(nothrow_constructible_from<T, std::allocator_arg_t, const Alloc&, Args...>)
-            {
-                return T{std::allocator_arg, alloc, cpp_forward(args)...};
-            }
-        };
-    }
-
     template<typename T>
     using make_obj_uses_allocator_fn =
         sequenced_invocables<details::make_obj_using_allocator_fn<T>, constructor<T>>;
 
     template<typename T>
     inline constexpr make_obj_uses_allocator_fn<T> make_obj_uses_allocator{};
+
+    template<auto = -1>
+    struct allocator_propagation
+    {
+    };
+
+    template<bool IsEqual>
+    struct allocator_propagation<IsEqual>
+    {
+        static constexpr auto is_equal = IsEqual;
+
+        bool assigned;
+    };
 
     template<allocator_req Alloc>
     struct allocator_traits : private std::allocator_traits<Alloc>
@@ -362,16 +394,15 @@ namespace stdsharp
 
         using m_base::max_size;
 
-        static constexpr allocator_type select_on_container_copy_construction( //
-            const allocator_type& alloc
-        ) noexcept
+        static constexpr allocator_type
+            select_on_container_copy_construction(const allocator_type& alloc) noexcept
         {
             return alloc;
         }
 
-        static constexpr allocator_type select_on_container_copy_construction( //
-            const allocator_type& alloc
-        ) noexcept(noexcept(alloc.select_on_container_copy_construction()))
+        static constexpr allocator_type
+            select_on_container_copy_construction(const allocator_type& alloc) //
+            noexcept(noexcept(alloc.select_on_container_copy_construction()))
             requires requires {
                 {
                     alloc.select_on_container_copy_construction()
@@ -420,30 +451,36 @@ namespace stdsharp
             const size_type count,
             [[maybe_unused]] const const_void_pointer hint = nullptr
         ) noexcept
-            requires requires // clang-format off
-        {
-            { alloc.try_allocate(count) } -> std::same_as<pointer>; // clang-format on
-            requires noexcept(alloc.try_allocate(count));
-        }
-        {
-            if constexpr( // clang-format off
-                requires
+            requires requires {
                 {
-                    { alloc.try_allocate(count, hint) } ->
-                        std::same_as<pointer>; // clang-format on
-                    requires noexcept(alloc.try_allocate(count, hint));
-                } //
-            )
+                    alloc.try_allocate(count)
+                } noexcept -> std::same_as<pointer>;
+            }
+        {
+            if constexpr(requires {
+                             {
+                                 alloc.try_allocate(count, hint)
+                             } noexcept -> std::same_as<pointer>;
+                         })
                 if(hint != nullptr) return alloc.try_allocate(count, hint);
 
             return alloc.try_allocate(count);
         }
 
+        template<bool Propagate, bool IsEqual>
+        using on_assign =
+            std::conditional_t<Propagate, allocator_propagation<IsEqual>, allocator_propagation<>>;
+
         struct adaptor : allocator_type
         {
-            using allocator_type::allocator_type;
-
             adaptor() = default;
+
+            [[nodiscard]] constexpr allocator_type& get_allocator() noexcept { return *this; }
+
+            [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept
+            {
+                return *this;
+            }
 
             constexpr adaptor(const std::in_place_t /*unused*/, auto&&... args) //
                 noexcept(noexcept(allocator_type(cpp_forward(args)...)))
@@ -462,11 +499,109 @@ namespace stdsharp
             {
             }
 
-            [[nodiscard]] constexpr allocator_type& get_allocator() noexcept { return *this; }
-
-            [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept
+        private:
+            template<std::copy_constructible Fn, typename OnAssign = on_assign<true, true>>
+                requires std::invocable<Fn&, OnAssign, allocator_type&>
+            constexpr void equal_assign(auto&& other, Fn& fn) noexcept(
+                nothrow_copy_constructible<Fn> &&
+                nothrow_invocable<Fn&, OnAssign, allocator_type&> //
+            )
             {
-                return *this;
+                std::invoke(fn, OnAssign{false}, get_allocator());
+                get_allocator() = cpp_forward(other);
+                std::invoke(fn, OnAssign{true}, get_allocator());
+            }
+
+            template<std::copy_constructible Fn, typename OnAssign = on_assign<true, false>>
+                requires std::invocable<Fn&, OnAssign, allocator_type&>
+            constexpr void not_equal_assign(auto&& other, Fn& fn) noexcept(
+                nothrow_copy_constructible<Fn> &&
+                nothrow_invocable<Fn&, OnAssign, allocator_type&> //
+            )
+            {
+                std::invoke(fn, OnAssign{false}, get_allocator());
+                get_allocator() = cpp_forward(other);
+                std::invoke(fn, OnAssign{true}, get_allocator());
+            }
+
+            template<std::copy_constructible Fn, typename OnAssign = on_assign<false, false>>
+                requires std::invocable<Fn&, OnAssign, allocator_type&>
+            constexpr void no_assign(Fn& fn) //
+                noexcept(nothrow_copy_constructible<Fn> && nothrow_invocable<Fn&, OnAssign, allocator_type&>)
+            {
+                std::invoke(fn, OnAssign{}, get_allocator());
+            }
+
+        public:
+            constexpr void assign(const allocator_type& other, auto fn) //
+                noexcept(noexcept(equal_assign(other, fn)))
+                requires requires {
+                    requires propagate_on_copy_v;
+                    requires always_equal_v;
+                    equal_assign(other, fn);
+                }
+            {
+                equal_assign(other, fn);
+            }
+
+            constexpr void assign(allocator_type&& other, auto fn) //
+                noexcept(noexcept(equal_assign(cpp_move(other), fn)))
+                requires requires {
+                    requires propagate_on_move_v;
+                    requires always_equal_v;
+                    equal_assign(cpp_move(other), fn);
+                }
+            {
+                equal_assign(cpp_move(other), fn);
+            }
+
+            constexpr void assign(const allocator_type& other, auto fn) //
+                noexcept(noexcept(equal_assign(other, fn), not_equal_assign(other, fn)))
+                requires requires {
+                    requires propagate_on_copy_v;
+                    equal_assign(other, fn);
+                    not_equal_assign(other, fn);
+                }
+            {
+                if(get_allocator() == other) equal_assign(other, fn);
+                else not_equal_assign(other, fn);
+            }
+
+            constexpr void assign(allocator_type&& other, auto fn) //
+                noexcept(noexcept(
+                    equal_assign(cpp_move(other), fn),
+                    not_equal_assign(cpp_move(other), fn)
+                ))
+                requires requires {
+                    requires propagate_on_copy_v;
+                    equal_assign(cpp_move(other), fn);
+                    not_equal_assign(cpp_move(other), fn);
+                }
+            {
+                if(get_allocator() == other) equal_assign(cpp_move(other), fn);
+                else not_equal_assign(cpp_move(other), fn);
+            }
+
+            constexpr void assign(const allocator_type& /*unused*/, auto fn) //
+                noexcept(noexcept(no_assign(fn)))
+                requires requires { no_assign(fn); }
+            {
+                no_assign(get_allocator(), fn);
+            }
+
+            constexpr void assign(allocator_type&& /*unused*/, auto fn) //
+                noexcept(noexcept(no_assign(fn)))
+                requires requires { no_assign(fn); }
+            {
+                no_assign(get_allocator(), fn);
+            }
+
+            constexpr void swap_with(allocator_type& other) noexcept
+            {
+                if constexpr(allocator_traits::propagate_on_swap_v)
+                    std::ranges::swap(get_allocator(), other.get_allocator());
+                else if constexpr(!always_equal_v)
+                    Expects(get_allocator() == other.get_allocator());
             }
         };
     };

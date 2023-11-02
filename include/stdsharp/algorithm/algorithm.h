@@ -70,7 +70,7 @@ namespace stdsharp
         }
     } is_between{};
 
-    constexpr struct strict_compare_fn
+    inline constexpr struct strict_compare_fn
     {
         template<std::ranges::input_range TRng, std::ranges::input_range URng>
             requires std::three_way_comparable_with<

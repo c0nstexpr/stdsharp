@@ -2,7 +2,6 @@
 
 #include "static_memory_resource.h"
 #include "../cmath/cmath.h"
-#include "pointer_traits.h"
 
 namespace stdsharp
 {

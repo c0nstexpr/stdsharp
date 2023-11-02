@@ -1,11 +1,11 @@
 #pragma once
 
 #include "allocation_traits.h"
-#include "../../type_traits/special_member.h"
-#include "../../utility/dispatcher.h"
-#include "../launder_iterator.h"
+#include "../type_traits/special_member.h"
+#include "../utility/dispatcher.h"
+#include "launder_iterator.h"
 
-namespace stdsharp::allocator_aware
+namespace stdsharp
 {
     template<allocator_req Allocator, typename T = Allocator::value_type>
     struct allocation_value
@@ -17,26 +17,26 @@ namespace stdsharp::allocator_aware
         using callocation = allocation_traits::callocation;
 
     private:
-        static constexpr void size_validate(
-            const callocation src_allocation,
-            const callocation dst_allocation
-        ) noexcept
-        {
-            constexpr auto value_type_size = sizeof(allocator_type::value_type);
+        static constexpr auto element_size = sizeof(allocation_traits::value_type);
 
-            Expects(std::ranges::size(src_allocation) * value_type_size >= value_size());
-            Expects(std::ranges::size(dst_allocation) * value_type_size >= value_size());
+        static constexpr void
+            size_validate(const callocation src_allocation, const callocation dst_allocation)
+        {
+            Expects(allocation_traits::size(src_allocation) * element_size >= value_size());
+            Expects(allocation_traits::size(dst_allocation) * element_size >= value_size());
         }
 
     public:
         static constexpr auto always_equal = true;
 
+        [[nodiscard]] static constexpr auto value_size() noexcept { return sizeof(T); }
+
         bool operator==(const allocation_value&) const = default;
 
         constexpr void operator()(
+            allocator_type& allocator,
             const callocation src_allocation,
-            const allocation_type dst_allocation,
-            allocator_type& allocator
+            const allocation_type dst_allocation
         ) const noexcept(allocator_traits::template nothrow_cp_constructible<T>)
             requires(allocator_traits::template cp_constructible<T>)
         {
@@ -44,8 +44,8 @@ namespace stdsharp::allocator_aware
 
             allocator_traits::template construct<T>(
                 allocator,
-                allocation_data<T>(dst_allocation),
-                allocation_cget<T>(src_allocation)
+                allocation_traits::template data<T>(dst_allocation),
+                allocation_traits::template cget<T>(src_allocation)
             );
         }
 
@@ -57,7 +57,8 @@ namespace stdsharp::allocator_aware
         {
             size_validate(src_allocation, dst_allocation);
 
-            allocation_get<T>(dst_allocation) = allocation_cget<T>(src_allocation);
+            allocation_traits::template get<T>(dst_allocation) =
+                allocation_traits::template cget<T>(src_allocation);
         }
 
         constexpr void operator()(
@@ -68,18 +69,17 @@ namespace stdsharp::allocator_aware
         {
             size_validate(src_allocation, dst_allocation);
 
-            allocation_get<T>(dst_allocation) = cpp_move(allocation_get<T>(src_allocation));
+            allocation_traits::template get<T>(dst_allocation) =
+                cpp_move(allocation_traits::template get<T>(src_allocation));
         }
 
-        constexpr void operator()(const allocation_type allocation, allocator_type& allocator) const
+        constexpr void operator()(allocator_type& allocator, const allocation_type allocation) const
             noexcept(allocator_traits::template nothrow_destructible<T>)
             requires(allocator_traits::template destructible<T>)
         {
-            Expects(std::ranges::size(allocation) >= value_size());
-            allocator_traits::destroy(allocator, allocation_data<T>(allocation));
+            Expects(allocation_traits::size(allocation) * element_size >= value_size());
+            allocator_traits::destroy(allocator, allocation_traits::template data<T>(allocation));
         }
-
-        [[nodiscard]] static constexpr auto value_size() noexcept { return sizeof(T); }
     };
 
     template<allocator_req Allocator, typename T>
@@ -94,7 +94,7 @@ namespace stdsharp::allocator_aware
 
         static constexpr auto element_size = sizeof(allocation_traits::value_type);
 
-        size_type size_;
+        std::size_t size_;
 
         constexpr void size_validate(
             const callocation src_allocation,
@@ -103,8 +103,8 @@ namespace stdsharp::allocator_aware
         {
             const auto size = value_size();
 
-            Expects(std::ranges::size(src_allocation) * element_size >= size);
-            Expects(std::ranges::size(dst_allocation) * element_size >= size);
+            Expects(allocation_traits::size(src_allocation) * element_size >= size);
+            Expects(allocation_traits::size(dst_allocation) * element_size >= size);
         }
 
     public:
@@ -117,19 +117,18 @@ namespace stdsharp::allocator_aware
         bool operator==(const allocation_value&) const = default;
 
         constexpr void operator()(
+            allocator_type& allocator,
             const callocation src_allocation,
-            const allocation_type dst_allocation,
-            allocator_type& allocator
+            const allocation_type dst_allocation
         ) const noexcept(allocator_traits::template nothrow_cp_constructible<T>)
             requires(allocator_traits::template cp_constructible<T>)
         {
             size_validate(src_allocation, dst_allocation);
-
-            for(size_type i = 0; i < size_; ++i)
+            for(std::size_t i = 0; i < size_; ++i)
                 allocator_traits::template construct<T>(
                     allocator,
-                    allocation_data<T>(dst_allocation) + i,
-                    *std::launder(allocation_data<T>(src_allocation) + i)
+                    allocation_traits::template data<T>(dst_allocation) + i,
+                    *std::launder(allocation_traits::template data<T>(src_allocation) + i)
                 );
         }
 
@@ -142,9 +141,9 @@ namespace stdsharp::allocator_aware
             size_validate(src_allocation, dst_allocation);
 
             std::ranges::copy_n(
-                launder_iterator{allocation_cdata<T>(src_allocation)},
+                launder_iterator{allocation_traits::template cdata<T>(src_allocation)},
                 size_,
-                launder_iterator{allocation_data<T>(dst_allocation)}
+                launder_iterator{allocation_traits::template data<T>(dst_allocation)}
             );
         }
 
@@ -157,9 +156,11 @@ namespace stdsharp::allocator_aware
             size_validate(src_allocation, dst_allocation);
 
             std::ranges::copy_n(
-                std::make_move_iterator(launder_iterator{allocation_data<T>(src_allocation)}),
+                std::make_move_iterator(
+                    launder_iterator{allocation_traits::template data<T>(src_allocation)}
+                ),
                 size_,
-                launder_iterator{allocation_data<T>(dst_allocation)}
+                launder_iterator{allocation_traits::template data<T>(dst_allocation)}
             );
         }
 
@@ -172,13 +173,13 @@ namespace stdsharp::allocator_aware
             for(size_type i = 0; i < size_; ++i)
                 allocator_traits::destroy(
                     allocator,
-                    std::launder(allocation_data<T>(allocation) + i)
+                    std::launder(allocation_traits::template data<T>(allocation) + i)
                 );
         }
     };
 }
 
-namespace stdsharp::allocator_aware::details
+namespace stdsharp::details
 {
     template<allocator_req Allocator, special_mem_req Req>
     struct allocation_dynamic_value_operation
@@ -215,7 +216,7 @@ namespace stdsharp::allocator_aware::details
     };
 }
 
-namespace stdsharp::allocator_aware
+namespace stdsharp
 {
     template<special_mem_req Req>
     struct allocation_dynamic_type : fake_type_for<Req>

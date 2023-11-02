@@ -4,7 +4,6 @@
 #include <ranges>
 #include <memory>
 
-#include "../utility/auto_cast.h"
 #include "allocator_traits.h"
 #include "../cmath/cmath.h"
 #include "../cassert/cassert.h"

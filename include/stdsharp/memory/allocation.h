@@ -1,12 +1,13 @@
 #pragma once
 
-#include "../allocator_traits.h"
-#include "../pointer_traits.h"
+#include "allocator_traits.h"
+#include "concepts.h"
 
-namespace stdsharp::allocator_aware
+namespace stdsharp
 {
     template<typename T, typename Alloc>
-    concept callocation = std::ranges::sized_range<T> && requires(const T& t) {
+    concept callocation = requires(const T& t) {
+        requires std::ranges::sized_range<T>;
         {
             std::ranges::cbegin(t)
         } noexcept -> std::same_as<allocator_const_pointer<Alloc>>;
@@ -14,7 +15,42 @@ namespace stdsharp::allocator_aware
             std::ranges::size(t)
         } noexcept -> std::same_as<allocator_size_type<Alloc>>;
     };
+}
 
+namespace stdsharp::details
+{
+    template<typename Alloc>
+    struct allocation_concept
+    {
+    private:
+        struct shadow_type
+        {
+            [[nodiscard]] constexpr auto begin() const noexcept
+            {
+                return allocator_pointer<Alloc>{nullptr};
+            }
+
+            [[nodiscard]] constexpr auto end() const noexcept
+            {
+                return allocator_pointer<Alloc>{nullptr};
+            }
+
+            [[nodiscard]] constexpr auto size() const noexcept
+            {
+                return allocator_size_type<Alloc>{0};
+            }
+
+            constexpr auto& operator=(const auto& /*unused*/) noexcept { return *this; }
+        };
+
+    public:
+        template<typename T>
+        static constexpr auto assignable_from_shadow = nothrow_assignable_from<T&, shadow_type>;
+    };
+}
+
+namespace stdsharp
+{
     template<typename T, typename Alloc>
     concept allocation = requires(
         const T& ct,
@@ -31,6 +67,8 @@ namespace stdsharp::allocator_aware
         requires nothrow_default_initializable<decltype(decay_t)>;
         requires nothrow_constructible_from<decltype(decay_t), decltype(p), decltype(size)>;
         requires nothrow_movable<decltype(decay_t)>;
+        requires details::allocation_concept<Alloc>::template assignable_from_shadow<
+            decltype(decay_t)>;
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
@@ -132,48 +170,20 @@ namespace stdsharp::allocator_aware
 
     template<typename Rng, typename Alloc>
     concept callocations_view = std::ranges::borrowed_range<Rng> && //
-        std::ranges::input_range<Rng&> && //
-        callocation<range_const_reference_t<Rng&>, Alloc>;
+        nothrow_forward_range<Rng> && //
+        callocation<range_const_reference_t<Rng>, Alloc>;
 
     template<typename Rng, typename Alloc>
     concept allocations_view = callocations_view<Rng, Alloc> && //
-        range_movable<Rng&, Rng&> && //
-        allocation<std::ranges::range_value_t<Rng&>, Alloc>;
+        range_movable<Rng, Rng> && //
+        allocation<std::ranges::range_value_t<Rng>, Alloc>;
 
-    template<allocator_req Alloc>
-    struct make_callocations_fn
+    namespace views
     {
-        constexpr auto operator()(const callocations_view<Alloc> auto rng) const noexcept
-        {
-            return rng | std::views::transform(make_callocation<Alloc>);
-        }
-    };
+        template<allocator_req Alloc>
+        inline constexpr auto callocations = std::views::transform(make_callocation<Alloc>);
 
-    template<allocator_req Alloc>
-    inline constexpr make_callocations_fn<Alloc> make_callocations{};
-
-    template<allocator_req Allocator, callocations_view<Allocator> Allocations>
-    struct src_callocations
-    {
-        std::reference_wrapper<const Allocator> allocator;
-        Allocations allocations;
-    };
-
-    template<typename T, typename U>
-    src_callocations(T&, U) -> src_callocations<T, U>;
-
-    template<allocator_req Allocator, allocations_view<Allocator> Allocations>
-    struct src_allocations
-    {
-        std::reference_wrapper<Allocator> allocator;
-        Allocations allocations;
-
-        constexpr operator src_callocations<Allocator, Allocations>() const noexcept
-        {
-            return {allocator, allocations};
-        }
-    };
-
-    template<typename T, typename U>
-    src_allocations(T&, U) -> src_allocations<T, U>;
+        template<allocator_req Alloc, callocations_view<Alloc> Allocations>
+        using callocations_t = decltype(callocations<Alloc>(std::declval<Allocations>()));
+    }
 }

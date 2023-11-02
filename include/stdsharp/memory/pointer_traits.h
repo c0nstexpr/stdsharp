@@ -112,8 +112,6 @@ namespace stdsharp
         static constexpr to_pointer_fn to_pointer_impl;
 
     public:
-        static constexpr void pointer_to() = delete;
-
         static constexpr auto pointer_to(std::same_as<element_type> auto& r) noexcept
             requires std::invocable<pointer_to_fn, reference>
         {

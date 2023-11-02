@@ -11,7 +11,7 @@ namespace stdsharp
         template<special_mem_req, allocator_req>
         friend class box;
 
-        using allocation_traits = allocator_aware::allocation_traits<Alloc>;
+        using allocation_traits = allocation_traits<Alloc>;
 
     public:
         using allocator_type = allocation_traits::allocator_type;
@@ -35,7 +35,7 @@ namespace stdsharp
             }
 
             constexpr allocation_type(
-                const allocator_aware::allocation<allocator_type> auto other //
+                const allocation<allocator_type> auto other //
             ) noexcept:
                 ptr(std::ranges::begin(other)), diff(std::ranges::size(other))
             {
@@ -49,14 +49,14 @@ namespace stdsharp
         };
 
         using allocation_value =
-            allocator_aware::allocation_value<allocation_type, allocation_box_type<Req>>;
+            allocation_value<allocation_type, allocation_box_type<Req>>;
 
         using allocations_type = std::array<allocation_type, 1>;
 
         using allocations_view_t = std::ranges::ref_view<allocations_type>;
 
         using callocations_view_t = std::invoke_result_t<
-            allocator_aware::make_callocations_fn<allocator_type>,
+            make_callocations_fn<allocator_type>,
             std::ranges::ref_view<const allocations_type>>;
 
         allocator_traits::adaptor allocator_adaptor_{};
@@ -67,7 +67,7 @@ namespace stdsharp
 
         constexpr callocations_view_t get_allocations() const noexcept
         {
-            return allocator_aware:: //
+            return  //
                 make_callocations<allocator_type>(std::ranges::ref_view{allocations_});
         }
 
