@@ -1,65 +1,41 @@
 #pragma once
 
-#include "allocator_aware/allocation_value.h"
-
-namespace stdsharp
-{
-    template<special_mem_req Req>
-    struct allocation_box_type : fake_type_for<Req>
-    {
-    };
-}
+#include "allocation_value.h"
 
 namespace stdsharp::details
 {
-
-    template<special_mem_req Req, allocator_req Alloc>
+    template<allocator_req Alloc>
     struct box_allocation_value_traits
     {
         using allocation_traits = allocation_traits<Alloc>;
         using allocator_traits = allocation_traits::allocator_traits;
         using allocation_type = allocation_traits::allocation_type;
         using allocator_type = allocation_traits::allocator_type;
-        using fake_type = fake_type_for<Req>;
 
-        using mov_dispatcher = dispatcher<
-            get_expr_req(allocator_traits::template mov_constructible<fake_type>, allocator_traits::template nothrow_mov_constructible<fake_type>),
-            void,
-            const allocation_type&,
-            const allocation_type&,
-            allocator_type&>;
+        template<special_mem_req Req>
+        struct req
+        {
+            using fake_type = fake_type_for<Req>;
 
-        using allocation_value =
-            allocation_value<Alloc, allocation_dynamic_type<Req>>;
+            using mov_dispatcher = dispatcher<
+                get_expr_req(allocator_traits::template mov_constructible<fake_type>, allocator_traits::template nothrow_mov_constructible<fake_type>),
+                void,
+                allocator_type&,
+                const allocation_type&,
+                const allocation_type&>;
 
-        using type = stdsharp::invocables<allocation_value, mov_dispatcher>;
-    };
+            using allocation_value = allocation_value<Alloc, allocation_dynamic_type<Req>>;
 
-    template<special_mem_req Req, allocator_req Alloc>
-    class box_allocation_value : stdsharp::details::box_allocation_value_traits<Req, Alloc>::type
-    {
-        using traits = stdsharp::details::box_allocation_value_traits<Req, Alloc>;
-
-        template<special_mem_req, allocator_req>
-        friend class box_allocation_value;
-
-        std::string_view type_id_{};
-        std::size_t type_size_{};
-
-        using m_base = traits::type;
-
-        using allocation_traits = allocation_traits<Alloc>;
-        using allocation_type = allocation_traits::allocation_type;
-        using allocator_type = allocation_traits::allocator_type;
-        using allocator_traits = allocation_traits::allocator_traits;
+            using type = stdsharp::invocables<allocation_value, mov_dispatcher>;
+        };
 
         template<typename T>
-        struct mov_dispatcher
+        struct mov_dispatcher_fn
         {
             constexpr void operator()(
+                allocator_type& allocator,
                 const allocation_type src_allocation,
-                const allocation_type dst_allocation,
-                allocator_type& allocator
+                const allocation_type dst_allocation
             ) const noexcept(allocator_traits::template nothrow_mov_constructible<T>)
                 requires(allocator_traits::template mov_constructible<T>)
             {
@@ -76,23 +52,42 @@ namespace stdsharp::details
                 );
             }
         };
+    };
 
-        constexpr box_allocation_value(
-            const m_base& base,
-            const std::string_view type_id,
-            const std::size_t type_size
-        ) noexcept:
-            m_base(base), type_id_(type_id), type_size_(type_size)
+    template<special_mem_req Req, allocator_req Alloc>
+    class box_allocation_value :
+        stdsharp::details::box_allocation_value_traits<Alloc>::template req<Req>::type
+    {
+        using traits = stdsharp::details::box_allocation_value_traits<Alloc>;
+
+        using required = traits::template req<Req>;
+
+        using m_base = required::type;
+
+        template<special_mem_req, allocator_req>
+        friend class box_allocation_value;
+
+        std::string_view type_id_{};
+
+        constexpr box_allocation_value(const m_base& base, const std::string_view type_id) noexcept:
+            m_base(base), type_id_(type_id)
         {
         }
+
+        constexpr const required::allocation_value& allocation_value() const noexcept
+        {
+            return *this;
+        }
+
+        constexpr const required::mov_dispatcher& mov_dispatcher() const noexcept { return *this; }
 
     public:
         box_allocation_value() = default;
 
-        template<typename T>
-            requires std::constructible_from<m_base, std::in_place_type_t<T>>
+        template<typename T, typename MovFn = traits::template mov_dispatcher_fn<T>>
+            requires std::constructible_from<m_base, std::in_place_type_t<T>, MovFn>
         explicit constexpr box_allocation_value(const std::in_place_type_t<T> tag) noexcept:
-            box_allocation_value({tag, mov_dispatcher<T>{}}, type_id<T>, sizeof(T))
+            box_allocation_value({tag, MovFn{}}, type_id<T>)
         {
         }
 
@@ -101,7 +96,7 @@ namespace stdsharp::details
         explicit constexpr box_allocation_value(
             const box_allocation_value<OtherReq, Alloc>& other //
         ) noexcept:
-            box_allocation_value({other, other}, other.type_id_, other.type_size_)
+            box_allocation_value({other.allocation_value(), other.mov_dispatcher()}, other.type())
         {
         }
 
@@ -115,18 +110,25 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr bool empty() const noexcept { return type_id_.empty(); }
 
-        [[nodiscard]] constexpr auto size() const noexcept { return type_size_; }
+        [[nodiscard]] constexpr auto value_size() const noexcept
+        {
+            return cpo::get_element<0>(static_cast<const m_base&>(*this)).value_size();
+        }
     };
 }
 
 namespace stdsharp
 {
+    template<special_mem_req Req>
+    struct allocation_box_type : fake_type_for<Req>
+    {
+    };
+
     template<special_mem_req Req, allocator_req Alloc>
     class allocation_value<Alloc, allocation_box_type<Req>> :
-        public stdsharp::details::box_allocation_value_traits<Req, Alloc>::impl
+        public stdsharp::details::box_allocation_value<Req, Alloc>
     {
-        using traits = stdsharp::details::box_allocation_value_traits<Req, Alloc>;
-        using m_base = typename traits::impl;
+        using m_base = stdsharp::details::box_allocation_value<Req, Alloc>;
 
     public:
         using m_base::m_base;

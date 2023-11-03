@@ -55,17 +55,18 @@ namespace stdsharp::details
             using indexed_operator<indexed_values, I>::operator()...;
         };
     };
-
-    template<typename... Func>
-    using invocables = invocables_traits<Func...>::type;
 }
 
 namespace stdsharp
 {
     template<typename... Func>
-    struct invocables : details::invocables<Func...>
+    struct invocables : details::invocables_traits<Func...>::type
     {
-        using details::invocables<Func...>::invocables;
+    private:
+        using m_base = details::invocables_traits<Func...>::type;
+
+    public:
+        using m_base::m_base;
     };
 
     template<typename... T>

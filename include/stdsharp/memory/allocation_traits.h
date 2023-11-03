@@ -16,6 +16,7 @@ namespace stdsharp
         using const_pointer = allocator_traits::const_pointer;
         using void_pointer = allocator_traits::void_pointer;
         using cvp = allocator_traits::const_void_pointer;
+        using allocation_result = allocation_result<allocator_type>;
 
         static constexpr auto size = std::ranges::size;
 
@@ -33,17 +34,22 @@ namespace stdsharp
         template<typename T = value_type>
         static constexpr auto cget = allocation_cget<Alloc, T>;
 
-        template<allocation<Alloc> Allocation>
-        static constexpr Allocation
-            allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
+        template<nothrow_constructible_from<pointer, size_type> Allocation = allocation_result>
+        static constexpr allocation<Alloc> auto allocate(
+            allocator_type& alloc,
+            const size_type size,
+            const cvp hint = nullptr //
+        )
         {
             return Allocation{allocator_traits::allocate(alloc, size, hint), size};
         }
 
-        template<allocation<Alloc> Allocation>
-        static constexpr Allocation
-            try_allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr) //
-            noexcept
+        template<nothrow_constructible_from<pointer, size_type> Allocation = allocation_result>
+        static constexpr allocation<Alloc> auto try_allocate(
+            allocator_type& alloc,
+            const size_type size,
+            const cvp hint = nullptr //
+        ) noexcept
         {
             return Allocation{allocator_traits::try_allocate(alloc, size, hint), size};
         }
@@ -51,17 +57,20 @@ namespace stdsharp
         template<allocations_view<Alloc> View>
         static constexpr void deallocate(allocator_type& alloc, View&& dst) noexcept
         {
-            for(auto&& dst_allocation : cpp_forward(dst))
+            for(auto& dst_allocation : cpp_forward(dst))
             {
                 allocator_traits::deallocate(alloc, data<>(dst_allocation), size(dst_allocation));
                 dst_allocation = std::ranges::range_value_t<View>{};
             }
         }
 
-        template<typename T = Alloc::value_type, allocation<Alloc> Allocation, typename... Args>
+        template<typename T = Alloc::value_type, typename... Args>
             requires(allocator_traits::template constructible_from<T, Args...>)
-        static constexpr void
-            construct(allocator_type& alloc, const Allocation& allocation, Args&&... args) //
+        static constexpr void construct(
+            allocator_type& alloc,
+            const allocation<Alloc> auto& allocation,
+            Args&&... args
+        ) //
             noexcept(allocator_traits::template nothrow_constructible_from<T, Args...>)
         {
             Expects(size(allocation) * sizeof(value_type) >= sizeof(T));
@@ -102,7 +111,7 @@ namespace stdsharp
     public:
         template<callocations_view<Alloc> Src, callocations_view<Alloc> Dst, typename Fn>
             requires allocation_ctor<Fn, Src, Dst>
-        static constexpr void on_construct( allocator_type& alloc, Src&& src, Dst&& dst,Fn fn) //
+        static constexpr void on_construct(allocator_type& alloc, Src&& src, Dst&& dst, Fn fn) //
             noexcept(nothrow_allocation_ctor<Fn, Src, Dst>)
         {
             for(const auto& [src_allocation, dst_allocation] :

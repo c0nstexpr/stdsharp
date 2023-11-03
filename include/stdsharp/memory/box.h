@@ -19,34 +19,7 @@ namespace stdsharp
     private:
         using allocator_traits = allocation_traits::allocator_traits;
 
-        struct allocation_type
-        {
-            allocation_traits::pointer ptr;
-            allocation_traits::size_type diff;
-
-            allocation_type() = default;
-
-            constexpr allocation_type(
-                const allocation_traits::pointer ptr,
-                const allocation_traits::size_type diff
-            ) noexcept:
-                ptr(ptr), diff(diff)
-            {
-            }
-
-            constexpr allocation_type(
-                const allocation<allocator_type> auto other //
-            ) noexcept:
-                ptr(std::ranges::begin(other)), diff(std::ranges::size(other))
-            {
-            }
-
-            [[nodiscard]] constexpr auto begin() const noexcept { return ptr; }
-
-            [[nodiscard]] constexpr auto end() const noexcept { return ptr + diff; }
-
-            [[nodiscard]] constexpr auto size() const noexcept { return diff; }
-        };
+        using allocation_type = allocation_traits::allocation_result;
 
         using allocation_value =
             allocation_value<allocation_type, allocation_box_type<Req>>;
@@ -55,9 +28,7 @@ namespace stdsharp
 
         using allocations_view_t = std::ranges::ref_view<allocations_type>;
 
-        using callocations_view_t = std::invoke_result_t<
-            make_callocations_fn<allocator_type>,
-            std::ranges::ref_view<const allocations_type>>;
+        using callocations_view_t = views::callocations_t<allocator_type, >;
 
         allocator_traits::adaptor allocator_adaptor_{};
         allocations_type allocations_;
@@ -65,7 +36,7 @@ namespace stdsharp
 
         constexpr allocations_view_t get_allocations() noexcept { return allocations_; }
 
-        constexpr callocations_view_t get_allocations() const noexcept
+        constexpr auto get_allocations() const noexcept
         {
             return  //
                 make_callocations<allocator_type>(std::ranges::ref_view{allocations_});
@@ -76,18 +47,6 @@ namespace stdsharp
         constexpr auto get_allocation() const noexcept { return get_allocations().front(); }
 
         constexpr auto& get_allocator() noexcept { return allocator_adaptor_.get_allocator(); }
-
-        constexpr allocation_traits::template src_allocations<allocations_view_t>
-            to_src_allocations() noexcept
-        {
-            return {get_allocator(), get_allocations()};
-        }
-
-        constexpr allocation_traits::template src_callocations<callocations_view_t>
-            to_src_allocations() const noexcept
-        {
-            return {get_allocator(), get_allocations()};
-        }
 
     public:
         constexpr auto& get_allocator() const noexcept

@@ -5,8 +5,37 @@
 
 namespace stdsharp
 {
+    template<allocator_req Alloc>
+    struct allocation_result
+    {
+        allocator_pointer<Alloc> p{};
+        allocator_size_type<Alloc> diff{};
+
+        [[nodiscard]] constexpr auto begin() const noexcept { return p; }
+
+        [[nodiscard]] constexpr auto end() const noexcept { return p + diff; }
+
+        [[nodiscard]] constexpr auto size() const noexcept { return diff; }
+
+        template<typename T>
+        constexpr auto& operator=(const auto& t) noexcept
+            requires requires {
+                {
+                    std::ranges::begin(t)
+                } noexcept -> std::same_as<allocator_const_pointer<Alloc>>;
+                {
+                    std::ranges::size(t)
+                } noexcept -> std::same_as<allocator_size_type<Alloc>>;
+            }
+        {
+            p = std::ranges::begin(t);
+            diff = std::ranges::size(t);
+            return *this;
+        }
+    };
+
     template<typename T, typename Alloc>
-    concept callocation = requires(const T& t) {
+    concept callocation = nothrow_copyable<std::decay_t<T>> && requires(const T& t) {
         requires std::ranges::sized_range<T>;
         {
             std::ranges::cbegin(t)
@@ -66,9 +95,8 @@ namespace stdsharp
 
         requires nothrow_default_initializable<decltype(decay_t)>;
         requires nothrow_constructible_from<decltype(decay_t), decltype(p), decltype(size)>;
-        requires nothrow_movable<decltype(decay_t)>;
-        requires details::allocation_concept<Alloc>::template assignable_from_shadow<
-            decltype(decay_t)>;
+        requires details::allocation_concept<Alloc>:: //
+            template assignable_from_shadow<decltype(decay_t)>;
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
@@ -137,25 +165,16 @@ namespace stdsharp
     struct make_callocation_fn
     {
     private:
-        class callocation_t
+        struct callocation_t
         {
-            allocator_const_pointer<Alloc> p_{};
-            allocator_size_type<Alloc> size_{};
+            allocator_const_pointer<Alloc> p{};
+            allocator_size_type<Alloc> diff{};
 
-        public:
-            constexpr callocation_t(
-                const allocator_const_pointer<Alloc> p,
-                const allocator_size_type<Alloc> size
-            ) noexcept:
-                p_(p), size_(size)
-            {
-            }
+            [[nodiscard]] constexpr auto begin() const noexcept { return p; }
 
-            [[nodiscard]] constexpr auto begin() const noexcept { return p_; }
+            [[nodiscard]] constexpr auto end() const noexcept { return p + diff; }
 
-            [[nodiscard]] constexpr auto end() const noexcept { return p_ + size_; }
-
-            [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+            [[nodiscard]] constexpr auto size() const noexcept { return diff; }
         };
 
     public:
