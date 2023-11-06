@@ -2,9 +2,9 @@
 
 #include <vector>
 
+#include "stdsharp/memory/allocator_traits.h"
 #include "test.h"
 
-#include "stdsharp/memory/pointer_traits.h"
 
 using namespace std;
 using namespace stdsharp;
@@ -25,7 +25,7 @@ struct test_allocator : allocator<T>
         return ptr;
     }
 
-    void deallocate(T* p, const size_t n)
+    void deallocate(T* p, const size_t n) noexcept
     {
         const auto void_p = to_void_pointer(p);
 
@@ -39,3 +39,5 @@ struct test_allocator : allocator<T>
         REQUIRE_THAT(allocated, Catch::Matchers::RangeEquals(deallocated));
     }
 };
+
+static_assert(allocator_req<test_allocator<int>>);

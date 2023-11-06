@@ -1,18 +1,10 @@
 #pragma once
 
-#include <gsl/pointers>
 #include <iterator>
 
 #include "../type_traits/special_member.h"
 #include "../utility/constructor.h"
 #include "pointer_traits.h"
-
-namespace stdsharp
-{
-    using max_alignment = std::alignment_of<std::max_align_t>;
-
-    inline constexpr auto max_alignment_v = max_alignment::value;
-}
 
 namespace stdsharp::details
 {
@@ -58,6 +50,10 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
+    using max_alignment = std::alignment_of<std::max_align_t>;
+
+    inline constexpr auto max_alignment_v = max_alignment::value;
+
     template<typename Alloc>
     concept allocator_req = requires //
     {
@@ -73,7 +69,7 @@ namespace stdsharp
             decltype(t_traits)::const_void_pointer const_void_p,
             decltype(t_traits)::value_type v,
             decltype(t_traits)::size_type size,
-            details::allocator_concept_traits::rebind_traits<decltype(v)> u_traits,
+            details::allocator_concept_traits::rebind_traits<decltype(t_traits)> u_traits,
             decltype(t_traits)::is_always_equal always_equal,
             decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
             decltype(t_traits)::propagate_on_container_move_assignment move_assign,
@@ -210,22 +206,24 @@ namespace stdsharp
             template<typename T, typename... Args>
             constexpr decltype(auto) operator()( //
                 const Alloc& /*unused*/,
-                const gsl::not_null<T*> ptr,
+                T* const ptr,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args...>)
             {
+                assert_not_null(ptr);
                 return std::ranges::construct_at(ptr, cpp_forward(args)...);
             }
 
             template<typename T>
             constexpr decltype(auto) operator()(
                 const Alloc& /*unused*/,
-                const gsl::not_null<void*> ptr,
+                void* const ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 auto&&... args
             ) const noexcept(noexcept(::new(ptr) T{cpp_forward(args)...}))
                 requires requires { ::new(ptr) T{cpp_forward(args)...}; }
             {
+                assert_not_null(ptr);
                 return ::new(ptr) T{cpp_forward(args)...};
             }
         };
@@ -236,10 +234,11 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                const gsl::not_null<T*> ptr,
+                T* const ptr,
                 Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
             {
+                assert_not_null(ptr);
                 return std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
             }
 
@@ -247,10 +246,11 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                const gsl::not_null<T*> ptr,
+                T* const ptr,
                 Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
             {
+                assert_not_null(ptr);
                 return std::ranges::construct_at(
                     ptr,
                     std::allocator_arg,
@@ -263,7 +263,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                const gsl::not_null<void*> ptr,
+                void* const ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 auto&&... args
             ) const noexcept(noexcept(::new(ptr) T{cpp_forward(args)..., alloc}))
@@ -271,6 +271,7 @@ namespace stdsharp
                     ::new(ptr) T{cpp_forward(args)..., alloc};
                 }
             {
+                assert_not_null(ptr);
                 return ::new(ptr) T{cpp_forward(args)..., alloc};
             }
 
@@ -278,7 +279,7 @@ namespace stdsharp
             constexpr decltype(auto) operator()(
                 const Alloc &
                     alloc,
-                const gsl::not_null<void*> ptr,
+                void* const ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 auto&&... args
             ) const
@@ -287,17 +288,18 @@ namespace stdsharp
                     ::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...};
                 }
             {
+                assert_not_null(ptr);
                 return ::new(ptr) T{std::allocator_arg, alloc, cpp_forward(args)...};
             }
         };
 
         struct custom_constructor
         {
-            template<typename T, typename... Args>
-            constexpr decltype(auto
-            ) operator()(Alloc & a, const gsl::not_null<T*> ptr, Args&&... args) const
-                noexcept(noexcept(a.construct(ptr, std::declval<Args>()...)))
+            constexpr decltype(auto) operator()(Alloc & a, auto* const ptr, auto&&... args) const
+                noexcept(noexcept(a.construct(ptr, cpp_forward(args)...)))
+                requires requires { a.construct(ptr, cpp_forward(args)...); }
             {
+                assert_not_null(ptr);
                 return a.construct(ptr, cpp_forward(args)...);
             }
         }; // NOLINTEND(*-owning-memory)
@@ -314,9 +316,10 @@ namespace stdsharp
         struct custom_destructor
         {
             template<typename T>
-            constexpr void operator()(Alloc& a, const gsl::not_null<T*> ptr) const noexcept
+            constexpr void operator()(Alloc& a, T* const ptr) const noexcept
                 requires(noexcept(a.destroy(ptr)))
             {
+                assert_not_null(ptr);
                 a.destroy(ptr);
             }
         };
@@ -324,9 +327,9 @@ namespace stdsharp
         struct default_destructor
         {
             template<typename T>
-            constexpr void
-                operator()(const Alloc& /*unused*/, const gsl::not_null<T*> ptr) const noexcept
+            constexpr void operator()(const Alloc& /*unused*/, T* const ptr) const noexcept
             {
+                assert_not_null(ptr);
                 std::ranges::destroy_at(ptr);
             }
         };
@@ -434,7 +437,7 @@ namespace stdsharp
             const const_void_pointer hint = nullptr
         ) noexcept
         {
-            if(max_size(alloc) < count) return nullptr;
+            if(max_size(alloc) < count) return pointer{};
 
             try
             {
@@ -442,7 +445,7 @@ namespace stdsharp
             }
             catch(...)
             {
-                return nullptr;
+                return pointer{};
             }
         }
 

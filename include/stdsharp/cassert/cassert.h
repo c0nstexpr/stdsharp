@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cassert>
-#include <concepts>
 #include <gsl/assert>
 
 #include "../namespace_alias.h"
+#include "../concepts/concepts.h"
 
 namespace stdsharp
 {
@@ -15,4 +15,6 @@ namespace stdsharp
         true
 #endif
         ;
+
+    constexpr void assert_not_null(const nullable_pointer auto ptr) noexcept { Expects(ptr != nullptr); }
 }

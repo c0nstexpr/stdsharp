@@ -35,3 +35,11 @@ SCENARIO("constexpr box", "[memory][box]") // NOLINT
         }() == 42
     );
 }
+
+auto foo()
+{
+    trivial_box<allocator<int>> allocation{};
+    allocation.reset();
+    auto& value = allocation.emplace(1);
+    value = 42;
+}

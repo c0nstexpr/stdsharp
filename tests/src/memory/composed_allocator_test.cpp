@@ -12,7 +12,8 @@ SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
 
         composed_allocator alloc{
             static_allocator_for<int, 4>{rsc},
-            allocator_reference{test_alloc}};
+            allocator_reference{test_alloc} //
+        };
 
         WHEN("allocate a int")
         {

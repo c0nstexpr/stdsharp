@@ -58,13 +58,13 @@ namespace stdsharp
         }
 
         template<typename U>
-        constexpr void destroy(U* const p) const noexcept
+        constexpr void destroy(U* const p) const noexcept(noexcept(traits::destroy(this->get(), p)))
             requires requires { traits::destroy(this->get(), p); }
         {
             traits::destroy(this->get(), p);
         }
 
-        constexpr void deallocate(const pointer p, const size_type n) const
+        constexpr void deallocate(const pointer p, const size_type n) const noexcept
         {
             traits::deallocate(this->get(), p, n);
         }
@@ -75,6 +75,7 @@ namespace stdsharp
         }
 
         [[nodiscard]] constexpr auto select_on_container_copy_construction() const
+            noexcept(noexcept(traits::select_on_container_copy_construction(this->get())))
         {
             return traits::select_on_container_copy_construction(this->get());
         }

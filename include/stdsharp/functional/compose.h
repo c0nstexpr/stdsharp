@@ -1,74 +1,82 @@
 #pragma once
 
-#include "../type_traits/indexed_traits.h"
+#include "../functional/invocables.h"
 
 #include "../compilation_config_in.h"
 
 namespace stdsharp::details
 {
-    template<std::size_t Size>
-    struct compose_impl
-    {
-        template<
-            std::size_t I,
-            typename... Arg,
-            typename Fns,
-            typename Res = std::invoke_result_t<get_element_t<I, Fns>, Arg...>>
-        constexpr decltype(auto
-        ) operator()(const index_constant<I> /*unused*/, Fns && fn, Arg&&... arg) const
-            noexcept(nothrow_invocable<compose_impl, index_constant<I + 1>, Fns, Res>)
-            requires std::invocable<compose_impl, index_constant<I + 1>, Fns, Res>
-        {
-            return (*this)(
-                index_constant<I + 1>{},
+    template<std::size_t I = 0, typename Fn>
+    static constexpr decltype(auto) composed_invoke(Fn&& fn, auto&&... arg) noexcept( //
+        noexcept( //
+            composed_invoke<I + 1>(
                 cpp_forward(fn),
-                std::invoke(cpo::get_element<I>(cpp_forward(fn)), cpp_forward(arg)...)
+                invoke_at<I>(cpp_forward(fn), cpp_forward(arg)...)
+            )
+        )
+    )
+        requires requires {
+            composed_invoke<I + 1>(
+                cpp_forward(fn),
+                invoke_at<I>(cpp_forward(fn), cpp_forward(arg)...)
             );
         }
+    {
+        return composed_invoke<I + 1>(
+            cpp_forward(fn),
+            invoke_at<I>(cpp_forward(fn), cpp_forward(arg)...)
+        );
+    }
 
-        constexpr decltype(auto
-        ) operator()(const index_constant<Size> /*unused*/, auto&& /*unused*/, auto&& arg)
-            const noexcept
-        {
-            return cpp_forward(arg);
-        }
-    };
+    template<std::size_t I, typename... T>
+        requires(I == std::tuple_size_v<invocables<T...>>)
+    static constexpr decltype(auto) composed_invoke(
+        const invocables<T...>& /*unused*/,
+        auto&& arg //
+    ) noexcept
+    {
+        return cpp_forward(arg);
+    }
 }
 
 namespace stdsharp
 {
     template<typename... T>
-    struct composed : indexed_values<T...>
+    class composed : public invocables<T...>
     {
-    private:
-        using indexed_t = indexed_values<T...>;
-
-    public:
-        using indexed_t::indexed_t;
+        using invocables = invocables<T...>;
 
     private:
-        static constexpr auto size = std::tuple_size_v<indexed_t>;
-
-        using compose_impl = details::compose_impl<size>;
-
-        template<
-            typename This,
-            typename... Args,
-            typename Constant = index_constant<0>,
-            typename Indexed = cv_ref_align_t<This&&, indexed_t>>
-            requires std::invocable<compose_impl, Constant, Indexed, Args...>
-        static constexpr decltype(auto) operator_impl(This&& this_, Args&&... args) //
-            noexcept(nothrow_invocable<compose_impl, Constant, Indexed, Args...>)
+        static constexpr decltype(auto) operator_impl(auto&&... args) //
+            noexcept(noexcept(details::composed_invoke(cpp_forward(args)...)))
+            requires requires { details::composed_invoke(cpp_forward(args)...); }
         {
-            return compose_impl{}(Constant{}, static_cast<Indexed>(this_), cpp_forward(args)...);
+            return compose_invoke(cpp_forward(args)...);
         }
 
     public:
+        using invocables::invocables;
+
         STDSHARP_MEM_PACK(operator(), operator_impl, composed)
     };
 
     template<typename... T>
     composed(T&&...) -> composed<std::decay_t<T>...>;
+}
+
+namespace std
+{
+    template<typename... T>
+    struct tuple_size<::stdsharp::composed<T...>> :
+        ::std::tuple_size<::stdsharp::indexed_types<T...>>
+    {
+    };
+
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::composed<T...>> :
+        ::std::tuple_element<I, ::stdsharp::indexed_types<T...>>
+    {
+    };
 }
 
 #include "../compilation_config_out.h"

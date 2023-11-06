@@ -17,6 +17,9 @@ namespace stdsharp
         using void_pointer = allocator_traits::void_pointer;
         using cvp = allocator_traits::const_void_pointer;
         using allocation_result = allocation_result<allocator_type>;
+        using callocation_result = callocation_result<allocator_type>;
+
+        static constexpr auto empty_result = empty_allocation_result<Alloc>;
 
         static constexpr auto size = std::ranges::size;
 
@@ -60,7 +63,7 @@ namespace stdsharp
             for(auto& dst_allocation : cpp_forward(dst))
             {
                 allocator_traits::deallocate(alloc, data<>(dst_allocation), size(dst_allocation));
-                dst_allocation = std::ranges::range_value_t<View>{};
+                dst_allocation = empty_result;
             }
         }
 
@@ -108,9 +111,13 @@ namespace stdsharp
         static constexpr auto nothrow_allocation_dtor = nothrow_copy_constructible<Fn> &&
             nothrow_invocable<Fn&, allocator_type&, range_const_reference_t<Dst>>;
 
+        template<typename View>
+        static constexpr auto allocation_view_like =
+            callocations_view<View, Alloc> || allocations_view<View, Alloc>;
+
     public:
-        template<callocations_view<Alloc> Src, callocations_view<Alloc> Dst, typename Fn>
-            requires allocation_ctor<Fn, Src, Dst>
+        template<typename Src, allocations_view<Alloc> Dst, typename Fn>
+            requires allocation_ctor<Fn, Src, Dst> && allocation_view_like<Src>
         static constexpr void on_construct(allocator_type& alloc, Src&& src, Dst&& dst, Fn fn) //
             noexcept(nothrow_allocation_ctor<Fn, Src, Dst>)
         {
@@ -119,15 +126,8 @@ namespace stdsharp
                 std::invoke(fn, alloc, src_allocation, dst_allocation);
         }
 
-        static constexpr void
-            on_construct(allocations_view<Alloc> auto&& src, allocations_view<Alloc> auto&& dst) //
-            noexcept
-        {
-            std::ranges::move(cpp_forward(src), std::ranges::begin(cpp_forward(dst)));
-        }
-
-        template<callocations_view<Alloc> Src, callocations_view<Alloc> Dst, typename Fn>
-            requires allocation_assign<Fn, Src, Dst>
+        template<typename Src, allocations_view<Alloc> Dst, typename Fn>
+            requires allocation_assign<Fn, Src, Dst> && allocation_view_like<Src>
         static constexpr void on_assign(Src&& src, Dst&& dst, Fn fn) //
             noexcept(nothrow_allocation_assign<Fn, Src, Dst>)
         {
@@ -136,7 +136,7 @@ namespace stdsharp
                 std::invoke(fn, src_allocation, dst_allocation);
         }
 
-        template<callocations_view<Alloc> View, typename Fn>
+        template<allocations_view<Alloc> View, typename Fn>
             requires allocation_dtor<Fn, View>
         static constexpr void on_destroy(allocator_type& alloc, View&& dst, Fn fn) //
             noexcept(nothrow_allocation_dtor<Fn, View>)
