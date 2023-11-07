@@ -17,13 +17,10 @@ namespace stdsharp
     private:
         static constexpr auto element_size = sizeof(typename allocation_traits::value_type);
 
-        static constexpr void size_validate(
-            const callocation<Allocator> auto& src_allocation,
-            const callocation<Allocator> auto& dst_allocation
-        )
+        static constexpr void size_validate(const auto& src, const auto& dst)
         {
-            Expects(allocation_traits::size(src_allocation) * element_size >= value_size());
-            Expects(allocation_traits::size(dst_allocation) * element_size >= value_size());
+            Expects(allocation_traits::size(src) * element_size >= value_size());
+            Expects(allocation_traits::size(dst) * element_size >= value_size());
         }
 
     public:
@@ -42,7 +39,7 @@ namespace stdsharp
         {
             size_validate(src_allocation, dst_allocation);
 
-            allocator_traits::template construct<T>(
+            allocator_traits::construct(
                 allocator,
                 allocation_traits::template data<T>(dst_allocation),
                 allocation_traits::template cget<T>(src_allocation)
@@ -58,7 +55,7 @@ namespace stdsharp
         {
             size_validate(src_allocation, dst_allocation);
 
-            allocator_traits::template construct<T>(
+            allocator_traits::construct(
                 allocator,
                 allocation_traits::template data<T>(dst_allocation),
                 cpp_move(allocation_traits::template get<T>(src_allocation))
@@ -140,7 +137,7 @@ namespace stdsharp
         {
             size_validate(src_allocation, dst_allocation);
             for(std::size_t i = 0; i < size_; ++i)
-                allocator_traits::template construct<T>(
+                allocator_traits::construct(
                     allocator,
                     allocation_traits::template data<T>(dst_allocation) + i,
                     *std::launder(allocation_traits::template data<T>(src_allocation) + i)
@@ -156,7 +153,7 @@ namespace stdsharp
         {
             size_validate(src_allocation, dst_allocation);
             for(std::size_t i = 0; i < size_; ++i)
-                allocator_traits::template construct<T>(
+                allocator_traits::construct(
                     allocator,
                     allocation_traits::template data<T>(dst_allocation) + i,
                     cpp_move(*std::launder(allocation_traits::template data<T>(src_allocation) + i))
@@ -287,6 +284,15 @@ namespace stdsharp
 
         std::size_t value_size_{};
 
+        template<std::size_t I>
+        constexpr bool equal_to(const allocation_value& other) const noexcept
+        {
+            if constexpr(is_well_formed(std::remove_cvref_t<get_element_t<I, m_dispatchers>>::requirement))
+                return cpo::get_element<I>(static_cast<const m_dispatchers&>(*this)) ==
+                    cpo::get_element<I>(static_cast<const m_dispatchers&>(other));
+            else return false;
+        }
+
     public:
         using m_dispatchers::operator();
 
@@ -294,11 +300,15 @@ namespace stdsharp
 
         allocation_value() = default;
 
-        bool operator==(const allocation_value&) const = default;
+        constexpr bool operator==(const allocation_value& other) const noexcept
+        {
+            return equal_to<0>(other) && equal_to<1>(other) && equal_to<2>(other) &&
+                equal_to<3>(other) && equal_to<4>(other);
+        }
 
-        template<typename T, typename Op = allocation_value<T>>
+        template<typename T, typename Op = allocation_value<Allocator, T>>
             requires std::constructible_from<m_dispatchers, Op, Op, Op, Op, Op>
-        explicit constexpr allocation_value(const std::type_identity<T> /*unused*/) noexcept:
+        explicit constexpr allocation_value(const std::in_place_type_t<T> /*unused*/) noexcept:
             m_dispatchers(Op{}, Op{}, Op{}, Op{}, Op{}), value_size_(sizeof(T))
         {
         }

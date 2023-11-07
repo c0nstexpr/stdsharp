@@ -7,6 +7,19 @@
 namespace stdsharp
 {
     template<allocator_req Alloc>
+    struct callocation_result
+    {
+        allocator_const_pointer<Alloc> p{};
+        allocator_size_type<Alloc> diff{};
+
+        [[nodiscard]] constexpr auto begin() const noexcept { return p; }
+
+        [[nodiscard]] constexpr auto end() const noexcept { return p + diff; }
+
+        [[nodiscard]] constexpr auto size() const noexcept { return diff; }
+    };
+
+    template<allocator_req Alloc>
     struct allocation_result
     {
         allocator_pointer<Alloc> p{};
@@ -18,14 +31,16 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto size() const noexcept { return diff; }
 
-        template<typename T>
         constexpr auto& operator=(const auto& t) noexcept
-            requires requires {
+            requires requires(
+                const decltype(std::ranges::cbegin(t))& begin,
+                const decltype(std::ranges::size(t))& size
+            ) {
                 {
-                    p = std::ranges::cbegin(t)
+                    p = begin
                 } noexcept;
                 {
-                    diff = std::ranges::size(t)
+                    diff = size
                 } noexcept;
             }
         {
@@ -33,28 +48,12 @@ namespace stdsharp
             diff = std::ranges::size(t);
             return *this;
         }
+
+        constexpr operator callocation_result<Alloc>() const noexcept { return {p, diff}; }
     };
 
     template<allocator_req Alloc>
     inline constexpr allocation_result<Alloc> empty_allocation_result{};
-
-    template<allocator_req Alloc>
-    struct callocation_result : private allocation_result<Alloc>
-    {
-        using allocation_result<Alloc>::allocation_result;
-
-        using allocation_result<Alloc>::size;
-
-        [[nodiscard]] constexpr allocator_const_pointer<Alloc> begin() const noexcept
-        {
-            return allocation_result<Alloc>::begin();
-        }
-
-        [[nodiscard]] constexpr allocator_const_pointer<Alloc> end() const noexcept
-        {
-            return allocation_result<Alloc>::end();
-        }
-    };
 }
 
 namespace stdsharp::details
@@ -156,10 +155,10 @@ namespace stdsharp
     {
         template<typename U>
         constexpr decltype(auto) operator()(const U & rng) const
-            noexcept(noexcept(*allocation_data<T>(rng)))
-            requires(callocation<U, Alloc> || allocation<U, Alloc>)
+            noexcept(noexcept(*allocation_data<Alloc, T>(rng)))
+            requires std::invocable<allocation_data_fn<Alloc, T>, const U&>
         {
-            return *std::launder(allocation_data<T>(rng));
+            return *std::launder(allocation_data<Alloc, T>(rng));
         }
     };
 

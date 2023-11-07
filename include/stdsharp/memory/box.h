@@ -2,6 +2,7 @@
 
 #include "allocation_value.h"
 #include "../type_traits/object.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -13,7 +14,7 @@ namespace stdsharp
 
         friend constexpr void swap(box& lhs, box& rhs) noexcept
         {
-            lhs.allocator_adaptor_.swap_with(rhs.get_allocator());
+            lhs.alloc_adaptor_.swap_with(rhs.get_allocator());
             std::swap(lhs.get_allocation(), rhs.get_allocation());
             std::swap(lhs.allocation_value_, rhs.allocation_value_);
         }
@@ -36,7 +37,7 @@ namespace stdsharp
 
         using allocations_type = std::array<allocation_type, 1>;
 
-        allocator_traits::adaptor allocator_adaptor_{};
+        allocator_traits::adaptor alloc_adaptor_{};
         allocations_type allocations_;
         allocation_value allocation_value_{};
 
@@ -53,18 +54,12 @@ namespace stdsharp
 
         constexpr auto& get_allocation() noexcept { return get_allocations().front(); }
 
-        constexpr auto get_allocation() const noexcept
-        {
-            return make_callocation<allocator_type>(get_allocations().front());
-        }
+        constexpr auto& get_allocation() const noexcept { return get_allocations().front(); }
 
-        constexpr auto& get_allocator() noexcept { return allocator_adaptor_.get_allocator(); }
+        constexpr auto& get_allocator() noexcept { return alloc_adaptor_.get_allocator(); }
 
     public:
-        constexpr auto& get_allocator() const noexcept
-        {
-            return allocator_adaptor_.get_allocator();
-        }
+        constexpr auto& get_allocator() const noexcept { return alloc_adaptor_.get_allocator(); }
 
         static constexpr auto req = Req;
 
@@ -83,10 +78,11 @@ namespace stdsharp
         template<special_mem_req OtherReq>
         static constexpr auto is_compatible = std::constructible_from<
             allocation_value,
-            typename box<OtherReq, allocator_type>::box_allocation_value>;
+            typename box<OtherReq, allocator_type>::allocation_value>;
 
         constexpr void deallocate() noexcept
         {
+            if(allocation_traits::empty(get_allocation())) return;
             allocation_traits::deallocate(get_allocator(), get_allocations_view());
         }
 
@@ -117,7 +113,7 @@ namespace stdsharp
         explicit(OtherReq != req) constexpr box(const box<OtherReq, allocator_type>& other)
             requires requires { on_copy_construct(other); }
             :
-            allocator_adaptor_(other.get_allocator()),
+            alloc_adaptor_(other.get_allocator()),
             allocations_(
                 allocation_traits::template allocate<allocation_type>(get_allocator(), other.size())
             )
@@ -132,7 +128,7 @@ namespace stdsharp
         )
             requires requires { on_copy_construct(other); }
             :
-            allocator_adaptor_(std::in_place, alloc),
+            alloc_adaptor_(std::in_place, alloc),
             allocations_(
                 allocation_traits::template allocate<allocation_type>(get_allocator(), other.size())
             )
@@ -143,7 +139,7 @@ namespace stdsharp
         template<special_mem_req OtherReq>
             requires is_compatible<OtherReq>
         explicit(OtherReq != Req) constexpr box(box<OtherReq, allocator_type>&& other) noexcept:
-            allocator_adaptor_(cpp_move(other.get_allocator())),
+            alloc_adaptor_(cpp_move(other.get_allocator())),
             allocation_value_(other.allocation_value_)
         {
         }
@@ -154,7 +150,7 @@ namespace stdsharp
             box<OtherReq, allocator_type>&& other,
             const allocator_type& alloc //
         ) noexcept:
-            allocator_adaptor_(std::in_place, alloc), allocation_value_(other.allocation_value_)
+            alloc_adaptor_(std::in_place, alloc), allocation_value_(other.allocation_value_)
         {
         }
 
@@ -167,13 +163,13 @@ namespace stdsharp
                 )
             )
         )
-        // requires requires {
-        //     allocation_traits::on_destroy(
-        //         get_allocator(),
-        //         get_allocations_view(),
-        //         allocation_value_
-        //     );
-        // }
+            requires requires {
+                allocation_traits::on_destroy(
+                    get_allocator(),
+                    get_allocations_view(),
+                    allocation_value_
+                );
+            }
         {
             allocation_traits::on_destroy(
                 get_allocator(),
@@ -190,263 +186,278 @@ namespace stdsharp
                 allocation_traits::template allocate<allocation_type>(get_allocator(), size);
         }
 
+        static constexpr void copy_construct(box& instance, const box& other)
+            requires requires {
+                allocation_traits::on_construct(
+                    instance.get_allocator(),
+                    instance.get_allocations_view(),
+                    other.get_allocations_view(),
+                    other.allocation_value_
+                );
+            }
+        {
+            allocation_traits::on_construct(
+                instance.get_allocator(),
+                instance.get_allocations_view(),
+                other.get_allocations_view(),
+                other.allocation_value_
+            );
+        }
+
+        static constexpr void copy_assign(box& instance, const box& other)
+            requires requires {
+                allocation_traits::on_assign(
+                    instance.get_allocations_view(),
+                    other.get_allocations_view(),
+                    other.allocation_value_
+                );
+            }
+        {
+            allocation_traits::on_assign(
+                instance.get_allocations_view(),
+                other.get_allocations_view(),
+                other.allocation_value_
+            );
+        }
+
+        static constexpr void cp_assign(
+            box& instance,
+            const box& other,
+            const allocator_propagation<> /*unused*/
+        )
+            requires requires {
+                copy_assign(instance, other);
+                instance.reset();
+                copy_construct(instance, other);
+            }
+        {
+            if(instance.allocation_value_ == other.allocation_value_)
+            {
+                copy_assign(instance, other);
+                return;
+            }
+
+            instance.reset();
+
+            if(const auto size = other.size(); instance.capacity() < size)
+            {
+                instance.deallocate();
+                instance.allocate(size);
+            }
+
+            copy_construct(instance, other);
+        }
+
+        static constexpr void cp_assign(
+            box& instance,
+            const box& other,
+            const allocator_propagation<true> propagation
+        )
+            requires requires { cp_assign(instance, other, allocator_propagation<>{}); }
+        {
+            if(propagation.assigned) cp_assign(instance, other, allocator_propagation<>{});
+        }
+
+        static constexpr void cp_assign(
+            box& instance,
+            const box& other,
+            const allocator_propagation<false> propagation
+        )
+            requires requires {
+                copy_construct(instance, other);
+                instance.reset();
+            }
+        {
+            if(propagation.assigned)
+            {
+                instance.allocate(other.size());
+                copy_construct(instance, other);
+            }
+            else
+            {
+                instance.reset();
+                instance.deallocate();
+            }
+        }
+
         struct cp_assign_fn
         {
             std::reference_wrapper<box> instance;
             std::reference_wrapper<const box> other;
 
-            constexpr box& get_instance() const noexcept { return instance.get(); }
-
-            constexpr box& get_other() const noexcept { return other.get(); }
-
-            constexpr void copy_assign() const
-                requires requires {
-                    allocation_traits::on_assign(
-                        get_instance().get_allocations_view(),
-                        get_other().get_allocations_view(),
-                        get_other().allocation_value_
-                    );
-                }
+            constexpr void operator()(const auto propagation, allocator_type& /*unused*/) const //
+                noexcept(noexcept(cp_assign(instance, other, propagation)))
+                requires requires { cp_assign(instance, other, propagation); }
             {
-                allocation_traits::on_assign(
-                    get_instance().get_allocations_view(),
-                    get_other().get_allocations_view(),
-                    get_other().allocation_value_
-                );
-            }
-
-            constexpr void copy_construct(allocator_type& alloc) const
-                requires requires {
-                    allocation_traits::on_construct(
-                        alloc,
-                        get_instance().get_allocations_view(),
-                        get_other().get_allocations_view(),
-                        get_other().allocation_value_
-                    );
-                }
-            {
-                allocation_traits::on_construct(
-                    alloc,
-                    get_instance().get_allocations_view(),
-                    get_other().get_allocations_view(),
-                    get_other().allocation_value_
-                );
-            }
-
-            constexpr void
-                operator()(const allocator_propagation<> /*unused*/, allocator_type& alloc) const
-                requires requires {
-                    copy_assign();
-                    get_instance().reset();
-                    copy_construct(alloc);
-                }
-            {
-                if(get_instance().allocation_value_ == get_other().allocation_value_)
-                {
-                    copy_assign();
-                    return;
-                }
-
-                get_instance().reset();
-
-                if(const auto size = get_other().size(); get_instance().capacity() < size)
-                {
-                    get_instance().deallocate();
-                    get_instance().get_allocation() =
-                        allocation_traits::template allocate<allocation_type>(alloc, size);
-                }
-
-                copy_construct(alloc);
-            }
-
-            constexpr void operator()(
-                const allocator_propagation<true> propagation,
-                allocator_type& alloc //
-            ) const
-                requires std::invocable<cp_assign_fn, allocator_propagation<>, allocator_type&>
-            {
-                if(propagation.assigned) (*this)(allocator_propagation<>{}, alloc);
-            }
-
-            constexpr void operator()(
-                const allocator_propagation<false> propagation,
-                allocator_type& alloc //
-            ) const
-                requires requires {
-                    get_instance().reset();
-                    copy_construct(alloc);
-                }
-            {
-                if(propagation.assigned)
-                {
-                    get_instance().get_allocation() =
-                        allocation_traits::template allocate<allocation_type>(
-                            alloc,
-                            get_other().size()
-                        );
-                    copy_construct(alloc);
-                }
-                else
-                {
-                    get_instance().reset();
-                    get_instance().deallocate();
-                }
+                cp_assign(instance, other, propagation);
             }
         };
+
+        static constexpr void move_allocation(box& instance, box& other)
+        {
+            instance.get_allocation() =
+                std::exchange(other.get_allocation(), empty_allocation_result<allocator_type>);
+        }
+
+        static constexpr void move_construct(box& instance, box& other)
+            requires requires {
+                allocation_traits::on_construct(
+                    instance.get_allocator(),
+                    instance.get_allocations_view(),
+                    other.get_allocations_view(),
+                    other.allocation_value_
+                );
+            }
+        {
+            allocation_traits::on_construct(
+                instance.get_allocator(),
+                instance.get_allocations_view(),
+                other.get_allocations_view(),
+                other.allocation_value_
+            );
+        }
+
+        static constexpr void move_assign(box& instance, box& other)
+            requires requires {
+                allocation_traits::on_assign(
+                    instance.get_allocations_view(),
+                    other.get_allocations_view(),
+                    other.allocation_value_
+                );
+            }
+        {
+            allocation_traits::on_assign(
+                instance.get_allocations_view(),
+                other.get_allocations_view(),
+                other.allocation_value_
+            );
+        }
+
+        template<bool IsEqual>
+        static constexpr void mov_assign(
+            box& instance,
+            box& other,
+            const allocator_propagation<IsEqual> propagation,
+            allocator_type& /*unused*/
+        ) noexcept(noexcept(instance.reset()))
+            requires requires { instance.reset(); }
+        {
+            if(propagation.assigned)
+            {
+                move_allocation(instance, other);
+                return;
+            }
+
+            instance.reset();
+            instance.deallocate();
+        }
+
+        static constexpr void mov_assign(
+            box& instance,
+            box& other,
+            const allocator_propagation<> /*unused*/
+        ) noexcept(noexcept(instance.reset()))
+            requires requires {
+                requires allocator_traits::always_equal_v;
+                instance.reset();
+            }
+        {
+            instance.reset();
+            instance.deallocate();
+            move_allocation(instance, other);
+        }
+
+        static constexpr void mov_assign(
+            box& instance,
+            box& other,
+            const allocator_propagation<> /*unused*/
+        ) noexcept(noexcept(instance.reset()))
+            requires requires {
+                instance.reset();
+                move_construct(instance, other);
+            }
+        {
+            if(instance.get_allocator() == other.get_allocator())
+            {
+                instance.reset();
+                instance.deallocate();
+                move_allocation(instance, other);
+                return;
+            }
+
+            if(instance.allocation_value_ == other.allocation_value_)
+            {
+                move_assign(instance, other);
+                return;
+            }
+
+            instance.reset();
+
+            if(const auto size = other.size(); instance.capacity() < size)
+            {
+                instance.deallocate();
+                instance.allocate(size);
+            }
+
+            move_construct(instance, other);
+        }
 
         struct mov_assign_fn
         {
             std::reference_wrapper<box> instance;
             std::reference_wrapper<box> other;
 
-            constexpr box& get_instance() const noexcept { return instance.get(); }
-
-            constexpr box& get_other() const noexcept { return other.get(); }
-
-            constexpr void deallocate() const noexcept(noexcept(get_instance().reset()))
-                requires requires { get_instance().reset(); }
+            constexpr void operator()(const auto propagation, allocator_type& /*unused*/) const //
+                noexcept(noexcept(mov_assign(instance, other, propagation)))
+                requires requires { mov_assign(instance, other, propagation); }
             {
-                get_instance().reset();
-                get_instance().deallocate();
-            }
-
-            constexpr void move_allocation() const noexcept
-            {
-                get_instance().get_allocation() = std::exchange(get_other().get_allocation(), {});
-            }
-
-            constexpr void move_construct(allocator_type& alloc) const
-                requires requires {
-                    allocation_traits::on_construct(
-                        alloc,
-                        get_instance().get_allocations_view(),
-                        get_other().get_allocations_view(),
-                        get_other().allocation_value_
-                    );
-                }
-            {
-                allocation_traits::on_construct(
-                    alloc,
-                    get_instance().get_allocations_view(),
-                    get_other().get_allocations_view(),
-                    get_other().allocation_value_
-                );
-            }
-
-            constexpr void move_assign() const
-                requires requires {
-                    allocation_traits::on_assign(
-                        get_instance().get_allocations_view(),
-                        get_other().get_allocations_view(),
-                        get_other().allocation_value_
-                    );
-                }
-            {
-                allocation_traits::on_assign(
-                    get_instance().get_allocations_view(),
-                    get_other().get_allocations_view(),
-                    get_other().allocation_value_
-                );
-            }
-
-            template<bool IsEqual>
-            constexpr void operator()(
-                const allocator_propagation<IsEqual> propagation,
-                allocator_type& /*unused*/
-            ) const noexcept(noexcept(deallocate()))
-                requires requires { deallocate(); }
-            {
-                if(propagation.assigned)
-                {
-                    move_allocation();
-                    return;
-                }
-
-                deallocate();
-            }
-
-            constexpr void operator()(
-                const allocator_propagation<> /*unused*/,
-                allocator_type& /*unused*/
-            ) const noexcept(noexcept(deallocate()))
-                requires requires {
-                    requires allocator_traits::always_equal_v;
-                    deallocate();
-                }
-            {
-                move_allocation();
-                deallocate();
-            }
-
-            constexpr void
-                operator()(const allocator_propagation<> /*unused*/, allocator_type& alloc) const
-                requires requires {
-                    deallocate();
-                    move_construct(alloc);
-                }
-            {
-                if(alloc == get_other().get_allocator())
-                {
-                    move_allocation();
-                    deallocate();
-                    return;
-                }
-
-                if(get_instance().allocation_value_ == get_other().allocation_value_)
-                {
-                    move_assign();
-                    return;
-                }
-
-                get_instance().reset();
-
-                if(const auto size = get_other().size(); get_instance().capacity() < size)
-                {
-                    get_instance().deallocate();
-                    get_instance().get_allocation() =
-                        allocation_traits::template allocate<allocation_type>(alloc, size);
-                }
-
-                move_construct(alloc);
+                mov_assign(instance, other, propagation);
             }
         };
 
     public:
-        constexpr box& operator=(const box& other)
+        box& operator=(const box&)
+            requires false;
+        box& operator=(box&&)
+            requires false;
+
+        constexpr box& operator=(const std::same_as<box> auto& other)
             requires requires {
-                allocator_adaptor_.assign(other.get_allocator(), cp_assign_fn{*this, other});
+                alloc_adaptor_.assign(other.get_allocator(), cp_assign_fn{*this, other});
             }
         {
-            allocator_adaptor_.assign(other.get_allocator(), cp_assign_fn{*this, other});
+            alloc_adaptor_.assign(other.get_allocator(), cp_assign_fn{*this, other});
             allocation_value_ = other.allocation_value_;
             return *this;
         }
 
-        constexpr box& operator=(box&& other)
+        constexpr box& operator=(std::same_as<box> auto&& other) noexcept(
+            noexcept(alloc_adaptor_.assign(other.get_allocator(), mov_assign_fn{*this, other}))
+        )
             requires requires {
-                allocator_adaptor_.assign(other.get_allocator(), mov_assign_fn{*this, other});
+                alloc_adaptor_.assign(other.get_allocator(), mov_assign_fn{*this, other});
             }
         {
-            allocator_adaptor_.assign(cpp_move(other.get_allocator()), mov_assign_fn{*this, other});
+            alloc_adaptor_.assign(cpp_move(other.get_allocator()), mov_assign_fn{*this, other});
             allocation_value_ = other.allocation_value_;
             return *this;
         }
 
         constexpr ~box() noexcept(noexcept(reset()))
-            requires requires { this->reset(); }
+            requires requires { reset(); }
         {
             reset();
             deallocate();
         }
 
         template<typename T, typename... U>
-            requires is_type_compatible<T>
         constexpr decltype(auto) emplace(U&&... args)
             requires requires {
+                requires is_type_compatible<T>;
                 reset();
                 allocation_traits::template construct<T>(
                     get_allocator(),
-                    get_allocations_view(),
+                    get_allocation(),
                     cpp_forward(args)...
                 );
             }
@@ -461,7 +472,7 @@ namespace stdsharp
 
             allocation_traits::template construct<T>(
                 get_allocator(),
-                get_allocations_view(),
+                get_allocation(),
                 cpp_forward(args)...
             );
 
@@ -496,7 +507,7 @@ namespace stdsharp
             auto&&... args
         )
             requires requires { emplace<T>(cpp_forward(args)...); }
-            : allocator_adaptor_(std::in_place, alloc)
+            : alloc_adaptor_(std::in_place, alloc)
         {
             emplace<T>(cpp_forward(args)...);
         }
@@ -507,6 +518,8 @@ namespace stdsharp
             : box({}, tag, cpp_forward(args)...)
         {
         }
+
+        constexpr box(const allocator_type& alloc) noexcept: alloc_adaptor_(std::in_place, alloc) {}
 
         template<typename T>
         [[nodiscard]] constexpr T& get() noexcept
@@ -528,7 +541,9 @@ namespace stdsharp
         template<typename T>
         [[nodiscard]] constexpr auto is_type() const noexcept
         {
-            return allocation_value_.template is_type<T>();
+            if constexpr(is_type_compatible<T>)
+                return allocation_value_ == allocation_value{std::in_place_type_t<T>{}};
+            else return false;
         }
 
         [[nodiscard]] constexpr auto size() const noexcept

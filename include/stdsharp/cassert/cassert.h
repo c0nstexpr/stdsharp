@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <functional>
 #include <gsl/assert>
 
 #include "../namespace_alias.h"
@@ -16,5 +17,25 @@ namespace stdsharp
 #endif
         ;
 
-    constexpr void assert_not_null(const nullable_pointer auto ptr) noexcept { Expects(ptr != nullptr); }
+    inline constexpr auto assert_with =
+        []<typename... Args>(std::predicate<Args...> auto&& fn, Args&&... args) noexcept
+    {
+        Expects(std::invoke_r<bool>(fn, cpp_forward(args)...)); //
+    };
+
+    inline constexpr auto assert_equal = []<typename T, typename U>(T&& t, U&& u) noexcept
+        requires std::invocable<decltype(assert_with), std::ranges::equal_to, T, U>
+    {
+        assert_with(std::ranges::equal_to{}, cpp_forward(t), cpp_forward(u)); //
+    };
+
+    inline constexpr auto assert_not_equal = []<typename T, typename U>(T&& t, U&& u) noexcept
+        requires std::invocable<decltype(assert_with), std::ranges::not_equal_to, T, U>
+    {
+        assert_with(std::ranges::not_equal_to{}, cpp_forward(t), cpp_forward(u)); //
+    };
+
+    inline constexpr auto assert_not_null = //
+        [](const nullable_pointer auto& ptr) noexcept { assert_not_equal(ptr, nullptr); };
+
 }

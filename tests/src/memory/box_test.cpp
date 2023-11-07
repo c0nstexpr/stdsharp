@@ -15,6 +15,8 @@ SCENARIO("box basic requirements", "[memory][box]") // NOLINT
     STATIC_REQUIRE(default_initializable<unique_t>);
     STATIC_REQUIRE(default_initializable<worst_t>);
 
+    STATIC_REQUIRE(nothrow_movable<box_for<int, allocator_t>>);
+
     allocation_type_requirement_test<normal_t, unique_t, worst_t>();
 }
 
@@ -39,7 +41,6 @@ SCENARIO("constexpr box", "[memory][box]") // NOLINT
 auto foo()
 {
     trivial_box<allocator<int>> allocation{};
-    allocation.reset();
-    auto& value = allocation.emplace(1);
-    value = 42;
+
+    auto v0 = allocation.is_type<int>();
 }

@@ -209,6 +209,7 @@ namespace stdsharp
                 T* const ptr,
                 Args&&... args
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args...>)
+                requires std::constructible_from<T, Args...>
             {
                 assert_not_null(ptr);
                 return std::ranges::construct_at(ptr, cpp_forward(args)...);
@@ -237,6 +238,7 @@ namespace stdsharp
                 T* const ptr,
                 Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Args..., const Alloc&>)
+                requires std::constructible_from<T, Args..., const Alloc&>
             {
                 assert_not_null(ptr);
                 return std::ranges::construct_at(ptr, cpp_forward(args)..., alloc);
@@ -249,6 +251,7 @@ namespace stdsharp
                 T* const ptr,
                 Args&&... args //
             ) const noexcept(stdsharp::nothrow_constructible_from<T, Tag, const Alloc&, Args...>)
+                requires std::constructible_from<T, Tag, const Alloc&, Args...>
             {
                 assert_not_null(ptr);
                 return std::ranges::construct_at(
@@ -425,9 +428,12 @@ namespace stdsharp
                                      m_base::allocate(alloc, count, hint);
         }
 
+        static constexpr void deallocate(allocator_type&, std::nullptr_t, size_type) = delete;
+
         static constexpr void
-            deallocate(allocator_type& alloc, pointer ptr, const size_type count) noexcept
+            deallocate(allocator_type& alloc, const pointer ptr, const size_type count) noexcept
         {
+            assert_not_null(ptr);
             m_base::deallocate(alloc, ptr, count);
         }
 
@@ -589,14 +595,14 @@ namespace stdsharp
                 noexcept(noexcept(no_assign(fn)))
                 requires requires { no_assign(fn); }
             {
-                no_assign(get_allocator(), fn);
+                no_assign(fn);
             }
 
             constexpr void assign(allocator_type&& /*unused*/, auto fn) //
                 noexcept(noexcept(no_assign(fn)))
                 requires requires { no_assign(fn); }
             {
-                no_assign(get_allocator(), fn);
+                no_assign(fn);
             }
 
             constexpr void swap_with(allocator_type& other) noexcept

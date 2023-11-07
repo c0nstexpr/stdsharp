@@ -5,9 +5,6 @@
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
-#include "stdsharp/macros.h"
-#include "type_traits/indexed_traits.h"
-#include "utility/value_wrapper.h"
 
 namespace stdsharp
 {

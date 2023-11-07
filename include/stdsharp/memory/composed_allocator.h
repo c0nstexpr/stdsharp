@@ -1,24 +1,34 @@
 #pragma once
 
 #include "allocator_traits.h"
+#include "../exception/exception.h"
 
 namespace stdsharp
 {
     namespace details
     {
         template<typename T>
-        concept allocator_contains = requires(
-            const T alloc,
-            const typename allocator_traits<T>::const_void_pointer ptr
-        ) // clang-format off
-        {
-            { alloc.contains(ptr) } -> std::convertible_to<bool>; // clang-format on
-            requires noexcept(alloc.contains(ptr));
-        };
+        concept allocator_contains =
+            requires(const T alloc, const allocator_traits<T>::const_void_pointer cvp) {
+                {
+                    alloc.contains(cvp)
+                } noexcept -> nothrow_convertible_to<bool>;
+            };
     }
 
     template<details::allocator_contains FirstAlloc, allocator_req SecondAlloc>
-        requires std::same_as<typename FirstAlloc::value_type, typename SecondAlloc::value_type>
+        requires requires(FirstAlloc::value_type value, const void* ptr) {
+            requires std::same_as<decltype(value), typename SecondAlloc::value_type>;
+            {
+                pointer_traits<
+                    typename allocator_traits<FirstAlloc>::const_void_pointer>::to_pointer(ptr)
+            } noexcept;
+
+            {
+                pointer_traits<
+                    typename allocator_traits<SecondAlloc>::const_void_pointer>::to_pointer(ptr)
+            } noexcept;
+        }
     class composed_allocator
     {
     public:
@@ -109,10 +119,11 @@ namespace stdsharp
                 ptr;
         }
 
-        constexpr void deallocate(value_type* const ptr, const std::size_t n)
+        constexpr void deallocate(value_type* const ptr, const std::size_t n) noexcept
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(first_ptr_traits::to_pointer(ptr))) first.deallocate(ptr, n);
+            if(first.contains(first_cvp_traits::to_pointer(static_cast<const void*>(ptr))))
+                first.deallocate(ptr, n);
             else second.deallocate(ptr, n);
         }
 
@@ -170,7 +181,7 @@ namespace stdsharp
             )
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(first_cvp_traits::to_pointer(to_void_pointer(ptr))))
+            if(first.contains(first_cvp_traits::to_pointer(static_cast<const void*>(ptr))))
                 return first_traits::construct(first, ptr, cpp_forward(args)...);
             return second_traits::construct(second, ptr, cpp_forward(args)...);
         }
@@ -178,12 +189,25 @@ namespace stdsharp
         constexpr bool contains(const value_type* const ptr) const noexcept
             requires details::allocator_contains<SecondAlloc>
         {
-            return alloc_pair_.first.contains(first_cvp_traits::to_pointer(ptr)) ?
-                alloc_pair_.second.contains(second_cvp_traits::to_pointer(ptr)) :
-                false;
+            const auto vp = static_cast<const void*>(ptr);
+            const auto& [first, second] = alloc_pair_;
+            return first.contains(first_cvp_traits::to_pointer(vp)) ||
+                second.contains(second_cvp_traits::to_pointer(vp));
         }
 
-        [[nodiscard]] bool operator==(const composed_allocator&) const noexcept = default;
+        bool operator==(const composed_allocator&) const noexcept = default;
+
+        constexpr auto& get_allocators() const noexcept { return alloc_pair_; }
+
+        constexpr auto& get_allocators() noexcept { return alloc_pair_; }
+
+        constexpr auto& get_first_allocator() const noexcept { return alloc_pair_.first; }
+
+        constexpr auto& get_first_allocator() noexcept { return alloc_pair_.first; }
+
+        constexpr auto& get_second_allocator() const noexcept { return alloc_pair_.second; }
+
+        constexpr auto& get_second_allocator() noexcept { return alloc_pair_.second; }
     };
 
     template<typename T, typename U>

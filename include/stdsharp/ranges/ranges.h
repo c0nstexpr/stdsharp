@@ -68,14 +68,10 @@ namespace stdsharp
 
     namespace views
     {
-        inline constexpr nodiscard_invocable forwarding{
-            []<typename T>(T&& t) noexcept
-            {
-                return t | std::ranges::views::transform(forward_like<T>); //
-            }
-        };
+        template<typename T>
+        inline constexpr auto forwarding = std::ranges::views::transform(forward_like<T>);
 
         template<typename U>
-        inline constexpr nodiscard_invocable cast{std::ranges::views::transform(cast_to<U>)};
+        inline constexpr auto cast = std::ranges::views::transform(cast_to<U>);
     }
 }
