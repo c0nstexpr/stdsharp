@@ -342,31 +342,6 @@ namespace stdsharp
 
         static constexpr destructor destroy{};
 
-        template<typename T, typename... Args>
-        static constexpr auto constructible_from = std::invocable<constructor, Alloc&, T*, Args...>;
-
-        template<typename T>
-        static constexpr auto cp_constructible = constructible_from<T, const T&>;
-
-        template<typename T>
-        static constexpr auto mov_constructible = constructible_from<T, T>;
-
-        template<typename T, typename... Args>
-        static constexpr auto nothrow_constructible_from =
-            nothrow_invocable<constructor, Alloc&, T*, Args...>;
-
-        template<typename T>
-        static constexpr auto nothrow_cp_constructible = nothrow_constructible_from<T, const T&>;
-
-        template<typename T>
-        static constexpr auto nothrow_mov_constructible = nothrow_constructible_from<T, T>;
-
-        template<typename T>
-        static constexpr auto destructible = std::invocable<destructor, Alloc&, T*>;
-
-        template<typename T>
-        static constexpr auto nothrow_destructible = nothrow_invocable<destructor, Alloc&, T*>;
-
         using typename m_base::allocator_type;
         using typename m_base::const_pointer;
         using typename m_base::const_void_pointer;
@@ -499,14 +474,11 @@ namespace stdsharp
             }
 
             constexpr adaptor(const allocator_type& other) noexcept:
-                allocator_type(select_on_container_copy_construction(other.get_allocator()))
+                allocator_type(select_on_container_copy_construction(other))
             {
             }
 
-            constexpr adaptor(allocator_type&& other) noexcept:
-                allocator_type(cpp_move(other.get_allocator()))
-            {
-            }
+            constexpr adaptor(allocator_type&& other) noexcept: allocator_type(cpp_move(other)) {}
 
         private:
             template<std::copy_constructible Fn, typename OnAssign = on_assign<true, true>>
@@ -577,12 +549,14 @@ namespace stdsharp
             }
 
             constexpr void assign(allocator_type&& other, auto fn) //
-                noexcept(noexcept(
-                    equal_assign(cpp_move(other), fn),
-                    not_equal_assign(cpp_move(other), fn)
-                ))
+                noexcept( //
+                    noexcept(
+                        equal_assign(cpp_move(other), fn),
+                        not_equal_assign(cpp_move(other), fn)
+                    )
+                )
                 requires requires {
-                    requires propagate_on_copy_v;
+                    requires propagate_on_move_v;
                     equal_assign(cpp_move(other), fn);
                     not_equal_assign(cpp_move(other), fn);
                 }
@@ -592,13 +566,6 @@ namespace stdsharp
             }
 
             constexpr void assign(const allocator_type& /*unused*/, auto fn) //
-                noexcept(noexcept(no_assign(fn)))
-                requires requires { no_assign(fn); }
-            {
-                no_assign(fn);
-            }
-
-            constexpr void assign(allocator_type&& /*unused*/, auto fn) //
                 noexcept(noexcept(no_assign(fn)))
                 requires requires { no_assign(fn); }
             {

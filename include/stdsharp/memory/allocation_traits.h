@@ -57,7 +57,7 @@ namespace stdsharp
             return Allocation{allocator_traits::try_allocate(alloc, size, hint), size};
         }
 
-        template<allocations_view<Alloc> View>
+        template<allocations<Alloc> View>
         static constexpr void deallocate(allocator_type& alloc, View&& dst) noexcept
         {
             for(auto& dst_allocation : cpp_forward(dst))
@@ -67,87 +67,120 @@ namespace stdsharp
             }
         }
 
-        template<typename T = Alloc::value_type, typename... Args>
-            requires(allocator_traits::template constructible_from<T, Args...>)
-        static constexpr void construct(
-            allocator_type& alloc,
-            const allocation<Alloc> auto& allocation,
-            Args&&... args
-        ) //
-            noexcept(allocator_traits::template nothrow_constructible_from<T, Args...>)
+        template<typename T = Alloc::value_type>
+        struct constructor
         {
-            Expects(size(allocation) * sizeof(value_type) >= sizeof(T));
-            allocator_traits::construct(alloc, data<T>(allocation), cpp_forward(args)...);
-        }
+            template<
+                typename... Args,
+                std::invocable<Alloc, T*, Args...> Ctor = allocator_traits::constructor>
+            constexpr void operator()(
+                allocator_type& alloc,
+                const allocation<Alloc> auto& allocation,
+                Args&&... args
+            ) const noexcept(nothrow_invocable<Ctor, Alloc, T*, Args...>)
+            {
+                Expects(size(allocation) * sizeof(value_type) >= sizeof(T));
+                allocator_traits::construct(alloc, data<T>(allocation), cpp_forward(args)...);
+            }
+        };
 
-    private:
-        template<typename Fn, typename Src, typename Dst>
-        static constexpr auto allocation_ctor = std::copy_constructible<Fn> &&
-            std::invocable<Fn&,
-                           allocator_type&,
-                           range_const_reference_t<Src>,
-                           range_const_reference_t<Dst>>;
+        template<typename T = Alloc::value_type>
+        static constexpr constructor<T> construct{};
 
-        template<typename Fn, typename Src, typename Dst>
-        static constexpr auto nothrow_allocation_ctor = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&,
-                              allocator_type&,
-                              range_const_reference_t<Src>,
-                              range_const_reference_t<Dst>>;
-
-        template<typename Fn, typename Src, typename Dst>
-        static constexpr auto allocation_assign = std::copy_constructible<Fn> &&
-            std::invocable<Fn&, range_const_reference_t<Src>, range_const_reference_t<Dst>>;
-
-        template<typename Fn, typename Src, typename Dst>
-        static constexpr auto nothrow_allocation_assign = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&, range_const_reference_t<Src>, range_const_reference_t<Dst>>;
-
-        template<typename Fn, typename Dst>
-        static constexpr auto allocation_dtor = std::copy_constructible<Fn> &&
-            std::invocable<Fn&, allocator_type&, range_const_reference_t<Dst>>;
-
-        template<typename Fn, typename Dst>
-        static constexpr auto nothrow_allocation_dtor = nothrow_copy_constructible<Fn> &&
-            nothrow_invocable<Fn&, allocator_type&, range_const_reference_t<Dst>>;
-
-        template<typename View>
-        static constexpr auto allocation_view_like =
-            callocations_view<View, Alloc> || allocations_view<View, Alloc>;
-
-    public:
-        template<typename Src, allocations_view<Alloc> Dst, typename Fn>
-            requires allocation_ctor<Fn, Src, Dst> && allocation_view_like<Src>
-        static constexpr void on_construct(allocator_type& alloc, Src&& src, Dst&& dst, Fn fn) //
-            noexcept(nothrow_allocation_ctor<Fn, Src, Dst>)
+        static constexpr struct on_construct_fn
         {
-            for(const auto& [src_allocation, dst_allocation] :
-                std::views::zip(cpp_forward(src), cpp_forward(dst)))
-                std::invoke(fn, alloc, src_allocation, dst_allocation);
-        }
+            template<typename Src, allocations<Alloc> Dst, std::copy_constructible Fn>
+                requires requires {
+                    requires std::invocable<
+                        Fn&,
+                        allocator_type&,
+                        range_const_reference_t<Src>,
+                        range_const_reference_t<Dst>>;
+                    requires(callocations<Src, Alloc> || allocations<Src, Alloc>);
+                }
+            constexpr void operator()(allocator_type& alloc, Src&& src, Dst&& dst, Fn fn) const
+                noexcept(
+                    nothrow_copy_constructible<Fn> &&
+                    nothrow_invocable<
+                        Fn&,
+                        allocator_type&,
+                        range_const_reference_t<Src>,
+                        range_const_reference_t<Dst>> //
+                )
+            {
+                for(const auto& [src_allocation, dst_allocation] :
+                    std::views::zip(cpp_forward(src), cpp_forward(dst)))
+                    std::invoke(fn, alloc, src_allocation, dst_allocation);
+            }
+        } on_construct{};
 
-        template<typename Src, allocations_view<Alloc> Dst, typename Fn>
-            requires allocation_assign<Fn, Src, Dst> && allocation_view_like<Src>
-        static constexpr void on_assign(Src&& src, Dst&& dst, Fn fn) //
-            noexcept(nothrow_allocation_assign<Fn, Src, Dst>)
+        static constexpr struct on_assign_fn
         {
-            for(const auto& [src_allocation, dst_allocation] :
-                std::views::zip(cpp_forward(src), cpp_forward(dst)))
-                std::invoke(fn, src_allocation, dst_allocation);
-        }
+            template<typename Src, allocations<Alloc> Dst, typename Fn>
+                requires requires {
+                    requires std::copy_constructible<Fn>;
+                    requires std::
+                        invocable<Fn&, range_const_reference_t<Src>, range_const_reference_t<Dst>>;
+                    requires(callocations<Src, Alloc> || allocations<Src, Alloc>);
+                }
+            constexpr void operator()(Src&& src, Dst&& dst, Fn fn) const noexcept(
+                nothrow_copy_constructible<Fn> &&
+                nothrow_invocable<
+                    Fn&,
+                    range_const_reference_t<Src>,
+                    range_const_reference_t<Dst>> //
+            )
+            {
+                for(const auto& [src_allocation, dst_allocation] :
+                    std::views::zip(cpp_forward(src), cpp_forward(dst)))
+                    std::invoke(fn, src_allocation, dst_allocation);
+            }
+        } on_assign{};
 
-        template<allocations_view<Alloc> View, typename Fn>
-            requires allocation_dtor<Fn, View>
-        static constexpr void on_destroy(allocator_type& alloc, View&& dst, Fn fn) //
-            noexcept(nothrow_allocation_dtor<Fn, View>)
+        static constexpr struct on_destroy_fn
         {
-            for(const auto& allocation : cpp_forward(dst)) std::invoke(fn, alloc, allocation);
-        }
+            template<allocations<Alloc> Dst, typename Fn>
+                requires requires {
+                    requires std::copy_constructible<Fn>;
+                    requires std::invocable<Fn&, allocator_type&, range_const_reference_t<Dst>>;
+                }
+            constexpr void operator()(allocator_type& alloc, Dst&& dst, Fn fn) const noexcept(
+                nothrow_copy_constructible<Fn> &&
+                nothrow_invocable<Fn&, allocator_type&, range_const_reference_t<Dst>> //
+            )
+            {
+                for(const auto& allocation : cpp_forward(dst)) std::invoke(fn, alloc, allocation);
+            }
+        } on_destroy{};
 
         static constexpr void
-            on_swap(allocations_view<Alloc> auto&& lhs, allocations_view<Alloc> auto&& rhs) noexcept
+            on_swap(allocations<Alloc> auto&& lhs, allocations<Alloc> auto&& rhs) noexcept
         {
             std::ranges::swap_ranges(lhs, rhs);
         }
     };
+
+    template<typename Alloc, typename Src, typename Dst, typename Fn>
+    concept allocation_constructible =
+        std::invocable<typename allocation_traits<Alloc>::on_construct_fn, Alloc&, Src, Dst, Fn>;
+
+    template<typename Alloc, typename Src, typename Dst, typename Fn>
+    concept allocation_assignable =
+        std::invocable<typename allocation_traits<Alloc>::on_assign_fn, Src, Dst, Fn>;
+
+    template<typename Alloc, typename Dst, typename Fn>
+    concept allocation_destructible =
+        std::invocable<typename allocation_traits<Alloc>::on_destroy_fn, Alloc&, Dst, Fn>;
+
+    template<typename Alloc, typename Src, typename Dst, typename Fn>
+    concept allocation_nothrow_constructible =
+        nothrow_invocable<typename allocation_traits<Alloc>::on_construct_fn, Alloc&, Src, Dst, Fn>;
+
+    template<typename Alloc, typename Src, typename Dst, typename Fn>
+    concept allocation_nothrow_assignable =
+        nothrow_invocable<typename allocation_traits<Alloc>::on_assign_fn, Src, Dst, Fn>;
+
+    template<typename Alloc, typename Dst, typename Fn>
+    concept allocation_nothrow_destructible =
+        nothrow_invocable<typename allocation_traits<Alloc>::on_destroy_fn, Alloc&, Dst, Fn>;
 }

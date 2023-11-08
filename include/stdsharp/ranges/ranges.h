@@ -62,7 +62,7 @@ namespace stdsharp
         std::indirectly_movable<std::ranges::iterator_t<In>, std::ranges::iterator_t<Out>>;
 
     template<typename Out, typename In>
-    concept range_copyble = std::ranges::input_range<In> &&
+    concept range_copyable = std::ranges::input_range<In> &&
         std::ranges::output_range<Out, std::ranges::range_reference_t<Out>> &&
         std::indirectly_copyable<std::ranges::iterator_t<In>, std::ranges::iterator_t<Out>>;
 

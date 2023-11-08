@@ -3,19 +3,19 @@
 #include "allocator_traits.h"
 #include "../exception/exception.h"
 
+namespace stdsharp::details
+{
+    template<typename T>
+    concept allocator_contains =
+        requires(const T alloc, const allocator_traits<T>::const_void_pointer cvp) {
+            {
+                alloc.contains(cvp)
+            } noexcept -> nothrow_convertible_to<bool>;
+        };
+}
+
 namespace stdsharp
 {
-    namespace details
-    {
-        template<typename T>
-        concept allocator_contains =
-            requires(const T alloc, const allocator_traits<T>::const_void_pointer cvp) {
-                {
-                    alloc.contains(cvp)
-                } noexcept -> nothrow_convertible_to<bool>;
-            };
-    }
-
     template<details::allocator_contains FirstAlloc, allocator_req SecondAlloc>
         requires requires(FirstAlloc::value_type value, const void* ptr) {
             requires std::same_as<decltype(value), typename SecondAlloc::value_type>;
@@ -81,7 +81,7 @@ namespace stdsharp
         composed_allocator() = default;
 
         template<typename... Args, std::constructible_from<Args...> Pair = decltype(alloc_pair_)>
-        constexpr explicit composed_allocator(Args&&... args) //
+        constexpr explicit(sizeof...(Args) == 1) composed_allocator(Args&&... args) //
             noexcept(nothrow_constructible_from<Pair, Args...>):
             alloc_pair_(cpp_forward(args)...)
         {
@@ -135,11 +135,11 @@ namespace stdsharp
             );
         }
 
-        [[nodiscard]] constexpr auto select_on_container_copy_construction() const
+        [[nodiscard]] constexpr composed_allocator select_on_container_copy_construction() const
         {
-            return composed_allocator{
+            return {
                 first_traits::select_on_container_copy_construction(alloc_pair_.first),
-                second_traits::select_on_container_copy_construction(alloc_pair_.second) //
+                second_traits::select_on_container_copy_construction(alloc_pair_.second)
             };
         }
 
@@ -172,13 +172,16 @@ namespace stdsharp
             return result;
         }
 
-        template<typename T, typename... Args>
-            requires(first_traits::template constructible_from<T, Args...> && second_traits::template constructible_from<T, Args...>)
-        constexpr decltype(auto) construct(T* const ptr, Args&&... args) //
-            noexcept(
-                first_traits::template nothrow_constructible_from<T, Args...> &&
-                second_traits::template nothrow_constructible_from<T, Args...> //
-            )
+        template<
+            typename T,
+            typename... Args,
+            std::invocable<first_allocator_type, T*, Args...> FirstCtor = first_traits::constructor,
+            std::invocable<second_allocator_type, T*, Args...> SecondCtor =
+                second_traits::constructor>
+        constexpr decltype(auto) construct(T* const ptr, Args&&... args) noexcept(
+            nothrow_invocable<FirstCtor, first_allocator_type, T*, Args...> &&
+            nothrow_invocable<SecondCtor, second_allocator_type, T*, Args...> //
+        )
         {
             auto& [first, second] = alloc_pair_;
             if(first.contains(first_cvp_traits::to_pointer(static_cast<const void*>(ptr))))

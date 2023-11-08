@@ -1,7 +1,6 @@
 #pragma once
 
 #include "allocator_traits.h"
-#include "concepts.h"
 #include "../functional/compose.h"
 
 namespace stdsharp
@@ -122,21 +121,10 @@ namespace stdsharp
     struct allocation_data_fn
     {
         template<typename U>
-        constexpr decltype(auto) operator()(const U & rng) const noexcept
             requires(callocation<U, Alloc> || allocation<U, Alloc>)
+        constexpr decltype(auto) operator()(const U & rng) const noexcept
         {
             return pointer_cast<T>(std::ranges::cbegin(rng));
-        }
-    };
-
-    template<allocator_req Alloc>
-    struct allocation_data_fn<Alloc, typename Alloc::value_type>
-    {
-        template<typename U>
-        constexpr decltype(auto) operator()(const U & rng) const noexcept
-            requires(callocation<U, Alloc> || allocation<U, Alloc>)
-        {
-            return std::ranges::cbegin(rng);
         }
     };
 
@@ -172,14 +160,10 @@ namespace stdsharp
     inline constexpr allocation_cget_fn<Alloc, T> allocation_cget{};
 
     template<typename Rng, typename Alloc>
-    concept callocations_view = std::ranges::borrowed_range<Rng> && //
-        constant_range<Rng> && //
-        nothrow_forward_range<Rng> && //
-        callocation<range_const_reference_t<Rng>, Alloc>;
+    concept callocations =
+        std::ranges::input_range<Rng> && callocation<range_const_reference_t<Rng>, Alloc>;
 
     template<typename Rng, typename Alloc>
-    concept allocations_view = std::ranges::borrowed_range<Rng> && //
-        range_movable<Rng, Rng> && //
-        nothrow_forward_range<Rng> && //
-        allocation<std::ranges::range_value_t<Rng>, Alloc>;
+    concept allocations =
+        range_copyable<Rng, Rng> && allocation<std::ranges::range_value_t<Rng>, Alloc>;
 }

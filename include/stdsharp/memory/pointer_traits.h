@@ -160,23 +160,17 @@ namespace stdsharp
 
     public:
         template<typename Pointer>
-            requires requires //
-        {
-            traits<Pointer>{};
-            requires std::invocable<to_void_pointer_fn, const Pointer&>;
-            requires !explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
-        }
+            requires requires {
+                requires std::invocable<to_void_pointer_fn, const Pointer&>;
+                requires !nothrow_explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
+            }
         STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
         {
             return static_cast<typename traits<Pointer>::ptr>(to_void_pointer(p));
         }
 
         template<typename Pointer>
-            requires requires //
-        {
-            traits<Pointer>{};
-            requires explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
-        }
+            requires nothrow_explicitly_convertible<Pointer, typename traits<Pointer>::ptr>
         STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
         {
             return static_cast<typename traits<Pointer>::ptr>(p);
