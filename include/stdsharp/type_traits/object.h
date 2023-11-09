@@ -5,10 +5,10 @@
 
 namespace stdsharp
 {
-    using trivial_object = fake_type_for<special_mem_req::trivial()>;
-    using normal_object = fake_type_for<special_mem_req::normal()>;
-    using unique_object = fake_type_for<special_mem_req::unique()>;
-    using ill_formed_object = fake_type_for<special_mem_req::ill_formed()>;
+    using trivial_object = fake_type_for<lifetime_req::trivial()>;
+    using normal_object = fake_type_for<lifetime_req::normal()>;
+    using unique_object = fake_type_for<lifetime_req::unique()>;
+    using ill_formed_object = fake_type_for<lifetime_req::ill_formed()>;
 
     template<typename T>
     class private_object

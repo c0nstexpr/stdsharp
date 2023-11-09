@@ -53,37 +53,35 @@ namespace stdsharp
 
 namespace stdsharp::details
 {
+    static constexpr struct indexed_piecewise_t
+    {
+        explicit indexed_piecewise_t() = default;
+    } indexed_piecewise{};
+
+    template<typename U, std::size_t I>
+    struct indexed_value : stdsharp::value_wrapper<U>
+    {
+    private:
+        using m_base = stdsharp::value_wrapper<U>;
+
+    public:
+        using m_base::m_base;
+
+        template<size_t... J, typename Tuple>
+            requires std::constructible_from<m_base, get_element_t<J, Tuple>...>
+        constexpr indexed_value(
+            const std::index_sequence<J...> /*unused*/,
+            const indexed_piecewise_t /*unused*/,
+            Tuple&& tuple
+        ) noexcept(nothrow_constructible_from<m_base, get_element_t<J, Tuple>...>):
+            m_base(cpo::get_element<J>(cpp_forward(tuple))...)
+        {
+        }
+    };
+
     template<typename... T>
     struct indexed_values
     {
-    private:
-        static constexpr struct piecewise_t
-        {
-            explicit piecewise_t() = default;
-        } piecewise{};
-
-        template<typename U, std::size_t I>
-        struct indexed_value : stdsharp::value_wrapper<U>
-        {
-        private:
-            using m_base = stdsharp::value_wrapper<U>;
-
-        public:
-            using m_base::m_base;
-
-            template<size_t... J, typename Tuple>
-                requires std::is_constructible_v<m_base, get_element_t<J, Tuple>...>
-            constexpr indexed_value(
-                const std::index_sequence<J...> /*unused*/,
-                const piecewise_t /*unused*/,
-                Tuple&& tuple
-            ) noexcept(nothrow_constructible_from<m_base, get_element_t<J, Tuple>...>):
-                m_base(cpo::get_element<J>(cpp_forward(tuple))...)
-            {
-            }
-        };
-
-    public:
         template<typename = index_sequence_for<T...>>
         struct impl;
 
@@ -94,45 +92,36 @@ namespace stdsharp::details
             indexed_value<T, I>...,
             indexed_types
         {
-        protected:
-            struct direct_initialize
-            {
-                explicit direct_initialize() = default;
-            };
-
-        public:
             impl() = default;
 
             template<typename... U>
                 requires(std::constructible_from<indexed_value<T, I>, U> && ...)
-            constexpr impl(const direct_initialize /*unused*/, U&&... u) //
+            constexpr impl(const indexed_piecewise_t /*unused*/, U&&... u) //
                 noexcept((nothrow_constructible_from<indexed_value<T, I>, U> && ...)):
                 indexed_value<T, I>(cpp_forward(u))...
             {
             }
 
             template<typename... Tuple>
-                requires requires {
-                    requires(
-                        std::constructible_from<
-                            indexed_value<T, I>,
-                            std::make_index_sequence<std::tuple_size_v<Tuple>>,
-                            const piecewise_t&,
-                            Tuple> &&
-                        ...
-                    );
-                }
+                requires(
+                    std::constructible_from<
+                        indexed_value<T, I>,
+                        std::make_index_sequence<std::tuple_size_v<Tuple>>,
+                        const indexed_piecewise_t&,
+                        Tuple> &&
+                    ...
+                )
             explicit(sizeof...(Tuple) == 0) constexpr impl(const std::piecewise_construct_t /*unused*/, Tuple&&... tuples) noexcept(
                 (nothrow_constructible_from<
                      indexed_value<T, I>,
                      std::make_index_sequence<std::tuple_size_v<Tuple>>,
-                     piecewise_t,
+                     indexed_piecewise_t,
                      Tuple> &&
                  ...)
             ):
                 indexed_value<T, I>(
                     std::make_index_sequence<std::tuple_size_v<Tuple>>{},
-                    piecewise,
+                    indexed_piecewise,
                     cpp_forward(tuples)
                 )...
             {
@@ -172,7 +161,6 @@ namespace stdsharp
     {
     private:
         using m_base = details::indexed_values<T...>::template impl<>;
-        using direct_initialize = typename m_base::direct_initialize;
 
     public:
         using m_base::m_base;
@@ -181,14 +169,14 @@ namespace stdsharp
 
         template<typename... U>
         explicit(sizeof...(U) == 1) constexpr indexed_values(U&&... u) //
-            noexcept(noexcept(m_base{direct_initialize{}, std::declval<U>()...}))
+            noexcept(nothrow_constructible_from<m_base, details::indexed_piecewise_t, U...>)
             requires requires {
-                m_base{direct_initialize{}, std::declval<U>()...};
+                requires std::constructible_from<m_base, details::indexed_piecewise_t, U...>;
                 requires sizeof...(T) >= 1;
                 requires(sizeof...(U) != 1) ||
                     !(std::same_as<std::remove_cvref_t<U>, indexed_values> && ...);
             }
-            : m_base(direct_initialize{}, cpp_forward(u)...)
+            : m_base(details::indexed_piecewise_t{}, cpp_forward(u)...)
         {
         }
     };

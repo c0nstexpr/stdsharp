@@ -72,12 +72,12 @@ namespace stdsharp
         {
             template<
                 typename... Args,
-                std::invocable<Alloc, T*, Args...> Ctor = allocator_traits::constructor>
+                std::invocable<allocator_type&, T*, Args...> Ctor = allocator_traits::constructor>
             constexpr void operator()(
                 allocator_type& alloc,
                 const allocation<Alloc> auto& allocation,
                 Args&&... args
-            ) const noexcept(nothrow_invocable<Ctor, Alloc, T*, Args...>)
+            ) const noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>)
             {
                 Expects(size(allocation) * sizeof(value_type) >= sizeof(T));
                 allocator_traits::construct(alloc, data<T>(allocation), cpp_forward(args)...);
@@ -116,9 +116,8 @@ namespace stdsharp
 
         static constexpr struct on_assign_fn
         {
-            template<typename Src, allocations<Alloc> Dst, typename Fn>
+            template<typename Src, allocations<Alloc> Dst, std::copy_constructible Fn>
                 requires requires {
-                    requires std::copy_constructible<Fn>;
                     requires std::
                         invocable<Fn&, range_const_reference_t<Src>, range_const_reference_t<Dst>>;
                     requires(callocations<Src, Alloc> || allocations<Src, Alloc>);
@@ -139,11 +138,8 @@ namespace stdsharp
 
         static constexpr struct on_destroy_fn
         {
-            template<allocations<Alloc> Dst, typename Fn>
-                requires requires {
-                    requires std::copy_constructible<Fn>;
-                    requires std::invocable<Fn&, allocator_type&, range_const_reference_t<Dst>>;
-                }
+            template<allocations<Alloc> Dst, std::copy_constructible Fn>
+                requires std::invocable<Fn&, allocator_type&, range_const_reference_t<Dst>>
             constexpr void operator()(allocator_type& alloc, Dst&& dst, Fn fn) const noexcept(
                 nothrow_copy_constructible<Fn> &&
                 nothrow_invocable<Fn&, allocator_type&, range_const_reference_t<Dst>> //

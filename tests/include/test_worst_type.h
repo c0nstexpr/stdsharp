@@ -42,7 +42,7 @@ void allocation_emplace_value_test(T& box, const Value& value, Predicate predica
 }
 
 template<typename T>
-void allocation_emplace_execution_test(T& allocation)
+void allocation_emplace_execution_test(T& box)
 {
     auto invoked = 0u;
 
@@ -55,15 +55,15 @@ void allocation_emplace_execution_test(T& allocation)
     {
         INFO(format("custom type: {}", type_id<local>));
 
-        allocation.template emplace<local>(invoked);
-        allocation.template emplace<local>(invoked);
+        box.template emplace<local>(invoked);
+        box.template emplace<local>(invoked);
 
         THEN("assign operator should be invoked") { REQUIRE(invoked == 2); }
 
         AND_THEN("destroy allocation and check content")
         {
-            allocation.destroy();
-            REQUIRE(!allocation);
+            box.destroy();
+            REQUIRE(!box);
         }
     }
 }
@@ -73,16 +73,16 @@ void allocation_functionality_test()
 {
     GIVEN(format("an object allocation for type id {}", type_id<T>))
     {
-        T allocation;
+        T box;
 
         allocation_emplace_value_test(
-            allocation,
+            box,
             1,
             [](const int v, const int value) { REQUIRE(v == value); }
         );
 
         allocation_emplace_value_test(
-            allocation,
+            box,
             vector<int>{1, 2},
             [](const vector<int>& v, const vector<int>& value)
             {
@@ -90,6 +90,6 @@ void allocation_functionality_test()
             }
         );
 
-        allocation_emplace_execution_test(allocation);
+        allocation_emplace_execution_test(box);
     }
 }

@@ -17,25 +17,26 @@ namespace stdsharp::details
 
         using not_null = gsl::not_null<func>;
 
-        template<typename Closure>
+        template<empty_type Fn>
             requires requires //
         {
-            requires empty_type<Closure>;
-            requires !(is_well_formed(req)) || invocable_r<const Closure&, Ret, Args...>;
-            requires cpp_is_constexpr(Closure{});
-            requires !no_exception || nothrow_invocable_r<const Closure&, Ret, Args...>;
+            requires !std::convertible_to<Fn, func>;
+            requires !(is_well_formed(req)) ||
+                (invocable_r<const Fn&, Ret, Args...> &&
+                 std::regular_invocable<const Fn&, Args...>);
+            requires cpp_is_constexpr(Fn{});
+            requires !no_exception || nothrow_invocable_r<const Fn&, Ret, Args...>;
         }
         [[nodiscard]] static constexpr auto encapsulate() noexcept
         {
             if constexpr(!(is_well_formed(req))) return;
-            else if constexpr(explicitly_convertible<Closure, func>)
-                return static_cast<func>(Closure{});
+            else if constexpr(explicitly_convertible<Fn, func>) return static_cast<func>(Fn{});
             else
                 return +[](Args... args) noexcept(no_exception) -> Ret
                 {
-                    constexpr Closure c{};
-                    if constexpr(std::same_as<void, Ret>) c(cpp_forward(args)...);
-                    else return c(cpp_forward(args)...);
+                    constexpr Fn c{};
+                    if constexpr(std::same_as<void, Ret>) c(static_cast<Args>(args)...);
+                    else return c(static_cast<Args>(args)...);
                 };
         }
 
@@ -67,13 +68,9 @@ namespace stdsharp::details
             dispatcher& operator=(dispatcher&&) noexcept = default;
             ~dispatcher() noexcept = default;
 
-            template<typename Closure>
-                requires requires {
-                    encapsulate<Closure>();
-                    requires !std::convertible_to<Closure, func>;
-                }
-            constexpr dispatcher(const Closure /*unused*/) noexcept:
-                not_null(encapsulate<Closure>())
+            template<typename Fn>
+                requires requires { encapsulate<Fn>(); }
+            constexpr dispatcher(const Fn /*unused*/) noexcept: not_null(encapsulate<Fn>())
             {
             }
 
@@ -83,14 +80,11 @@ namespace stdsharp::details
             {
             }
 
-            template<typename Closure>
-                requires requires {
-                    encapsulate<Closure>();
-                    requires !std::convertible_to<Closure, func>;
-                }
-            constexpr dispatcher& operator=(const Closure /*unused*/) noexcept
+            template<typename Fn>
+                requires requires { encapsulate<Fn>(); }
+            constexpr dispatcher& operator=(const Fn /*unused*/) noexcept
             {
-                return (*this = encapsulate<Closure>());
+                return (*this = encapsulate<Fn>());
             }
 
             constexpr bool operator==(const dispatcher other) const noexcept

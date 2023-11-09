@@ -49,9 +49,9 @@ namespace stdsharp::details
         template<std::size_t... I>
         struct impl<std::index_sequence<I...>> :
             indexed_operator<indexed_values, I>...,
-            stdsharp::indexed_values<Func...>
+            indexed_values
         {
-            using stdsharp::indexed_values<Func...>::indexed_values;
+            using indexed_values::indexed_values;
             using indexed_operator<indexed_values, I>::operator()...;
         };
     };
