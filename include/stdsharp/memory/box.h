@@ -18,7 +18,7 @@ namespace stdsharp::details
 
         using callocation_type = allocation_traits::callocation_result;
 
-        using fake_type = fake_type_for<Req>;
+        using fake_type = fake_type<Req>;
 
         static constexpr auto req = allocator_traits::template type_req<fake_type>;
 
@@ -56,7 +56,7 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
-    template<typename Alloc, special_mem_req Req>
+    template<typename Alloc, lifetime_req Req>
     class allocation_value<Alloc, details::box_traits<Req, Alloc>> :
         details::box_traits<Req, Alloc>::dispatchers
     {
@@ -109,7 +109,7 @@ namespace stdsharp
     {
         using traits = details::box_traits<Req, Alloc>;
 
-        template<special_mem_req, allocator_req>
+        template<lifetime_req, allocator_req>
         friend class box;
 
         friend constexpr void swap(box& lhs, box& rhs) noexcept
@@ -519,8 +519,9 @@ namespace stdsharp
             deallocate();
         }
 
-        template<typename T, typename... U>
-        constexpr decltype(auto) emplace(U&&... args)
+    private:
+        template<typename T, typename... Args>
+        constexpr decltype(auto) emplace_impl(Args&&... args)
             requires requires {
                 requires std::constructible_from<allocation_value, std::in_place_type_t<T>>;
                 reset();
@@ -528,7 +529,7 @@ namespace stdsharp
                     typename allocation_traits::template constructor<T>,
                     allocator_type&,
                     const allocation_type&,
-                    U...>;
+                    Args...>;
             }
         {
             reset();
@@ -549,24 +550,26 @@ namespace stdsharp
             return get<T>();
         }
 
-        template<
-            typename T,
-            typename U,
-            typename... Args,
-            typename IL = const std::initializer_list<U>&>
-        constexpr decltype(auto) emplace(const std::initializer_list<U> il, Args&&... args) //
-            noexcept(noexcept(emplace<T, IL, Args...>(il, cpp_forward(args)...)))
-            requires requires { emplace<T, IL, Args...>(il, cpp_forward(args)...); }
+    public:
+        template<typename T>
+        constexpr decltype(auto) emplace(auto&&... args)
+            requires requires { emplace_impl<T>(cpp_forward(args)...); }
         {
-            return emplace<T, IL, Args...>(il, cpp_forward(args)...);
+            emplace_impl<T>(cpp_forward(args)...);
+        }
+
+        template<typename T, typename U, typename... Args>
+        constexpr decltype(auto) emplace(const std::initializer_list<U> il, Args&&... args)
+            requires requires { emplace_impl<T>(il, cpp_forward(args)...); }
+        {
+            return emplace_impl<T>(il, cpp_forward(args)...);
         }
 
         template<typename T>
-        constexpr decltype(auto) emplace(T&& t) //
-            noexcept(noexcept(emplace<std::decay_t<T>, T>(cpp_forward(t))))
-            requires requires { emplace<std::decay_t<T>, T>(cpp_forward(t)); }
+        constexpr decltype(auto) emplace(T&& t)
+            requires requires { emplace_impl<std::decay_t<T>>(cpp_forward(t)); }
         {
-            return emplace<std::decay_t<T>, T>(cpp_forward(t));
+            return emplace_impl<std::decay_t<T>>(cpp_forward(t));
         }
 
         template<typename T>
@@ -604,7 +607,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool has_value() const noexcept
         {
-            return !allocation_value_.empty();
+            return allocation_value_.value_size() != 0;
         }
 
         template<typename T>

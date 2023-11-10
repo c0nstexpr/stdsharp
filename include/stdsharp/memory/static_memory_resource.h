@@ -1,32 +1,19 @@
 #pragma once
 
-#include <algorithm>
-#include <ranges>
-#include <memory>
-
 #include "allocator_traits.h"
-#include "../cmath/cmath.h"
 #include "../cassert/cassert.h"
+#include "../cstdint/cstdint.h"
 
 namespace stdsharp
 {
-    union all_aligned
-    {
-    private:
-        std::max_align_t v;
-    };
-
     template<std::size_t Size>
     class static_memory_resource
     {
     public:
         static constexpr auto size = Size;
 
-        using value_t = all_aligned;
-
         using states_t = std::array<bool, size>;
-
-        using storage_t = std::array<all_aligned, size>;
+        using storage_t = std::array<byte, size>;
 
         static_memory_resource() = default;
 
@@ -47,29 +34,74 @@ namespace stdsharp
 
         ~static_memory_resource() = default;
 
-        [[nodiscard]] constexpr all_aligned* allocate(const std::size_t required_size)
+        [[nodiscard]] constexpr auto
+            try_aligned_allocate(const std::align_val_t align, const std::size_t required_size)
+        {
+            if(required_size == 0) return nullptr;
+
+            const auto size =
+                static_cast<std::ranges::range_difference_t<decltype(state_)>>(required_size);
+
+            if(std::is_constant_evaluated() || align == std::align_val_t{1})
+            {
+                const auto found = std::ranges::search_n(state_, size, false);
+
+                if(found.empty()) return nullptr;
+
+                std::ranges::fill(found, true);
+
+                return storage_.data(), +std::ranges::distance(state_.cbegin(), found.begin());
+            }
+
+            for(auto begin = state_.begin(); begin != state_.cend();)
+            {
+                auto&& found = std::ranges::search_n(state_, size, false);
+
+                if(found.empty()) return nullptr;
+
+                auto&& [found_begin, found_end] = cpp_move(found);
+                auto&& remained_end = std::ranges::find(cpp_move(found_end), state_.cend(), true);
+                const auto ptr = std::align(
+                    auto_cast(align),
+                    remained_end - found_begin,
+                    std::to_address(begin),
+                    size
+                );
+
+                if(ptr == nullptr) begin = cpp_move(remained_end);
+                else
+                {
+                    std::ranges::fill(std::to_address(found_begin), ptr, true);
+                    return ptr;
+                }
+            }
+
+            return nullptr;
+        }
+
+        [[nodiscard]] constexpr auto try_allocate(const std::size_t required_size)
+        {
+            return try_aligned_allocate(1, required_size);
+        }
+
+        [[nodiscard]] constexpr auto allocate(const std::size_t required_size)
         {
             const auto ptr = try_allocate(required_size);
 
             return (ptr == nullptr && required_size != 0) ? throw std::bad_alloc{} : ptr;
         }
 
-        [[nodiscard]] constexpr all_aligned* try_allocate(const std::size_t required_size)
+        [[nodiscard]] constexpr auto aligned_allocate(
+            const std::align_val_t align,
+            const std::size_t required_size
+        )
         {
-            if(required_size == 0) return nullptr;
+            const auto ptr = try_aligned_allocate(align, required_size);
 
-            const auto found = std::ranges::search_n(state_, auto_cast(required_size), false);
-
-            if(found.empty()) return nullptr;
-
-            std::ranges::fill(found, true);
-            return std::ranges::next(
-                storage_.data(),
-                std::ranges::distance(state_.cbegin(), found.begin())
-            );
+            return (ptr == nullptr && required_size != 0) ? throw std::bad_alloc{} : ptr;
         }
 
-        constexpr void deallocate(all_aligned* const ptr, const std::size_t required_size) noexcept
+        constexpr void deallocate(byte* const ptr, const std::size_t required_size) noexcept
         {
             if(ptr == nullptr) return;
             Expects(contains(ptr));
@@ -103,7 +135,7 @@ namespace stdsharp
         }
 
     private:
-        [[nodiscard]] constexpr auto map_state(const value_t* const ptr) noexcept
+        [[nodiscard]] constexpr auto map_state(const byte* const ptr) noexcept
         {
             const auto diff = [&, this]
             {
@@ -128,19 +160,5 @@ namespace stdsharp
     };
 
     template<typename T, std::size_t Size>
-    using static_memory_resource_for =
-        static_memory_resource<ceil_quotient(Size * sizeof(T), sizeof(all_aligned))>;
-
-    template<std::size_t Size>
-    constexpr auto& get_static_memory_resource() noexcept
-    {
-#ifdef _MSC_VER
-        static
-#else
-        constinit
-#endif
-            thread_local static_memory_resource<Size>
-                resource{};
-        return resource;
-    }
+    using static_memory_resource_for = static_memory_resource<Size * sizeof(T)>;
 }

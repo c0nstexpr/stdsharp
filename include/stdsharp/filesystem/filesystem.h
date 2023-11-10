@@ -32,7 +32,7 @@ namespace stdsharp::filesystem
 
     template<typename Rep, std::uintmax_t Num, std::uintmax_t Denom>
     class space_size<Rep, std::ratio<Num, Denom>> :
-        default_arithmetic_operation<
+        default_increase_and_decrease<
             space_size<Rep, std::ratio<Num, Denom>>,
             details::space_size_delegate // clang-format off
         > // clang-format on
@@ -49,10 +49,7 @@ namespace stdsharp::filesystem
     private:
         friend struct details::space_size_delegate;
 
-        template<typename, typename>
-        friend class space_size;
-
-        rep value_{};
+        rep size_{};
 
         template<auto N, auto D>
         static constexpr auto
@@ -68,38 +65,63 @@ namespace stdsharp::filesystem
 
         space_size() = default;
 
-        explicit constexpr space_size(const rep value) noexcept: value_(value) {}
+        explicit constexpr space_size(const rep value) noexcept: size_(value) {}
 
         template<typename OtherRep, typename Period>
-        constexpr space_size(const space_size<OtherRep, Period> other) noexcept:
-            value_(cast_from(other.value_, Period{}))
+            requires(not_same_as<rep, OtherRep> || not_same_as<period, Period>)
+        explicit constexpr space_size(const space_size<OtherRep, Period> other) noexcept:
+            size_(cast_from(other.size(), Period{}))
         {
         }
 
-        template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto operator<=>(const space_size<OtherRep, Period> other) //
-            const noexcept
+        [[nodiscard]] constexpr auto operator<=>(const space_size& other) const noexcept
         {
-            if constexpr(std::ratio_greater_equal_v<period, Period>)
-                return value_ <=> cast_from(other.value_, Period{});
-            else return other <=> *this;
+            return size() <=> other.size();
         }
 
-        template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto operator==(const space_size<OtherRep, Period> other) //
-            const noexcept
+        [[nodiscard]] friend constexpr bool
+            operator==(const space_size& l, const space_size& r) noexcept
         {
-            return (*this <=> other) == std::strong_ordering::equal;
+            return l.size() == r.size();
         }
 
-        template<typename OtherRep, typename Period>
-        [[nodiscard]] constexpr auto operator!=(const space_size<OtherRep, Period> other) const //
-            noexcept
+        [[nodiscard]] constexpr auto size() const noexcept { return size_; }
+
+        constexpr auto& operator+=(const space_size& other) noexcept
         {
-            return !(*this == other);
+            size_ += other.size();
+            return *this;
         }
 
-        [[nodiscard]] constexpr auto size() const noexcept { return value_; }
+        constexpr auto& operator-=(const space_size& other) noexcept
+        {
+            size_ -= other.size();
+            return *this;
+        }
+
+        constexpr auto& operator*=(const rep& factor) noexcept
+        {
+            size_ *= factor;
+            return *this;
+        }
+
+        constexpr auto& operator/=(const rep& factor) noexcept
+        {
+            size_ /= factor;
+            return *this;
+        }
+
+        [[nodiscard]] friend constexpr auto
+            operator+(space_size lhs, const space_size& rhs) noexcept
+        {
+            return lhs += rhs;
+        }
+
+        [[nodiscard]] friend constexpr auto
+            operator-(space_size lhs, const space_size& rhs) noexcept
+        {
+            return lhs -= rhs;
+        }
     };
 
     namespace details
@@ -443,7 +465,7 @@ namespace stdsharp::filesystem
     }
 }
 
-namespace stdsharp::inline literals
+namespace stdsharp::literals
 {
     using namespace stdsharp::filesystem::literals;
 }
@@ -452,47 +474,47 @@ namespace std
 {
     template<typename Rep, typename Period, typename CharT>
         requires requires(
-            stdsharp::filesystem::space_size<Rep, Period> s,
-            std::basic_stringstream<CharT> ss
+            ::stdsharp::filesystem::space_size<Rep, Period> s,
+            basic_stringstream<CharT> ss
         ) { ss << s; }
-    struct formatter<stdsharp::filesystem::space_size<Rep, Period>, CharT>
+    struct formatter<::stdsharp::filesystem::space_size<Rep, Period>, CharT>
     {
     private:
-        using space_size = stdsharp::filesystem::space_size<Rep, Period>;
+        using space_size = ::stdsharp::filesystem::space_size<Rep, Period>;
 
-        stdsharp::fill_spec<CharT> fill_{};
-        stdsharp::align_t align_{};
-        stdsharp::nested_spec<std::size_t> width_{};
+        ::stdsharp::fill_spec<CharT> fill_{};
+        ::stdsharp::align_t align_{};
+        ::stdsharp::nested_spec<size_t> width_{};
 
-        stdsharp::precision_spec precision_{};
+        ::stdsharp::precision_spec precision_{};
 
-        stdsharp::locale_spec locale_{};
+        ::stdsharp::locale_spec locale_{};
 
-        std::basic_string_view<CharT> from_unit_;
+        basic_string_view<CharT> from_unit_;
 
         template<typename T>
-        using identity = std::type_identity<T>;
+        using identity = type_identity<T>;
 
     public:
         constexpr auto parse(basic_format_parse_context<CharT>& ctx)
         {
             {
                 basic_format_parse_context<CharT> copied_ctx{
-                    std::basic_string_view{ctx.begin(), ctx.end()} //
+                    basic_string_view{ctx.begin(), ctx.end()} //
                 };
 
-                const auto size = std::ranges::size(copied_ctx);
+                const auto size = ranges::size(copied_ctx);
 
-                const auto fill = stdsharp::parse_fill_spec(copied_ctx);
+                const auto fill = ::stdsharp::parse_fill_spec(copied_ctx);
 
                 if(fill.fill)
                 {
-                    const auto align = stdsharp::parse_align_spec(copied_ctx);
+                    const auto align = ::stdsharp::parse_align_spec(copied_ctx);
 
-                    if(align != stdsharp::align_t::none)
+                    if(align != ::stdsharp::align_t::none)
                     {
                         const auto width =
-                            stdsharp::parse_nested_integer_spec<std::size_t>(copied_ctx);
+                            ::stdsharp::parse_nested_integer_spec<size_t>(copied_ctx);
 
                         if(!width.valueless_by_exception())
                         {
@@ -500,14 +522,14 @@ namespace std
                             align_ = align;
                             width_ = width;
 
-                            ctx.advance_to(ctx.begin() + (size - std::ranges::size(copied_ctx)));
+                            ctx.advance_to(ctx.begin() + (size - ranges::size(copied_ctx)));
                         }
                     }
                 }
             }
 
-            precision_ = stdsharp::parse_precision_spec(ctx);
-            locale_ = stdsharp::parse_locale_spec(ctx);
+            precision_ = ::stdsharp::parse_precision_spec(ctx);
+            locale_ = ::stdsharp::parse_locale_spec(ctx);
 
             {
                 const auto from_unit = ::ctre::starts_with<R"((?:[KMGTPE]i?)?B|b)">(ctx);
@@ -519,7 +541,7 @@ namespace std
                 }
             }
 
-            stdsharp::parse_end_assert(ctx);
+            ::stdsharp::parse_end_assert(ctx);
 
             return ctx.begin();
         }
@@ -528,15 +550,15 @@ namespace std
         auto format(const space_size s, basic_format_context<OutputIt, CharT>& fc) const
         {
             const auto& fill = fill_.fill;
-            const auto width = stdsharp::get_arg(fc, width_);
+            const auto width = ::stdsharp::get_arg(fc, width_);
             const auto& formatted = [this, s = s, &fc]() mutable
             {
                 const auto& precision = precision_.precision;
                 const auto from_unit = [from_unit_ = from_unit_]
                 {
-                    std::array<char, 4> from_unit{};
+                    array<char, 4> from_unit{};
 
-                    std::ranges::transform(
+                    ranges::transform(
                         from_unit_,
                         from_unit.begin(),
                         [](const CharT c) { return static_cast<char>(c); }
@@ -544,22 +566,22 @@ namespace std
                     return from_unit;
                 }();
 
-                std::string_view current_unit{
+                string_view current_unit{
                     from_unit.begin(),
-                    std::ranges::find(from_unit, char{}) //
+                    ranges::find(from_unit, char{}) //
                 };
-                std::basic_ostringstream<CharT> ss;
+                basic_ostringstream<CharT> ss;
 
                 const auto do_format = [&current_unit, &ss, &s]
                 {
                     const auto format_case = [&]<typename SpaceSize>( // clang-format off
                         const identity<SpaceSize>,
-                        const std::string_view next_unit
+                        const string_view next_unit
                     ) noexcept // clang-format on
                     {
-                        return [&, next_unit](const std::string_view)
+                        return [&, next_unit](const string_view)
                         {
-                            const SpaceSize cast_size = s;
+                            const SpaceSize cast_size{s};
 
                             ss << cast_size;
 
@@ -568,19 +590,16 @@ namespace std
                         };
                     };
 
-                    stdsharp::pattern_match(
+                    ::stdsharp::pattern_match(
                         current_unit,
-                        std::pair{
-                            [](const std::string_view unit) noexcept { return unit.empty(); },
-                            [](const std::string_view)
-                            {
-                                throw format_error{"Precision exceeded"}; //
-                            } //
+                        pair{
+                            [](const string_view unit) noexcept { return unit.empty(); },
+                            [](const string_view) { throw format_error{"Precision exceeded"}; }
                         },
-#define STDSHARP_MAKE_PAIR(str, type, next_str)                            \
-    std::pair{                                                             \
-        [](const std::string_view unit) noexcept { return unit == #str; }, \
-        format_case(identity<stdsharp::filesystem::type>{}, #next_str)     \
+#define STDSHARP_MAKE_PAIR(str, type, next_str)                          \
+    pair{                                                                \
+        [](const string_view unit) noexcept { return unit == #str; },    \
+        format_case(identity<::stdsharp::filesystem::type>{}, #next_str) \
     }
 
                         STDSHARP_MAKE_PAIR(b, bits, ),
@@ -602,9 +621,9 @@ namespace std
                     );
                 };
 
-                ss.imbue(locale_.use_locale ? fc.locale() : std::locale::classic());
+                ss.imbue(locale_.use_locale ? fc.locale() : locale::classic());
 
-                if(const auto precision_v = stdsharp::get_arg(fc, precision); precision_v)
+                if(const auto precision_v = ::stdsharp::get_arg(fc, precision); precision_v)
                     for(auto i = *precision_v; i != 0; --i) do_format();
                 else
                     while(s.size() > 0)
@@ -624,7 +643,7 @@ namespace std
             if(
                 [=, &formatted, &fc, align = align_]
                 {
-                    if(fill && width && align != stdsharp::align_t::none)
+                    if(fill && width && align != ::stdsharp::align_t::none)
                     {
                         const auto width_v = *width;
 
@@ -635,22 +654,22 @@ namespace std
 
                             switch(align)
                             {
-                            case stdsharp::align_t::left:
-                                std::ranges::copy(formatted, fc.out());
-                                std::ranges::fill_n(fc.out(), fill_size, fill_c);
+                            case ::stdsharp::align_t::left:
+                                ranges::copy(formatted, fc.out());
+                                ranges::fill_n(fc.out(), fill_size, fill_c);
                                 break;
 
-                            case stdsharp::align_t::right:
-                                std::ranges::fill_n(fc.out(), fill_size, fill_c);
-                                std::ranges::copy(formatted, fc.out());
+                            case ::stdsharp::align_t::right:
+                                ranges::fill_n(fc.out(), fill_size, fill_c);
+                                ranges::copy(formatted, fc.out());
                                 break;
 
-                            case stdsharp::align_t::center:
+                            case ::stdsharp::align_t::center:
                             {
                                 const auto half_fill_s = fill_size / 2;
-                                std::ranges::fill_n(fc.out(), half_fill_s, fill_c);
-                                std::ranges::copy(formatted, fc.out());
-                                std::ranges::fill_n(fc.out(), fill_size - half_fill_s, fill_c);
+                                ranges::fill_n(fc.out(), half_fill_s, fill_c);
+                                ranges::copy(formatted, fc.out());
+                                ranges::fill_n(fc.out(), fill_size - half_fill_s, fill_c);
                             }
                             break;
 
@@ -664,7 +683,7 @@ namespace std
                     return true;
                 }()
             )
-                std::ranges::copy(formatted, fc.out());
+                ranges::copy(formatted, fc.out());
             return fc.out();
         }
     };

@@ -35,28 +35,3 @@ SCENARIO("constexpr box", "[memory][box]") // NOLINT
         }() == 42
     );
 }
-
-auto foo()
-{
-    using allocator_type = allocator<int>;
-    using box_t = normal_box<allocator<int>>;
-
-    using allocation_traits = allocation_traits<allocator<int>>;
-    using allocator_traits = allocation_traits::allocator_traits;
-    using allocator_type = allocation_traits::allocator_type;
-    using allocation_type = allocation_traits::allocation_result;
-    using callocation_type = allocation_traits::callocation_result;
-    using allocations_type = std::array<allocation_type, 1>;
-    using callocations_type = cast_view<std::ranges::ref_view<allocations_type>, callocation_type>;
-
-    constexpr auto type_req = allocator_traits::type_req<normal_object>;
-    constexpr auto vec_req = allocator_traits::type_req<vector<int>>;
-
-    static_assert(type_req.move_construct <= vec_req.move_construct);
-
-
-    box_t v0{};
-    box_t v1{v0};
-
-    v1.emplace<vector<int>, vector<int>>(vector<int>{1, 2});
-}

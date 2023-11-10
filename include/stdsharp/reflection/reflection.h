@@ -12,14 +12,14 @@ namespace stdsharp::reflection
         template<typename...>
         struct meta_set;
 
-        template<ltr Name, typename Getter>
+        template<literals::ltr Name, typename Getter>
         struct meta_base : Getter
         {
             using reflected = Reflected;
             static constexpr auto name = Name;
         };
 
-        template<ltr Name, typename T>
+        template<literals::ltr Name, typename T>
         using func_meta = meta_base<Name, T>;
 
         template<auto Ptr>
@@ -34,10 +34,10 @@ namespace stdsharp::reflection
             }
         };
 
-        template<ltr Name, auto Ptr>
+        template<literals::ltr Name, auto Ptr>
         using data_meta = meta_base<Name, data_meta_getter<Ptr>>;
 
-        template<ltr... Name, typename... Getter>
+        template<literals::ltr... Name, typename... Getter>
         struct meta_set<meta_base<Name, Getter>...> : indexed_types<meta_base<Name, Getter>...>
         {
             template<decltype(auto) N>
@@ -55,14 +55,14 @@ namespace stdsharp::reflection
         };
 
     public:
-        template<ltr... Name, typename... T>
+        template<literals::ltr... Name, typename... T>
             requires(cpp_is_constexpr(T{}) && ...)
         static consteval meta_set<func_meta<Name, T>...> func_reflect(const T... /*unused*/)
         {
             return {};
         }
 
-        template<ltr... Name, member_of<Reflected> auto... Ptr>
+        template<literals::ltr... Name, member_of<Reflected> auto... Ptr>
         static consteval meta_set<data_meta<Name, Ptr>...>
             data_reflect(const regular_value_sequence<Ptr...> /*unused*/)
         {
@@ -84,7 +84,7 @@ namespace stdsharp::reflection
 
     template<typename T, typename U>
     inline constexpr auto data<std::pair<T, U>> =
-        member<std::pair<T, U>>::template data_reflect<"first"_ltr, "second"_ltr>(
+        member<std::pair<T, U>>::template data_reflect<literals::ltr{"first"}, literals::ltr{"second"}>(
             regular_value_sequence<&std::pair<T, U>::first, &std::pair<T, U>::second>{}
         );
 }

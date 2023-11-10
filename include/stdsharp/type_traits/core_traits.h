@@ -432,7 +432,7 @@ namespace stdsharp
     template<typename T>
     inline constexpr std::string_view type_id = ::nameof::nameof_full_type<T>();
 
-    inline namespace literals
+    namespace literals
     {
         template<std::size_t Size>
         struct ltr : std::array<char, Size>

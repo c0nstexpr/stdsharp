@@ -217,8 +217,8 @@ namespace stdsharp
     namespace reflection
     {
         template<typename T, typename U>
-        inline constexpr auto function<synchronizer<T, U>> =
-            member<synchronizer<T, U>>::template func_reflect<"read"_ltr, "write"_ltr>(
+        inline constexpr auto function<synchronizer<T, U>> = member<synchronizer<T, U>>::
+            template func_reflect<literals::ltr{"read"}, literals::ltr{"write"}>(
                 [](auto&& v, auto&&... args) //
                 noexcept( //
                     noexcept(cast_fwd<synchronizer<T, U>>(cpp_forward(v)).read(cpp_forward(args)...)

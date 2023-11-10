@@ -440,9 +440,12 @@ namespace stdsharp
         copy_assignable<T> && //
         std::equality_comparable<T> && //
         weakly_equality_comparable_with<T, std::nullptr_t>;
+}
 
+namespace stdsharp
+{
     template<typename T>
-    concept referenceable = requires { typename std::add_lvalue_reference<T>; };
+    concept referenceable = requires(T&) { 0; };
 
     template<typename T>
     concept dereferenceable = requires(T& t) {

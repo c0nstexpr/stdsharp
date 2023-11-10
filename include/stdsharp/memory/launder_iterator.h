@@ -4,21 +4,20 @@
 #include <new>
 
 #include "../default_operator.h"
+#include "../cassert/cassert.h"
 
 namespace stdsharp
 {
-    template<typename>
-    struct launder_iterator;
-
     template<typename T>
-    class launder_iterator<T*> :
-        gsl::not_null<T*>,
-        default_increase_and_decrease<launder_iterator<T*>>
+    class launder_iterator :
+        default_increase_and_decrease<launder_iterator<T*>>,
+        default_arithmetic_operation<launder_iterator<T*>>,
+        public std::random_access_iterator_tag
     {
-        using m_base = gsl::not_null<T*>;
+        T* ptr_;
 
     public:
-        constexpr launder_iterator(T* ptr) noexcept: m_base(ptr) {}
+        constexpr launder_iterator(T* const ptr) noexcept: ptr_((assert_not_null(ptr), ptr)) {}
 
         launder_iterator(nullptr_t) = delete;
 
@@ -30,29 +29,41 @@ namespace stdsharp
 
         [[nodiscard]] constexpr decltype(auto) operator*() const noexcept
         {
-            return *std::launder(this->get());
+            return *std::launder(ptr_);
         }
 
-        [[nodiscard]] constexpr auto operator->() const noexcept
-        {
-            return std::launder(this->get());
-        }
+        [[nodiscard]] constexpr auto operator->() const noexcept { return std::launder(ptr_); }
 
         bool operator==(const launder_iterator& other) const = default;
 
-        constexpr void operator++() noexcept
+        constexpr void operator++() noexcept { ++ptr_; }
+
+        constexpr void operator--() noexcept { --ptr_; }
+
+        constexpr launder_iterator& operator+=(const std::ptrdiff_t diff) noexcept
         {
-            auto ptr = this->get();
-            *this = ++ptr;
+            ptr_ += diff;
+            return *this;
         }
 
-        constexpr void operator--() noexcept
+        constexpr launder_iterator& operator-=(const std::ptrdiff_t diff) noexcept
         {
-            auto ptr = this->get();
-            *this = --ptr;
+            ptr_ -= diff;
+            return *this;
         }
+
+        constexpr std::ptrdiff_t operator-(const launder_iterator& other) const noexcept
+        {
+            return ptr_ - other.ptr_;
+        }
+
+        constexpr decltype(auto) operator[](const std::ptrdiff_t diff) noexcept { return *(ptr_ + diff); }
+
+        constexpr decltype(auto) operator[](const std::ptrdiff_t diff) const noexcept { return *(ptr_ + diff); }
+
+        friend auto operator<=>(const launder_iterator&, const launder_iterator&) = default;
     };
 
     template<typename T>
-    launder_iterator(T*) -> launder_iterator<T*>;
+    launder_iterator(T*) -> launder_iterator<T>;
 }

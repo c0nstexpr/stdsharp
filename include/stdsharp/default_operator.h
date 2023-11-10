@@ -8,11 +8,12 @@ namespace stdsharp
     template<typename T>
     class default_unary_op
     {
-        [[nodiscard]] friend constexpr T operator+(const T& t) //
-            noexcept(nothrow_copy_constructible<T>)
-            requires std::copy_constructible<T>
+        [[nodiscard]] friend constexpr const T& operator+(const T& t) { return t; }
+
+        [[nodiscard]] friend constexpr decltype(auto) operator-(const T& t) noexcept(noexcept(T{} - t))
+            requires requires { T{} - t; }
         {
-            return t;
+            return T{} - t;
         }
     };
 
@@ -54,7 +55,7 @@ namespace stdsharp
         }
     };
 
-    template<typename T, typename Delegate = void, bool Commutable = true>
+    template<typename T, typename Delegate = void>
     class default_arithmetic_operation : default_increase_and_decrease<T, Delegate>
     {
 #define STDSHARP_ARITH_OP(op)                                             \
@@ -83,17 +84,8 @@ namespace stdsharp
     {                                                                     \
         t op## = cpp_forward(u);                                          \
         return t;                                                         \
-    }                                                                     \
-                                                                          \
-    template<typename U, typename V>                                      \
-    [[nodiscard]] friend constexpr T operator op(U&& u, V&& t) noexcept(  \
-        noexcept(cast_fwd<T>(cpp_forward(t)) op cpp_forward(u))           \
-    )                                                                     \
-        requires(!std::convertible_to<U, T>) && Commutable &&             \
-        requires { cast_fwd<T>(cpp_forward(t)) op cpp_forward(u); }       \
-    {                                                                     \
-        return cast_fwd<T>(cpp_forward(t)) op cpp_forward(u);             \
     }
+
 
         STDSHARP_ARITH_OP(+)
         STDSHARP_ARITH_OP(-)

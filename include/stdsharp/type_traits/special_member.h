@@ -124,29 +124,29 @@ namespace stdsharp
     }
 
     template<lifetime_req Req>
-    struct fake_type_for : empty_t // NOLINTBEGIN(*-use-equals-default,*-noexcept-*)
+    struct fake_type // NOLINTBEGIN(*-use-equals-default,*-noexcept-*)
     {
-        fake_type_for() noexcept(is_noexcept(Req.default_construct))
+        fake_type() noexcept(is_noexcept(Req.default_construct))
             requires(is_well_formed(Req.default_construct))
         = default;
 
-        fake_type_for(fake_type_for&&) noexcept(is_noexcept(Req.move_construct))
+        fake_type(fake_type&&) noexcept(is_noexcept(Req.move_construct))
             requires(is_well_formed(Req.move_construct))
         = default;
 
-        fake_type_for(const fake_type_for&) noexcept(is_noexcept(Req.copy_construct))
+        fake_type(const fake_type&) noexcept(is_noexcept(Req.copy_construct))
             requires(is_well_formed(Req.copy_construct))
         = default;
 
-        fake_type_for& operator=(fake_type_for&&) noexcept(is_noexcept(Req.move_assign))
+        fake_type& operator=(fake_type&&) noexcept(is_noexcept(Req.move_assign))
             requires(is_well_formed(Req.move_assign))
         = default;
 
-        fake_type_for& operator=(const fake_type_for&) noexcept(is_noexcept(Req.copy_assign))
+        fake_type& operator=(const fake_type&) noexcept(is_noexcept(Req.copy_assign))
             requires(is_well_formed(Req.copy_assign))
         = default;
 
-        ~fake_type_for() noexcept(is_noexcept(Req.destruct))
+        ~fake_type() noexcept(is_noexcept(Req.destruct))
             requires(is_well_formed(Req.destruct))
         = default;
     }; // NOLINTEND(*-use-equals-default,*-noexcept-*)

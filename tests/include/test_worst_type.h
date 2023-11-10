@@ -62,19 +62,17 @@ void allocation_emplace_execution_test(T& box)
 
         AND_THEN("destroy allocation and check content")
         {
-            box.destroy();
-            REQUIRE(!box);
+            box.reset();
+            REQUIRE(!box.has_value());
         }
     }
 }
 
 template<typename T>
-void allocation_functionality_test()
+void allocation_functionality_test(T box = T{})
 {
     GIVEN(format("an object allocation for type id {}", type_id<T>))
     {
-        T box;
-
         allocation_emplace_value_test(
             box,
             1,
