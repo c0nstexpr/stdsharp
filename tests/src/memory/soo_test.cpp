@@ -17,5 +17,7 @@ SCENARIO("soo allocation basic requirements", "[memory][small object optimizatio
 
 SCENARIO("use soo allocation store value", "[memory][small object optimization]") // NOLINT
 {
-    allocation_functionality_test(normal_soo_box<>);
+    single_stack_buffer<> buffer{};
+    normal_soo_box<> box{make_soo_allocator(buffer, {})};
+    allocation_functionality_test(box);
 }

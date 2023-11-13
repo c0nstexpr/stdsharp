@@ -1,7 +1,7 @@
 #pragma once
 
 #include "allocation_value.h"
-#include "../type_traits/object.h"
+#include "../cmath/cmath.h"
 
 namespace stdsharp::details
 {
@@ -38,6 +38,12 @@ namespace stdsharp::details
             dispatcher<req.copy_assign, void, const callocation_type&, const allocation_type&>,
             dispatcher<req.move_assign, void, const allocation_type&, const allocation_type&>,
             dispatcher<req.destruct, void, allocator_type&, const allocation_type&>>;
+
+        using allocation_value = allocation_value<allocator_type, box_traits>;
+
+        using allocations_type = std::array<allocation_type, 1>;
+        using callocations_type =
+            cast_view<std::ranges::ref_view<const allocations_type>, callocation_type>;
     };
 
     template<lifetime_req Req, typename Alloc, typename T>
@@ -100,10 +106,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto value_size() const noexcept { return value_size_; }
     };
-}
 
-namespace stdsharp
-{
     template<lifetime_req Req, allocator_req Alloc>
     class box : details::box_traits<Req, Alloc> // NOLINTBEGIN(*-noexcept-*)
     {
@@ -126,17 +129,11 @@ namespace stdsharp
 
     private:
         using typename traits::allocator_traits;
-
         using typename traits::allocation_type;
-
         using typename traits::callocation_type;
-
-        using allocation_value = allocation_value<allocator_type, traits>;
-
-        using allocations_type = std::array<allocation_type, 1>;
-
-        using callocations_type =
-            cast_view<std::ranges::ref_view<const allocations_type>, callocation_type>;
+        using typename traits::allocation_value;
+        using typename traits::allocations_type;
+        using typename traits::callocations_type;
 
         allocator_adaptor<allocator_type> alloc_adaptor_{};
         allocations_type allocations_;
@@ -162,8 +159,6 @@ namespace stdsharp
     public:
         constexpr auto& get_allocator() const noexcept { return alloc_adaptor_.get_allocator(); }
 
-        static constexpr auto req = Req;
-
         box() = default;
 
     private:
@@ -180,7 +175,7 @@ namespace stdsharp
             requires false;
 
         template<lifetime_req OtherReq>
-        explicit(OtherReq != req) constexpr box(const box<OtherReq, allocator_type>& other)
+        explicit(OtherReq != Req) constexpr box(const box<OtherReq, Alloc>& other)
             requires allocation_constructible<
                          allocator_type,
                          callocations_type,
@@ -197,8 +192,8 @@ namespace stdsharp
         }
 
         template<lifetime_req OtherReq>
-        explicit(OtherReq != req) constexpr box(
-            const box<OtherReq, allocator_type>& other,
+        explicit(OtherReq != Req) constexpr box(
+            const box<OtherReq, Alloc>& other,
             const allocator_type& alloc //
         )
             requires allocation_constructible<
@@ -255,8 +250,7 @@ namespace stdsharp
         }
 
         template<lifetime_req OtherReq>
-        static constexpr void
-            copy_construct(box& instance, const box<OtherReq, allocator_type>& other)
+        static constexpr void copy_construct(box& instance, const box<OtherReq, Alloc>& other)
         {
             allocation_traits::on_construct(
                 instance.get_allocator(),

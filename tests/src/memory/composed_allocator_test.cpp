@@ -1,4 +1,4 @@
-#include "stdsharp/memory/static_allocator.h"
+#include "stdsharp/memory/single_stack_allocator.h"
 #include "stdsharp/memory/composed_allocator.h"
 #include "stdsharp/memory/allocator_reference.h"
 #include "test_allocator.h"
@@ -7,12 +7,12 @@ SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
 {
     GIVEN("an allocator tuple")
     {
-        static_memory_resource_for<int, 4> rsc;
+        single_stack_buffer<sizeof(int) * 4> rsc;
         test_allocator<int> test_alloc;
 
         composed_allocator alloc{
-            static_allocator_for<int, 4>{rsc},
-            allocator_reference{test_alloc} //
+            make_single_stack_allocator<int>(rsc),
+            allocator_reference{test_alloc}
         };
 
         WHEN("allocate a int")

@@ -2,9 +2,7 @@
 
 #include <memory>
 
-#include "../functional/invocables.h"
-#include "../utility/auto_cast.h"
-
+#include "../type_traits/object.h"
 #include "../compilation_config_in.h"
 
 namespace stdsharp
@@ -30,9 +28,14 @@ namespace stdsharp
         using raw_pointer = std::add_pointer_t<element_type>;
 
     private:
+        using element_param_type = std::conditional_t<
+            std::same_as<const element_type, const void>,
+            private_object<pointer_traits>,
+            element_type>;
+
         struct base_pointer_to
         {
-            constexpr pointer operator()(std::same_as<reference> auto&& t) const
+            [[nodiscard]] constexpr pointer operator()(element_param_type& t) const
                 noexcept(noexcept(Ptr::pointer_to(t)))
                 requires requires { Ptr::pointer_to(t); }
             {
@@ -42,7 +45,7 @@ namespace stdsharp
 
         struct convert_pointer_to
         {
-            constexpr pointer operator()(std::same_as<reference> auto&& r) const
+            [[nodiscard]] constexpr pointer operator()(element_param_type& r) const
                 noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
                 requires explicitly_convertible<raw_pointer, pointer>
             {
@@ -50,13 +53,9 @@ namespace stdsharp
             }
         };
 
-        using pointer_to_fn = sequenced_invocables<base_pointer_to, convert_pointer_to>;
-
-        static constexpr pointer_to_fn pointer_to_impl;
-
         struct std_to_address
         {
-            constexpr auto operator()(const pointer& p) const noexcept
+            [[nodiscard]] constexpr auto operator()(const pointer& p) const noexcept
                 requires requires { std::to_address(p); }
             {
                 return std::to_address(p);
@@ -65,71 +64,52 @@ namespace stdsharp
 
         struct convert_to_address
         {
-            STDSHARP_INTRINSIC constexpr raw_pointer operator()(const pointer& p) const noexcept
+            [[nodiscard]] STDSHARP_INTRINSIC constexpr raw_pointer operator()( //
+                const pointer& p
+            ) const noexcept
                 requires nothrow_explicitly_convertible<pointer, raw_pointer>
             {
                 return static_cast<raw_pointer>(p);
             }
         };
 
+    public:
+        using pointer_to_fn = sequenced_invocables<base_pointer_to, convert_pointer_to>;
+
+        static constexpr pointer_to_fn pointer_to{};
+
         using to_address_fn = sequenced_invocables<std_to_address, convert_to_address>;
 
-        static constexpr to_address_fn to_address_impl;
-
-    public:
-        [[nodiscard]] static constexpr auto pointer_to(std::same_as<element_type> auto& r) //
-            noexcept(nothrow_invocable<pointer_to_fn, reference>)
-            requires std::invocable<pointer_to_fn, reference>
-        {
-            return pointer_to_impl(r);
-        }
-
-        [[nodiscard]] static constexpr auto to_address(const pointer& p) noexcept
-            requires std::invocable<to_address_fn, const pointer&>
-        {
-            return to_address_impl(p);
-        }
+        static constexpr to_address_fn to_address{};
 
     private:
-        struct identity_to_pointer
-        {
-            constexpr pointer operator()(const pointer& p) const noexcept { return p; }
-        };
-
         struct dereference_to_pointer
         {
-            constexpr pointer operator()(const std::same_as<raw_pointer> auto p) const
-                noexcept(noexcept(pointer_to(*p)))
-                requires requires { pointer_to(*p); }
+            [[nodiscard]] constexpr pointer operator()(const raw_pointer p) const
+                noexcept(noexcept(pointer_to(*p), pointer{}))
+                requires requires {
+                    requires nullable_pointer<pointer>;
+                    pointer_to(*p);
+                }
             {
-                return pointer_to(*p);
+                return p == nullptr ? pointer{} : pointer_to(*p);
             }
         };
 
         struct convert_to_pointer
         {
-            STDSHARP_INTRINSIC constexpr pointer operator()( //
-                const raw_pointer p // NOLINT(*-misplaced-const)
-            ) const noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
+            [[nodiscard]] STDSHARP_INTRINSIC constexpr pointer operator()(const raw_pointer p) const
+                noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
                 requires explicitly_convertible<raw_pointer, pointer>
             {
                 return static_cast<pointer>(p);
             }
         };
 
-        using to_pointer_fn =
-            sequenced_invocables<identity_to_pointer, dereference_to_pointer, convert_to_pointer>;
-
-        static constexpr to_pointer_fn to_pointer_impl;
-
     public:
-        [[nodiscard]] static constexpr auto to_pointer( //
-            const raw_pointer p // NOLINT(*-misplaced-const)
-        ) noexcept(nothrow_invocable<to_pointer_fn, const raw_pointer>)
-            requires std::invocable<to_pointer_fn, const raw_pointer>
-        {
-            return to_pointer_impl(p);
-        }
+        using to_pointer_fn = sequenced_invocables<dereference_to_pointer, convert_to_pointer>;
+
+        static constexpr to_pointer_fn to_pointer{};
     };
 
     inline constexpr struct to_void_pointer_fn

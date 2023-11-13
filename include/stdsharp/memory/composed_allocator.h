@@ -3,20 +3,16 @@
 #include "allocator_traits.h"
 #include "../exception/exception.h"
 
-namespace stdsharp::details
-{
-    template<typename T>
-    concept allocator_contains =
-        requires(const T alloc, const allocator_traits<T>::const_void_pointer cvp) {
-            {
-                alloc.contains(cvp)
-            } noexcept -> nothrow_convertible_to<bool>;
-        };
-}
-
 namespace stdsharp
 {
-    template<details::allocator_contains FirstAlloc, allocator_req SecondAlloc>
+    template<typename T>
+    concept allocator_contains = requires(const T& alloc, const allocator_cvp<T> cvp) {
+        {
+            alloc.contains(cvp)
+        } noexcept -> nothrow_boolean_testable;
+    };
+
+    template<allocator_contains FirstAlloc, allocator_req SecondAlloc>
         requires requires(FirstAlloc::value_type value, const void* ptr) {
             requires std::same_as<decltype(value), typename SecondAlloc::value_type>;
             {
@@ -190,7 +186,7 @@ namespace stdsharp
         }
 
         constexpr bool contains(const value_type* const ptr) const noexcept
-            requires details::allocator_contains<SecondAlloc>
+            requires allocator_contains<SecondAlloc>
         {
             const auto vp = static_cast<const void*>(ptr);
             const auto& [first, second] = alloc_pair_;
