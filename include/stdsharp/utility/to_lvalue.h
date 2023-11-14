@@ -14,8 +14,7 @@ namespace stdsharp
         }
 
         template<std::move_constructible T>
-        [[nodiscard]] STDSHARP_INTRINSIC constexpr T operator()(T&& t) const
-            noexcept(nothrow_move_constructible<T>)
+        [[nodiscard]] constexpr T operator()(T&& t) const noexcept(nothrow_move_constructible<T>)
         {
             return cpp_move(t);
         }

@@ -7,7 +7,7 @@ namespace stdsharp
     template<typename T, std::size_t Size>
     class single_stack_allocator
     {
-        static constexpr auto byte_size(const std::size_t size) { return size * sizeof(T); }
+        [[nodiscard]] static constexpr auto byte_size(const std::size_t s) { return s * sizeof(T); }
 
     public:
         using value_type = T;
@@ -31,19 +31,19 @@ namespace stdsharp
         {
         }
 
-        [[nodiscard]] constexpr T* allocate(const std::size_t size)
+        [[nodiscard]] constexpr T* allocate(const std::size_t s)
         {
-            return pointer_cast<T>(resource().allocate(byte_size(size)));
+            return pointer_cast<T>(resource().allocate(byte_size(s)));
         }
 
-        [[nodiscard]] constexpr T* try_allocate(const std::size_t size)
+        [[nodiscard]] constexpr T* try_allocate(const std::size_t s)
         {
-            return pointer_cast<T>(resource().try_allocate(byte_size(size)));
+            return pointer_cast<T>(resource().try_allocate(byte_size(s)));
         }
 
-        constexpr void deallocate(T* const ptr, const std::size_t size) noexcept
+        constexpr void deallocate(T* const ptr, const std::size_t s) noexcept
         {
-            resource().deallocate(to_void_pointer(ptr), byte_size(size));
+            resource().deallocate(to_void_pointer(ptr), byte_size(s));
         }
 
         [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }

@@ -4,6 +4,8 @@
 using namespace std;
 using namespace stdsharp;
 
+auto foo() { indexed_values<int, float> v{1, 2.0f}; }
+
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: symmetric assign operation",
     "[functional][symmetric operation]",

@@ -163,7 +163,7 @@ namespace stdsharp
         using m_base = details::indexed_values<T...>::template impl<>;
 
     public:
-        using m_base::m_base;
+        using m_base::impl;
 
         indexed_values() = default;
 
