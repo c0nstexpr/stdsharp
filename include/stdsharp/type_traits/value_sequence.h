@@ -2,7 +2,6 @@
 #pragma once
 
 #include <ranges>
-#include <algorithm>
 #include <functional>
 
 #include "indexed_traits.h"
@@ -78,7 +77,7 @@ namespace stdsharp
                 requires std::predicate<Comp, U, T>
             constexpr bool operator()(const U& other) const noexcept(nothrow_predicate<Comp, U, T>)
             {
-                return std::invoke(comp, other, value);
+                return invoke(comp, other, value);
             }
 
             constexpr auto operator()(const auto& /*unused*/) const noexcept { return false; }
@@ -126,8 +125,8 @@ namespace stdsharp
                 >) // clang-format on
             )
             {
-                if constexpr(std::same_as<ResultType, void>) (std::invoke(func, Values), ...);
-                else return ResultType{std::invoke(func, Values)...};
+                if constexpr(std::same_as<ResultType, void>) (stdsharp::invoke(func, Values), ...);
+                else return ResultType{stdsharp::invoke(func, Values)...};
             };
         };
 
@@ -154,16 +153,16 @@ namespace stdsharp
                 requires requires //
             {
                 requires(sizeof...(Func) == 1);
-                typename value_sequence<std::invoke(Func..., Values)...>;
+                typename value_sequence<stdsharp::invoke(Func..., Values)...>;
             }
             {
-                return value_sequence<std::invoke(Func..., Values)...>{};
+                return value_sequence<stdsharp::invoke(Func..., Values)...>{};
             };
 
             [[nodiscard]] constexpr auto operator()() const noexcept
-                requires requires { typename value_sequence<std::invoke(Func, Values)...>; }
+                requires requires { typename value_sequence<stdsharp::invoke(Func, Values)...>; }
             {
-                return value_sequence<std::invoke(Func, Values)...>{}; // clang-format on
+                return value_sequence<stdsharp::invoke(Func, Values)...>{}; // clang-format on
             };
         };
 
@@ -226,7 +225,7 @@ namespace stdsharp
             template<proxy_concept<predicate> Func>
             constexpr auto operator()(Func func) const noexcept(nothrow_predicate<Func>::value)
             {
-                (std::invoke(func, Values), ...);
+                (stdsharp::invoke(func, Values), ...);
                 return func;
             }
         } for_each{};
@@ -237,7 +236,7 @@ namespace stdsharp
             constexpr auto operator()(auto count, Func func) const
                 noexcept(nothrow_predicate<Func>::value)
             {
-                ((count == 0 ? false : (std::invoke(func, Values), --count, true)) && ...);
+                ((count == 0 ? false : (stdsharp::invoke(func, Values), --count, true)) && ...);
                 return func;
             }
         } for_each_n{};
@@ -249,7 +248,7 @@ namespace stdsharp
                 noexcept(nothrow_predicate<Func>::value)
             {
                 std::size_t i = 0;
-                empty = ((std::invoke(func, Values) ? false : (++i, true)) && ...);
+                empty = ((stdsharp::invoke(func, Values) ? false : (++i, true)) && ...);
                 return i;
             }
         } find_if{};
@@ -274,7 +273,7 @@ namespace stdsharp
                      &func](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)> //
                     )
                     {
-                        if(std::invoke(func, v)) ++i;
+                        if(stdsharp::invoke(func, v)) ++i;
                     } //
                 );
 
@@ -309,7 +308,7 @@ namespace stdsharp
                 constexpr bool operator()(Comp& comp) const
                     noexcept(stdsharp::nothrow_predicate<Comp, bool>)
                 {
-                    return std::invoke(comp, value<I>, value<I + 1>);
+                    return stdsharp::invoke(comp, value<I>, value<I + 1>);
                 }
 
                 constexpr auto

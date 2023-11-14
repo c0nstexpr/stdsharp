@@ -20,12 +20,13 @@ set(src
     src/functional/symmetric_operations_test.cpp
     src/memory/composed_allocator_test.cpp
     src/memory/box_test.cpp
-    src/memory/static_allocator_test.cpp
+    src/memory/single_stack_allocator_test.cpp
     src/memory/soo_test.cpp
     src/type_traits/member_test.cpp
     src/type_traits/type_sequence_test.cpp
     src/type_traits/value_sequence_test.cpp
     src/utility/utility_test.cpp
+    src/lazy_value_test.cpp
     src/pattern_match_test.cpp
     src/synchronizer_test.cpp
     )

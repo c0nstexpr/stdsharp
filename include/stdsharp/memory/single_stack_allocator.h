@@ -7,13 +7,15 @@ namespace stdsharp
     template<typename T, std::size_t Size>
     class single_stack_allocator
     {
+        static constexpr auto byte_size(const std::size_t size) { return size * sizeof(T); }
+
     public:
         using value_type = T;
         using propagate_on_container_move_assignment = std::true_type;
 
         static constexpr auto size = Size;
 
-        using resource_type = single_stack_buffer<size * sizeof(T)>;
+        using resource_type = single_stack_buffer<size>;
 
         constexpr explicit single_stack_allocator(resource_type& src) noexcept: src_(src) {}
 
@@ -58,8 +60,6 @@ namespace stdsharp
 
     private:
         std::reference_wrapper<resource_type> src_;
-
-        static constexpr auto byte_size(const std::size_t size) { return size * sizeof(T); }
     };
 
     template<std::size_t Size>
@@ -69,10 +69,9 @@ namespace stdsharp
     struct make_single_stack_allocator_fn
     {
         template<std::size_t Size>
-            requires((Size % sizeof(T)) == 0)
         [[nodiscard]] constexpr auto operator()(single_stack_buffer<Size>& buffer) const noexcept
         {
-            return single_stack_allocator<T, Size / sizeof(T)>{buffer};
+            return single_stack_allocator<T, Size>{buffer};
         }
     };
 

@@ -13,7 +13,8 @@ namespace stdsharp::details
     private:
         struct shadow_type
         {
-            int v;
+            std::uintmax_t v;
+            std::uintmax_t w;
         };
 
     public:
@@ -541,23 +542,23 @@ namespace stdsharp
         {
             using on_assign = on_assign<true, true>;
 
-            std::invoke(fn, on_assign{false}, get_allocator());
+            invoke(fn, on_assign{false}, get_allocator());
             get_allocator() = cpp_forward(other);
-            std::invoke(fn, on_assign{true}, get_allocator());
+            invoke(fn, on_assign{true}, get_allocator());
         }
 
         constexpr void not_equal_assign(auto&& other, auto& fn)
         {
             using on_assign = on_assign<true, false>;
 
-            std::invoke(fn, on_assign{false}, get_allocator());
+            invoke(fn, on_assign{false}, get_allocator());
             get_allocator() = cpp_forward(other);
-            std::invoke(fn, on_assign{true}, get_allocator());
+            invoke(fn, on_assign{true}, get_allocator());
         }
 
         constexpr void no_assign(auto& fn)
         {
-            std::invoke(fn, on_assign<false, false>{}, get_allocator());
+            invoke(fn, on_assign<false, false>{}, get_allocator());
         }
 
     public:

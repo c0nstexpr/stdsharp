@@ -6,6 +6,7 @@
 
 #include <meta/meta.hpp>
 #include <nameof.hpp>
+#include <range/v3/functional/invoke.hpp>
 
 #include "../utility/adl_proof.h"
 #include "../macros.h"
@@ -16,6 +17,29 @@ using namespace std::literals;
 
 namespace stdsharp
 {
+    using ranges::invoke;
+
+    template<typename ReturnT>
+    struct invoke_r_fn
+    {
+        template<typename... Args, typename Func>
+            requires std::is_invocable_r_v<ReturnT, Func, Args...>
+        [[nodiscard]] constexpr ReturnT operator()(Func&& func, Args&&... args) const
+            noexcept(std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>)
+        {
+            return
+#if __cpp_lib_invoke_r >= 202106L
+                std::invoke_r<ReturnT>(cpp_forward(func), cpp_forward(args)...)
+#else
+                static_cast<ReturnT>(invoke(cpp_forward(func), cpp_forward(args)...))
+#endif
+                    ;
+        };
+    };
+
+    template<typename ReturnT>
+    inline constexpr invoke_r_fn<ReturnT> invoke_r{};
+
     template<bool Noexcept, typename Ret, typename... Args>
     using func_pointer = Ret (*)(Args...) noexcept(Noexcept);
 
@@ -103,8 +127,11 @@ namespace stdsharp
 
     constexpr auto get_expr_req(const bool well_formed, const bool no_exception = false) noexcept
     {
-        return well_formed ? no_exception ? expr_req::no_exception : expr_req::well_formed :
-                             expr_req::ill_formed;
+        return well_formed ? //
+            no_exception ? //
+                expr_req::no_exception :
+                expr_req::well_formed :
+            expr_req::ill_formed;
     }
 
     constexpr bool is_well_formed(const expr_req req) noexcept
@@ -265,8 +292,8 @@ namespace stdsharp::details
         to_regular_value_sequence(std::integer_sequence<T, V...>);
 
     template<auto From, auto PlusF, std::size_t... I>
-        requires requires { regular_value_sequence<std::invoke(PlusF, From, I)...>{}; }
-    consteval regular_value_sequence<std::invoke(PlusF, From, I)...>
+        requires requires { regular_value_sequence<invoke(PlusF, From, I)...>{}; }
+    consteval regular_value_sequence<invoke(PlusF, From, I)...>
         make_value_sequence(std::index_sequence<I...>) noexcept;
 
     template<std::array Array, std::size_t... Index>

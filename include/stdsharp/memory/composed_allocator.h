@@ -83,7 +83,7 @@ namespace stdsharp
         {
         }
 
-        constexpr auto allocate(const std::size_t n, const void* const hint = nullptr)
+        [[nodiscard]] constexpr auto allocate(const std::size_t n, const void* const hint = nullptr)
         {
             const auto ptr = first_traits::try_allocate(
                 alloc_pair_.first,
@@ -99,7 +99,8 @@ namespace stdsharp
                 ptr;
         }
 
-        constexpr auto try_allocate(const std::size_t n, const void* const hint = nullptr) noexcept
+        [[nodiscard]] constexpr auto
+            try_allocate(const std::size_t n, const void* const hint = nullptr) noexcept
         {
             const auto ptr = first_traits::try_allocate(
                 alloc_pair_.first,
@@ -185,7 +186,7 @@ namespace stdsharp
             return second_traits::construct(second, ptr, cpp_forward(args)...);
         }
 
-        constexpr bool contains(const value_type* const ptr) const noexcept
+        [[nodiscard]] constexpr bool contains(const value_type* const ptr) const noexcept
             requires allocator_contains<SecondAlloc>
         {
             const auto vp = static_cast<const void*>(ptr);
@@ -194,19 +195,25 @@ namespace stdsharp
                 second.contains(second_cvp_traits::to_pointer(vp));
         }
 
-        bool operator==(const composed_allocator&) const noexcept = default;
+        [[nodiscard]] bool operator==(const composed_allocator&) const noexcept = default;
 
-        constexpr auto& get_allocators() const noexcept { return alloc_pair_; }
+        [[nodiscard]] constexpr auto& get_allocators() const noexcept { return alloc_pair_; }
 
-        constexpr auto& get_allocators() noexcept { return alloc_pair_; }
+        [[nodiscard]] constexpr auto& get_allocators() noexcept { return alloc_pair_; }
 
-        constexpr auto& get_first_allocator() const noexcept { return alloc_pair_.first; }
+        [[nodiscard]] constexpr auto& get_first_allocator() const noexcept
+        {
+            return alloc_pair_.first;
+        }
 
-        constexpr auto& get_first_allocator() noexcept { return alloc_pair_.first; }
+        [[nodiscard]] constexpr auto& get_first_allocator() noexcept { return alloc_pair_.first; }
 
-        constexpr auto& get_second_allocator() const noexcept { return alloc_pair_.second; }
+        [[nodiscard]] constexpr auto& get_second_allocator() const noexcept
+        {
+            return alloc_pair_.second;
+        }
 
-        constexpr auto& get_second_allocator() noexcept { return alloc_pair_.second; }
+        [[nodiscard]] constexpr auto& get_second_allocator() noexcept { return alloc_pair_.second; }
     };
 
     template<typename T, typename U>

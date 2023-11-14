@@ -132,12 +132,12 @@ namespace stdsharp::details
             using indexed_value_type = std::tuple_element_t<Index, indexed_types>;
 
         public:
-#define STDSHARP_GET(cv, ref)                                                      \
-    template<std::size_t Index>                                                    \
-    [[nodiscard]] constexpr cv indexed_value_type<Index> ref get() cv ref noexcept \
-    {                                                                              \
-        using indexed = indexed_value<indexed_value_type<Index>, Index>;           \
-        return static_cast<cv indexed ref>(*this).v;                               \
+#define STDSHARP_GET(cv, ref)                                            \
+    template<std::size_t Index>                                          \
+    [[nodiscard]] constexpr decltype(auto) get() cv ref noexcept         \
+    {                                                                    \
+        using indexed = indexed_value<indexed_value_type<Index>, Index>; \
+        return static_cast<cv indexed ref>(*this).get();                 \
     }
 
             STDSHARP_GET(, &)
@@ -200,7 +200,7 @@ namespace stdsharp
             const std::index_sequence<I...> /*unused*/
         ) noexcept(nothrow_invocable<Fn, get_element_t<I, Indexed>...>)
         {
-            return std::invoke(cpp_forward(fn), cpo::get_element<I>(cpp_forward(indexed))...);
+            return invoke(cpp_forward(fn), cpo::get_element<I>(cpp_forward(indexed))...);
         }
 
     public:

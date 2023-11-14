@@ -22,7 +22,7 @@ namespace stdsharp::scope
     private:
         constexpr void execute() noexcept
         {
-            std::invoke(cpp_move(this->value()));
+            invoke(cpp_move(this->value()));
             this->reset();
         };
 

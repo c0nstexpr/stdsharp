@@ -59,7 +59,7 @@ namespace stdsharp
     private:
         [[nodiscard]] constexpr void* data() noexcept { return auto_cast(storage_.data()); }
 
-        alignas(std::max_align_t) std::array<byte, size> storage_{};
         std::size_t allocate_size_ = 0;
+        alignas(std::max_align_t) std::array<byte, size> storage_{};
     };
 }

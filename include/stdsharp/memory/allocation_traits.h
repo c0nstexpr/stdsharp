@@ -110,7 +110,7 @@ namespace stdsharp
             {
                 for(const auto& [src_allocation, dst_allocation] :
                     std::views::zip(cpp_forward(src), cpp_forward(dst)))
-                    std::invoke(fn, alloc, src_allocation, dst_allocation);
+                    invoke(fn, alloc, src_allocation, dst_allocation);
             }
         } on_construct{};
 
@@ -132,7 +132,7 @@ namespace stdsharp
             {
                 for(const auto& [src_allocation, dst_allocation] :
                     std::views::zip(cpp_forward(src), cpp_forward(dst)))
-                    std::invoke(fn, src_allocation, dst_allocation);
+                    invoke(fn, src_allocation, dst_allocation);
             }
         } on_assign{};
 
@@ -145,7 +145,7 @@ namespace stdsharp
                 nothrow_invocable<Fn&, allocator_type&, range_const_reference_t<Dst>> //
             )
             {
-                for(const auto& allocation : cpp_forward(dst)) std::invoke(fn, alloc, allocation);
+                for(const auto& allocation : cpp_forward(dst)) invoke(fn, alloc, allocation);
             }
         } on_destroy{};
 

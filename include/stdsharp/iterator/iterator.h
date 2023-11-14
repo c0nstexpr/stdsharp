@@ -18,20 +18,20 @@ namespace stdsharp
 #endif
         ;
 
-    template<typename I>
-    concept weakly_decrementable = std::movable<I> &&
-        requires(I i) //
-    {
-        typename std::iter_difference_t<I>;
-        requires std::signed_integral<std::iter_difference_t<I>>; // clang-format off
-        { --i } -> std::same_as<I&>; // clang-format on
+    template<typename T>
+    concept weakly_decrementable = std::movable<T> && requires(T i) {
+        typename std::iter_difference_t<T>;
+        requires std::signed_integral<std::iter_difference_t<T>>;
+        {
+            --i
+        } -> std::same_as<T&>;
         i--;
     };
 
-    template<typename I>
-    concept decrementable = std::regular<I> && weakly_decrementable<I> &&
-        requires(I i) // clang-format off
-    {
-        { i-- } -> std::same_as<I>; // clang-format on
+    template<typename T>
+    concept decrementable = std::regular<T> && weakly_decrementable<T> && requires(T i) {
+        {
+            i--
+        } -> std::same_as<T>;
     };
 }

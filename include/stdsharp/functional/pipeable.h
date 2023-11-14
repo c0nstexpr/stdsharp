@@ -64,7 +64,7 @@ namespace stdsharp
             friend constexpr decltype(auto) operator|(Arg && arg, Pipe && pipe) //
                 noexcept(nothrow_invocable<Pipe, Arg>)
             {
-                return std::invoke(pipe, cpp_forward(arg));
+                return invoke(pipe, cpp_forward(arg));
             }
 
             template<pipeable<pipe_mode::right> Pipe, typename Arg>
@@ -72,7 +72,7 @@ namespace stdsharp
             friend constexpr decltype(auto) operator|(Pipe && pipe, Arg && arg) //
                 noexcept(nothrow_invocable<Pipe, Arg>)
             {
-                return std::invoke(pipe, cpp_forward(arg));
+                return invoke(pipe, cpp_forward(arg));
             }
         };
     }

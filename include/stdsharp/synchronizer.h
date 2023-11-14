@@ -60,20 +60,20 @@ namespace stdsharp
         static constexpr void read_impl(This&& instance, Func&& func)
         {
             const std::shared_lock lock{instance.lockable()};
-            std::invoke(cpp_forward(func), cpp_forward(instance).object_);
+            invoke(cpp_forward(func), cpp_forward(instance).object_);
         }
 
         template<typename Func>
         static constexpr void write_impl(synchronizer&& instance, Func&& func)
         {
-            std::invoke(cpp_forward(func), cpp_move(instance).object_);
+            invoke(cpp_forward(func), cpp_move(instance).object_);
         }
 
         template<typename Func>
         static constexpr void write_impl(synchronizer& instance, Func&& func)
         {
             const std::unique_lock lock{instance.lockable()};
-            std::invoke(cpp_forward(func), instance.object_);
+            invoke(cpp_forward(func), instance.object_);
         }
 
     public:

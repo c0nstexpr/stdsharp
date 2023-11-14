@@ -32,7 +32,7 @@ namespace stdsharp
         {
             try
             {
-                std::invoke(cpp_forward(t));
+                invoke(cpp_forward(t));
             }
             catch(...)
             {
@@ -46,7 +46,7 @@ namespace stdsharp
         {
             try
             {
-                std::invoke(cpp_forward(t));
+                invoke(cpp_forward(t));
             }
             catch(...)
             {

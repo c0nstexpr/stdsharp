@@ -6,8 +6,13 @@ using namespace std;
 
 SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 {
-    struct base // NOLINT(*-special-member-functions)
+    struct base
     {
+        base() = default;
+        base(const base&) = default;
+        base(base&&) = default;
+        base& operator=(const base&) = default;
+        base& operator=(base&&) = default;
         virtual ~base() = default;
         [[nodiscard]] constexpr virtual int foo() const = 0;
     };
@@ -20,8 +25,6 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
         [[nodiscard]] constexpr int foo() const override { return v; }
     };
-
-    // NOLINTBEGIN(*-reinterpret-cast)
 
     single_stack_buffer<sizeof(derived)> rsc;
 
@@ -63,6 +66,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
         }
     }
 
+#if __cpp_constexpr >= 202306L
     GIVEN("allocator with 4 * sizeof(int), constexpr allocate and deallocate")
     {
         STATIC_REQUIRE(
@@ -79,6 +83,5 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
             }()
         );
     }
-
-    // NOLINTEND(*-reinterpret-cast)
+#endif
 }

@@ -81,6 +81,12 @@ void allocation_functionality_test(T box = T{})
 
         allocation_emplace_value_test(
             box,
+            std::array<unsigned, 5>{1, 2, 3, 4, 5},
+            [](const auto& v, const auto& value) { REQUIRE(v == value); }
+        );
+
+        allocation_emplace_value_test(
+            box,
             vector<int>{1, 2},
             [](const vector<int>& v, const vector<int>& value)
             {

@@ -11,9 +11,9 @@ namespace stdsharp
         {
             auto&& [first, second] = cases;
 
-            if(std::invoke(first, condition))
+            if(invoke(first, condition))
             {
-                std::invoke(second, condition);
+                invoke(second, condition);
                 return true;
             }
             return false;
@@ -65,7 +65,7 @@ namespace stdsharp
             private:
                 static constexpr auto invoke(std::invocable<T> auto& c)
                 {
-                    std::invoke(c, T{});
+                    stdsharp::invoke(c, T{});
                     return true;
                 }
 

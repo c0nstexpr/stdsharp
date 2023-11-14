@@ -80,9 +80,9 @@ namespace stdsharp::filesystem
         }
 
         [[nodiscard]] friend constexpr bool
-            operator==(const space_size& l, const space_size& r) noexcept
+            operator==(const space_size& lhs, const space_size& rhs) noexcept
         {
-            return l.size() == r.size();
+            return lhs.size() == rhs.size();
         }
 
         [[nodiscard]] constexpr auto size() const noexcept { return size_; }

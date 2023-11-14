@@ -15,7 +15,7 @@ namespace stdsharp
         noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
         -> T& // clang-format on
     {
-        if(std::invoke(cpp_move(comp), right, left)) left = cpp_forward(right);
+        if(invoke(cpp_move(comp), right, left)) left = cpp_forward(right);
         return left;
     };
 
@@ -60,13 +60,13 @@ namespace stdsharp
                 > // clang-format on
             )
         {
-            const auto& proj_max = std::invoke(proj, max);
-            const auto& proj_min = std::invoke(proj, min);
-            const auto& proj_t = std::invoke(proj, t);
+            const auto& proj_max = invoke(proj, max);
+            const auto& proj_min = invoke(proj, min);
+            const auto& proj_t = invoke(proj, t);
 
-            Expects(!std::invoke(cmp, proj_max, proj_min));
+            Expects(!invoke(cmp, proj_max, proj_min));
 
-            return !std::invoke(cmp, proj_t, proj_min) && !std::invoke(cmp, proj_max, proj_t);
+            return !invoke(cmp, proj_t, proj_min) && !invoke(cmp, proj_max, proj_t);
         }
     } is_between{};
 

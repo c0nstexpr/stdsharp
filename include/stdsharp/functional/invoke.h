@@ -1,13 +1,9 @@
 #pragma once
 
-#include <range/v3/functional/invoke.hpp>
-
 #include "invocables.h"
 
 namespace stdsharp
 {
-    using ranges::invoke;
-
     inline constexpr struct empty_invoke_fn
     {
         constexpr empty_t operator()(const auto&... /*unused*/) const noexcept { return {}; }
@@ -49,26 +45,6 @@ namespace stdsharp
     concept nothrow_conditional_invocable =
         nothrow_invocable<conditional_invoke_fn<Condition>, T, U>;
 
-    template<typename ReturnT>
-    struct invoke_r_fn
-    {
-        template<typename... Args, invocable_r<ReturnT, Args...> Func>
-        [[nodiscard]] constexpr ReturnT operator()(Func&& func, Args&&... args) const
-            noexcept(nothrow_invocable_r<Func, ReturnT, Args...>)
-        {
-            return
-#if __cpp_lib_invoke_r >= 202106L
-                std::invoke_r<ReturnT>(cpp_forward(func), cpp_forward(args)...)
-#else
-                static_cast<ReturnT>(std::invoke(cpp_forward(func), cpp_forward(args)...))
-#endif
-                    ;
-        };
-    };
-
-    template<typename ReturnT>
-    inline constexpr invoke_r_fn<ReturnT> invoke_r{};
-
     inline constexpr struct projected_invoke_fn
     {
         template<typename Fn, typename Projector, typename... Args>
@@ -83,7 +59,7 @@ namespace stdsharp
                 nothrow_invocable<Fn, std::invoke_result_t<Projector, Args>...> //
             )
         {
-            return std::invoke(cpp_forward(fn), std::invoke(projector, cpp_forward(args))...);
+            return invoke(cpp_forward(fn), invoke(projector, cpp_forward(args))...);
         }
     } projected_invoke{};
 

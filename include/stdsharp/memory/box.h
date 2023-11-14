@@ -71,7 +71,7 @@ namespace stdsharp
         std::size_t value_size_{};
 
         template<std::size_t I>
-        constexpr bool equal_to(const allocation_value& other) const noexcept
+        [[nodiscard]] constexpr bool equal_to(const allocation_value& other) const noexcept
         {
             return cpo::get_element<I>(static_cast<const m_dispatchers&>(*this)) ==
                 cpo::get_element<I>(static_cast<const m_dispatchers&>(other));
@@ -139,25 +139,37 @@ namespace stdsharp
         allocations_type allocations_;
         allocation_value allocation_value_{};
 
-        constexpr auto& get_allocations() noexcept { return allocations_; }
+        [[nodiscard]] constexpr auto& get_allocations() noexcept { return allocations_; }
 
-        constexpr auto& get_allocations() const noexcept { return allocations_; }
+        [[nodiscard]] constexpr auto& get_allocations() const noexcept { return allocations_; }
 
-        constexpr auto& get_allocations_view() noexcept { return get_allocations(); }
+        [[nodiscard]] constexpr auto& get_allocations_view() noexcept { return get_allocations(); }
 
-        constexpr auto get_allocations_view() const noexcept
+        [[nodiscard]] constexpr auto get_allocations_view() const noexcept
         {
             return callocations_type{std::ranges::ref_view{get_allocations()}, {}};
         }
 
-        constexpr auto& get_allocation() noexcept { return get_allocations().front(); }
+        [[nodiscard]] constexpr auto& get_allocation() noexcept
+        {
+            return get_allocations().front();
+        }
 
-        constexpr auto& get_allocation() const noexcept { return get_allocations().front(); }
+        [[nodiscard]] constexpr auto& get_allocation() const noexcept
+        {
+            return get_allocations().front();
+        }
 
-        constexpr auto& get_allocator() noexcept { return alloc_adaptor_.get_allocator(); }
+        [[nodiscard]] constexpr auto& get_allocator() noexcept
+        {
+            return alloc_adaptor_.get_allocator();
+        }
 
     public:
-        constexpr auto& get_allocator() const noexcept { return alloc_adaptor_.get_allocator(); }
+        [[nodiscard]] constexpr auto& get_allocator() const noexcept
+        {
+            return alloc_adaptor_.get_allocator();
+        }
 
         box() = default;
 
@@ -488,8 +500,8 @@ namespace stdsharp
         };
 
     public:
-        constexpr box& operator=(const box& other
-        ) noexcept(allocator_nothrow_copy_assignable<allocator_type, cp_assign_fn>)
+        constexpr box& operator=(const box& other) //
+            noexcept(allocator_nothrow_copy_assignable<allocator_type, cp_assign_fn>)
             requires allocator_copy_assignable<allocator_type, cp_assign_fn>
         {
             alloc_adaptor_.assign(other.get_allocator(), cp_assign_fn{*this, other});
@@ -497,8 +509,8 @@ namespace stdsharp
             return *this;
         }
 
-        constexpr box& operator=(box&& other
-        ) noexcept(allocator_nothrow_move_assignable<allocator_type, mov_assign_fn>)
+        constexpr box& operator=(box&& other) //
+            noexcept(allocator_nothrow_move_assignable<allocator_type, mov_assign_fn>)
             requires allocator_move_assignable<allocator_type, mov_assign_fn>
         {
             alloc_adaptor_.assign(cpp_move(other.get_allocator()), mov_assign_fn{*this, other});
@@ -632,7 +644,7 @@ namespace stdsharp
     {
         template<typename T>
             requires std::constructible_from<box_for<std::decay_t<T>, Alloc>, T>
-        constexpr box_for<std::decay_t<T>, Alloc> operator()(T&& t) const
+        [[nodiscard]] constexpr box_for<std::decay_t<T>, Alloc> operator()(T&& t) const
         {
             using decay_t = std::decay_t<T>;
             return {std::in_place_type<decay_t>, cpp_forward(t)};

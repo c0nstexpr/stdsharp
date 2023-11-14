@@ -27,7 +27,7 @@ namespace stdsharp::details
             static constexpr decltype(auto) operator_impl(This&& this_, Args&&... args) //
                 noexcept(nothrow_invocable<Fn, Args...>)
             {
-                return std::invoke(
+                return invoke(
                     cpo::get_element<I>( //
                         static_cast<cv_ref_align_t<This&&, indexed_values>>(
                             static_cast<cv_ref_align_t<This&&, type>>(this_)

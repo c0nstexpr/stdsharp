@@ -6,6 +6,7 @@
 
 #include "../namespace_alias.h"
 #include "../concepts/concepts.h"
+#include "../type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -20,7 +21,7 @@ namespace stdsharp
     inline constexpr auto assert_with =
         []<typename... Args>(std::predicate<Args...> auto&& fn, Args&&... args) noexcept
     {
-        Expects(std::invoke_r<bool>(fn, cpp_forward(args)...)); //
+        Expects(invoke_r<bool>(fn, cpp_forward(args)...)); //
     };
 
     inline constexpr auto assert_equal = []<typename T, typename U>(T&& t, U&& u) noexcept

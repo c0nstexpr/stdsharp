@@ -1,6 +1,6 @@
 # stdsharp
 
-![C++](https://img.shields.io/badge/C%2B%2B-23-blue)
+![C++](https://img.shields.io/badge/C%2B%2B-26-blue)
 [![Build Status](https://github.com/c0nstexpr/stdsharp/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/c0nstexpr/stdsharp/actions/workflows/build-and-test.yml)
 [![Codacy Code Grade](https://app.codacy.com/project/badge/Grade/f08b08ddd5e146c69b39ac5001f06c6a)](https://app.codacy.com/gh/c0nstexpr/stdsharp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codacy Code Coverage](https://app.codacy.com/project/badge/Coverage/f08b08ddd5e146c69b39ac5001f06c6a)](https://app.codacy.com/gh/c0nstexpr/stdsharp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
@@ -16,7 +16,7 @@ An optimized and supplement library of fundamental features for standard c++. He
 
 - **[CMake v3.22+](https://github.com/c0nstexpr/stdsharp/blob/main/CMakeLists.txt#L1)** - required for building
 
-- **C++ Compiler** - needs to support at least the **C++20** and **partial C++23** standard, i.e. _MSVC_, _GCC_, _Clang_. You could checkout [github workflow file](.github/workflows/build.yml) for suitable compilers.
+- **C++ Compiler** - needs to support at least the **C++20** and **partial C++23/26** features, i.e. _MSVC_, _GCC_, _Clang_. You could checkout [github workflow file](.github/workflows/build.yml) for suitable compilers.
 
   - Note that if you're using clang as compiler, [ld.lld](https://lld.llvm.org/) is required. Using [libc++](https://libcxx.llvm.org/) as compiler STL is recommended to ensure compatibility.
 
