@@ -68,12 +68,10 @@ namespace stdsharp::cpo::inline cpo_impl
                 return symmetric_operation(cpp_forward(args)...);
             }
         };
-
-        using symmetric_operation_fn =
-            sequenced_invocables<adl_symmetric_operation_fn, specialized_operation_fn>;
     }
 
-    using details::symmetric_operation_fn;
+    using symmetric_operation_fn =
+        sequenced_invocables<details::adl_symmetric_operation_fn, details::specialized_operation_fn>;
 
     inline constexpr symmetric_operation_fn symmetric_operation{};
 }

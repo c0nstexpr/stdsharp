@@ -172,12 +172,13 @@ namespace stdsharp
         template<
             typename T,
             typename... Args,
-            std::invocable<first_allocator_type, T*, Args...> FirstCtor = first_traits::constructor,
-            std::invocable<second_allocator_type, T*, Args...> SecondCtor =
-                second_traits::constructor>
+            typename FirstCtor = first_traits::constructor,
+            typename SecondCtor = second_traits::constructor>
+            requires std::invocable<FirstCtor, first_allocator_type&, T*, Args...> &&
+            std::invocable<SecondCtor, second_allocator_type&, T*, Args...>
         constexpr decltype(auto) construct(T* const ptr, Args&&... args) noexcept(
-            nothrow_invocable<FirstCtor, first_allocator_type, T*, Args...> &&
-            nothrow_invocable<SecondCtor, second_allocator_type, T*, Args...> //
+            nothrow_invocable<FirstCtor, first_allocator_type&, T*, Args...> &&
+            nothrow_invocable<SecondCtor, second_allocator_type&, T*, Args...> //
         )
         {
             auto& [first, second] = alloc_pair_;

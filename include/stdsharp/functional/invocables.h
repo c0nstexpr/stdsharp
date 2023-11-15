@@ -47,9 +47,9 @@ namespace stdsharp::details
         using type = impl<>;
 
         template<std::size_t... I>
-        struct impl<std::index_sequence<I...>> :
-            indexed_operator<indexed_values, I>...,
-            indexed_values
+        struct STDSHARP_EBO impl<std::index_sequence<I...>> :
+            indexed_values,
+            indexed_operator<indexed_values, I>...
         {
             using indexed_values::indexed_values;
             using indexed_operator<indexed_values, I>::operator()...;
@@ -63,10 +63,18 @@ namespace stdsharp
     struct invocables : details::invocables_traits<Func...>::type
     {
     private:
-        using m_base = details::invocables_traits<Func...>::type;
+        using m_invocables = details::invocables_traits<Func...>::type;
 
     public:
-        using m_base::m_base;
+        template<typename... Args>
+            requires std::constructible_from<m_invocables, Args...>
+        constexpr invocables(Args&&... args) //
+            noexcept(nothrow_constructible_from<m_invocables, Args...>):
+            m_invocables(cpp_forward(args)...)
+        {
+        }
+
+        invocables() = default;
     };
 
     template<typename... T>
@@ -145,6 +153,8 @@ namespace stdsharp
         using base = invocables<Invocable...>;
 
         using base::base;
+
+        sequenced_invocables() = default;
 
     private:
         template<typename This, typename... Args, typename Base = cv_ref_align_t<This&&, base>>

@@ -160,23 +160,23 @@ namespace stdsharp
     struct indexed_values : details::indexed_values<T...>::template impl<>
     {
     private:
-        using m_base = details::indexed_values<T...>::template impl<>;
+        using m_indexed = details::indexed_values<T...>::template impl<>;
 
     public:
-        using m_base::impl;
+        using m_indexed::m_indexed;
 
         indexed_values() = default;
 
         template<typename... U>
         explicit(sizeof...(U) == 1) constexpr indexed_values(U&&... u) //
-            noexcept(nothrow_constructible_from<m_base, details::indexed_piecewise_t, U...>)
+            noexcept(nothrow_constructible_from<m_indexed, details::indexed_piecewise_t, U...>)
             requires requires {
-                requires std::constructible_from<m_base, details::indexed_piecewise_t, U...>;
+                requires std::constructible_from<m_indexed, details::indexed_piecewise_t, U...>;
                 requires sizeof...(T) >= 1;
                 requires(sizeof...(U) != 1) ||
                     !(std::same_as<std::remove_cvref_t<U>, indexed_values> && ...);
             }
-            : m_base(details::indexed_piecewise_t{}, cpp_forward(u)...)
+            : m_indexed(details::indexed_piecewise_t{}, cpp_forward(u)...)
         {
         }
     };

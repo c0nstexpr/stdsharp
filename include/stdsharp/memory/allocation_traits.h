@@ -70,9 +70,8 @@ namespace stdsharp
         template<typename T = Alloc::value_type>
         struct constructor
         {
-            template<
-                typename... Args,
-                std::invocable<allocator_type&, T*, Args...> Ctor = allocator_traits::constructor>
+            template<typename... Args, typename Ctor = allocator_traits::constructor>
+                requires std::invocable<Ctor, allocator_type&, T*, Args...>
             constexpr void operator()(
                 allocator_type& alloc,
                 const allocation<Alloc> auto& allocation,

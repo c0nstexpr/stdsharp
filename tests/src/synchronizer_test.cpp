@@ -16,18 +16,21 @@ SCENARIO("synchronizer", "[synchronizer]") // NOLINT
 
         static constexpr bool try_lock_shared() { return true; }
 
+        static constexpr bool try_lock() { return true; }
+
         static constexpr void unlock_shared() {}
+
+        my_mutex() = default;
+        my_mutex(const my_mutex&) = delete;
+        my_mutex(my_mutex&&) = delete;
+        my_mutex& operator=(const my_mutex&) = delete;
+        my_mutex& operator=(my_mutex&&) = delete;
+        ~my_mutex() = default;
     };
 
-    STATIC_REQUIRE(copyable<synchronizer<int>>);
-    STATIC_REQUIRE(movable<synchronizer<int>>);
-
-    STATIC_REQUIRE(default_initializable<synchronizer<int>>);
-    STATIC_REQUIRE(constructible_from<synchronizer<int>, synchronizer<int, my_mutex>>);
-    STATIC_REQUIRE(constructible_from<synchronizer<int>, const synchronizer<int, my_mutex>&>);
-
-    STATIC_REQUIRE(assignable<synchronizer<int>&, synchronizer<int, my_mutex>>);
-    STATIC_REQUIRE(assignable<synchronizer<int>&, const synchronizer<int, my_mutex>&>);
+    STATIC_REQUIRE(!movable<synchronizer<int, my_mutex>>);
+    STATIC_REQUIRE(default_initializable<synchronizer<int, my_mutex>>);
+    STATIC_REQUIRE(constructible_from<synchronizer<int, my_mutex>, int>);
 }
 
 SCENARIO("synchronizer reflection support", "[synchronizer]") // NOLINT
@@ -35,15 +38,12 @@ SCENARIO("synchronizer reflection support", "[synchronizer]") // NOLINT
     using namespace reflection;
     using namespace stdsharp::literals;
 
-    using concurrent_object_t = synchronizer<int>;
+    using synchronizer = synchronizer<int>;
 
-    using function = reflection::function_t<concurrent_object_t>;
+    synchronizer syn{};
+    constexpr auto read_fn = reflection::function<synchronizer>.member_of<"read"_ltr>();
+    constexpr auto write_fn = reflection::function<synchronizer>.member_of<"write"_ltr>();
 
-    STATIC_REQUIRE( //
-        invocable<
-            function::member_of_t<to_array("read")>,
-            concurrent_object_t,
-            void(const ::std::optional<int>) // clang-format off
-        > // clang-format on
-    );
+    write_fn(syn, [](int& value) { value = 43; });
+    read_fn(syn, [](const int& value) { REQUIRE(value == 43); });
 }

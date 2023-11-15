@@ -28,10 +28,10 @@ SCENARIO("constexpr box", "[memory][box]") // NOLINT
     STATIC_REQUIRE(
         []
         {
-            trivial_box<allocator<int>> allocation{};
-            auto& value = allocation.emplace(1);
+            trivial_box<allocator<int>> b{};
+            auto& value = b.emplace(1);
             value = 42;
-            return allocation.get<int>();
+            return b.get<int>();
         }() == 42
     );
 }

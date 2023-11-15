@@ -25,12 +25,9 @@ namespace stdsharp::reflection
         template<auto Ptr>
         struct data_meta_getter : member_pointer_traits<Ptr>
         {
-            template<typename T>
-                requires std::invocable<cast_fwd_fn<Reflected>, T>
-            constexpr decltype(auto) operator()(T && t) const
-                noexcept(nothrow_invocable<cast_fwd_fn<Reflected>, T>)
+            constexpr decltype(auto) operator()(decay_same_as<Reflected> auto&& t) const noexcept
             {
-                return cast_fwd<Reflected>(cpp_forward(t)).*Ptr;
+                return cpp_forward(t).*Ptr;
             }
         };
 
@@ -38,19 +35,15 @@ namespace stdsharp::reflection
         using data_meta = meta_base<Name, data_meta_getter<Ptr>>;
 
         template<literals::ltr... Name, typename... Getter>
-        struct meta_set<meta_base<Name, Getter>...> : indexed_types<meta_base<Name, Getter>...>
+        struct meta_set<meta_base<Name, Getter>...>
         {
-            template<decltype(auto) N>
+            template<auto N>
                 requires(std::ranges::equal(N, Name) || ...)
-            using member_of_t = std::invoke_result_t< //
-                invocables<meta_base<Name, Getter> (*)(constant<std::ranges::equal(N, Name)>)...>,
-                constant<true> // clang-format off
-            >; // clang-format on
-
-            template<decltype(auto) N>
-            static consteval member_of_t<N> member_of()
+            static consteval auto member_of()
             {
-                return {};
+                constexpr std::array found_indices{std::ranges::equal(N, Name)...};
+                constexpr auto i = std::ranges::find(found_indices, true) - found_indices.cbegin();
+                return std::tuple_element_t<i, indexed_types<meta_base<Name, Getter>...>>{};
             }
         };
 
@@ -71,20 +64,14 @@ namespace stdsharp::reflection
     };
 
     template<typename Reflected>
-    inline constexpr std::conditional_t<dependent_false<Reflected>(), int, void> function;
+    inline constexpr auto function = empty;
 
     template<typename Reflected>
-    using function_t = decltype(function<Reflected>);
-
-    template<typename Reflected>
-    inline constexpr std::conditional_t<dependent_false<Reflected>(), int, void> data;
-
-    template<typename Reflected>
-    using data_t = decltype(data<Reflected>);
+    inline constexpr auto data = empty;
 
     template<typename T, typename U>
-    inline constexpr auto data<std::pair<T, U>> =
-        member<std::pair<T, U>>::template data_reflect<literals::ltr{"first"}, literals::ltr{"second"}>(
+    inline constexpr auto data<std::pair<T, U>> = member<std::pair<T, U>>::
+        template data_reflect<literals::ltr{"first"}, literals::ltr{"second"}>(
             regular_value_sequence<&std::pair<T, U>::first, &std::pair<T, U>::second>{}
         );
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <variant>
+#include <memory>
 
 #include "concepts/concepts.h"
 #include "type_traits/core_traits.h"
@@ -53,7 +54,7 @@ namespace stdsharp
 
         template<typename... Args>
             requires std::constructible_from<Fn, Args...>
-        constexpr explicit(sizeof...(Args) != 1) lazy_value(Args&&... args) //
+        constexpr explicit(sizeof...(Args) == 1) lazy_value(Args&&... args) //
             noexcept(nothrow_constructible_from<Fn, Args...>):
             fn_(cpp_forward(args)...)
         {

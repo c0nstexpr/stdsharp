@@ -57,6 +57,8 @@ namespace stdsharp
     public:
         using invocables::invocables;
 
+        composed() = default;
+
         STDSHARP_MEM_PACK(operator(), operator_impl, composed)
     };
 

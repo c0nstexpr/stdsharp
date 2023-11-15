@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iterator>
+#include <memory_resource>
+#include <scoped_allocator>
 
 #include "../type_traits/special_member.h"
 #include "../utility/constructor.h"
@@ -20,6 +22,15 @@ namespace stdsharp::details
     public:
         template<typename Traits>
         using rebind_traits = Traits::template rebind_traits<shadow_type>;
+
+        template<typename T>
+        static void is_std_alloc_test(const std::allocator<T>&);
+
+        template<typename T>
+        static void is_std_alloc_test(const std::pmr::polymorphic_allocator<T>&);
+
+        template<typename... T>
+        static void is_std_alloc_test(const std::scoped_allocator_adaptor<T...>&);
     };
 
     template<typename T>
@@ -119,7 +130,13 @@ namespace stdsharp
                 t_traits.destroy(alloc, other_p);
             };
 
-            requires noexcept(alloc == alloc)&& noexcept(alloc != alloc);
+            {
+                alloc == alloc
+            } noexcept;
+
+            {
+                alloc != alloc
+            } noexcept;
 
             pointer_traits<decltype(p)>::pointer_to(v);
 
@@ -130,9 +147,11 @@ namespace stdsharp
                 t_traits.allocate(alloc, size, const_void_p)
             } -> std::same_as<decltype(p)>;
 
-            {
-                alloc.deallocate(p, size)
-            } noexcept;
+            requires requires {
+                {
+                    alloc.deallocate(p, size)
+                } noexcept;
+            } || requires { details::allocator_concept_traits::is_std_alloc_test(alloc); };
 
             {
                 t_traits.max_size(alloc)

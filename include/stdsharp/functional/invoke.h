@@ -18,20 +18,23 @@ namespace stdsharp
     struct conditional_invoke_fn
     {
         template<std::invocable Func>
-            requires(Condition)
-        constexpr decltype(auto
-        ) operator()(Func && func, const auto& /*unused*/ = empty_invoke) const
-            noexcept(nothrow_invocable<Func>)
+            requires Condition
+        constexpr decltype(auto) operator()(
+            Func &&
+                func,
+            const auto& /*unused*/ = empty_invoke //
+        ) const noexcept(nothrow_invocable<Func>)
         {
-            return func();
+            return invoke(func);
         }
 
         template<std::invocable Func = empty_invoke_fn>
-        constexpr decltype(auto
-        ) operator()(const auto& /*unused*/, Func && func = empty_invoke) const
-            noexcept(nothrow_invocable<Func>)
+        constexpr decltype(auto) operator()(
+            const auto& /*unused*/,
+            Func && func = empty_invoke //
+        ) const noexcept(nothrow_invocable<Func>)
         {
-            return func();
+            return invoke(func);
         }
     };
 

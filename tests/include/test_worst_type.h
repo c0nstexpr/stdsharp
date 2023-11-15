@@ -69,7 +69,7 @@ void allocation_emplace_execution_test(T& box)
 }
 
 template<typename T>
-void allocation_functionality_test(T box = T{})
+void allocation_functionality_test(T box = {})
 {
     GIVEN(format("an object allocation for type id {}", type_id<T>))
     {

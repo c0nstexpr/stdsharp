@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <shared_mutex>
 
 #include "mutex/mutex.h"
@@ -8,236 +7,91 @@
 
 namespace stdsharp
 {
-    template<typename T, shared_lockable Lockable = std::shared_mutex>
-        requires basic_lockable<Lockable>
+    template<typename T, shared_mutex Lockable = std::shared_mutex>
     class synchronizer
     {
     public:
-        using value_type = std::optional<T>;
+        using value_type = T;
 
-    private:
-        template<typename OtherLockable>
-            requires copy_assignable<value_type>
-        static constexpr void assign_value(
-            value_type& object, //
-            const synchronizer<T, OtherLockable>& other //
-        )
-        {
-            other.read([&object](const value_type& obj) { object = obj; });
-        }
-
-        template<typename OtherLockable>
-            requires move_assignable<value_type>
-        static constexpr void
-            assign_value(value_type& object, synchronizer<T, OtherLockable>&& other)
-        {
-            cpp_move(other).write([&object](value_type&& obj) { object = cpp_move(obj); });
-        }
-
-        template<typename Other>
-        static constexpr bool other_assignable =
-            requires(value_type obj) { assign_value(obj, std::declval<Other>()); };
-
-        static constexpr bool copy_assignable = other_assignable<const synchronizer&>;
-        static constexpr bool move_assignable = other_assignable<synchronizer>;
-
-        template<typename Other>
-            requires(other_assignable<Other>)
-        constexpr synchronizer(const empty_t /*unused*/, Other&& other)
-        {
-            assign_value(object_, cpp_forward(other));
-        }
-
-        template<typename Other>
-            requires(other_assignable<Other>)
-        constexpr synchronizer& assign_impl(Other&& other)
-        {
-            write([&other](value_type& obj) { assign_value(obj, cpp_forward(other)); });
-            return *this;
-        }
-
-        template<typename This, typename Func>
-        static constexpr void read_impl(This&& instance, Func&& func)
-        {
-            const std::shared_lock lock{instance.lockable()};
-            invoke(cpp_forward(func), cpp_forward(instance).object_);
-        }
-
-        template<typename Func>
-        static constexpr void write_impl(synchronizer&& instance, Func&& func)
-        {
-            invoke(cpp_forward(func), cpp_move(instance).object_);
-        }
-
-        template<typename Func>
-        static constexpr void write_impl(synchronizer& instance, Func&& func)
-        {
-            const std::unique_lock lock{instance.lockable()};
-            invoke(cpp_forward(func), instance.object_);
-        }
-
-    public:
         using lock_type = Lockable;
 
         synchronizer() = default;
 
         template<typename... Args>
-            requires std::constructible_from<T, Args...> && std::default_initializable<Lockable>
-        explicit constexpr synchronizer(Args&&... t_arg): object_(cpp_forward(t_arg)...)
+            requires std::constructible_from<value_type, Args...>
+        explicit(sizeof...(Args) == 1) constexpr synchronizer(Args&&... args) //
+            noexcept(nothrow_constructible_from<value_type, Args...> && nothrow_default_initializable<lock_type>):
+            value_(cpp_forward(args)...)
         {
         }
 
-        template<typename... TArgs, typename... LockArgs>
-            requires std::constructible_from<T, TArgs...> &&
-                         std::constructible_from<Lockable, LockArgs...>
-        explicit constexpr synchronizer(
-            const std::piecewise_construct_t tag,
-            std::tuple<TArgs...> t_arg,
-            std::tuple<LockArgs...> lock_arg
-        ):
-            object_(tag, cpp_move(t_arg)), lockable_(tag, cpp_move(lock_arg))
-        {
-        }
+        synchronizer(const synchronizer&) = delete;
 
-        template<typename Other>
-            requires(other_assignable<Other>)
-        constexpr synchronizer(Other&& other): synchronizer(empty, cpp_forward(other))
-        {
-        }
+        synchronizer(synchronizer&&) = delete;
 
-        constexpr synchronizer(const synchronizer& other)
-            requires copy_assignable
-            : synchronizer(empty, other)
-        {
-        }
+        synchronizer& operator=(const synchronizer&) = delete;
 
-        constexpr synchronizer(synchronizer&& other) noexcept(false)
-            requires move_assignable
-            : synchronizer(empty, cpp_move(other))
-        {
-        }
-
-        template<typename Other>
-            requires(other_assignable<Other>)
-        constexpr synchronizer& operator=(Other&& other)
-        {
-            assign_impl(cpp_forward(other));
-            return *this;
-        }
-
-        constexpr synchronizer& operator=(const synchronizer& other)
-            requires copy_assignable
-        {
-            if(this != &other) assign_impl(other);
-            return *this;
-        }
-
-        constexpr synchronizer& operator=(synchronizer&& other) noexcept(false)
-            requires move_assignable
-        {
-            if(this != &other) assign_impl(cpp_move(other));
-            return *this;
-        }
+        synchronizer& operator=(synchronizer&&) = delete;
 
         ~synchronizer() = default;
 
-        template<typename OtherLockable>
-        constexpr void swap(synchronizer<T, OtherLockable>& other) // NOLINT(*-noexcept-swap)
-            requires std::swappable_with<
-                value_type,
-                typename std::remove_reference_t<decltype(other)>::value_type // clang-format off
-            > // clang-format on
-        {
-            write(
-                [&other](value_type& obj) //
-                { other.write([&obj](auto& other_obj) { std::ranges::swap(obj, other_obj); }); } //
-            );
-        }
+#define STDSHARP_SYN_MEM(volatile_, ref)                                                       \
+    template<typename... Args>                                                                 \
+    constexpr void read(                                                                       \
+        std::invocable<const volatile_ value_type ref> auto&& func,                            \
+        Args&&... args                                                                         \
+    ) const volatile_ ref                                                                      \
+        requires std::constructible_from<std::shared_lock, lock_type&, Args...>                \
+    {                                                                                          \
+        const std::shared_lock lock{lockable(), cpp_forward(args)...};                         \
+        invoke(cpp_forward(func), cpp_forward(*this).value_);                                 \
+    }                                                                                          \
+                                                                                               \
+    template<typename... Args>                                                                 \
+    constexpr void write(std::invocable<volatile_ value_type ref> auto&& func, Args&&... args) \
+        volatile_ ref                                                                          \
+        requires std::constructible_from<std::unique_lock, lock_type&, Args...>                \
+    {                                                                                          \
+        const std::unique_lock lock{lockable(), cpp_forward(args)...};                         \
+        invoke(cpp_forward(func), cpp_forward(*this).value_);                                 \
+    }
 
-        template<std::invocable<const value_type&> Func>
-        constexpr void read(Func&& func) const&
-        {
-            read_impl(*this, cpp_forward(func));
-        }
+        STDSHARP_SYN_MEM(, &)
+        STDSHARP_SYN_MEM(, &&)
+        STDSHARP_SYN_MEM(volatile, &)
+        STDSHARP_SYN_MEM(volatile, &&)
 
-        template<std::invocable<const value_type> Func>
-        constexpr void read(Func&& func) const&&
-        {
-            read_impl(static_cast<const synchronizer&&>(*this), cpp_forward(func));
-        }
+#undef STDSHARP_SYN_MEM
 
-        template<std::invocable<value_type&> Func>
-        constexpr void write(Func&& func) &
-        {
-            write_impl(*this, cpp_forward(func));
-        }
-
-        template<std::invocable<value_type> Func>
-        constexpr void write(Func&& func) &&
-        {
-            write_impl(cpp_move(*this), cpp_forward(func));
-        }
-
-        constexpr void operator()(auto&& func) &
-            requires requires { write(cpp_forward(func)); }
-        {
-            write(cpp_forward(func));
-        }
-
-        constexpr void operator()(auto&& func) &&
-            requires requires { write(cpp_forward(func)); }
-        {
-            write(cpp_forward(func));
-        }
-
-        constexpr void operator()(auto&& func) const&
-            requires requires { read(cpp_forward(func)); }
-        {
-            read(cpp_forward(func));
-        }
-
-        constexpr void operator()(auto&& func) const&&
-            requires requires { read(cpp_forward(func)); }
-        {
-            read(cpp_forward(func));
-        }
-
-        constexpr const Lockable& lockable() const noexcept { return lockable_; }
+        constexpr const lock_type& lockable() const noexcept { return lockable_; }
 
     private:
-        value_wrapper<std::optional<T>> object_{};
-        mutable value_wrapper<Lockable> lockable_{};
+        value_type value_{};
+        mutable lock_type lockable_{};
 
-        constexpr Lockable& lockable() noexcept { return lockable_; }
+        constexpr lock_type& lockable() noexcept { return lockable_; }
     };
 
     template<typename T>
     synchronizer(T&&) -> synchronizer<std::decay_t<T>>;
+}
 
-    namespace reflection
-    {
-        template<typename T, typename U>
-        inline constexpr auto function<synchronizer<T, U>> = member<synchronizer<T, U>>::
-            template func_reflect<literals::ltr{"read"}, literals::ltr{"write"}>(
-                [](auto&& v, auto&&... args) //
-                noexcept( //
-                    noexcept(cast_fwd<synchronizer<T, U>>(cpp_forward(v)).read(cpp_forward(args)...)
-                    )
-                ) -> //
-                decltype( //
-                    cast_fwd<synchronizer<T, U>>(cpp_forward(v)).read(cpp_forward(args)...)
-                ) //
-                { return cast_fwd<synchronizer<T, U>>(cpp_forward(v)).read(cpp_forward(args)...); },
-                [](auto&& v, auto&&... args) //
-                noexcept( //
-                    noexcept( //
-                        cast_fwd<synchronizer<T, U>>(cpp_forward(v)).write(cpp_forward(args)...)
-                    )
-                ) -> //
-                decltype( //
-                    cast_fwd<synchronizer<T, U>>(cpp_forward(v)).write(cpp_forward(args)...)
-                ) //
-                { return cast_fwd<synchronizer<T, U>>(cpp_forward(v)).write(cpp_forward(args)...); }
-            );
-    }
+namespace stdsharp::reflection
+{
+    template<typename T, typename U>
+    inline constexpr auto function<synchronizer<T, U>> = member<synchronizer<T, U>>::
+        template func_reflect<literals::ltr{"read"}, literals::ltr{"write"}>(
+            [](decay_same_as<synchronizer<T, U>> auto&& v, auto&&... args) //
+            noexcept(noexcept(cpp_forward(v).read(cpp_forward(args)...))) //
+            -> decltype(cpp_forward(v).read(cpp_forward(args)...))
+            {
+                return cpp_forward(v).read(cpp_forward(args)...); //
+            },
+            [](decay_same_as<synchronizer<T, U>> auto&& v, auto&&... args) //
+            noexcept(noexcept(cpp_forward(v).write(cpp_forward(args)...))) //
+            -> decltype(cpp_forward(v).write(cpp_forward(args)...))
+            {
+                return cpp_forward(v).write(cpp_forward(args)...); //
+            }
+        );
 }

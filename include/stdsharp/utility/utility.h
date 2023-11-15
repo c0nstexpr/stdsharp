@@ -6,21 +6,16 @@
 #include "constructor.h"
 #include "to_lvalue.h"
 
+#include "../compilation_config_in.h"
+
 namespace stdsharp
 {
     template<typename T>
     struct forward_like_fn
     {
-    private:
-        template<typename U>
-        using copy_const_t = std::conditional_t<const_<std::remove_reference_t<T>>, const U, U>;
-
-    public:
-        template<typename U>
-        [[nodiscard]] constexpr ref_align_t<T&&, copy_const_t<std::remove_reference_t<U>>>
-            operator()(U&& u) const noexcept
+        [[nodiscard]] constexpr decltype(auto) operator()(auto&& u) const noexcept
         {
-            return auto_cast(u);
+            return std::forward_like<T>(u);
         }
     };
 
@@ -30,3 +25,5 @@ namespace stdsharp
     template<typename T, typename U>
     using forward_like_t = decltype(forward_like<T>(std::declval<U>()));
 }
+
+#include "../compilation_config_out.h"

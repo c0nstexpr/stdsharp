@@ -15,54 +15,70 @@ namespace stdsharp
     };
 
     template<typename T>
-    concept lockable = basic_lockable<T> &&
-        requires(T t) //
-    { // clang-format off
-        { t.try_lock() } -> std::same_as<bool>; // clang-format on
+    concept lockable = requires(T t) {
+        requires basic_lockable<T>;
+        {
+            t.try_lock()
+        } -> std::same_as<bool>;
     };
 
     template<typename T>
-    concept timed_lockable = lockable<T> &&
-        requires(T t) //
-    { // clang-format off
-        { t.try_lock_for(1s) } -> std::same_as<bool>;
-        { t.try_lock_until(std::chrono::system_clock::now()) } -> std::same_as<bool>; // clang-format on
+    concept timed_lockable = requires(T t) {
+        requires lockable<T>;
+        {
+            t.try_lock_for(1s)
+        } -> std::same_as<bool>;
+        {
+            t.try_lock_until(std::chrono::system_clock::now())
+        } -> std::same_as<bool>;
     };
 
     template<typename T>
-    concept shared_lockable = requires(T t) //
-    {
+    concept shared_lockable = requires(T t) {
         t.lock_shared();
-        t.unlock_shared(); // clang-format off
-        { t.try_lock_shared() } -> std::same_as<bool>; // clang-format on
+        t.unlock_shared();
+        {
+            t.try_lock_shared()
+        } -> std::same_as<bool>;
     };
 
     template<typename T>
-    concept shared_timed_lockable = shared_lockable<T> &&
-        requires(T t) //
-    { // clang-format off
-        { t.try_lock_shared_for(1s) } -> std::same_as<bool>;
-        { t.try_lock_shared_until(std::chrono::system_clock::now()) } -> std::same_as<bool>; // clang-format on
+    concept shared_timed_lockable = requires(T t) {
+        requires shared_lockable<T>;
+        {
+            t.try_lock_shared_for(1s)
+        } -> std::same_as<bool>;
+        {
+            t.try_lock_shared_until(std::chrono::system_clock::now())
+        } -> std::same_as<bool>;
     };
 
     template<typename T>
-    concept mutex = lockable<T> && !std::movable<T> && std::default_initializable<T> &&
-        requires(T t) //
-    { // clang-format off
-        { t.lock() } -> std::same_as<void>;
-        { t.unlock() } -> std::same_as<void>; // clang-format on
+    concept mutex = requires(T t) {
+        requires lockable<T>;
+        requires !std::movable<T>;
+        requires std::default_initializable<T>;
+        {
+            t.lock()
+        } -> std::same_as<void>;
+        {
+            t.unlock()
+        } -> std::same_as<void>;
     };
 
     template<typename T>
     concept timed_mutex = timed_lockable<T> && mutex<T>;
 
     template<typename T>
-    concept shared_mutex = mutex<T> && shared_lockable<T> &&
-        requires(T t) //
-    {
-        t.try_unlock_shared(); // clang-format off
-        { t.lock_shared() } -> std::same_as<void>;
-        { t.unlock_shared() } -> std::same_as<void>; // clang-format on
+    concept shared_mutex = requires(T t) {
+        requires mutex<T>;
+        requires shared_lockable<T>;
+        {
+            t.lock_shared()
+        } -> std::same_as<void>;
+        {
+            t.unlock_shared()
+        } -> std::same_as<void>;
     };
 
     template<typename T>
