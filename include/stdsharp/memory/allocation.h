@@ -32,7 +32,7 @@ namespace stdsharp
 
         constexpr auto& operator=(const auto& t) noexcept
             requires requires(
-                const decltype(std::ranges::cbegin(t))& begin,
+                const decltype(std::ranges::begin(t))& begin,
                 const decltype(std::ranges::size(t))& size
             ) {
                 {
@@ -43,7 +43,7 @@ namespace stdsharp
                 } noexcept;
             }
         {
-            p = std::ranges::cbegin(t);
+            p = std::ranges::begin(t);
             diff = std::ranges::size(t);
             return *this;
         }
@@ -83,8 +83,7 @@ namespace stdsharp::details
 
     public:
         template<typename T, typename LRef = std::add_lvalue_reference_t<std::decay_t<T>>>
-        static constexpr auto assignable_from_shadow = nothrow_assignable_from<LRef, shadow_type> &&
-            nothrow_assignable_from<LRef, allocation_result<Alloc>>;
+        static constexpr auto assignable_from_shadow = nothrow_assignable_from<LRef, shadow_type>;
     };
 
     template<typename T, typename Alloc>
@@ -103,7 +102,7 @@ namespace stdsharp
     concept callocation = requires(const T& t) {
         requires details::allocation_common<T, Alloc>;
         {
-            std::ranges::cbegin(t)
+            std::ranges::begin(t)
         } noexcept -> std::same_as<allocator_const_pointer<Alloc>>;
     };
 
@@ -111,10 +110,13 @@ namespace stdsharp
     concept allocation = requires(const T& t) {
         requires details::allocation_common<T, Alloc>;
         {
-            std::ranges::cbegin(t)
+            std::ranges::begin(t)
         } noexcept -> std::same_as<allocator_pointer<Alloc>>;
+
         requires details::allocation_concept<Alloc>:: //
             template assignable_from_shadow<T>;
+
+        requires nothrow_assignable_from<T&, allocation_result<Alloc>>;
     };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
@@ -124,7 +126,7 @@ namespace stdsharp
             requires(callocation<U, Alloc> || allocation<U, Alloc>)
         constexpr decltype(auto) operator()(const U & rng) const noexcept
         {
-            return pointer_cast<T>(std::ranges::cbegin(rng));
+            return pointer_cast<T>(std::ranges::begin(rng));
         }
     };
 

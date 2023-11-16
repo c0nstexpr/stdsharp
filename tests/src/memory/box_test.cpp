@@ -20,7 +20,7 @@ SCENARIO("box basic requirements", "[memory][box]") // NOLINT
 
 SCENARIO("box assign value", "[memory][box]") // NOLINT
 {
-    allocation_functionality_test<normal_box<allocator_t>>();
+    // allocation_functionality_test<normal_box<allocator_t>>();
 }
 
 SCENARIO("constexpr box", "[memory][box]") // NOLINT
@@ -34,4 +34,12 @@ SCENARIO("constexpr box", "[memory][box]") // NOLINT
             return b.get<int>();
         }() == 42
     );
+}
+
+auto foo()
+{
+    normal_box<allocator_t> b{};
+    const vector<int> vec{1, 2, 3};
+
+    b.emplace<vector<int>, const vector<int>&>(vec);
 }

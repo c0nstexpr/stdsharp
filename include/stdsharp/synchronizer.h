@@ -41,19 +41,19 @@ namespace stdsharp
         std::invocable<const volatile_ value_type ref> auto&& func,                            \
         Args&&... args                                                                         \
     ) const volatile_ ref                                                                      \
-        requires std::constructible_from<std::shared_lock, lock_type&, Args...>                \
+        requires std::constructible_from<std::shared_lock<lock_type>, lock_type&, Args...>     \
     {                                                                                          \
-        const std::shared_lock lock{lockable(), cpp_forward(args)...};                         \
-        invoke(cpp_forward(func), cpp_forward(*this).value_);                                 \
+        std::shared_lock lock{lockable_, cpp_forward(args)...};                         \
+        invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
     }                                                                                          \
                                                                                                \
     template<typename... Args>                                                                 \
     constexpr void write(std::invocable<volatile_ value_type ref> auto&& func, Args&&... args) \
         volatile_ ref                                                                          \
-        requires std::constructible_from<std::unique_lock, lock_type&, Args...>                \
+        requires std::constructible_from<std::unique_lock<lock_type>, lock_type&, Args...>     \
     {                                                                                          \
-        const std::unique_lock lock{lockable(), cpp_forward(args)...};                         \
-        invoke(cpp_forward(func), cpp_forward(*this).value_);                                 \
+        std::unique_lock lock{lockable_, cpp_forward(args)...};                         \
+        invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
     }
 
         STDSHARP_SYN_MEM(, &)
@@ -68,8 +68,6 @@ namespace stdsharp
     private:
         value_type value_{};
         mutable lock_type lockable_{};
-
-        constexpr lock_type& lockable() noexcept { return lockable_; }
     };
 
     template<typename T>
@@ -79,19 +77,22 @@ namespace stdsharp
 namespace stdsharp::reflection
 {
     template<typename T, typename U>
-    inline constexpr auto function<synchronizer<T, U>> = member<synchronizer<T, U>>::
-        template func_reflect<literals::ltr{"read"}, literals::ltr{"write"}>(
+    inline constexpr indexed_values function<synchronizer<T, U>>{
+        member_reflect<synchronizer<T, U>, literals::ltr{"read"}>(
             [](decay_same_as<synchronizer<T, U>> auto&& v, auto&&... args) //
             noexcept(noexcept(cpp_forward(v).read(cpp_forward(args)...))) //
             -> decltype(cpp_forward(v).read(cpp_forward(args)...))
             {
                 return cpp_forward(v).read(cpp_forward(args)...); //
-            },
+            }
+        ),
+        member_reflect<synchronizer<T, U>, literals::ltr{"write"}>(
             [](decay_same_as<synchronizer<T, U>> auto&& v, auto&&... args) //
             noexcept(noexcept(cpp_forward(v).write(cpp_forward(args)...))) //
             -> decltype(cpp_forward(v).write(cpp_forward(args)...))
             {
                 return cpp_forward(v).write(cpp_forward(args)...); //
             }
-        );
+        )
+    };
 }

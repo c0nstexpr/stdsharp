@@ -41,9 +41,14 @@ SCENARIO("synchronizer reflection support", "[synchronizer]") // NOLINT
     using synchronizer = synchronizer<int>;
 
     synchronizer syn{};
-    constexpr auto read_fn = reflection::function<synchronizer>.member_of<"read"_ltr>();
-    constexpr auto write_fn = reflection::function<synchronizer>.member_of<"write"_ltr>();
 
-    write_fn(syn, [](int& value) { value = 43; });
+    syn.read([](const int& value) { REQUIRE(value == 0); });
+    syn.write([](int& value) { value = 43; });
+
+    constexpr auto read_fn = reflection::member_of<synchronizer, "read"_ltr>();
+    constexpr auto write_fn = reflection::member_of<synchronizer, "write"_ltr>();
+
     read_fn(syn, [](const int& value) { REQUIRE(value == 43); });
+    write_fn(syn, [](int& value) { value = 56; });
+    read_fn(syn, [](const int& value) { REQUIRE(value == 56); });
 }

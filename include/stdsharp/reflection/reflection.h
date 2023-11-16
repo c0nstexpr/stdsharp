@@ -5,73 +5,95 @@
 
 namespace stdsharp::reflection
 {
-    template<typename Reflected>
-    struct member
+    template<typename Reflected, literals::ltr Name, typename Getter>
+    struct member : Getter
     {
-    private:
-        template<typename...>
-        struct meta_set;
+        using reflected = Reflected;
+        static constexpr auto name = Name;
 
-        template<literals::ltr Name, typename Getter>
-        struct meta_base : Getter
+        template<typename... Args>
+            requires std::constructible_from<Getter, Args...>
+        explicit(sizeof...(Args) == 1) constexpr member(Args&&... args) //
+            noexcept(nothrow_constructible_from<Getter, Args...>):
+            Getter(cpp_forward(args)...)
         {
-            using reflected = Reflected;
-            static constexpr auto name = Name;
-        };
-
-        template<literals::ltr Name, typename T>
-        using func_meta = meta_base<Name, T>;
-
-        template<auto Ptr>
-        struct data_meta_getter : member_pointer_traits<Ptr>
-        {
-            constexpr decltype(auto) operator()(decay_same_as<Reflected> auto&& t) const noexcept
-            {
-                return cpp_forward(t).*Ptr;
-            }
-        };
-
-        template<literals::ltr Name, auto Ptr>
-        using data_meta = meta_base<Name, data_meta_getter<Ptr>>;
-
-        template<literals::ltr... Name, typename... Getter>
-        struct meta_set<meta_base<Name, Getter>...>
-        {
-            template<auto N>
-                requires(std::ranges::equal(N, Name) || ...)
-            static consteval auto member_of()
-            {
-                constexpr std::array found_indices{std::ranges::equal(N, Name)...};
-                constexpr auto i = std::ranges::find(found_indices, true) - found_indices.cbegin();
-                return std::tuple_element_t<i, indexed_types<meta_base<Name, Getter>...>>{};
-            }
-        };
-
-    public:
-        template<literals::ltr... Name, typename... T>
-            requires(cpp_is_constexpr(T{}) && ...)
-        static consteval meta_set<func_meta<Name, T>...> func_reflect(const T... /*unused*/)
-        {
-            return {};
         }
 
-        template<literals::ltr... Name, member_of<Reflected> auto... Ptr>
-        static consteval meta_set<data_meta<Name, Ptr>...>
-            data_reflect(const regular_value_sequence<Ptr...> /*unused*/)
+        member() = default;
+    };
+
+    template<typename Reflected, literals::ltr Name>
+    struct member_reflect_fn
+    {
+        template<typename T>
+            requires std::constructible_from<std::decay_t<T>, T>
+        consteval auto operator()(T&& t) const
         {
-            return {};
+            return member<Reflected, Name, std::decay_t<T>>{cpp_forward(t)};
         }
     };
 
-    template<typename Reflected>
-    inline constexpr auto function = empty;
+    template<typename Reflected, literals::ltr Name>
+    inline constexpr member_reflect_fn<Reflected, Name> member_reflect{};
 
-    template<typename Reflected>
-    inline constexpr auto data = empty;
+    template<auto Ptr>
+    using data_meta_getter = member_pointer_traits<Ptr>;
+
+    template<literals::ltr Name, auto Ptr>
+    using data_meta = member<member_t<Ptr>, Name, data_meta_getter<Ptr>>;
+
+    template<literals::ltr Name, auto Ptr>
+    struct data_member_reflect_fn
+    {
+        consteval data_meta<Name, Ptr> operator()() const { return {}; }
+    };
+
+    template<literals::ltr Name, auto Ptr>
+    inline constexpr data_member_reflect_fn<Name, Ptr> data_member_reflect{};
+
+    template<typename>
+    inline constexpr indexed_values<> function{};
+
+    template<typename>
+    inline constexpr indexed_values<> data{};
+
+    template<typename T, auto N>
+    struct member_of_fn
+    {
+    private:
+        template<
+            literals::ltr... Name,
+            typename... Getter,
+            auto EqualRes = std::array{std::ranges::equal(N, Name)...},
+            auto Idx = std::ranges::find(EqualRes, true) - EqualRes.cbegin()>
+        static consteval decltype(auto) impl( //
+            const indexed_values<member<T, Name, Getter>...>& members
+        ) noexcept
+            requires requires { cpo::get_element<Idx>(members); }
+        {
+            return cpo::get_element<Idx>(members);
+        }
+
+    public:
+        consteval auto operator()() const noexcept
+            requires requires { impl(function<T>); }
+        {
+            return impl(function<T>);
+        }
+
+        consteval auto operator()() const noexcept
+            requires requires { impl(data<T>); }
+        {
+            return impl(data<T>);
+        }
+    };
+
+    template<typename T, auto N>
+    inline constexpr member_of_fn<T, N> member_of{};
 
     template<typename T, typename U>
-    inline constexpr auto data<std::pair<T, U>> = member<std::pair<T, U>>::
-        template data_reflect<literals::ltr{"first"}, literals::ltr{"second"}>(
-            regular_value_sequence<&std::pair<T, U>::first, &std::pair<T, U>::second>{}
-        );
+    inline constexpr indexed_values data<std::pair<T, U>>{
+        data_member_reflect<literals::ltr{"first"}, &std::pair<T, U>::first>(),
+        data_member_reflect<literals::ltr{"second"}, &std::pair<T, U>::second>()
+    };
 }

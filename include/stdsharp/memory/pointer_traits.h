@@ -23,9 +23,10 @@ namespace stdsharp
         template<typename U>
         using rebind = base::template rebind<U>;
 
-        using reference = std::add_lvalue_reference_t<element_type>;
-
-        using raw_pointer = std::add_pointer_t<element_type>;
+        using raw_pointer = std::conditional_t<
+            std::same_as<rebind<const element_type>, pointer>,
+            std::add_pointer_t<const element_type>,
+            std::add_pointer_t<element_type>>;
 
     private:
         using element_param_type = std::conditional_t<
@@ -56,7 +57,7 @@ namespace stdsharp
         struct std_to_address
         {
             [[nodiscard]] constexpr auto operator()(const pointer& p) const noexcept
-                requires requires { std::to_address(p); }
+                -> decltype(std::to_address(p))
             {
                 return std::to_address(p);
             }
@@ -115,14 +116,24 @@ namespace stdsharp
     inline constexpr struct to_void_pointer_fn
     {
         template<typename T>
-            requires requires { typename pointer_traits<T>; }
+            requires std::invocable<typename pointer_traits<T>::to_address_fn, const T&>
         STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const T& ptr) const noexcept
         {
-            using traits = pointer_traits<T>;
-            using ret =
-                std::conditional_t<const_<typename traits::element_type>, const void*, void*>;
+            return (*this)(pointer_traits<T>::to_address(ptr));
+        }
 
-            return static_cast<ret>(traits::to_address(ptr));
+        template<typename T>
+        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()( //
+            const T* const ptr
+        ) const noexcept
+        {
+            return static_cast<const void*>(ptr);
+        }
+
+        template<typename T>
+        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(T* const ptr) const noexcept
+        {
+            return static_cast<void*>(ptr);
         }
     } to_void_pointer{};
 
@@ -134,11 +145,27 @@ namespace stdsharp
             requires requires { pointer_traits<Pointer>{}; }
         struct traits
         {
-            using ptr = std::
-                conditional_t<const_<typename pointer_traits<Pointer>::element_type>, const T*, T*>;
+            static const T* test(const auto*);
+            static T* test(auto*);
+
+            using ptr = decltype(test(typename pointer_traits<Pointer>::raw_pointer{}));
         };
 
     public:
+        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()( //
+            const void* const ptr
+        ) const noexcept
+        {
+            return static_cast<const T*>(ptr);
+        }
+
+        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()( //
+            void* const ptr
+        ) const noexcept
+        {
+            return static_cast<T*>(ptr);
+        }
+
         template<typename Pointer>
             requires requires {
                 requires std::invocable<to_void_pointer_fn, const Pointer&>;
@@ -146,7 +173,7 @@ namespace stdsharp
             }
         STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
         {
-            return static_cast<typename traits<Pointer>::ptr>(to_void_pointer(p));
+            return (*this)(to_void_pointer(p));
         }
 
         template<typename Pointer>

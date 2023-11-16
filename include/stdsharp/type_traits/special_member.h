@@ -31,21 +31,20 @@ namespace stdsharp
 
         [[nodiscard]] static constexpr auto trivial() noexcept { return lifetime_req{}; };
 
-        // TODO: replace with designated initializer when msvc fix
         [[nodiscard]] static constexpr auto normal() noexcept
         {
-            lifetime_req res{};
-            res.copy_construct = expr_req::well_formed;
-            res.copy_assign = expr_req::well_formed;
-            return res;
+            return lifetime_req{
+                .copy_construct = expr_req::well_formed,
+                .copy_assign = expr_req::well_formed
+            };
         }
 
         [[nodiscard]] static constexpr auto unique() noexcept
         {
-            lifetime_req res{};
-            res.copy_construct = expr_req::ill_formed;
-            res.copy_assign = expr_req::ill_formed;
-            return res;
+            return lifetime_req{
+                .copy_construct = expr_req::ill_formed,
+                .copy_assign = expr_req::ill_formed
+            };
         }
 
         [[nodiscard]] static constexpr auto ill_formed() noexcept
@@ -96,7 +95,7 @@ namespace stdsharp
     };
 
     [[nodiscard]] constexpr lifetime_req
-        min(const lifetime_req left, const lifetime_req right) noexcept
+        minimize(const lifetime_req left, const lifetime_req right) noexcept
     {
         return {
             std::min(left.default_construct, right.default_construct),
@@ -110,7 +109,7 @@ namespace stdsharp
     }
 
     [[nodiscard]] constexpr lifetime_req
-        max(const lifetime_req left, const lifetime_req right) noexcept
+        maximize(const lifetime_req left, const lifetime_req right) noexcept
     {
         return {
             std::max(left.default_construct, right.default_construct),
