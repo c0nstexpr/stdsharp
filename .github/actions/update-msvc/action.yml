@@ -6,6 +6,5 @@ runs:
   steps:
     - run: choco install gsudo
       shell: pwsh
-    - run: ./update-vs.ps1;
-      working-directory: ${{ github.action_path }}
+    - run: Start-Process -Wait -NoNewWindow powershell -ArgumentList "./${{ github.action_path }}/update-vs.ps1"
       shell: pwsh
