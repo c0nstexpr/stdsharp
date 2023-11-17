@@ -43,7 +43,7 @@ namespace stdsharp
     ) const volatile_ ref                                                                      \
         requires std::constructible_from<std::shared_lock<lock_type>, lock_type&, Args...>     \
     {                                                                                          \
-        std::shared_lock lock{lockable_, cpp_forward(args)...};                         \
+        const std::shared_lock lock{lockable_, cpp_forward(args)...};                         \
         invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
     }                                                                                          \
                                                                                                \
@@ -52,7 +52,7 @@ namespace stdsharp
         volatile_ ref                                                                          \
         requires std::constructible_from<std::unique_lock<lock_type>, lock_type&, Args...>     \
     {                                                                                          \
-        std::unique_lock lock{lockable_, cpp_forward(args)...};                         \
+        const std::unique_lock lock{lockable_, cpp_forward(args)...};                         \
         invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
     }
 

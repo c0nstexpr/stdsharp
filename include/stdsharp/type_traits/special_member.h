@@ -130,24 +130,26 @@ namespace stdsharp
         {
         }
 
-        constexpr fake_type(fake_type&&) noexcept(is_noexcept(Req.move_construct))
+        constexpr fake_type(fake_type&& /*unused*/) noexcept(is_noexcept(Req.move_construct))
             requires(is_well_formed(Req.move_construct))
         {
         }
 
-        constexpr fake_type(const fake_type&) noexcept(is_noexcept(Req.copy_construct))
+        constexpr fake_type(const fake_type& /*unused*/) noexcept(is_noexcept(Req.copy_construct))
             requires(is_well_formed(Req.copy_construct))
         {
         }
 
-        constexpr fake_type& operator=(fake_type&&) noexcept(is_noexcept(Req.move_assign))
+        constexpr fake_type& operator=(fake_type&& /*unused*/) noexcept(is_noexcept(Req.move_assign))
             requires(is_well_formed(Req.move_assign))
         {
+            return *this;
         }
 
-        constexpr fake_type& operator=(const fake_type&) noexcept(is_noexcept(Req.copy_assign))
+        constexpr fake_type& operator=(const fake_type& /*unused*/) noexcept(is_noexcept(Req.copy_assign))
             requires(is_well_formed(Req.copy_assign))
         {
+            return *this;
         }
 
         constexpr ~fake_type() noexcept(is_noexcept(Req.destruct))
