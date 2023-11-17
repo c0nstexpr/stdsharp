@@ -536,21 +536,21 @@ namespace stdsharp
 
     public:
         template<typename T, typename... Args>
-        constexpr decltype(auto) emplace(Args&&... args)
+        constexpr T& emplace(Args&&... args)
             requires requires { this->emplace_impl<T>(cpp_forward(args)...); }
         {
             return emplace_impl<T>(cpp_forward(args)...);
         }
 
         template<typename T, typename U, typename... Args>
-        constexpr decltype(auto) emplace(const std::initializer_list<U> il, Args&&... args)
+        constexpr T& emplace(const std::initializer_list<U> il, Args&&... args)
             requires requires { this->emplace_impl<T>(il, cpp_forward(args)...); }
         {
             return emplace_impl<T>(il, cpp_forward(args)...);
         }
 
         template<typename T>
-        constexpr decltype(auto) emplace(T&& t)
+        constexpr T& emplace(T&& t)
             requires requires { this->emplace_impl<std::decay_t<T>>(cpp_forward(t)); }
         {
             return emplace_impl<std::decay_t<T>>(cpp_forward(t));
