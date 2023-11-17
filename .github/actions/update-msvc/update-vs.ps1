@@ -1,3 +1,5 @@
+powershell;
+Import-Module "gsudoModule";
 gsudo {
     for($count = 1; $true; $count++)
     {

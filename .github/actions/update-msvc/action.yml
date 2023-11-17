@@ -6,9 +6,6 @@ runs:
   steps:
     - run: choco install gsudo
       shell: pwsh
-    - run: \
-        powerhsell;
-        Import-Module "gsudoModule";
-        ./update-vs.ps1
-      working-directory: ${{ github.workspace }}/.github/actions/update-msvc/
+    - run: ./update-vs.ps1;
+      working-directory: ${{ github.action_path }}
       shell: pwsh
