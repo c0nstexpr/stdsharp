@@ -1,5 +1,5 @@
 powerhsell;
-Import-Module "gsudoModule;
+Import-Module "gsudoModule";
 gsudo {
     for($count = 1; $true; $count++)
     {
@@ -9,6 +9,6 @@ gsudo {
 
         if($exit_code -eq 0) { break }
 
-        echo "exited with $exit_code, tries count: $count"
+        echo "exited with $exit_code, tries count: $count. Retrying..."
     }
 }
