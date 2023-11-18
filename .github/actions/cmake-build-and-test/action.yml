@@ -43,7 +43,7 @@ runs:
       shell: bash
 
     - name: Install dependencies and generate project files
-      run: cmake --refresh -S "${{ github.workspace }}" -B "${{ inputs.build-dir }}" -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ inputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
+      run: cmake --fresh -S "${{ github.workspace }}" -B "${{ inputs.build-dir }}" -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -DCMAKE_TOOLCHAIN_FILE="${{ inputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} ${{ inputs.config-option }}
       shell: bash
 
     - uses: SimenB/github-actions-cpu-cores@v1
