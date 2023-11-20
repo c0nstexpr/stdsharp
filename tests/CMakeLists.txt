@@ -28,8 +28,7 @@ set(src
     src/utility/utility_test.cpp
     src/lazy_value_test.cpp
     src/pattern_match_test.cpp
-    src/synchronizer_test.cpp
-    )
+    src/synchronizer_test.cpp)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
@@ -41,9 +40,7 @@ config_exe(${PROJECT_NAME} EXE_SRC ${src})
 target_compile_options(
   ${PROJECT_NAME}
   PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4>
-         $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments
-         -ftemplate-backtrace-limit=0
-         -ftime-trace
+         $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments -ftime-trace
          -fdiagnostics-show-template-tree>)
 target_enable_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address
                               undefined)

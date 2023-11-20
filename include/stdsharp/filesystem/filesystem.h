@@ -12,30 +12,9 @@ namespace stdsharp::filesystem
     template<typename, typename>
     class space_size;
 
-    namespace details
-    {
-        struct space_size_delegate
-        {
-            template<typename Rep, typename Period>
-            constexpr auto& operator()(space_size<Rep, Period>& t) const noexcept
-            {
-                return t.value_;
-            }
-
-            template<typename Rep, typename Period>
-            constexpr auto operator()(const space_size<Rep, Period>& t) const noexcept
-            {
-                return t.value_;
-            }
-        };
-    }
-
     template<typename Rep, std::uintmax_t Num, std::uintmax_t Denom>
     class space_size<Rep, std::ratio<Num, Denom>> :
-        default_increase_and_decrease<
-            space_size<Rep, std::ratio<Num, Denom>>,
-            details::space_size_delegate // clang-format off
-        > // clang-format on
+        default_arithmetic_operation<space_size<Rep, std::ratio<Num, Denom>>>
     {
     public:
         using rep = Rep;
@@ -47,8 +26,6 @@ namespace stdsharp::filesystem
         static constexpr auto denom = period::den;
 
     private:
-        friend struct details::space_size_delegate;
-
         rep size_{};
 
         template<auto N, auto D>
@@ -70,7 +47,7 @@ namespace stdsharp::filesystem
         template<typename OtherRep, typename Period>
             requires(not_same_as<rep, OtherRep> || not_same_as<period, Period>)
         explicit constexpr space_size(const space_size<OtherRep, Period> other) noexcept:
-            size_(cast_from(other.size(), Period{}))
+            size_(cast_from(other.size(), typename Period::type{}))
         {
         }
 
@@ -109,18 +86,6 @@ namespace stdsharp::filesystem
         {
             size_ /= factor;
             return *this;
-        }
-
-        [[nodiscard]] friend constexpr auto
-            operator+(space_size lhs, const space_size& rhs) noexcept
-        {
-            return lhs += rhs;
-        }
-
-        [[nodiscard]] friend constexpr auto
-            operator-(space_size lhs, const space_size& rhs) noexcept
-        {
-            return lhs -= rhs;
         }
     };
 

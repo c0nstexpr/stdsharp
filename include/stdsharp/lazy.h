@@ -9,7 +9,6 @@
 namespace stdsharp
 {
     template<std::invocable Fn>
-        requires std::move_constructible<std::invoke_result_t<Fn>>
     class lazy_value
     {
     public:
@@ -24,29 +23,15 @@ namespace stdsharp
             value_type value_;
         };
 
-        constexpr void generate_value() //
-            noexcept(nothrow_invocable<Fn> && nothrow_move_constructible<value_type>)
+        static constexpr void generate_value(auto&& this_) //
+            noexcept(nothrow_invocable<Fn> && nothrow_constructible_from<value_type, std::invoke_result_t<Fn>>)
         {
-            if(has_value()) return;
+            if(this_.has_value()) return;
 
-            auto&& v = invoke(cpp_move(fn_));
-            std::ranges::destroy_at(&fn_);
-            std::ranges::construct_at(&value_, cpp_move(v));
-            has_value_ = true;
-        }
-
-        constexpr void generate_value() volatile noexcept(
-            nothrow_invocable<volatile Fn> &&
-            nothrow_constructible_from<value_type, std::invoke_result_t<volatile Fn>> //
-        )
-            requires std::invocable<volatile Fn, value_type>
-        {
-            if(has_value()) return;
-
-            auto&& v = invoke(cpp_move(fn_));
-            std::ranges::destroy_at(&fn_);
-            std::ranges::construct_at(&value_, cpp_move(v));
-            has_value_ = true;
+            auto&& v = invoke(cpp_move(this_.fn_));
+            std::ranges::destroy_at(&this_.fn_);
+            std::ranges::construct_at(&this_.value_, cpp_move(v));
+            this_.has_value_ = true;
         }
 
     public:
@@ -62,24 +47,23 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
-#define STDSHARP_LAZY_VALUE_GETTER(volatile_, ref)                                                 \
-    constexpr decltype(auto) get(                                                                  \
-    ) volatile_ ref noexcept(noexcept(static_cast<volatile_ lazy_value&>(*this).generate_value())) \
-    {                                                                                              \
-        static_cast<volatile_ lazy_value&>(*this).generate_value();                                \
-        return static_cast<volatile_ value_type ref>(value_);                                      \
-    }                                                                                              \
-    constexpr decltype(auto) cget(                                                                 \
-    ) volatile_ ref noexcept(noexcept(static_cast<volatile_ lazy_value&>(*this).generate_value())) \
-    {                                                                                              \
-        static_cast<volatile_ lazy_value&>(*this).generate_value();                                \
-        return static_cast<const volatile_ value_type ref>(value_);                                \
+#define STDSHARP_LAZY_VALUE_GETTER(ref)                                            \
+    constexpr decltype(auto) get()                                                 \
+        ref noexcept(noexcept(generate_value(static_cast<lazy_value ref>(*this)))) \
+        requires requires { generate_value(static_cast<lazy_value ref>(*this)); }  \
+    {                                                                              \
+        generate_value(static_cast<lazy_value ref>(*this));                        \
+        return static_cast<value_type ref>(value_);                                \
+    }                                                                              \
+    constexpr decltype(auto) cget()                                                \
+        ref noexcept(noexcept(static_cast<lazy_value ref>(*this).get()))           \
+        requires requires { static_cast<lazy_value ref>(*this).get(); }            \
+    {                                                                              \
+        return std::as_const(static_cast<lazy_value ref>(*this).get());            \
     }
 
-        STDSHARP_LAZY_VALUE_GETTER(, &)
-        STDSHARP_LAZY_VALUE_GETTER(, &&)
-        STDSHARP_LAZY_VALUE_GETTER(volatile, &)
-        STDSHARP_LAZY_VALUE_GETTER(volatile, &&)
+        STDSHARP_LAZY_VALUE_GETTER(&)
+        STDSHARP_LAZY_VALUE_GETTER(&&)
 
 #undef STDSHARP_LAZY_VALUE_GETTER
     };

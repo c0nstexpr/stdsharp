@@ -1,6 +1,7 @@
 #pragma once
 
 #include "allocation_value.h"
+#include "../utility/dispatcher.h"
 #include "../cmath/cmath.h"
 
 namespace stdsharp::details

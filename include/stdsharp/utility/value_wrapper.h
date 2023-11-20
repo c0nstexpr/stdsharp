@@ -10,31 +10,13 @@ namespace stdsharp::details
     template<typename T>
     struct value_wrapper
     {
-        T v_;
-
-        value_wrapper() = default;
-
-        template<typename... U>
-            requires std::constructible_from<T, U...>
-        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            v_(cpp_forward(u)...)
-        {
-        }
+        T v_{};
     };
 
     template<empty_type T>
     struct value_wrapper<T>
     {
-        STDSHARP_NO_UNIQUE_ADDRESS T v_;
-
-        value_wrapper() = default;
-
-        template<typename... U>
-            requires std::constructible_from<T, U...>
-        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            v_(cpp_forward(u)...)
-        {
-        }
+        STDSHARP_NO_UNIQUE_ADDRESS T v_{};
     };
 }
 
@@ -44,7 +26,15 @@ namespace stdsharp
     struct value_wrapper : details::value_wrapper<T>
     {
         using value_type = T;
-        using details::value_wrapper<T>::value_wrapper;
+
+        value_wrapper() = default;
+
+        template<typename... U>
+            requires std::constructible_from<T, U...>
+        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
+            details::value_wrapper<T>{cpp_forward(u)...}
+        {
+        }
 
 #define STDSHARP_OPERATOR(cv, ref)                         \
     [[nodiscard]] constexpr cv T ref get() cv ref noexcept \

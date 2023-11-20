@@ -58,11 +58,11 @@ namespace stdsharp::details
         explicit indexed_piecewise_t() = default;
     } indexed_piecewise{};
 
-    template<typename U, std::size_t I>
-    struct indexed_value : stdsharp::value_wrapper<U>
+    template<typename T, std::size_t I>
+    struct indexed_value : stdsharp::value_wrapper<T>
     {
     private:
-        using m_base = stdsharp::value_wrapper<U>;
+        using m_base = stdsharp::value_wrapper<T>;
 
     public:
         using m_base::m_base;

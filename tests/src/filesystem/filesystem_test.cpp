@@ -12,14 +12,7 @@ SCENARIO("space size", "[filesystem]") // NOLINT
 
     STATIC_REQUIRE(default_initializable<bytes>);
     STATIC_REQUIRE(invocable<plus<>, bytes, bytes>);
-
-    STATIC_REQUIRE( //
-        requires(bytes v) //
-        {
-            +v;
-            -v;
-        }
-    );
+    STATIC_REQUIRE(invocable<minus<>, bytes, bytes>);
 
     STATIC_REQUIRE((1_bit + 1_bit) == 2_bit);
 
