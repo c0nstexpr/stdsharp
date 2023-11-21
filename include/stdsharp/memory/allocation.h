@@ -3,53 +3,74 @@
 #include "allocator_traits.h"
 #include "../functional/compose.h"
 
+namespace stdsharp::details
+{
+    template<typename Alloc>
+    struct allocation_result_traits
+    {
+        using pointer = allocator_pointer<Alloc>;
+        using const_pointer = allocator_const_pointer<Alloc>;
+        using size_type = allocator_size_type<Alloc>;
+
+        using callocation_result_base =
+            std::ranges::subrange<const_pointer, const_pointer, std::ranges::subrange_kind::sized>;
+
+        using allocation_result_base =
+            std::ranges::subrange<pointer, const_pointer, std::ranges::subrange_kind::sized>;
+
+        // NOLINTBEGIN(*-equals-default)
+        struct callocation_result : callocation_result_base
+        {
+            using callocation_result_base::callocation_result_base;
+
+            callocation_result() = default;
+
+            constexpr callocation_result(const const_pointer p, const size_type diff) noexcept:
+                callocation_result_base(p, p + diff)
+            {
+            }
+        };
+
+        struct allocation_result : allocation_result_base
+        {
+            using allocation_result_base::allocation_result_base;
+
+            allocation_result() = default;
+
+            constexpr allocation_result(const pointer p, const size_type diff) noexcept:
+                allocation_result_base(p, p + diff)
+            {
+            }
+
+            constexpr auto& operator=(const auto& t) noexcept
+                requires std::constructible_from<
+                    allocation_result_base,
+                    std::ranges::iterator_t<decltype(t)>,
+                    std::ranges::sentinel_t<decltype(t)>>
+            {
+                static_cast<allocation_result_base&>(*this) =
+                    allocation_result_base{std::ranges::begin(t), std::ranges::end(t)};
+                return *this;
+            }
+
+            constexpr operator callocation_result() const noexcept
+            {
+                return callocation_result{
+                    allocation_result_base::begin(),
+                    allocation_result_base::end()
+                };
+            }
+        }; // NOLINTEND(*-equals-default)
+    };
+}
+
 namespace stdsharp
 {
     template<allocator_req Alloc>
-    struct callocation_result
-    {
-        allocator_const_pointer<Alloc> p{};
-        allocator_size_type<Alloc> diff{};
-
-        [[nodiscard]] constexpr auto begin() const noexcept { return p; }
-
-        [[nodiscard]] constexpr auto end() const noexcept { return p + diff; }
-
-        [[nodiscard]] constexpr auto size() const noexcept { return diff; }
-    };
+    using callocation_result = details::allocation_result_traits<Alloc>::callocation_result;
 
     template<allocator_req Alloc>
-    struct allocation_result
-    {
-        allocator_pointer<Alloc> p{};
-        allocator_size_type<Alloc> diff{};
-
-        [[nodiscard]] constexpr auto begin() const noexcept { return p; }
-
-        [[nodiscard]] constexpr auto end() const noexcept { return p + diff; }
-
-        [[nodiscard]] constexpr auto size() const noexcept { return diff; }
-
-        constexpr auto& operator=(const auto& t) noexcept
-            requires requires(
-                const decltype(std::ranges::begin(t))& begin,
-                const decltype(std::ranges::size(t))& size
-            ) {
-                {
-                    p = begin
-                } noexcept;
-                {
-                    diff = size
-                } noexcept;
-            }
-        {
-            p = std::ranges::begin(t);
-            diff = std::ranges::size(t);
-            return *this;
-        }
-
-        constexpr operator callocation_result<Alloc>() const noexcept { return {p, diff}; }
-    };
+    using allocation_result = details::allocation_result_traits<Alloc>::allocation_result;
 
     template<allocator_req Alloc>
     inline constexpr allocation_result<Alloc> empty_allocation_result{};
@@ -92,7 +113,7 @@ namespace stdsharp::details
         requires std::ranges::sized_range<T>;
         {
             std::ranges::size(t)
-        } noexcept -> std::same_as<allocator_size_type<Alloc>>;
+        } -> std::same_as<allocator_size_type<Alloc>>;
     };
 }
 
@@ -103,7 +124,7 @@ namespace stdsharp
         requires details::allocation_common<T, Alloc>;
         {
             std::ranges::begin(t)
-        } noexcept -> std::same_as<allocator_const_pointer<Alloc>>;
+        } -> std::same_as<allocator_const_pointer<Alloc>>;
     };
 
     template<typename T, typename Alloc>
@@ -111,7 +132,7 @@ namespace stdsharp
         requires details::allocation_common<T, Alloc>;
         {
             std::ranges::begin(t)
-        } noexcept -> std::same_as<allocator_pointer<Alloc>>;
+        } -> std::same_as<allocator_pointer<Alloc>>;
 
         requires details::allocation_concept<Alloc>:: //
             template assignable_from_shadow<T>;
