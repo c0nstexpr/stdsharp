@@ -197,11 +197,8 @@ namespace stdsharp
         struct default_constructor
         {
             template<typename T, typename... Args>
-            constexpr decltype(auto) operator()( //
-                const Alloc& /*unused*/,
-                T* const ptr,
-                Args&&... args
-            ) const noexcept(nothrow_constructible_from<T, Args...>)
+            constexpr T* operator()(const Alloc& /*unused*/, T* const ptr, Args&&... args) const
+                noexcept(nothrow_constructible_from<T, Args...>)
                 requires std::constructible_from<T, Args...>
             {
                 assert_not_null(ptr);
@@ -209,7 +206,7 @@ namespace stdsharp
             }
 
             template<typename T>
-            constexpr decltype(auto) operator()(
+            constexpr T* operator()(
                 const Alloc& /*unused*/,
                 void* const ptr,
                 const std::in_place_type_t<T> /*unused*/,
@@ -224,7 +221,8 @@ namespace stdsharp
 
         struct custom_constructor
         {
-            constexpr decltype(auto) operator()(Alloc & a, auto* const ptr, auto&&... args) const
+            template<typename T>
+            constexpr T* operator()(Alloc& a, T* const ptr, auto&&... args) const
                 noexcept(noexcept(a.construct(ptr, cpp_forward(args)...)))
                 requires requires { a.construct(ptr, cpp_forward(args)...); }
             {
@@ -243,11 +241,27 @@ namespace stdsharp
         static constexpr struct constructor_uses_allocator
         {
             template<typename T, typename... Args>
-            constexpr decltype(auto) operator()(
-                const Alloc &
-                    alloc,
-                T* const ptr,
-                Args&&... args //
+                requires std::invocable<constructor, T, Args..., const Alloc&>
+            constexpr T* operator()(const Alloc& alloc, T* const ptr, Args&&... args) const
+                noexcept(nothrow_invocable<constructor, T, Args..., const Alloc&>)
+            {
+                return construct(ptr, cpp_forward(args)..., alloc);
+            }
+
+            template<typename T, typename... Args, typename Tag = std::allocator_arg_t>
+                requires std::invocable<constructor, T, Tag, const Alloc&, Args...>
+            constexpr T* operator()(const Alloc& alloc, T* const ptr, Args&&... args) const
+                noexcept(nothrow_invocable<constructor, T, Tag, const Alloc&, Args...>)
+            {
+                return construct(ptr, std::allocator_arg, alloc, cpp_forward(args)...);
+            }
+
+            template<typename T, typename... Args>
+            constexpr T* operator()(
+                const Alloc& alloc,
+                void* const ptr,
+                const std::in_place_type_t<T> /*unused*/,
+                Args&&... args
             ) const noexcept(nothrow_invocable<constructor, T, Args..., const Alloc&>)
                 requires std::invocable<constructor, T, Args..., const Alloc&>
             {
@@ -255,45 +269,13 @@ namespace stdsharp
             }
 
             template<typename T, typename... Args, typename Tag = std::allocator_arg_t>
-            constexpr decltype(auto) operator()(
-                const Alloc &
-                    alloc,
-                T* const ptr,
-                Args&&... args //
-            ) const noexcept(nothrow_invocable<constructor, T, Tag, const Alloc&, Args...>)
                 requires std::invocable<constructor, T, Tag, const Alloc&, Args...>
-            {
-                return construct(ptr, std::allocator_arg, alloc, cpp_forward(args)...);
-            }
-
-            template<typename T, typename... Args>
-            constexpr decltype(auto) operator()(
-                const Alloc &
-                    alloc,
+            constexpr T* operator()(
+                const Alloc& alloc,
                 void* const ptr,
                 const std::in_place_type_t<T> /*unused*/,
                 Args&&... args
-            ) const noexcept(nothrow_invocable<constructor, T, Args..., const Alloc&>)
-                requires std::invocable<constructor, T, Args..., const Alloc&>
-            {
-                return construct(ptr, cpp_forward(args)..., alloc);
-            }
-
-            template<typename T, typename... Args>
-            constexpr decltype(auto) operator()(
-                const Alloc &
-                    alloc,
-                void* const ptr,
-                const std::in_place_type_t<T> /*unused*/,
-                Args&&... args
-            ) const
-                noexcept(nothrow_invocable<
-                         constructor,
-                         T,
-                         std::allocator_arg_t,
-                         const Alloc&,
-                         Args...>)
-                requires std::invocable<constructor, T, std::allocator_arg_t, const Alloc&, Args...>
+            ) const noexcept(nothrow_invocable<constructor, T, Tag, const Alloc&, Args...>)
             {
                 return construct(ptr, std::allocator_arg, alloc, cpp_forward(args)...);
             }
@@ -304,7 +286,7 @@ namespace stdsharp
         {
             template<typename T>
             constexpr void operator()(Alloc& a, T* const ptr) const noexcept
-                requires(noexcept(a.destroy(ptr)))
+                requires requires { a.destroy(ptr); }
             {
                 assert_not_null(ptr);
                 a.destroy(ptr);
@@ -461,10 +443,7 @@ namespace stdsharp
             ),
             get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
             get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
-            get_expr_req(
-                std::invocable<destructor, allocator_type&, T*>,
-                nothrow_invocable<destructor, allocator_type&, T*> //
-            ),
+            expr_req::no_exception,
             get_expr_req(std::swappable<T>, nothrow_swappable<T>),
         };
     };

@@ -18,8 +18,7 @@ namespace stdsharp
         [[nodiscard]] bool operator==(const allocation_value&) const = default;
 
         template<typename... Args>
-        constexpr void operator()(Args&&... args) const
-            noexcept(nothrow_invocable<impl_t, Args...>)
+        constexpr void operator()(Args&&... args) const noexcept(nothrow_invocable<impl_t, Args...>)
             requires std::invocable<impl_t, Args...>
         {
             impl_t{1}(cpp_forward(args)...);
@@ -155,9 +154,8 @@ namespace stdsharp
 
         constexpr void operator()(
             allocator_type& allocator,
-            const allocation<Allocator> auto& allocation //
-        ) const noexcept(nothrow_invocable<dtor, allocator_type&, T*>)
-            requires std::invocable<dtor, allocator_type&, T*>
+            const allocation<Allocator> auto& allocation
+        ) const noexcept
         {
             size_validate(allocation);
 
