@@ -22,15 +22,6 @@ namespace stdsharp::details
     public:
         template<typename Traits>
         using rebind_traits = Traits::template rebind_traits<shadow_type>;
-
-        template<typename T>
-        static void is_std_alloc_test(const std::allocator<T>&);
-
-        template<typename T>
-        static void is_std_alloc_test(const std::pmr::polymorphic_allocator<T>&);
-
-        template<typename... T>
-        static void is_std_alloc_test(const std::scoped_allocator_adaptor<T...>&);
     };
 
     template<typename T>
@@ -131,11 +122,7 @@ namespace stdsharp
             };
 
             {
-                alloc == alloc
-            } noexcept;
-
-            {
-                alloc != alloc
+                alloc == alloc, alloc != alloc
             } noexcept;
 
             pointer_traits<decltype(p)>::pointer_to(v);
@@ -147,11 +134,7 @@ namespace stdsharp
                 t_traits.allocate(alloc, size, const_void_p)
             } -> std::same_as<decltype(p)>;
 
-            requires requires {
-                {
-                    alloc.deallocate(p, size)
-                } noexcept;
-            } || requires { details::allocator_concept_traits::is_std_alloc_test(alloc); };
+            alloc.deallocate(p, size);
 
             {
                 t_traits.max_size(alloc)
@@ -194,6 +177,11 @@ namespace stdsharp
     struct allocator_traits : private std::allocator_traits<Alloc>
     {
     private: // NOLINTBEGIN(*-owning-memory)
+        struct no_nullptr_fn
+        {
+            constexpr void operator()(Alloc&, std::nullptr_t, auto&&...) const = delete;
+        };
+
         struct default_constructor
         {
             template<typename T, typename... Args>
@@ -234,52 +222,42 @@ namespace stdsharp
         using m_base = std::allocator_traits<Alloc>;
 
     public:
-        using constructor = sequenced_invocables<custom_constructor, default_constructor>;
+        using constructor =
+            sequenced_invocables<no_nullptr_fn, custom_constructor, default_constructor>;
 
         static constexpr constructor construct{};
 
-        static constexpr struct constructor_uses_allocator
+    private:
+        struct valid_constructor_uses_allocator
         {
-            template<typename T, typename... Args>
-                requires std::invocable<constructor, T, Args..., const Alloc&>
-            constexpr T* operator()(const Alloc& alloc, T* const ptr, Args&&... args) const
-                noexcept(nothrow_invocable<constructor, T, Args..., const Alloc&>)
+            template<typename... Args>
+                requires std::invocable<constructor, Alloc&, Args..., const Alloc&>
+            constexpr auto* operator()(Alloc& alloc, Args&&... args) const
+                noexcept(nothrow_invocable<constructor, Alloc&, Args..., const Alloc&>)
             {
-                return construct(ptr, cpp_forward(args)..., alloc);
+                return construct(alloc, cpp_forward(args)..., std::as_const(alloc));
             }
 
             template<typename T, typename... Args, typename Tag = std::allocator_arg_t>
-                requires std::invocable<constructor, T, Tag, const Alloc&, Args...>
-            constexpr T* operator()(const Alloc& alloc, T* const ptr, Args&&... args) const
-                noexcept(nothrow_invocable<constructor, T, Tag, const Alloc&, Args...>)
+                requires std::invocable<constructor, Alloc&, T*, Tag, const Alloc&, Args...>
+            constexpr auto* operator()(Alloc& alloc, T* const ptr, Args&&... args) const
+                noexcept(nothrow_invocable<constructor, Alloc&, T*, Tag, const Alloc&, Args...>)
             {
-                return construct(ptr, std::allocator_arg, alloc, cpp_forward(args)...);
+                return construct(
+                    alloc,
+                    ptr,
+                    std::allocator_arg,
+                    std::as_const(alloc),
+                    cpp_forward(args)...
+                );
             }
+        };
 
-            template<typename T, typename... Args>
-            constexpr T* operator()(
-                const Alloc& alloc,
-                void* const ptr,
-                const std::in_place_type_t<T> /*unused*/,
-                Args&&... args
-            ) const noexcept(nothrow_invocable<constructor, T, Args..., const Alloc&>)
-                requires std::invocable<constructor, T, Args..., const Alloc&>
-            {
-                return construct(ptr, cpp_forward(args)..., alloc);
-            }
+    public:
+        using constructor_uses_allocator =
+            sequenced_invocables<no_nullptr_fn, valid_constructor_uses_allocator>;
 
-            template<typename T, typename... Args, typename Tag = std::allocator_arg_t>
-                requires std::invocable<constructor, T, Tag, const Alloc&, Args...>
-            constexpr T* operator()(
-                const Alloc& alloc,
-                void* const ptr,
-                const std::in_place_type_t<T> /*unused*/,
-                Args&&... args
-            ) const noexcept(nothrow_invocable<constructor, T, Tag, const Alloc&, Args...>)
-            {
-                return construct(ptr, std::allocator_arg, alloc, cpp_forward(args)...);
-            }
-        } construct_uses_allocator{};
+        static constexpr constructor_uses_allocator construct_uses_allocator{};
 
     private:
         struct custom_destructor
@@ -304,7 +282,7 @@ namespace stdsharp
         };
 
     public:
-        using destructor = sequenced_invocables<custom_destructor, default_destructor>;
+        using destructor = sequenced_invocables<no_nullptr_fn, custom_destructor, default_destructor>;
 
         static constexpr destructor destroy{};
 
