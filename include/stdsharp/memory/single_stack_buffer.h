@@ -22,7 +22,7 @@ namespace stdsharp
         single_stack_buffer& operator=(single_stack_buffer&&) = delete;
         ~single_stack_buffer() = default;
 
-        [[nodiscard]] constexpr void* try_allocate(
+        [[nodiscard]] constexpr void* allocate(
             const std::size_t s,
             const std::size_t alignment = max_alignment_v
         ) noexcept
@@ -40,18 +40,7 @@ namespace stdsharp
             return p_;
         }
 
-        [[nodiscard]] constexpr auto
-            allocate(const std::size_t s, const std::size_t alignment = max_alignment_v)
-        {
-            const auto ptr = try_allocate(s, alignment);
-            return ptr == nullptr ? throw std::bad_alloc{} : ptr;
-        }
-
-        constexpr void deallocate(
-            void* const p,
-            const std::size_t /*unused*/,
-            const std::size_t /*unused*/ = max_alignment_v
-        ) noexcept
+        constexpr void deallocate(void* const p) noexcept
         {
             Expects(p_ == p);
             p_ = nullptr;
@@ -62,10 +51,7 @@ namespace stdsharp
             return in_ptr == p_;
         }
 
-        [[nodiscard]] constexpr const auto& buffer() const noexcept
-        {
-            return buffer_;
-        }
+        [[nodiscard]] constexpr const auto& buffer() const noexcept { return buffer_; }
 
         [[nodiscard]] constexpr bool operator==(const single_stack_buffer& other) const noexcept
         {
@@ -73,7 +59,6 @@ namespace stdsharp
         }
 
     private:
-
         void* p_ = nullptr;
         alignas(std::max_align_t) std::array<byte, size> buffer_{};
     };

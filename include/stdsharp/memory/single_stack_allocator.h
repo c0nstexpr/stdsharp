@@ -34,17 +34,18 @@ namespace stdsharp
 
         [[nodiscard]] constexpr T* allocate(const std::size_t s)
         {
-            return pointer_cast<T>(resource().allocate(byte_size(s), alignof(T)));
+            const auto p = resource().allocate(byte_size(s), alignof(T));
+            return p == nullptr ? throw std::bad_alloc{} : pointer_cast<T>(p);
         }
 
         [[nodiscard]] constexpr T* try_allocate(const std::size_t s)
         {
-            return pointer_cast<T>(resource().try_allocate(byte_size(s), alignof(T)));
+            return pointer_cast<T>(resource().allocate(byte_size(s), alignof(T)));
         }
 
-        constexpr void deallocate(T* const ptr, const std::size_t s) noexcept
+        constexpr void deallocate(T* const ptr, const std::size_t /*unused*/) noexcept
         {
-            resource().deallocate(to_void_pointer(ptr), byte_size(s), alignof(T));
+            resource().deallocate(to_void_pointer(ptr));
         }
 
         [[nodiscard]] constexpr resource_type& resource() const noexcept { return src_.get(); }
