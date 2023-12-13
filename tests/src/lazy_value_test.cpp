@@ -5,13 +5,13 @@ SCENARIO("lazy value", "[lazy value]") // NOLINT
 {
     GIVEN("a lazy value")
     {
-        stdsharp::lazy_value lazy{[]() { return 1; }};
+        stdsharp::lazy_value lazy{[]() { return std::string{"foo"}; }};
 
         WHEN("get value")
         {
             auto value = lazy.get();
 
-            THEN("value is 1") { REQUIRE(value == 1); }
+            THEN("value is 1") { REQUIRE(value == "foo"); }
         }
     }
 
