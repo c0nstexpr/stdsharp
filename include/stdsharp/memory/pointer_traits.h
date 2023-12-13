@@ -117,7 +117,7 @@ namespace stdsharp
     {
         template<typename T>
             requires std::invocable<typename pointer_traits<T>::to_address_fn, const T&>
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const T& ptr) const noexcept
+        [[nodiscard]] constexpr auto operator()(const T& ptr) const noexcept
         {
             return (*this)(pointer_traits<T>::to_address(ptr));
         }
@@ -171,7 +171,7 @@ namespace stdsharp
                 requires std::invocable<to_void_pointer_fn, const Pointer&>;
                 requires !nothrow_explicitly_convertible<Pointer, typename traits<Pointer>::ptr>;
             }
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
         {
             return (*this)(to_void_pointer(p));
         }
@@ -186,6 +186,20 @@ namespace stdsharp
 
     template<typename T>
     inline constexpr pointer_cast_fn<T> pointer_cast{};
+
+    template<typename T>
+    struct launder_cast_fn
+    {
+        template<typename Pointer>
+            requires std::invocable<pointer_cast_fn<T>, const Pointer&>
+        [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        {
+            return std::launder(pointer_cast<T>(p));
+        }
+    };
+
+    template<typename T>
+    inline constexpr launder_cast_fn<T> launder_cast{};
 }
 
 #include "../compilation_config_out.h"
