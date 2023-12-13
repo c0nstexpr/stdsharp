@@ -6,11 +6,12 @@ namespace stdsharp
 {
     inline constexpr struct align_fn
     {
-        template<typename T, std::size_t Size>
-            requires(!const_<T>)
-        auto
-            operator()(const std::size_t alignment, const std::size_t size, const std::span<T, Size>& span)
-                const noexcept
+        template<non_const T, std::size_t Size>
+        auto operator()(
+            const std::size_t alignment,
+            const std::size_t size,
+            const std::span<T, Size>& span
+        ) const noexcept
         {
             auto space = span.size_bytes();
             void* void_ptr = span.data();

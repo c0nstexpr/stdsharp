@@ -521,12 +521,37 @@ namespace stdsharp::details
             STDSHARP_NO_UNIQUE_ADDRESS T v;
         };
     };
+
+    template<
+        typename T,
+        typename Tuple,
+        typename = std::make_index_sequence<std::tuple_size_v<Tuple>>>
+    struct piecewise_traits;
+
+    template<typename T, typename Tuple, std::size_t... I>
+    struct piecewise_traits<T, Tuple, std::index_sequence<I...>>
+    {
+        static constexpr auto constructible_from =
+            requires { requires std::constructible_from<T, get_element_t<I, Tuple>...>; };
+
+        static constexpr auto nothrow_constructible_from = requires {
+            requires std::is_nothrow_constructible_v<T, get_element_t<I, Tuple>...>;
+        };
+    };
 }
 
 namespace stdsharp
 {
     template<typename T>
     using ebo_union = details::ebo_union<T>::type;
+
+    template<typename T, typename Tuple>
+    concept piecewise_constructible_from = //
+        details::piecewise_traits<T, Tuple>::constructible_from;
+
+    template<typename T, typename Tuple>
+    concept piecewise_nothrow_constructible_from = //
+        details::piecewise_traits<T, Tuple>::nothrow_constructible_from;
 }
 
 namespace meta::extension

@@ -3,9 +3,11 @@
 //
 #pragma once
 
-#include <compare>
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
+#include <utility>
+#include <tuple>
 
 #include "../macros.h"
 #include "../namespace_alias.h"
@@ -32,6 +34,9 @@ namespace stdsharp
 
     template<typename T>
     concept const_ = std::is_const_v<T>;
+
+    template<typename T>
+    concept non_const = !const_<T>;
 
     template<typename T>
     concept const_lvalue_ref = std::is_lvalue_reference_v<T> && const_<std::remove_reference_t<T>>;
@@ -440,10 +445,7 @@ namespace stdsharp
         copy_assignable<T> && //
         std::equality_comparable<T> && //
         weakly_equality_comparable_with<T, std::nullptr_t>;
-}
 
-namespace stdsharp
-{
     template<typename T>
     concept referenceable = requires(T&) { 0; };
 

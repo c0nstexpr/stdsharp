@@ -7,7 +7,8 @@
 
 namespace stdsharp
 {
-    template<typename T, shared_mutex Lockable = std::shared_mutex>
+    template<non_const T, shared_lockable Lockable = std::shared_mutex>
+        requires basic_lockable<Lockable>
     class synchronizer
     {
     public:
@@ -18,7 +19,13 @@ namespace stdsharp
         synchronizer() = default;
 
         template<typename... Args>
-            requires std::constructible_from<value_type, Args...>
+            requires requires {
+                requires std::constructible_from<value_type, Args...>;
+                requires std::default_initializable<lock_type>;
+                requires !requires {
+                    [](const std::piecewise_construct_t, auto&&...) {}(std::declval<Args>()...);
+                };
+            }
         explicit(sizeof...(Args) == 1) constexpr synchronizer(Args&&... args) //
             noexcept(nothrow_constructible_from<value_type, Args...> && nothrow_default_initializable<lock_type>):
             value_(cpp_forward(args)...)
@@ -35,6 +42,37 @@ namespace stdsharp
 
         ~synchronizer() = default;
 
+    private:
+        template<typename ValueTuple, typename LockableTuple, std::size_t... I, std::size_t... J>
+        constexpr synchronizer(
+            ValueTuple&& value_tuple,
+            LockableTuple&& lockable_tuple,
+            std::index_sequence<I...> /*unused*/,
+            std::index_sequence<J...> /*unused*/
+        ):
+            value_(cpo::get_element<I>(cpp_forward(value_tuple))...),
+            lockable_(cpo::get_element<J>(cpp_forward(lockable_tuple))...)
+        {
+        }
+
+    public:
+        template<typename ValueTuple, typename LockableTuple>
+            requires piecewise_constructible_from<value_type, ValueTuple> &&
+            piecewise_constructible_from<lock_type, LockableTuple>
+        constexpr synchronizer(
+            const std::piecewise_construct_t /*unused*/,
+            ValueTuple&& value_tuple,
+            LockableTuple&& lockable_tuple
+        ):
+            synchronizer(
+                cpp_forward(value_tuple),
+                cpp_forward(lockable_tuple),
+                std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<ValueTuple>>>{},
+                std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<LockableTuple>>>{}
+            )
+        {
+        }
+
 #define STDSHARP_SYN_MEM(volatile_, ref)                                                       \
     template<typename... Args>                                                                 \
     constexpr void read(                                                                       \
@@ -43,7 +81,7 @@ namespace stdsharp
     ) const volatile_ ref                                                                      \
         requires std::constructible_from<std::shared_lock<lock_type>, lock_type&, Args...>     \
     {                                                                                          \
-        const std::shared_lock lock{lockable_, cpp_forward(args)...};                         \
+        const std::shared_lock lock{lockable_, cpp_forward(args)...};                          \
         invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
     }                                                                                          \
                                                                                                \
@@ -52,7 +90,7 @@ namespace stdsharp
         volatile_ ref                                                                          \
         requires std::constructible_from<std::unique_lock<lock_type>, lock_type&, Args...>     \
     {                                                                                          \
-        const std::unique_lock lock{lockable_, cpp_forward(args)...};                         \
+        const std::unique_lock lock{lockable_, cpp_forward(args)...};                          \
         invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
     }
 
