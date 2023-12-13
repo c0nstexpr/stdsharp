@@ -1,7 +1,9 @@
 #pragma once
 
 #include "allocator_traits.h"
-#include "../cstdint/cstdint.h"
+#include "aligned.h"
+
+#include "../compilation_config_in.h"
 
 namespace stdsharp
 {
@@ -20,36 +22,50 @@ namespace stdsharp
         single_stack_buffer& operator=(single_stack_buffer&&) = delete;
         ~single_stack_buffer() = default;
 
-        [[nodiscard]] constexpr void* try_allocate(const std::size_t required_size) noexcept
+        [[nodiscard]] constexpr void* try_allocate(
+            const std::size_t s,
+            const std::size_t alignment = max_alignment_v
+        ) noexcept
         {
-            if(required_size > size) return nullptr;
-            allocate_size_ = required_size;
-            return data();
+            if(s > size || p_ != nullptr) return nullptr;
+
+            if(std::is_constant_evaluated())
+            {
+                Expects(alignment <= max_alignment_v);
+                p_ = buffer_.data();
+            }
+            else if(const auto span = align(alignment, s, std::span{buffer_}); !span.empty())
+                p_ = span.data();
+
+            return p_;
         }
 
-        [[nodiscard]] constexpr auto allocate(const std::size_t required_size)
+        [[nodiscard]] constexpr auto
+            allocate(const std::size_t s, const std::size_t alignment = max_alignment_v)
         {
-            const auto ptr = try_allocate(required_size);
-
+            const auto ptr = try_allocate(s, alignment);
             return ptr == nullptr ? throw std::bad_alloc{} : ptr;
         }
 
         constexpr void deallocate(
             void* const p,
-            const std::size_t required_size //
+            const std::size_t /*unused*/,
+            const std::size_t /*unused*/ = max_alignment_v
         ) noexcept
         {
-            Expects(contains(p));
-            Expects(allocate_size_ == required_size);
-            allocate_size_ = 0;
+            Expects(p_ == p);
+            p_ = nullptr;
         }
 
         [[nodiscard]] constexpr auto contains(const void* const in_ptr) noexcept
         {
-            return in_ptr == data();
+            return in_ptr == p_;
         }
 
-        [[nodiscard]] constexpr void* data() const noexcept { return auto_cast(storage_.data()); }
+        [[nodiscard]] constexpr const auto& buffer() const noexcept
+        {
+            return buffer_;
+        }
 
         [[nodiscard]] constexpr bool operator==(const single_stack_buffer& other) const noexcept
         {
@@ -57,9 +73,10 @@ namespace stdsharp
         }
 
     private:
-        [[nodiscard]] constexpr void* data() noexcept { return auto_cast(storage_.data()); }
 
-        std::size_t allocate_size_ = 0;
-        alignas(std::max_align_t) std::array<byte, size> storage_{};
+        void* p_ = nullptr;
+        alignas(std::max_align_t) std::array<byte, size> buffer_{};
     };
 }
+
+#include "../compilation_config_out.h"

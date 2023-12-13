@@ -37,6 +37,9 @@ namespace stdsharp
 
     inline constexpr auto max_alignment_v = max_alignment::value;
 
+    template<typename T>
+    concept over_aligned = alignof(T) > max_alignment_v;
+
     template<typename Alloc>
     concept allocator_req = requires //
     {
@@ -282,7 +285,8 @@ namespace stdsharp
         };
 
     public:
-        using destructor = sequenced_invocables<no_nullptr_fn, custom_destructor, default_destructor>;
+        using destructor =
+            sequenced_invocables<no_nullptr_fn, custom_destructor, default_destructor>;
 
         static constexpr destructor destroy{};
 
