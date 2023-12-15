@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stdsharp/functional/invoke.h"
+#include "invoke.h"
 
 #include "../compilation_config_in.h"
 

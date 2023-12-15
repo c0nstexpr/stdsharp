@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../algorithm/algorithm.h"
-#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
