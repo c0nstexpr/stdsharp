@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 #
 project(
   stdsharp
-  VERSION 0.8.5
+  VERSION 0.8.6
   LANGUAGES CXX)
 
 include(cmake/Utils.cmake)
@@ -20,10 +20,6 @@ find_package(range-v3 CONFIG REQUIRED)
 find_package(ctre CONFIG REQUIRED)
 find_package(nameof CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
-
-target_compile_options(
-  ${PROJECT_NAME} INTERFACE $<$<CXX_COMPILER_ID:MSVC>: /external:anglebrackets>
-                            $<$<CXX_COMPILER_ID:Clang>: -fexperimental-library>)
 
 target_link_libraries(
   ${PROJECT_NAME} INTERFACE range-v3::range-v3 Microsoft.GSL::GSL

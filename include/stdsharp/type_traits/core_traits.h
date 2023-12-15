@@ -303,15 +303,13 @@ namespace stdsharp::details
 
     template<
         constant_value T,
-        typename Range = decltype(T::value),
+        std::ranges::input_range Range = decltype(T::value),
         nttp_able ValueType = std::ranges::range_value_t<Range> // clang-format off
-        > // clang-format on
-        requires requires //
-    {
-        index_constant<std::ranges::size(T::value)>{};
-        std::array<ValueType, 1>{};
-        requires std::copyable<ValueType>;
-    }
+    > // clang-format on
+        requires requires {
+            requires std::ranges::sized_range<Range>;
+            requires std::copyable<ValueType>;
+        }
     struct rng_to_sequence
     {
         static constexpr auto rng = T::value;
@@ -534,9 +532,8 @@ namespace stdsharp::details
         static constexpr auto constructible_from =
             requires { requires std::constructible_from<T, get_element_t<I, Tuple>...>; };
 
-        static constexpr auto nothrow_constructible_from = requires {
-            requires std::is_nothrow_constructible_v<T, get_element_t<I, Tuple>...>;
-        };
+        static constexpr auto nothrow_constructible_from =
+            requires { requires std::is_nothrow_constructible_v<T, get_element_t<I, Tuple>...>; };
     };
 }
 

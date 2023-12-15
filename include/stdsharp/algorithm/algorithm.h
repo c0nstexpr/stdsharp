@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-
 #include "../ranges/ranges.h"
 #include "../cassert/cassert.h"
 #include "../functional/operations.h"
@@ -72,54 +70,73 @@ namespace stdsharp
 
     inline constexpr struct strict_compare_fn
     {
-        template<std::ranges::input_range TRng, std::ranges::input_range URng>
-            requires std::three_way_comparable_with<
-                range_const_reference_t<TRng>,
-                range_const_reference_t<URng>>
-        constexpr auto operator()(const TRng& left, const URng& right) const
-        {
-            using ordering = std::partial_ordering;
+    private:
+        using ordering = std::partial_ordering;
 
-            auto pre = ordering::equivalent;
-            const auto cmp_impl = [](ordering& pre, const ordering next)
+        static constexpr auto cmp_impl(ordering& pre, const ordering next) noexcept
+        {
+            if(is_eq(pre))
             {
-                if(is_eq(pre))
+                pre = next;
+                return;
+            }
+
+            if(pre != next && is_neq(next))
+            {
+                pre = ordering::unordered;
+                return;
+            }
+        };
+
+    public:
+        template<
+            std::input_iterator I1,
+            std::sentinel_for<I1> S1,
+            std::input_iterator I2,
+            std::sentinel_for<I2> S2,
+            typename Cmp = std::compare_three_way>
+            requires ordering_predicate<Cmp&, std::iter_reference_t<I1>, std::iter_reference_t<I2>>
+        constexpr auto operator()(I1 i1, const S1 s1, I2 i2, const S2 s2, Cmp cmp = {}) const
+        {
+            auto pre = ordering::equivalent;
+
+            for(; !is_ud(pre); ++i1, ++i2)
+            {
+                if(i1 == s1)
                 {
-                    pre = next;
-                    return;
+                    if(i2 != s2) pre = ordering::unordered;
+                    break;
                 }
 
-                if(pre != next && is_neq(next))
+                if(i2 == s2)
                 {
                     pre = ordering::unordered;
-                    return;
+                    break;
                 }
-            };
 
-            {
-                auto l_it = std::ranges::cbegin(left);
-                auto r_it = std::ranges::cbegin(right);
-                const auto l_end = std::ranges::cend(left);
-                const auto r_end = std::ranges::cend(right);
-                for(; !is_ud(pre); ++l_it, ++r_it)
-                {
-                    if(l_it == l_end)
-                    {
-                        if(r_it != r_end) cmp_impl(pre, ordering::less);
-                        break;
-                    }
-
-                    if(r_it == r_end)
-                    {
-                        cmp_impl(pre, ordering::greater);
-                        break;
-                    }
-
-                    cmp_impl(pre, std::compare_three_way{}(*l_it, *r_it));
-                }
+                cmp_impl(pre, invoke(cmp, *i1, *i2));
             }
 
             return pre;
+        }
+
+        template<
+            std::ranges::input_range R1,
+            std::ranges::input_range R2,
+            typename Cmp = std::compare_three_way>
+            requires ordering_predicate<
+                Cmp&,
+                std::ranges::range_reference_t<R1>,
+                std::ranges::range_reference_t<R2>>
+        constexpr auto operator()(R1&& r1, R2&& r2, Cmp cmp = {}) const
+        {
+            return (*this)(
+                std::ranges::begin(r1),
+                std::ranges::end(r1),
+                std::ranges::begin(r2),
+                std::ranges::end(r2),
+                cmp
+            );
         }
     } strict_compare{};
 

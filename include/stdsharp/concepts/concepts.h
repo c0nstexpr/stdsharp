@@ -308,7 +308,7 @@ namespace stdsharp
     concept nothrow_weakly_equality_comparable = nothrow_weakly_equality_comparable_with<T, T>;
 
     template<typename T, typename U>
-    concept partial_ordered_with =
+    concept partially_ordered_with =
         requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
             {
                 t < u
@@ -335,6 +335,9 @@ namespace stdsharp
                 u <= t
             } -> boolean_testable;
         };
+
+    template<typename T>
+    concept partially_ordered = partially_ordered_with<T, T>;
 
     template<typename T, typename... Args>
     concept list_initializable_from = requires { T{std::declval<Args>()...}; };
@@ -426,6 +429,14 @@ namespace stdsharp
 
     template<typename Func, typename ReturnT, typename... Args>
     concept nothrow_invocable_r = std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
+
+    template<typename Func, typename ReturnT, typename... Args>
+    concept regular_invocable_r = std::regular_invocable<Func, ReturnT, Args...> &&
+        std::is_invocable_r_v<ReturnT, Func, Args...>;
+
+    template<typename Func, typename ReturnT, typename... Args>
+    concept nothrow_regular_invocable_r = std::regular_invocable<Func, ReturnT, Args...> &&
+        nothrow_invocable_r<ReturnT, Func, Args...>;
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = nothrow_invocable_r<Func, bool, Args...>;
