@@ -15,7 +15,7 @@ namespace stdsharp
         return c == std::partial_ordering::unordered;
     }
 
-    constexpr bool comform_to(const std::partial_ordering l, decltype(l) r) noexcept
+    constexpr bool conform_to(const std::partial_ordering l, decltype(l) r) noexcept
     {
         return is_eq(l) || l == r;
     }
