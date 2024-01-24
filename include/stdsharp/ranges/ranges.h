@@ -77,9 +77,9 @@ namespace stdsharp
 
     inline constexpr struct is_iter_in_fn
     {
-        template<typename I, std::sentinel_for<I> S>
-            requires std::sentinel_for<I, I>
-        constexpr bool operator()(I begin, const S& end, const I& in) const noexcept
+        template<typename In, std::sentinel_for<In> Sentinel>
+            requires std::sentinel_for<In, In>
+        constexpr bool operator()(In begin, const Sentinel& end, const In& in) const noexcept
         {
             if(!std::is_constant_evaluated()) return begin <= in && in < end;
 

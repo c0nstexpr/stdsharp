@@ -140,15 +140,15 @@ namespace stdsharp
         }
     } strict_compare{};
 
-    template<typename I, typename O>
-    using move_n_result = std::ranges::in_out_result<I, O>;
+    template<typename In, typename Out>
+    using move_n_result = std::ranges::in_out_result<In, Out>;
 
     inline constexpr struct move_n_fn
     {
-        template<std::input_iterator I, std::weakly_incrementable O>
-            requires std::indirectly_movable<I, O>
-        constexpr move_n_result<I, O>
-            operator()(I in, const std::iter_difference_t<I> n, O out) const
+        template<std::input_iterator In, std::weakly_incrementable Out>
+            requires std::indirectly_movable<In, Out>
+        constexpr move_n_result<In, Out>
+            operator()(In in, const std::iter_difference_t<In> n, Out out) const
         {
             auto&& r = std::ranges::move(
                 std::counted_iterator{cpp_move(in), n},

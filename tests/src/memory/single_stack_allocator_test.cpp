@@ -4,7 +4,7 @@
 using namespace stdsharp;
 using namespace std;
 
-SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
+SCENARIO("single stack allocator", "[memory][single_stack_allocator]") // NOLINT
 {
     struct base
     {
@@ -28,7 +28,7 @@ SCENARIO("static allocator", "[memory][static_allocator]") // NOLINT
 
     single_stack_buffer<sizeof(derived)> rsc;
 
-    GIVEN("static allocator with " << decltype(rsc)::size << " bytes")
+    GIVEN("allocator with " << decltype(rsc)::size << " bytes")
     {
         auto allocator = make_single_stack_allocator<derived>(rsc);
 
