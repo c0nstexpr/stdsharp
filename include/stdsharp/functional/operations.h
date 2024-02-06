@@ -205,7 +205,7 @@ namespace stdsharp
     {
         struct advance_by_op
         {
-            template<typename T, unsigned_ Distance = std::iter_difference_t<T>>
+            template<typename T, std::unsigned_integral Distance = std::iter_difference_t<T>>
                 requires std::invocable<pre_increase, T>
             constexpr decltype(auto) operator()(T & v, Distance distance) const
                 noexcept(nothrow_invocable<pre_increase, T>)
@@ -215,7 +215,7 @@ namespace stdsharp
                 return v;
             }
 
-            template<typename T, signed_ Distance = std::iter_difference_t<T>>
+            template<typename T, std::signed_integral Distance = std::iter_difference_t<T>>
                 requires(
                     std::invocable<advance_by_op, T, std::make_unsigned_t<Distance>> &&
                     std::invocable<pre_decrease, T> //

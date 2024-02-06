@@ -38,6 +38,40 @@ namespace stdsharp
         iter_const_reference_t<std::ranges::iterator_t<T>>;
 #endif
 
+#define STDSHARP_MD_RANGE_TRAITS(name, ns)                             \
+    template<std::size_t N, typename T>                                \
+    struct md_##name                                                   \
+    {                                                                  \
+        using rng = T;                                                 \
+                                                                       \
+        using type = ns::name##_t<typename md_##name<N - 1, T>::type>; \
+    };                                                                 \
+                                                                       \
+    template<typename T>                                               \
+    struct md_##name<0, T>                                             \
+    {                                                                  \
+        using rng = T;                                                 \
+                                                                       \
+        using type = ns::name##_t<T>;                                  \
+    };                                                                 \
+                                                                       \
+    template<std::size_t N, typename T>                                \
+    using md_##name##_t = typename md_##name<N, T>::type;
+
+    STDSHARP_MD_RANGE_TRAITS(iterator, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(const_iterator, stdsharp)
+    STDSHARP_MD_RANGE_TRAITS(sentinel, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(const_sentinel, stdsharp)
+    STDSHARP_MD_RANGE_TRAITS(range_size, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(range_difference, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(range_value, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(range_reference, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(range_const_reference, stdsharp)
+    STDSHARP_MD_RANGE_TRAITS(range_rvalue_reference, std::ranges)
+    STDSHARP_MD_RANGE_TRAITS(range_common_reference, std::ranges)
+
+#undef STDSHARP_MD_RANGE_TRAITS
+
     template<typename T>
     using forwarding_view = std::ranges::transform_view<T, forward_like_fn<T>>;
 
@@ -66,15 +100,6 @@ namespace stdsharp
         std::ranges::output_range<Out, std::ranges::range_reference_t<Out>> &&
         std::indirectly_copyable<std::ranges::iterator_t<In>, std::ranges::iterator_t<Out>>;
 
-    namespace views
-    {
-        template<typename T>
-        inline constexpr auto forwarding = std::ranges::views::transform(forward_like<T>);
-
-        template<typename U>
-        inline constexpr auto cast = std::ranges::views::transform(cast_to<U>);
-    }
-
     inline constexpr struct is_iter_in_fn
     {
         template<typename In, std::sentinel_for<In> Sentinel>
@@ -95,4 +120,23 @@ namespace stdsharp
             return (*this)(std::ranges::cbegin(r), std::ranges::cend(r), in);
         }
     } is_iter_in{};
+
+    inline constexpr struct index_fn
+    {
+        template<typename R>
+            requires std::invocable<::ranges::index_fn, R, std::ranges::range_size_t<R>>
+        constexpr decltype(auto) operator()(R&& r, const std::ranges::range_size_t<R>& i) const
+        {
+            return ::ranges::index(r, i);
+        }
+    } index{};
+}
+
+namespace stdsharp::views
+{
+    template<typename T>
+    inline constexpr auto forwarding = std::ranges::views::transform(forward_like<T>);
+
+    template<typename U>
+    inline constexpr auto cast = std::ranges::views::transform(cast_to<U>);
 }

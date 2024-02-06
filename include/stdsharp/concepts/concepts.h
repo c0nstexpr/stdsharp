@@ -60,16 +60,7 @@ namespace stdsharp
     concept arithmetic = std::is_arithmetic_v<T>;
 
     template<typename T>
-    concept signed_ = std::is_signed_v<T>;
-
-    template<typename T>
     concept empty_type = std::is_empty_v<T>;
-
-    template<typename T>
-    concept unsigned_ = std::is_unsigned_v<T>;
-
-    template<typename T>
-    concept floating_point = std::is_floating_point_v<T>;
 
     template<typename T, typename U = T>
     concept arithmetic_like = std::three_way_comparable<T> && requires(T t1, U t2) {
@@ -136,7 +127,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    concept fundamental_array = std::is_array_v<T>;
+    concept carray = std::is_array_v<T>;
 
     template<typename T, typename U>
     concept base_of = std::is_base_of_v<T, U>;
