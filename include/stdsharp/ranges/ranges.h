@@ -120,16 +120,36 @@ namespace stdsharp
             return (*this)(std::ranges::cbegin(r), std::ranges::cend(r), in);
         }
     } is_iter_in{};
+}
 
-    inline constexpr struct index_fn
+namespace stdsharp::details
+{
+    template<typename Fn>
+    struct index_fn
     {
-        template<typename R>
-            requires std::invocable<::ranges::index_fn, R, std::ranges::range_size_t<R>>
-        constexpr decltype(auto) operator()(R&& r, const std::ranges::range_size_t<R>& i) const
+        template<typename R, typename... Args>
+        constexpr decltype(auto) operator()(
+            R&& r,
+            const std::ranges::range_difference_t<R>& i,
+            Args&&... args //
+        ) const
+            requires requires(std::invoke_result_t<Fn, R, decltype(i)> result) {
+                requires sizeof...(Args) == 0 ||
+                        std::invocable<index_fn, decltype(result), Args...>;
+            }
         {
-            return ::ranges::index(r, i);
+            auto&& result = Fn{}(cpp_forward(r), i);
+            if constexpr(sizeof...(Args) == 0) return result;
+            else return (*this)(cpp_forward(result), cpp_forward(args)...);
         }
-    } index{};
+    };
+}
+
+namespace stdsharp
+{
+    inline constexpr details::index_fn<::ranges::index_fn> index{};
+
+    inline constexpr details::index_fn<::ranges::at_fn> index_at{};
 }
 
 namespace stdsharp::views

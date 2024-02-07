@@ -11,7 +11,7 @@ namespace stdsharp
         return (x + y - 1) / y;
     }
 
-    constexpr auto ceil_quotient(const floating_point auto x, decltype(x) y) noexcept
+    constexpr auto ceil_quotient(const std::floating_point auto x, decltype(x) y) noexcept
     {
         return ceil(x / y);
     }
