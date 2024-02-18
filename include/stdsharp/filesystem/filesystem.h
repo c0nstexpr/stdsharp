@@ -14,7 +14,7 @@ namespace stdsharp::filesystem
 
     template<typename Rep, std::uintmax_t Num, std::uintmax_t Denom>
     class space_size<Rep, std::ratio<Num, Denom>> :
-        default_arithmetic_operation<space_size<Rep, std::ratio<Num, Denom>>>
+        default_arithmetic_operator<space_size<Rep, std::ratio<Num, Denom>>>
     {
     public:
         using rep = Rep;

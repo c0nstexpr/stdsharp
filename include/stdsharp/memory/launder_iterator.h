@@ -9,7 +9,7 @@ namespace stdsharp
 {
     template<typename T> // NOLINTBEGIN(*-pointer-arithmetic)
     class launder_iterator :
-        default_arithmetic_operation<launder_iterator<T>>,
+        default_arithmetic_operator<launder_iterator<T>>,
         public std::random_access_iterator_tag
     {
         T* ptr_;

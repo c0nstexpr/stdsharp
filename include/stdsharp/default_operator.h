@@ -28,7 +28,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    class default_arithmetic_operation : default_increase_and_decrease<T>
+    class default_arithmetic_operator : default_increase_and_decrease<T>
     {
         friend constexpr T& operator++(T& t) noexcept(noexcept(t += 1))
             requires requires { t += 1; }
@@ -71,5 +71,21 @@ namespace stdsharp
         {
             return 0 - t;
         };
+    };
+
+    template<typename T>
+    class default_arrow_operator
+    {
+        [[nodiscard]] constexpr decltype(auto) operator->() const noexcept(noexcept(*static_cast<const T&>(*this)))
+            requires dereferenceable<const T&>
+        {
+            return *static_cast<const T&>(*this);
+        }
+
+        [[nodiscard]] constexpr decltype(auto) operator->() noexcept(noexcept(*static_cast<T&>(*this)))
+            requires dereferenceable<T&>
+        {
+            return *static_cast<T&>(*this);
+        }
     };
 }
