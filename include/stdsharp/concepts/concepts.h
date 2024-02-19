@@ -422,12 +422,12 @@ namespace stdsharp
     concept nothrow_invocable_r = std::is_nothrow_invocable_r_v<ReturnT, Func, Args...>;
 
     template<typename Func, typename ReturnT, typename... Args>
-    concept regular_invocable_r = std::regular_invocable<Func, ReturnT, Args...> &&
-        std::is_invocable_r_v<ReturnT, Func, Args...>;
+    concept regular_invocable_r =
+        std::regular_invocable<Func, Args...> && invocable_r<Func, ReturnT, Args...>;
 
     template<typename Func, typename ReturnT, typename... Args>
-    concept nothrow_regular_invocable_r = std::regular_invocable<Func, ReturnT, Args...> &&
-        nothrow_invocable_r<ReturnT, Func, Args...>;
+    concept nothrow_regular_invocable_r = regular_invocable_r<Func, ReturnT, Args...> &&
+        nothrow_invocable_r<Func,ReturnT,  Args...>;
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = nothrow_invocable_r<Func, bool, Args...>;

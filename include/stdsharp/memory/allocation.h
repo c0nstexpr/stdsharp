@@ -2,6 +2,7 @@
 
 #include "allocator_traits.h"
 #include "../functional/compose.h"
+#include "../ranges/ranges.h"
 
 namespace stdsharp::details
 {

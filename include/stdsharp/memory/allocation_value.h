@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../algorithm/algorithm.h"
 #include "allocation_traits.h"
 #include "launder_iterator.h"
 

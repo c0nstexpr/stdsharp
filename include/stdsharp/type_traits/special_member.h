@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../algorithm/algorithm.h"
+#include "../concepts/concepts.h"
+#include "../type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -28,27 +29,21 @@ namespace stdsharp
             };
         }
 
-        [[nodiscard]] static constexpr auto trivial() noexcept { return lifetime_req{}; };
+        [[nodiscard]] static constexpr lifetime_req trivial() noexcept { return {}; };
 
-        [[nodiscard]] static constexpr auto normal() noexcept
+        [[nodiscard]] static constexpr lifetime_req normal() noexcept
         {
-            return lifetime_req{
-                .copy_construct = expr_req::well_formed,
-                .copy_assign = expr_req::well_formed
-            };
+            return {.copy_construct = expr_req::well_formed, .copy_assign = expr_req::well_formed};
         }
 
-        [[nodiscard]] static constexpr auto unique() noexcept
+        [[nodiscard]] static constexpr lifetime_req unique() noexcept
         {
-            return lifetime_req{
-                .copy_construct = expr_req::ill_formed,
-                .copy_assign = expr_req::ill_formed
-            };
+            return {.copy_construct = expr_req::ill_formed, .copy_assign = expr_req::ill_formed};
         }
 
-        [[nodiscard]] static constexpr auto ill_formed() noexcept
+        [[nodiscard]] static constexpr lifetime_req ill_formed() noexcept
         {
-            return lifetime_req{
+            return {
                 expr_req::ill_formed,
                 expr_req::ill_formed,
                 expr_req::ill_formed,
@@ -60,23 +55,37 @@ namespace stdsharp
         }
 
     private:
-        [[nodiscard]] constexpr auto to_rng() const noexcept
-        {
-            return std::array{
-                default_construct,
-                move_construct,
-                copy_construct,
-                move_assign,
-                copy_assign,
-                destruct,
-                swap
-            };
-        }
+        using ordering = std::partial_ordering;
 
-        [[nodiscard]] friend constexpr std::partial_ordering
+        static constexpr auto cmp_impl(ordering& pre, const ordering next) noexcept
+        {
+            if(is_eq(pre))
+            {
+                pre = next;
+                return true;
+            }
+
+            if(pre != next && is_neq(next))
+            {
+                pre = ordering::unordered;
+                return false;
+            }
+
+            return true;
+        };
+
+        [[nodiscard]] friend constexpr ordering
             operator<=>(const lifetime_req left, const lifetime_req right) noexcept
         {
-            return strict_compare(left.to_rng(), right.to_rng());
+            ordering cmp = left.default_construct <=> right.default_construct;
+            cmp_impl(cmp, left.move_construct <=> right.move_construct) || //
+                cmp_impl(cmp, left.copy_construct <=> right.copy_construct) || //
+                cmp_impl(cmp, left.move_assign <=> right.move_assign) || //
+                cmp_impl(cmp, left.copy_assign <=> right.copy_assign) || //
+                cmp_impl(cmp, left.destruct <=> right.destruct) || //
+                cmp_impl(cmp, left.swap <=> right.swap);
+
+            return cmp;
         }
 
         [[nodiscard]] friend constexpr auto
@@ -139,13 +148,15 @@ namespace stdsharp
         {
         }
 
-        constexpr fake_type& operator=(fake_type&& /*unused*/) noexcept(is_noexcept(Req.move_assign))
+        constexpr fake_type& operator=(fake_type&& /*unused*/) noexcept(is_noexcept(Req.move_assign)
+        )
             requires(is_well_formed(Req.move_assign))
         {
             return *this;
         }
 
-        constexpr fake_type& operator=(const fake_type& /*unused*/) noexcept(is_noexcept(Req.copy_assign))
+        constexpr fake_type&
+            operator=(const fake_type& /*unused*/) noexcept(is_noexcept(Req.copy_assign))
             requires(is_well_formed(Req.copy_assign))
         {
             return *this;

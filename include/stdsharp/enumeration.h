@@ -1,7 +1,6 @@
 #pragma once
 
 #include "utility/auto_cast.h"
-#include "concepts/concepts.h"
 
 namespace stdsharp
 {

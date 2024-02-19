@@ -1,12 +1,12 @@
 #pragma once
 
-#include "utility/cast_to.h"
+#include "stdsharp/concepts/concepts.h"
 #include "type_traits/core_traits.h"
 
 namespace stdsharp
 {
     template<typename T>
-    class default_increase_and_decrease
+    class default_increase
     {
         [[nodiscard]] friend constexpr auto operator++(T& t, int) //
             noexcept(nothrow_copy_constructible<T>&& noexcept(++t))
@@ -28,7 +28,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    class default_arithmetic_operator : default_increase_and_decrease<T>
+    class default_arithmetic_operator : default_increase<T>
     {
         friend constexpr T& operator++(T& t) noexcept(noexcept(t += 1))
             requires requires { t += 1; }
@@ -76,16 +76,49 @@ namespace stdsharp
     template<typename T>
     class default_arrow_operator
     {
-        [[nodiscard]] constexpr decltype(auto) operator->() const noexcept(noexcept(*static_cast<const T&>(*this)))
-            requires dereferenceable<const T&>
+        [[nodiscard]] constexpr decltype(auto) operator->() const
+            noexcept(noexcept(*static_cast<const T&>(*this)))
+            requires dereferenceable<const T>
         {
             return *static_cast<const T&>(*this);
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator->() noexcept(noexcept(*static_cast<T&>(*this)))
-            requires dereferenceable<T&>
+        [[nodiscard]] constexpr decltype(auto) operator->() //
+            noexcept(noexcept(*static_cast<T&>(*this)))
+            requires dereferenceable<T>
         {
             return *static_cast<T&>(*this);
         }
+
+        [[nodiscard]] friend constexpr decltype(auto) operator->*(const T & t, auto&& ptr) //
+            noexcept(noexcept((*t).*cpp_forward(ptr)))
+            requires dereferenceable<const T>
+        {
+            return (*t).*cpp_forward(ptr);
+        }
+
+        [[nodiscard]] friend constexpr decltype(auto) operator->*(T & t, auto&& ptr) //
+            noexcept(noexcept((*t).*cpp_forward(ptr)))
+            requires dereferenceable<T>
+        {
+            return (*t).*cpp_forward(ptr);
+        }
+    };
+
+    template<typename T>
+    class default_subscriptor
+    {
+#if __cpp_multidimensional_subscript >= 202110L
+        [[nodiscard]] constexpr decltype(auto) operator[](auto&& first_arg, auto&&... args) //
+            noexcept( //
+                noexcept(static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...])
+            )
+            requires requires {
+                static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...];
+            }
+        {
+            return static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...];
+        }
+#endif
     };
 }

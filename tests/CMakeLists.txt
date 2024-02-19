@@ -39,7 +39,7 @@ config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
 target_compile_options(
   ${PROJECT_NAME}
-  PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4>
+  PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4459>
          $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments -ftime-trace
          -fdiagnostics-show-template-tree>)
 target_enable_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address

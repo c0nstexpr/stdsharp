@@ -6,6 +6,7 @@
 
 #include "../type_traits/special_member.h"
 #include "../utility/constructor.h"
+#include "../cassert/cassert.h"
 #include "pointer_traits.h"
 
 namespace stdsharp::details

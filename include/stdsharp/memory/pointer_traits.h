@@ -3,6 +3,9 @@
 #include <memory>
 
 #include "../type_traits/object.h"
+#include "../functional/invocables.h"
+#include "../utility/auto_cast.h"
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp
