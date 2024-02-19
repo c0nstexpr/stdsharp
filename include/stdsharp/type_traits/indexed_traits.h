@@ -1,3 +1,5 @@
+ // TODO: __cpp_pack_indexing >= 202311L
+
 #pragma once
 
 #include "core_traits.h"
