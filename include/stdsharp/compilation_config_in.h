@@ -1,7 +1,16 @@
-#include <cassert>
+#if defined( __GNUG__) || defined(_MSC_VER)
+    #pragma push_macro("STDSHARP_ALWAYS_INLINE")
+    #pragma push_macro("STDSHARP_NO_UNIQUE_ADDRESS")
+    #pragma push_macro("STDSHARP_INTRINSIC")
+    #pragma push_macro("STDSHARP_EBO")
+    #pragma push_macro("STDSHARP_MEM_PACK_IMPL")
+    #pragma push_macro("STDSHARP_MEM_PACK")
+#endif
 
 #ifdef __GNUG__
     #define STDSHARP_ALWAYS_INLINE [[gnu::always_inline]]
+#elif defined(_MSC_VER)
+    #define STDSHARP_ALWAYS_INLINE [[msvc::forceinline]]
 #else
     #define STDSHARP_ALWAYS_INLINE inline
 #endif
@@ -18,14 +27,6 @@
     #define STDSHARP_EBO __declspec(empty_bases)
 #else
     #define STDSHARP_EBO
-#endif
-
-#if __has_cpp_attribute(assume)
-    #define STDSHARP_ASSUME(...) [[assume(__VA_ARGS__)]]
-#elif defined(_MSC_VER)
-    #define STDSHARP_ASSUME(...) __assume(__VA_ARGS__)
-#else
-    #define STDSHARP_ASSUME(...) assert(__VA_ARGS__);
 #endif
 
 #define STDSHARP_MEM_PACK_IMPL(fn_name, impl_name, type, cv, ref)                        \
