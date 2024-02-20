@@ -2,8 +2,7 @@ name: Fetch Clang toolchain on Linux
 
 inputs:
   llvm-ver:
-    required: false
-    default: 17
+    required: true
 runs:
   using: composite
 

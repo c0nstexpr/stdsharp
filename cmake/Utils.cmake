@@ -13,16 +13,6 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
   add_compile_options(/utf-8 /diagnostics:caret)
 endif()
 
-if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-  message(STATUS "Debug mode.\n")
-else()
-  message(
-    STATUS
-      "Current config is ${CMAKE_BUILD_TYPE}, not Debug mode, add NDEBUG definition\n"
-  )
-  add_compile_definitions("NDEBUG")
-endif()
-
 include(ProcessorCount)
 
 ProcessorCount(PROCESSOR_COUNT)
