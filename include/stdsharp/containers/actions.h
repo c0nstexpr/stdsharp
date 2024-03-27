@@ -17,8 +17,7 @@ namespace stdsharp::actions
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires sequence_container<Container>
         constexpr decltype(auto) operator()(
-            Container &
-                container,
+            Container& container,
             const details::container_citer<Container> iter,
             Args&&... args
         ) const
@@ -28,7 +27,7 @@ namespace stdsharp::actions
 
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires associative_like_container<Container>
-        constexpr decltype(auto) operator()(Container & container, Args&&... args) const
+        constexpr decltype(auto) operator()(Container& container, Args&&... args) const
         {
             return container.emplace(cpp_forward(args)...);
         }
@@ -45,15 +44,13 @@ namespace stdsharp::actions
                 template<container_erasable Container>
                 constexpr auto operator()(
                     Container& container,
-                    const std::equality_comparable_with< // clang-format off
-                         typename std::decay_t<Container>::value_type
-                    > auto& value // clang-format on
+                    const std::equality_comparable_with<
+                        typename std::decay_t<Container>::value_type> auto& value
                 ) const
-                    requires requires // clang-format off
-                    {
+                    requires requires {
                         requires sequence_container<Container>;
                         erase(container, value);
-                    } // clang-format on
+                    }
                 {
                     return erase(container, value);
                 }
@@ -63,8 +60,7 @@ namespace stdsharp::actions
                 constexpr auto operator()(
                     Container& container,
                     const std::equality_comparable_with<
-                        typename std::decay_t<Container>::key_type // clang-format off
-                    > auto& key // clang-format on
+                        typename std::decay_t<Container>::key_type> auto& key
                 ) const
                 {
                     return container.erase(key);
@@ -72,15 +68,11 @@ namespace stdsharp::actions
 
                 template<
                     container_erasable Container,
-                    std::convertible_to<
-                        actions::details::container_citer<Container> // clang-format off
-                    >... ConstIter
-                > // clang-format on
-                    requires requires // clang-format off
-                    {
+                    std::convertible_to<actions::details::container_citer<Container>>... ConstIter>
+                    requires requires {
                         requires(sequence_container<Container> || associative_like_container<Container>);
                         requires sizeof...(ConstIter) <= 1;
-                    } // clang-format on
+                    }
                 constexpr auto operator()(
                     Container& container,
                     const decltype(container.cbegin()) const_iter_begin,
@@ -93,7 +85,6 @@ namespace stdsharp::actions
                     );
                 }
             };
-
         }
 
         inline namespace cpo_impl
@@ -115,7 +106,7 @@ namespace stdsharp::actions
                     Container&,                                                                 \
                     details::container_citer<Container>,                                        \
                     Args...>                                                                    \
-            constexpr decltype(auto) operator()(Container & container, Args&&... args) const    \
+            constexpr decltype(auto) operator()(Container& container, Args&&... args) const     \
             {                                                                                   \
                 return *actions::emplace(container, container.c##iter(), cpp_forward(args)...); \
             }                                                                                   \
@@ -154,18 +145,13 @@ namespace stdsharp::actions
 
             struct adl_erase_if_fn
             {
-                template<
-                    container_erasable Container,
-                    container_predicatable<Container> Predicate // clang-format off
-                > // clang-format on
+                template<container_erasable Container, container_predicate<Container> Predicate>
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
-                    requires requires //
-                {
-                    requires std::same_as<
-                        decltype(erase_if(container, std::declval<Predicate>())),
-                        std::ranges::range_size_t<Container> // clang-format off
-                    >; // clang-format on
-                }
+                    requires requires {
+                        requires std::same_as<
+                            decltype(erase_if(container, std::declval<Predicate>())),
+                            std::ranges::range_size_t<Container>>;
+                    }
                 {
                     return erase_if(container, cpp_forward(predicate_fn));
                 }
@@ -173,20 +159,16 @@ namespace stdsharp::actions
 
             struct default_erase_if_fn
             {
-                template<
-                    container_erasable Container,
-                    container_predicatable<Container> Predicate // clang-format off
-                > // clang-format on
-                    requires requires //
-                {
-                    requires std::invocable<decltype(std::ranges::remove_if), Container, Predicate>;
-                    requires std::invocable<
-                        cpo::erase_fn,
-                        Container&,
-                        actions::details::container_citer<Container>,
-                        actions::details::container_citer<Container> // clang-format off
-                    >; // clang-format on
-                }
+                template<container_erasable Container, container_predicate<Container> Predicate>
+                    requires requires {
+                        requires std::
+                            invocable<decltype(std::ranges::remove_if), Container, Predicate>;
+                        requires std::invocable<
+                            cpo::erase_fn,
+                            Container&,
+                            actions::details::container_citer<Container>,
+                            actions::details::container_citer<Container>>;
+                    }
                 constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
                 {
                     const auto& it = std::ranges::remove_if(container, cpp_forward(predicate_fn));
@@ -271,8 +253,8 @@ namespace stdsharp::actions
         public:
             template<typename... Args>
                 requires(std::invocable<actions::emplace_back_fn, Container&, Args> && ...)
-            constexpr auto operator()(Args&&... args) const noexcept( //
-                (nothrow_invocable<actions::emplace_back_fn, Container&, Args> && ...) && //
+            constexpr auto operator()(Args&&... args) const noexcept(
+                (nothrow_invocable<actions::emplace_back_fn, Container&, Args> && ...) &&
                 noexcept(reserved<Container, sizeof...(Args)>())
             )
             {
@@ -284,8 +266,8 @@ namespace stdsharp::actions
 
             template<typename... Args>
                 requires(std::invocable<actions::emplace_fn, Container&, Args> && ...)
-            constexpr auto operator()(Args&&... args) const noexcept( //
-                (nothrow_invocable<actions::emplace_fn, Container&, Args> && ...) && //
+            constexpr auto operator()(Args&&... args) const noexcept(
+                (nothrow_invocable<actions::emplace_fn, Container&, Args> && ...) &&
                 noexcept(reserved<Container, sizeof...(Args)>())
             )
             {

@@ -8,8 +8,8 @@ namespace stdsharp
     template<typename T>
     class default_increase
     {
-        [[nodiscard]] friend constexpr auto operator++(T& t, int) //
-            noexcept(nothrow_copy_constructible<T>&& noexcept(++t))
+        [[nodiscard]] friend constexpr auto operator++(T& t, int)
+            noexcept(nothrow_copy_constructible<T> && noexcept(++t))
             requires std::copy_constructible<T> && requires { ++t; }
         {
             const auto copied = t;
@@ -17,8 +17,8 @@ namespace stdsharp
             return copied;
         }
 
-        [[nodiscard]] friend constexpr auto operator--(T& t, int) //
-            noexcept(nothrow_copy_constructible<T>&& noexcept(--t))
+        [[nodiscard]] friend constexpr auto operator--(T& t, int)
+            noexcept(nothrow_copy_constructible<T> && noexcept(--t))
             requires std::copy_constructible<T> && requires { --t; }
         {
             const auto copied = t;
@@ -65,7 +65,7 @@ namespace stdsharp
         STDSHARP_ARITH_OP(<<)
         STDSHARP_ARITH_OP(>>)
 
-        [[nodiscard]] friend constexpr decltype(auto) operator-(const T & t) //
+        [[nodiscard]] friend constexpr decltype(auto) operator-(const T& t)
             noexcept(noexcept(0 - t))
             requires requires { 0 - t; }
         {
@@ -83,21 +83,21 @@ namespace stdsharp
             return *static_cast<const T&>(*this);
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator->() //
+        [[nodiscard]] constexpr decltype(auto) operator->()
             noexcept(noexcept(*static_cast<T&>(*this)))
             requires dereferenceable<T>
         {
             return *static_cast<T&>(*this);
         }
 
-        [[nodiscard]] friend constexpr decltype(auto) operator->*(const T & t, auto&& ptr) //
+        [[nodiscard]] friend constexpr decltype(auto) operator->*(const T& t, auto&& ptr)
             noexcept(noexcept((*t).*cpp_forward(ptr)))
             requires dereferenceable<const T>
         {
             return (*t).*cpp_forward(ptr);
         }
 
-        [[nodiscard]] friend constexpr decltype(auto) operator->*(T & t, auto&& ptr) //
+        [[nodiscard]] friend constexpr decltype(auto) operator->*(T& t, auto&& ptr)
             noexcept(noexcept((*t).*cpp_forward(ptr)))
             requires dereferenceable<T>
         {
@@ -109,7 +109,7 @@ namespace stdsharp
     class default_subscriptor
     {
 #if __cpp_multidimensional_subscript >= 202110L
-        [[nodiscard]] constexpr decltype(auto) operator[](auto&& first_arg, auto&&... args) //
+        [[nodiscard]] constexpr decltype(auto) operator[](auto&& first_arg, auto&&... args)
             noexcept( //
                 noexcept(static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...])
             )

@@ -237,27 +237,25 @@ namespace stdsharp::filesystem
 #endif
 
     template<typename CharT, typename Traits, typename Rep, typename Period>
-        requires requires(std::basic_ostream<CharT, Traits> os, Rep rep) //
-    {
-        requires same_as_any<
-            Period,
-            bits::period,
-            bytes::period,
-            kilobytes::period,
-            megabytes::period,
-            gigabytes::period,
-            terabytes::period,
-            petabytes::period,
-            exabytes::period,
-            kibibytes::period,
-            mebibytes::period,
-            gibibytes::period,
-            tebibytes::period,
-            pebibytes::period,
-            exbibytes::period // clang-format off
-        >; // clang-format on
-        os << rep;
-    }
+        requires requires(std::basic_ostream<CharT, Traits> os, Rep rep) {
+            requires same_as_any<
+                Period,
+                bits::period,
+                bytes::period,
+                kilobytes::period,
+                megabytes::period,
+                gigabytes::period,
+                terabytes::period,
+                petabytes::period,
+                exabytes::period,
+                kibibytes::period,
+                mebibytes::period,
+                gibibytes::period,
+                tebibytes::period,
+                pebibytes::period,
+                exbibytes::period>;
+            os << rep;
+        }
     auto& operator<<(std::basic_ostream<CharT, Traits>& os, const space_size<Rep, Period> size)
     {
         constexpr auto sv = []
@@ -449,7 +447,7 @@ namespace std
 
         ::stdsharp::fill_spec<CharT> fill_{};
         ::stdsharp::align_t align_{};
-        ::stdsharp::nested_spec<size_t> width_{};
+        ::stdsharp::nested_spec<size_t> width_;
 
         ::stdsharp::precision_spec precision_{};
 
@@ -465,7 +463,7 @@ namespace std
         {
             {
                 basic_format_parse_context<CharT> copied_ctx{
-                    basic_string_view{ctx.begin(), ctx.end()} //
+                    basic_string_view{ctx.begin(), ctx.end()}
                 };
 
                 const auto size = ranges::size(copied_ctx);
@@ -531,10 +529,7 @@ namespace std
                     return from_unit;
                 }();
 
-                string_view current_unit{
-                    from_unit.begin(),
-                    ranges::find(from_unit, char{}) //
-                };
+                string_view current_unit{from_unit.begin(), ranges::find(from_unit, char{})};
                 basic_ostringstream<CharT> ss;
 
                 const auto do_format = [&current_unit, &ss, &s]
@@ -561,10 +556,11 @@ namespace std
                             [](const string_view unit) noexcept { return unit.empty(); },
                             [](const string_view) { throw format_error{"Precision exceeded"}; }
                         },
-#define STDSHARP_MAKE_PAIR(str, type, next_str)                          \
-    pair{                                                                \
-        [](const string_view unit) noexcept { return unit == #str; },    \
-        format_case(identity<::stdsharp::filesystem::type>{}, #next_str) \
+#define STDSHARP_MAKE_PAIR(str, type, next_str)                              \
+    pair                                                                     \
+    {                                                                        \
+        [](const string_view unit) noexcept { return unit == #str; },        \
+            format_case(identity<::stdsharp::filesystem::type>{}, #next_str) \
     }
 
                         STDSHARP_MAKE_PAIR(b, bits, ),

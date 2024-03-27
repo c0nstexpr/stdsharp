@@ -23,7 +23,7 @@ SCENARIO("lazy value", "[lazy value]") // NOLINT
             []
             {
                 stdsharp::lazy_value lazy{[]() { return value; }};
-                return lazy.cget();
+                return lazy.get();
             }() == value
         );
     }

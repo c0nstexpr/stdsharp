@@ -29,16 +29,15 @@ namespace stdsharp
     namespace details
     {
         template<typename T>
-            requires std::invocable<
-                get_from_stream_fn<T>,
-                std::ifstream // clang-format off
-            > // clang-format on
+            requires std::invocable<get_from_stream_fn<T>, std::ifstream>
         struct read_all_to_container_fn
         {
             template<typename Container = std::vector<T>>
                 requires std::invocable<read_all_to_container_fn, Container&>
-            [[nodiscard]] auto&
-                operator()(Container& container, const std::filesystem::path& path) const
+            [[nodiscard]] auto& operator()(
+                Container& container,
+                const std::filesystem::path& path //
+            ) const
             {
                 std::ifstream fs{path};
                 return (*this)(container, fs);
@@ -49,7 +48,6 @@ namespace stdsharp
             [[nodiscard]] constexpr auto& operator()(Container& container, std::istream& is) const
             {
                 while(is) actions::emplace_back(container, get_from_stream<T>(is));
-
                 return container;
             }
         };

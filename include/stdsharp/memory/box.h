@@ -64,35 +64,46 @@ namespace stdsharp::details
 namespace stdsharp
 {
     template<typename Alloc, lifetime_req Req>
-    class allocation_value<Alloc, details::box_traits<Req, Alloc>> :
-        details::box_traits<Req, Alloc>::dispatchers
+    class allocation_value<Alloc, details::box_traits<Req, Alloc>>
     {
         using m_dispatchers = details::box_traits<Req, Alloc>::dispatchers;
 
-        std::size_t value_size_{};
+        indexed_values<m_dispatchers, std::size_t> values_{};
+
+        constexpr decltype(auto) dispatchers(this auto&& self) noexcept
+        {
+            return cpo::get_element<0>(cpp_forward(self).values_);
+        }
 
         template<std::size_t I>
         [[nodiscard]] constexpr bool equal_to(const allocation_value& other) const noexcept
         {
-            return cpo::get_element<I>(static_cast<const m_dispatchers&>(*this)) ==
-                cpo::get_element<I>(static_cast<const m_dispatchers&>(other));
+            return cpo::get_element<I>(dispatchers()) == cpo::get_element<I>(other.dispatchers());
         }
 
     public:
-        using m_dispatchers::operator();
-
         allocation_value() = default;
+
+        constexpr void operator()(this auto&& self, auto&&... args)
+            noexcept(noexcept(cpp_forward(self).dispatchers()(cpp_forward(args)...)))
+            requires requires { cpp_forward(self).dispatchers()(cpp_forward(args)...); }
+        {
+            cpp_forward(self).dispatchers()(cpp_forward(args)...);
+        }
 
         constexpr bool operator==(const allocation_value& other) const noexcept
         {
-            return equal_to<0>(other) && equal_to<1>(other) && equal_to<2>(other) &&
-                equal_to<3>(other) && equal_to<4>(other);
+            return equal_to<0>(other) && //
+                equal_to<1>(other) && //
+                equal_to<2>(other) && //
+                equal_to<3>(other) && //
+                equal_to<4>(other);
         }
 
         template<typename T, typename Op = allocation_value<Alloc, T>>
             requires details::box_type_compatible<Req, Alloc, T>
         explicit constexpr allocation_value(const std::in_place_type_t<T> /*unused*/) noexcept:
-            m_dispatchers(Op{}, Op{}, Op{}, Op{}, Op{}), value_size_(sizeof(T))
+            values_(m_dispatchers{Op{}, Op{}, Op{}, Op{}, Op{}}, std::size_t{sizeof(T)})
         {
         }
 
@@ -101,11 +112,14 @@ namespace stdsharp
         explicit constexpr allocation_value(
             const allocation_value<Alloc, details::box_traits<OtherReq, Alloc>> other
         ) noexcept:
-            m_dispatchers(other, other, other, other, other), value_size_(other.value_size_)
+            values_(m_dispatchers{other, other, other, other, other}, {other.value_size_()})
         {
         }
 
-        [[nodiscard]] constexpr auto value_size() const noexcept { return value_size_; }
+        [[nodiscard]] constexpr auto value_size() const noexcept
+        {
+            return cpo::get_element<1>(values_);
+        }
     };
 
     template<lifetime_req Req, allocator_req Alloc>
@@ -438,7 +452,7 @@ namespace stdsharp
         };
 
     public:
-        constexpr box& operator=(const box& other) //
+        constexpr box& operator=(const box& other)
             noexcept(allocator_nothrow_copy_assignable<allocator_type, cp_assign_fn>)
             requires allocator_copy_assignable<allocator_type, cp_assign_fn>
         {
@@ -447,7 +461,7 @@ namespace stdsharp
             return *this;
         }
 
-        constexpr box& operator=(box&& other) //
+        constexpr box& operator=(box&& other)
             noexcept(allocator_nothrow_move_assignable<allocator_type, mov_assign_fn>)
             requires allocator_move_assignable<allocator_type, mov_assign_fn>
         {
@@ -569,8 +583,8 @@ namespace stdsharp
     }; // NOLINTEND(*-noexcept-*)
 
     template<typename T, typename Alloc>
-    box(const Alloc&, std::in_place_type_t<T>, auto&&...)
-        -> box<lifetime_req::for_type<T>(), Alloc>;
+    box(const Alloc&, std::in_place_type_t<T>, auto&&...
+    ) -> box<lifetime_req::for_type<T>(), Alloc>;
 
     template<typename T, allocator_req Alloc>
     using box_for = box<lifetime_req::for_type<T>(), Alloc>;

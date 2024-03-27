@@ -18,15 +18,14 @@ namespace stdsharp::details
         using not_null = gsl::not_null<func>;
 
         template<empty_type Fn>
-            requires requires //
-        {
-            requires !std::convertible_to<Fn, func>;
-            requires !(is_well_formed(req)) ||
-                (invocable_r<const Fn&, Ret, Args...> &&
-                 std::regular_invocable<const Fn&, Args...>);
-            requires cpp_is_constexpr(Fn{});
-            requires !no_exception || nothrow_invocable_r<const Fn&, Ret, Args...>;
-        }
+            requires requires {
+                requires !std::convertible_to<Fn, func>;
+                requires !(is_well_formed(req)) ||
+                    (invocable_r<const Fn&, Ret, Args...> &&
+                     std::regular_invocable<const Fn&, Args...>);
+                requires cpp_is_constexpr(Fn{});
+                requires !no_exception || nothrow_invocable_r<const Fn&, Ret, Args...>;
+            }
         [[nodiscard]] static constexpr auto encapsulate() noexcept
         {
             if constexpr(!(is_well_formed(req))) return;
@@ -34,9 +33,9 @@ namespace stdsharp::details
             else
                 return +[](Args... args) noexcept(no_exception) -> Ret
                 {
-                    constexpr Fn c{};
+                    constexpr Fn c{}; // NOLINTBEGIN(*-redundant-casting)
                     if constexpr(std::same_as<void, Ret>) c(static_cast<Args>(args)...);
-                    else return c(static_cast<Args>(args)...);
+                    else return c(static_cast<Args>(args)...); // NOLINTEND(*-redundant-casting)
                 };
         }
 

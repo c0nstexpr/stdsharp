@@ -64,12 +64,8 @@ namespace stdsharp::details
         using append_front_t = regular_type_sequence<Others..., Types...>;
 
         template<std::size_t Index, typename... Other>
-        using insert_t = type_seq_converter_t< //
-            typename Base::template insert_t<
-                Index,
-                basic_type_constant<Other>{}... // clang-format off
-                >
-            >; // clang-format on
+        using insert_t = type_seq_converter_t<
+            typename Base::template insert_t<Index, basic_type_constant<Other>{}...>>;
 
         template<std::size_t... Index>
         using remove_at_t = type_seq_converter_t<typename Base::template remove_at_t<Index...>>;
@@ -94,7 +90,7 @@ namespace stdsharp
 
     template<typename T>
     using to_type_sequence = decltype( //
-        []<template<typename...> typename Inner, typename... U>(const Inner<U...>&) //
+        []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
         {
             return type_sequence<U...>{}; //
         }(std::declval<T>())

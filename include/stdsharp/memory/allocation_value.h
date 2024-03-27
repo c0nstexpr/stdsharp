@@ -125,7 +125,7 @@ namespace stdsharp
 
         constexpr void operator()(
             const callocation<Allocator> auto& src_allocation,
-            const allocation<Allocator> auto& dst_allocation //
+            const allocation<Allocator> auto& dst_allocation
         ) const noexcept(nothrow_copy_assignable<T>)
             requires copy_assignable<T>
         {
@@ -140,7 +140,7 @@ namespace stdsharp
 
         constexpr void operator()(
             const allocation<Allocator> auto& src_allocation,
-            const allocation<Allocator> auto& dst_allocation //
+            const allocation<Allocator> auto& dst_allocation
         ) const noexcept(nothrow_move_assignable<T>)
             requires move_assignable<T>
         {

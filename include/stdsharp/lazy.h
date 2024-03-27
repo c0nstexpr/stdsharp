@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "concepts/concepts.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -22,8 +23,10 @@ namespace stdsharp
             value_type value_;
         };
 
-        static constexpr void generate_value(auto&& this_) //
-            noexcept(nothrow_invocable<Fn> && nothrow_constructible_from<value_type, std::invoke_result_t<Fn>>)
+        static constexpr void generate_value(auto&& this_) noexcept(
+            nothrow_invocable<Fn> &&
+            nothrow_constructible_from<value_type, std::invoke_result_t<Fn>> //
+        )
         {
             if(this_.has_value()) return;
 
@@ -38,7 +41,7 @@ namespace stdsharp
 
         template<typename... Args>
             requires std::constructible_from<Fn, Args...>
-        constexpr explicit(sizeof...(Args) == 1) lazy_value(Args&&... args) //
+        constexpr explicit(sizeof...(Args) == 1) lazy_value(Args&&... args)
             noexcept(nothrow_constructible_from<Fn, Args...>):
             fn_(cpp_forward(args)...)
         {
@@ -76,7 +79,7 @@ namespace stdsharp
         }
 
     public:
-        constexpr lazy_value(const lazy_value& other) //
+        constexpr lazy_value(const lazy_value& other)
             noexcept(nothrow_copy_constructible<Fn> && nothrow_copy_constructible<value_type>)
             requires std::copy_constructible<Fn> && std::copy_constructible<value_type>
             : has_value_(other.has_value_)
@@ -84,7 +87,7 @@ namespace stdsharp
             ctor(other);
         }
 
-        constexpr lazy_value(lazy_value&& other) //
+        constexpr lazy_value(lazy_value&& other)
             noexcept(nothrow_move_constructible<Fn> && nothrow_move_constructible<value_type>)
             requires std::move_constructible<Fn> && std::move_constructible<value_type>
             : has_value_(other.has_value_)
@@ -92,7 +95,7 @@ namespace stdsharp
             ctor(cpp_move(other));
         }
 
-        constexpr lazy_value& operator=(const lazy_value& other) //
+        constexpr lazy_value& operator=(const lazy_value& other)
             noexcept(nothrow_copy_assignable<Fn> && nothrow_copy_assignable<value_type>)
             requires copy_assignable<Fn> && copy_assignable<value_type>
         {
@@ -100,7 +103,7 @@ namespace stdsharp
             return *this;
         }
 
-        constexpr lazy_value& operator=(lazy_value&& other) //
+        constexpr lazy_value& operator=(lazy_value&& other)
             noexcept(nothrow_move_assignable<Fn> && nothrow_move_assignable<value_type>)
             requires move_assignable<Fn> && move_assignable<value_type>
         {
@@ -157,25 +160,27 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
-#define STDSHARP_LAZY_VALUE_GETTER(ref)                                            \
-    constexpr decltype(auto) get()                                                 \
-        ref noexcept(noexcept(generate_value(static_cast<lazy_value ref>(*this)))) \
-        requires requires { generate_value(static_cast<lazy_value ref>(*this)); }  \
-    {                                                                              \
-        generate_value(static_cast<lazy_value ref>(*this));                        \
-        return static_cast<value_type ref>(value_);                                \
-    }                                                                              \
-    constexpr decltype(auto) cget()                                                \
-        ref noexcept(noexcept(static_cast<lazy_value ref>(*this).get()))           \
-        requires requires { static_cast<lazy_value ref>(*this).get(); }            \
-    {                                                                              \
-        return std::as_const(static_cast<lazy_value ref>(*this).get());            \
-    }
+        template<typename Self>
+        constexpr decltype(auto) get(this Self&& self) noexcept( //
+            noexcept( //
+                generate_value(static_cast<cv_ref_align_t<Self&&, lazy_value>>(cpp_forward(self)))
+            )
+        )
+            requires requires {
+                generate_value(static_cast<cv_ref_align_t<Self&&, lazy_value>>(cpp_forward(self)));
+            }
+        {
+            auto&& this_ = static_cast<cv_ref_align_t<Self&&, lazy_value>>(cpp_forward(self));
+            generate_value(cpp_forward(this_));
+            return cpp_forward(this_).value_;
+        }
 
-        STDSHARP_LAZY_VALUE_GETTER(&)
-        STDSHARP_LAZY_VALUE_GETTER(&&)
-
-#undef STDSHARP_LAZY_VALUE_GETTER
+        template<typename Self>
+        constexpr decltype(auto) cget(this const Self& self) noexcept
+        {
+            auto&& this_ = static_cast<cv_ref_align_t<const Self&, lazy_value>>(cpp_forward(self));
+            return cpp_forward(this_).value_;
+        }
     }; // NOLINTEND(*-noexcept-*)
 
     template<typename Fn>

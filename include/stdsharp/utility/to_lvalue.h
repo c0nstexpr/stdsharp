@@ -8,10 +8,7 @@ namespace stdsharp
 {
     inline constexpr struct to_lvalue_fn
     {
-        [[nodiscard]] STDSHARP_INTRINSIC constexpr auto& operator()(auto& t) const noexcept
-        {
-            return t;
-        }
+        STDSHARP_INTRINSIC constexpr auto& operator()(auto& t) const noexcept { return t; }
 
         template<std::move_constructible T>
         [[nodiscard]] constexpr T operator()(T&& t) const noexcept(nothrow_move_constructible<T>)

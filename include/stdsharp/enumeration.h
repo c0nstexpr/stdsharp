@@ -52,9 +52,8 @@ namespace stdsharp
         [[nodiscard]] constexpr bool contains(const flag other) const noexcept
         {
             return contains(other.value);
-        }
+        } // NOLINTBEGIN(hicpp-signed-bitwise)
 
-        // NOLINTBEGIN(hicpp-signed-bitwise)
         [[nodiscard]] constexpr auto operator|(const T other) const noexcept
         {
             return flag{value | other};
@@ -83,9 +82,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto operator&(const flag other) const noexcept
         {
             return flag{value & other};
-        }
-
-        // NOLINTEND(hicpp-signed-bitwise)
+        } // NOLINTEND(hicpp-signed-bitwise)
     };
 
     template<typename T>

@@ -4,11 +4,11 @@
 
 #include "invocables.h"
 
-// comes from range-v3 pipeable.hpp
+// port from range-v3 pipeable.hpp
 // add noexcept feature
 namespace stdsharp
 {
-    enum class pipe_mode
+    enum class pipe_mode : std::uint8_t
     {
         left,
         right
@@ -22,7 +22,7 @@ namespace stdsharp
     private:
         template<typename Arg, decay_same_as<T> Pipe>
             requires std::invocable<Pipe, Arg> && (Mode == pipe_mode::left)
-        friend constexpr decltype(auto) operator|(Arg && arg, Pipe && pipe) //
+        friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe)
             noexcept(nothrow_invocable<Pipe, Arg>)
         {
             return invoke(cpp_forward(pipe), cpp_forward(arg));
@@ -30,7 +30,7 @@ namespace stdsharp
 
         template<typename Arg, decay_same_as<T> Pipe>
             requires std::invocable<Pipe, Arg> && (Mode == pipe_mode::right)
-        friend constexpr decltype(auto) operator|(Pipe && pipe, Arg && arg) //
+        friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg)
             noexcept(nothrow_invocable<Pipe, Arg>)
         {
             return invoke(cpp_forward(pipe), cpp_forward(arg));
@@ -64,7 +64,7 @@ namespace stdsharp
     inline constexpr make_pipeable_fn<Mode> make_pipeable{};
 
     template<typename T, pipe_mode Mode = pipe_mode::left>
-    concept pipeable = std::derived_from<std::decay_t<T>, pipeable_base<T, Mode>> || //
+    concept pipeable = std::derived_from<std::decay_t<T>, pipeable_base<T, Mode>> ||
         (Mode == pipe_mode::left && ranges::is_pipeable_v<std::decay_t<T>>);
 
     template<typename Pipe>

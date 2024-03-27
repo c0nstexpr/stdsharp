@@ -64,66 +64,26 @@ namespace stdsharp
 
     template<typename T, typename U = T>
     concept arithmetic_like = std::three_way_comparable<T> && requires(T t1, U t2) {
-        {
-            t1 + t2
-        } -> std::same_as<T>;
-        {
-            t1 - t2
-        } -> std::same_as<T>;
-        {
-            t1* t2
-        } -> std::same_as<T>;
-        {
-            t1 / t2
-        } -> std::same_as<T>;
-        {
-            t1 % t2
-        } -> std::same_as<T>;
-        {
-            t1& t2
-        } -> std::same_as<T>;
-        {
-            t1 | t2
-        } -> std::same_as<T>;
-        {
-            t1 ^ t2
-        } -> std::same_as<T>;
-        {
-            t1 << t2
-        } -> std::same_as<T>;
-        {
-            t1 >> t2
-        } -> std::same_as<T>;
-        {
-            t1 += t2
-        } -> std::same_as<T&>;
-        {
-            t1 -= t2
-        } -> std::same_as<T&>;
-        {
-            t1 *= t2
-        } -> std::same_as<T&>;
-        {
-            t1 /= t2
-        } -> std::same_as<T&>;
-        {
-            t1 %= t2
-        } -> std::same_as<T&>;
-        {
-            t1 &= t2
-        } -> std::same_as<T&>;
-        {
-            t1 |= t2
-        } -> std::same_as<T&>;
-        {
-            t1 ^= t2
-        } -> std::same_as<T&>;
-        {
-            t1 <<= t2
-        } -> std::same_as<T&>;
-        {
-            t1 >>= t2
-        } -> std::same_as<T&>;
+        { t1 + t2 } -> std::same_as<T>;
+        { t1 - t2 } -> std::same_as<T>;
+        { t1* t2 } -> std::same_as<T>;
+        { t1 / t2 } -> std::same_as<T>;
+        { t1 % t2 } -> std::same_as<T>;
+        { t1& t2 } -> std::same_as<T>;
+        { t1 | t2 } -> std::same_as<T>;
+        { t1 ^ t2 } -> std::same_as<T>;
+        { t1 << t2 } -> std::same_as<T>;
+        { t1 >> t2 } -> std::same_as<T>;
+        { t1 += t2 } -> std::same_as<T&>;
+        { t1 -= t2 } -> std::same_as<T&>;
+        { t1 *= t2 } -> std::same_as<T&>;
+        { t1 /= t2 } -> std::same_as<T&>;
+        { t1 %= t2 } -> std::same_as<T&>;
+        { t1 &= t2 } -> std::same_as<T&>;
+        { t1 |= t2 } -> std::same_as<T&>;
+        { t1 ^= t2 } -> std::same_as<T&>;
+        { t1 <<= t2 } -> std::same_as<T&>;
+        { t1 >>= t2 } -> std::same_as<T&>;
     };
 
     template<typename T>
@@ -246,50 +206,30 @@ namespace stdsharp
 
     template<typename B>
     concept boolean_testable = std::convertible_to<B, bool> && requires(B&& b) {
-        {
-            !cpp_forward(b)
-        } -> std::convertible_to<bool>;
+        { !cpp_forward(b) } -> std::convertible_to<bool>;
     };
 
     template<typename B>
     concept nothrow_boolean_testable = nothrow_convertible_to<B, bool> && requires(B&& b) {
-        {
-            !cpp_forward(b)
-        } noexcept -> nothrow_convertible_to<bool>;
+        { !cpp_forward(b) } noexcept -> nothrow_convertible_to<bool>;
     };
 
     template<typename T, typename U>
     concept weakly_equality_comparable_with =
         requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
-            {
-                t == u
-            } -> boolean_testable;
-            {
-                t != u
-            } -> boolean_testable;
-            {
-                u == t
-            } -> boolean_testable;
-            {
-                u != t
-            } -> boolean_testable;
+            { t == u } -> boolean_testable;
+            { t != u } -> boolean_testable;
+            { u == t } -> boolean_testable;
+            { u != t } -> boolean_testable;
         };
 
     template<typename T, typename U>
     concept nothrow_weakly_equality_comparable_with =
         requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
-            {
-                t == u
-            } noexcept -> nothrow_boolean_testable;
-            {
-                t != u
-            } noexcept -> nothrow_boolean_testable;
-            {
-                u == t
-            } noexcept -> nothrow_boolean_testable;
-            {
-                u != t
-            } noexcept -> nothrow_boolean_testable;
+            { t == u } noexcept -> nothrow_boolean_testable;
+            { t != u } noexcept -> nothrow_boolean_testable;
+            { u == t } noexcept -> nothrow_boolean_testable;
+            { u != t } noexcept -> nothrow_boolean_testable;
         };
 
     template<typename T>
@@ -301,30 +241,14 @@ namespace stdsharp
     template<typename T, typename U>
     concept partially_ordered_with =
         requires(const std::remove_reference_t<T>& t, const std::remove_reference_t<U>& u) {
-            {
-                t < u
-            } -> boolean_testable;
-            {
-                t > u
-            } -> boolean_testable;
-            {
-                t <= u
-            } -> boolean_testable;
-            {
-                t <= u
-            } -> boolean_testable;
-            {
-                u < t
-            } -> boolean_testable;
-            {
-                u > t
-            } -> boolean_testable;
-            {
-                u <= t
-            } -> boolean_testable;
-            {
-                u <= t
-            } -> boolean_testable;
+            { t < u } -> boolean_testable;
+            { t > u } -> boolean_testable;
+            { t <= u } -> boolean_testable;
+            { t <= u } -> boolean_testable;
+            { u < t } -> boolean_testable;
+            { u > t } -> boolean_testable;
+            { u <= t } -> boolean_testable;
+            { u <= t } -> boolean_testable;
         };
 
     template<typename T>
@@ -426,8 +350,8 @@ namespace stdsharp
         std::regular_invocable<Func, Args...> && invocable_r<Func, ReturnT, Args...>;
 
     template<typename Func, typename ReturnT, typename... Args>
-    concept nothrow_regular_invocable_r = regular_invocable_r<Func, ReturnT, Args...> &&
-        nothrow_invocable_r<Func,ReturnT,  Args...>;
+    concept nothrow_regular_invocable_r =
+        regular_invocable_r<Func, ReturnT, Args...> && nothrow_invocable_r<Func, ReturnT, Args...>;
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = nothrow_invocable_r<Func, bool, Args...>;
@@ -436,7 +360,7 @@ namespace stdsharp
     concept const_aligned = (const_<T> == const_<U>);
 
     template<typename T, typename U>
-    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>)&&(rvalue_ref<T> == rvalue_ref<U>);
+    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>) && (rvalue_ref<T> == rvalue_ref<U>);
 
     template<typename T, typename U>
     concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
@@ -453,16 +377,12 @@ namespace stdsharp
 
     template<typename T>
     concept dereferenceable = requires(T& t) {
-        {
-            *t
-        } -> referenceable;
+        { *t } -> referenceable;
     };
 
     template<typename T>
     concept nothrow_dereferenceable = dereferenceable<T> && requires(T& t) {
-        {
-            *t
-        } noexcept;
+        { *t } noexcept;
     };
 
     template<typename T, template<typename...> typename Impl, typename... U>

@@ -16,10 +16,13 @@ namespace stdsharp
     };
 
     template<auto Ptr>
-    struct member_pointer_traits : member_traits<decltype(Ptr)>{
+    struct member_pointer_traits : member_traits<decltype(Ptr)>
+    {
         static constexpr auto ptr = Ptr;
 
-        constexpr decltype(auto) operator()(decay_same_as<typename member_traits<decltype(Ptr)>::type> auto&& t) const noexcept
+        constexpr decltype(auto) operator()( //
+            decay_same_as<typename member_traits<decltype(Ptr)>::type> auto&& t
+        ) const noexcept
         {
             return cpp_forward(t).*ptr;
         }

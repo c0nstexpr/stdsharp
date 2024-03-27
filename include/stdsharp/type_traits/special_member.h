@@ -25,7 +25,7 @@ namespace stdsharp
                 get_expr_req(move_assignable<T>, nothrow_move_assignable<T>),
                 get_expr_req(copy_assignable<T>, nothrow_copy_assignable<T>),
                 get_expr_req(std::is_destructible_v<T>, std::is_nothrow_destructible_v<T>),
-                get_expr_req(std::swappable<T>, nothrow_swappable<T>) //
+                get_expr_req(std::swappable<T>, nothrow_swappable<T>)
             };
         }
 
@@ -112,7 +112,7 @@ namespace stdsharp
             std::min(left.move_assign, right.move_assign),
             std::min(left.copy_assign, right.copy_assign),
             std::min(left.destruct, right.destruct),
-            std::min(left.swap, right.swap) //
+            std::min(left.swap, right.swap)
         };
     }
 
@@ -126,7 +126,7 @@ namespace stdsharp
             std::max(left.move_assign, right.move_assign),
             std::max(left.copy_assign, right.copy_assign),
             std::max(left.destruct, right.destruct),
-            std::max(left.swap, right.swap) //
+            std::max(left.swap, right.swap)
         };
     }
 
@@ -148,15 +148,15 @@ namespace stdsharp
         {
         }
 
-        constexpr fake_type& operator=(fake_type&& /*unused*/) noexcept(is_noexcept(Req.move_assign)
-        )
+        constexpr fake_type& operator=(fake_type&& /*unused*/)
+            noexcept(is_noexcept(Req.move_assign))
             requires(is_well_formed(Req.move_assign))
         {
             return *this;
         }
 
-        constexpr fake_type&
-            operator=(const fake_type& /*unused*/) noexcept(is_noexcept(Req.copy_assign))
+        constexpr fake_type& operator=(const fake_type& /*unused*/)
+            noexcept(is_noexcept(Req.copy_assign))
             requires(is_well_formed(Req.copy_assign))
         {
             return *this;

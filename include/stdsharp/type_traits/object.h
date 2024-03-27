@@ -33,22 +33,21 @@ namespace stdsharp
         template<typename... U>
             requires std::constructible_from<Base, U...> && (std::constructible_from<T> && ...)
         constexpr explicit inherited(U&&... u) noexcept(
-            nothrow_constructible_from<Base, U...> &&
-            (nothrow_constructible_from<T> && ...) // clang-format off
-        ): Base(cpp_forward(u)...) // clang-format on
+            nothrow_constructible_from<Base, U...> && (nothrow_constructible_from<T> && ...)
+        ):
+            Base(cpp_forward(u)...)
         {
         }
 
         template<typename BaseT, typename... U>
-            requires requires //
-        {
-            requires std::constructible_from<Base, BaseT>;
-            requires(std::constructible_from<T, U> && ...);
-        }
+            requires requires {
+                requires std::constructible_from<Base, BaseT>;
+                requires(std::constructible_from<T, U> && ...);
+            }
         constexpr explicit inherited(BaseT&& base, U&&... u) noexcept(
-            nothrow_constructible_from<Base, BaseT> &&
-            (nothrow_constructible_from<T, U> && ...) // clang-format off
-        ): Base(cpp_forward(base)), T(cpp_forward(u))... // clang-format on
+            nothrow_constructible_from<Base, BaseT> && (nothrow_constructible_from<T, U> && ...)
+        ):
+            Base(cpp_forward(base)), T(cpp_forward(u))...
         {
         }
 
@@ -67,10 +66,7 @@ namespace stdsharp
     struct make_inherited_fn
     {
         template<typename Base, typename... U>
-            requires requires //
-        {
-            inherited{std::declval<Base>(), std::declval<U>()...};
-        }
+            requires requires { inherited{std::declval<Base>(), std::declval<U>()...}; }
         [[nodiscard]] constexpr auto operator()(Base&& base, U&&... u) const
             noexcept(noexcept(inherited{std::declval<Base>(), std::declval<U>()...}))
         {

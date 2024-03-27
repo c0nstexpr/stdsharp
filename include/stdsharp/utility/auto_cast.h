@@ -15,8 +15,8 @@ namespace stdsharp
 
             template<typename U>
                 requires explicitly_convertible<T, U>
-            STDSHARP_INTRINSIC [[nodiscard]] constexpr operator U() const&& //
-                noexcept(nothrow_explicitly_convertible<T, U>)
+            STDSHARP_INTRINSIC constexpr
+                operator U() const&& noexcept(nothrow_explicitly_convertible<T, U>)
             {
                 return static_cast<U>(cpp_forward(t));
             }
@@ -26,7 +26,7 @@ namespace stdsharp
         template<typename T>
         [[nodiscard]] constexpr auto operator()(T&& t) const noexcept
         {
-            return auto_cast_operator<T>{cpp_forward(t)}; //
+            return auto_cast_operator<T>{cpp_forward(t)};
         }
     } auto_cast{};
 }

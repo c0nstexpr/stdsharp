@@ -10,7 +10,9 @@ AlignOperands: DontAlign
 AlignTrailingComments: false
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
+AllowBreakBeforeNoexceptSpecifier: OnlyWithParen
 AllowShortBlocksOnASingleLine: Always
+AllowShortCompoundRequirementOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true

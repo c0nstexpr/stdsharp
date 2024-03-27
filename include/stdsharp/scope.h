@@ -8,7 +8,7 @@
 
 namespace stdsharp::scope
 {
-    enum class exit_fn_policy : unsigned char
+    enum class exit_fn_policy : std::uint8_t
     {
         on_success = 0b01,
         on_failure = 0b10,

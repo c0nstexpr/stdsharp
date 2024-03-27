@@ -7,9 +7,7 @@ namespace stdsharp
 {
     template<typename T>
     concept allocator_contains = requires(const T& alloc, const allocator_cvp<T> cvp) {
-        {
-            alloc.contains(cvp)
-        } noexcept -> nothrow_boolean_testable;
+        { alloc.contains(cvp) } noexcept -> nothrow_boolean_testable;
     };
 
     template<allocator_contains FirstAlloc, allocator_req SecondAlloc>
@@ -77,7 +75,7 @@ namespace stdsharp
         composed_allocator() = default;
 
         template<typename... Args, std::constructible_from<Args...> Pair = decltype(alloc_pair_)>
-        constexpr explicit(sizeof...(Args) == 1) composed_allocator(Args&&... args) //
+        constexpr explicit(sizeof...(Args) == 1) composed_allocator(Args&&... args)
             noexcept(nothrow_constructible_from<Pair, Args...>):
             alloc_pair_(cpp_forward(args)...)
         {
@@ -159,10 +157,7 @@ namespace stdsharp
                 {
                     const auto& res = second_traits::allocate_at_least(alloc_pair_.second, n);
 
-                    result = {
-                        .ptr = second_ptr_traits::to_address(res.ptr),
-                        .count = res.count //
-                    };
+                    result = {.ptr = second_ptr_traits::to_address(res.ptr), .count = res.count};
                 }
             );
 

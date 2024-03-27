@@ -59,8 +59,8 @@ namespace stdsharp
 
         struct std_to_address
         {
-            [[nodiscard]] constexpr auto operator()(const pointer& p) const noexcept
-                -> decltype(std::to_address(p))
+            [[nodiscard]] constexpr auto operator()(const pointer& p
+            ) const noexcept -> decltype(std::to_address(p))
             {
                 return std::to_address(p);
             }
@@ -68,9 +68,7 @@ namespace stdsharp
 
         struct convert_to_address
         {
-            [[nodiscard]] STDSHARP_INTRINSIC constexpr raw_pointer operator()( //
-                const pointer& p
-            ) const noexcept
+            STDSHARP_INTRINSIC constexpr raw_pointer operator()(const pointer& p) const noexcept
                 requires nothrow_explicitly_convertible<pointer, raw_pointer>
             {
                 return static_cast<raw_pointer>(p);
@@ -102,7 +100,7 @@ namespace stdsharp
 
         struct convert_to_pointer
         {
-            [[nodiscard]] STDSHARP_INTRINSIC constexpr pointer operator()(const raw_pointer p) const
+            STDSHARP_INTRINSIC constexpr pointer operator()(const raw_pointer p) const
                 noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
                 requires explicitly_convertible<raw_pointer, pointer>
             {
@@ -126,15 +124,13 @@ namespace stdsharp
         }
 
         template<typename T>
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()( //
-            const T* const ptr
-        ) const noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(const T* const ptr) const noexcept
         {
             return static_cast<const void*>(ptr);
         }
 
         template<typename T>
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(T* const ptr) const noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(T* const ptr) const noexcept
         {
             return static_cast<void*>(ptr);
         }
@@ -155,16 +151,12 @@ namespace stdsharp
         };
 
     public:
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()( //
-            const void* const ptr
-        ) const noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(const void* const ptr) const noexcept
         {
             return static_cast<const T*>(ptr);
         }
 
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()( //
-            void* const ptr
-        ) const noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(void* const ptr) const noexcept
         {
             return static_cast<T*>(ptr);
         }
@@ -181,7 +173,7 @@ namespace stdsharp
 
         template<typename Pointer>
             requires nothrow_explicitly_convertible<Pointer, typename traits<Pointer>::ptr>
-        STDSHARP_INTRINSIC [[nodiscard]] constexpr auto operator()(const Pointer& p) const noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(const Pointer& p) const noexcept
         {
             return static_cast<typename traits<Pointer>::ptr>(p);
         }

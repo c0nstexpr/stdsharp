@@ -13,7 +13,7 @@ namespace stdsharp::reflection
 
         template<typename... Args>
             requires std::constructible_from<Getter, Args...>
-        explicit(sizeof...(Args) == 1) constexpr member(Args&&... args) //
+        explicit(sizeof...(Args) == 1) constexpr member(Args&&... args)
             noexcept(nothrow_constructible_from<Getter, Args...>):
             Getter(cpp_forward(args)...)
         {

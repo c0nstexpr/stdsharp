@@ -1,4 +1,4 @@
- // TODO: __cpp_pack_indexing >= 202311L
+// TODO: __cpp_pack_indexing >= 202311L
 
 #pragma once
 
@@ -98,7 +98,7 @@ namespace stdsharp::details
 
             template<typename... U>
                 requires(std::constructible_from<indexed_value<T, I>, U> && ...)
-            constexpr impl(const indexed_piecewise_t /*unused*/, U&&... u) //
+            constexpr impl(const indexed_piecewise_t /*unused*/, U&&... u)
                 noexcept((nothrow_constructible_from<indexed_value<T, I>, U> && ...)):
                 indexed_value<T, I>(cpp_forward(u))...
             {
@@ -113,14 +113,18 @@ namespace stdsharp::details
                         Tuple> &&
                     ...
                 )
-            explicit(sizeof...(Tuple) == 0) constexpr impl(const std::piecewise_construct_t /*unused*/, Tuple&&... tuples) noexcept(
-                (nothrow_constructible_from<
-                     indexed_value<T, I>,
-                     std::make_index_sequence<std::tuple_size_v<Tuple>>,
-                     indexed_piecewise_t,
-                     Tuple> &&
-                 ...)
-            ):
+            explicit(sizeof...(Tuple) == 0) constexpr impl(
+                const std::piecewise_construct_t /*unused*/,
+                Tuple&&... tuples //
+            )
+                noexcept(
+                    (nothrow_constructible_from<
+                         indexed_value<T, I>,
+                         std::make_index_sequence<std::tuple_size_v<Tuple>>,
+                         indexed_piecewise_t,
+                         Tuple> &&
+                     ...)
+                ):
                 indexed_value<T, I>(
                     std::make_index_sequence<std::tuple_size_v<Tuple>>{},
                     indexed_piecewise,
@@ -134,24 +138,15 @@ namespace stdsharp::details
             using indexed_value_type = std::tuple_element_t<Index, indexed_types>;
 
         public:
-#define STDSHARP_GET(cv, ref)                                            \
-    template<std::size_t Index>                                          \
-    [[nodiscard]] constexpr decltype(auto) get() cv ref noexcept         \
-    {                                                                    \
-        using indexed = indexed_value<indexed_value_type<Index>, Index>; \
-        return static_cast<cv indexed ref>(*this).get();                 \
-    }
-
-            STDSHARP_GET(, &)
-            STDSHARP_GET(const, &)
-            STDSHARP_GET(, &&)
-            STDSHARP_GET(const, &&)
-            STDSHARP_GET(volatile, &)
-            STDSHARP_GET(const volatile, &)
-            STDSHARP_GET(volatile, &&)
-            STDSHARP_GET(const volatile, &&)
-
-#undef STDSHARP_GET
+            template<std ::size_t Index, typename Self>
+            [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
+            {
+                using indexed = indexed_value<indexed_value_type<Index>, Index>;
+                return static_cast<cv_ref_align_t<Self&&, indexed>>(
+                           static_cast<cv_ref_align_t<Self&&, impl>>(cpp_forward(self))
+                )
+                    .get();
+            }
         };
     };
 }
@@ -170,7 +165,7 @@ namespace stdsharp
         indexed_values() = default;
 
         template<typename... U>
-        explicit(sizeof...(U) == 1) constexpr indexed_values(U&&... u) //
+        explicit(sizeof...(U) == 1) constexpr indexed_values(U&&... u)
             noexcept(nothrow_constructible_from<m_indexed, details::indexed_piecewise_t, U...>)
             requires requires {
                 requires std::constructible_from<m_indexed, details::indexed_piecewise_t, U...>;
@@ -210,7 +205,7 @@ namespace stdsharp
             requires requires {
                 impl(std::declval<Fn>(), std::declval<Indexed>(), index_sequence_by<Indexed>{});
             }
-        constexpr decltype(auto) operator()(Fn && fn, Indexed && indexed) const noexcept( //
+        constexpr decltype(auto) operator()(Fn&& fn, Indexed&& indexed) const noexcept( //
             noexcept( //
                 impl(std::declval<Fn>(), std::declval<Indexed>(), index_sequence_by<Indexed>{})
             )
@@ -245,9 +240,8 @@ namespace std
     {
         using type = ::meta::_t< //
             decltype( //
-                ::stdsharp::basic_indexed_types<T...>{}.get_type(::stdsharp::index_constant<I>{}) //
-            ) // clang-format off
-        >; // clang-format on
+                ::stdsharp::basic_indexed_types<T...>{}.get_type(::stdsharp::index_constant<I>{})
+            )>;
     };
 
     template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::basic_indexed_types> T>

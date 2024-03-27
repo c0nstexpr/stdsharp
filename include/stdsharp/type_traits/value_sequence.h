@@ -13,8 +13,7 @@ namespace stdsharp
 
     template<typename T>
     using to_value_sequence = decltype( //
-        []<template<auto...> typename Inner,
-           auto... Values>(const Inner<Values...>) //
+        []<template<auto...> typename Inner, auto... Values>(const Inner<Values...>)
         {
             return value_sequence<Values...>{}; //
         }(std::declval<T>())
@@ -58,9 +57,8 @@ namespace stdsharp
                 return value;
             }();
 
-            using type =
-                to_value_sequence<rng_v_to_sequence<unique_indices_value> // clang-format off
-            >::template apply_t<seq::template at_t>; // clang-format on
+            using type = to_value_sequence<
+                rng_v_to_sequence<unique_indices_value>>::template apply_t<seq::template at_t>;
         };
 
         template<typename T, typename Comp>
@@ -82,7 +80,7 @@ namespace stdsharp
 
             constexpr auto operator()(const auto& /*unused*/) const noexcept { return false; }
         };
-    } // clang-format on
+    }
 
     template<auto... Values>
     struct value_sequence : regular_value_sequence<Values...>
@@ -107,22 +105,19 @@ namespace stdsharp
         struct invoke_fn
         {
             template<typename Func>
-                requires requires //
-            {
-                requires(std::invocable<Func, decltype(Values)> && ...);
-                requires std::same_as<ResultType, void> ||
-                    std::constructible_from< // clang-format off
-                        ResultType,
-                        std::invoke_result_t<Func, decltype(Values)>...
-                    >; // clang-format on
-            }
+                requires requires {
+                    requires(std::invocable<Func, decltype(Values)> && ...);
+                    requires std::same_as<ResultType, void> ||
+                        std::constructible_from<
+                                 ResultType,
+                                 std::invoke_result_t<Func, decltype(Values)>...>;
+                }
             constexpr auto operator()(Func&& func) const noexcept(
                 (nothrow_invocable<Func, decltype(Values)> && ...) &&
                 (std::same_as<ResultType, void> ||
                  nothrow_constructible_from<
                      ResultType,
-                     std::invoke_result_t<Func, decltype(Values)>... // clang-format off
-                >) // clang-format on
+                     std::invoke_result_t<Func, decltype(Values)>...>)
             )
             {
                 if constexpr(std::same_as<ResultType, void>) (stdsharp::invoke(func, Values), ...);
@@ -150,11 +145,10 @@ namespace stdsharp
         struct transform_fn
         {
             [[nodiscard]] constexpr auto operator()() const noexcept
-                requires requires //
-            {
-                requires(sizeof...(Func) == 1);
-                typename value_sequence<stdsharp::invoke(Func..., Values)...>;
-            }
+                requires requires {
+                    requires(sizeof...(Func) == 1);
+                    typename value_sequence<stdsharp::invoke(Func..., Values)...>;
+                }
             {
                 return value_sequence<stdsharp::invoke(Func..., Values)...>{};
             };
@@ -162,7 +156,7 @@ namespace stdsharp
             [[nodiscard]] constexpr auto operator()() const noexcept
                 requires requires { typename value_sequence<stdsharp::invoke(Func, Values)...>; }
             {
-                return value_sequence<stdsharp::invoke(Func, Values)...>{}; // clang-format on
+                return value_sequence<stdsharp::invoke(Func, Values)...>{};
             };
         };
 
@@ -270,11 +264,10 @@ namespace stdsharp
                 std::size_t i = 0;
                 for_each(
                     [&i,
-                     &func](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)> //
-                    )
+                     &func](const auto& v) noexcept(nothrow_invocable_r<Func, bool, decltype(v)>)
                     {
                         if(stdsharp::invoke(func, v)) ++i;
-                    } //
+                    }
                 );
 
                 return i;
@@ -326,9 +319,7 @@ namespace stdsharp
                     noexcept((nothrow_invocable<by_index<I>, Comp> && ...))
                 {
                     std::size_t res{};
-                    ( //
-                        (by_index<I>{}(comp) ? true : (++res, false)) || ... //
-                    );
+                    ((by_index<I>{}(comp) ? true : (++res, false)) || ...);
                     return res;
                 }
 
@@ -363,8 +354,8 @@ namespace stdsharp
         using transform_t = decltype(transform<Func...>());
 
         template<std::size_t From, std::size_t Size>
-        using select_range_t = to_value_sequence<make_value_sequence_t<From, Size>>:: //
-            template apply_t<at_t>;
+        using select_range_t =
+            to_value_sequence<make_value_sequence_t<From, Size>>::template apply_t<at_t>;
 
         template<std::size_t Size>
         using back_t = select_range_t<size() - Size, Size>;
@@ -441,10 +432,9 @@ namespace stdsharp
         using remove_at_t = ::meta::_t<remove_at<Index...>>;
 
         template<std::size_t Index, auto Other>
-        using replace_t = to_value_sequence<
-            typename to_value_sequence<front_t<Index>>::template append_t<Other>
-            // clang-format off
-        >::template append_by_seq_t<back_t<size() - Index - 1>>; // clang-format on
+        using replace_t =
+            to_value_sequence<typename to_value_sequence<front_t<Index>>::template append_t<
+                Other>>::template append_by_seq_t<back_t<size() - Index - 1>>;
     };
 
     template<decltype(auto)... Values>

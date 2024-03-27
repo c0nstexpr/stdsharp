@@ -7,33 +7,39 @@
 
 namespace stdsharp
 {
-    inline constexpr auto set_if = []<typename T, typename U, std::predicate<U, T> Comp>
-        requires std::assignable_from<T&, U> // clang-format off
-        (T& left, U&& right, Comp comp = {})
-        noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
-        -> T& // clang-format on
+    inline constexpr struct set_if_fn
     {
-        if(invoke(cpp_move(comp), right, left)) left = cpp_forward(right);
-        return left;
-    };
+        template<typename T, typename U, std::predicate<U, T> Comp>
+            requires std::assignable_from<T&, U>
+        constexpr T& operator()(T& left, U&& right, Comp comp = {}) const
+            noexcept(nothrow_predicate<Comp, U, T> && nothrow_assignable_from<T&, U>)
+        {
+            if(invoke(cpp_move(comp), right, left)) left = cpp_forward(right);
+            return left;
+        }
+    } set_if{};
 
-    using set_if_fn = decltype(set_if);
+    inline constexpr struct set_if_greater_fn
+    {
+        template<typename T, typename U>
+            requires std::invocable<set_if_fn, T&, U, std::ranges::greater>
+        constexpr T& operator()(T& left, U&& right) const
+            noexcept(nothrow_invocable<set_if_fn, T&, U, std::ranges::greater>)
+        {
+            return set_if(left, cpp_forward(right), greater_v);
+        }
+    } set_if_greater{};
 
-    inline constexpr auto set_if_greater = []<typename T, typename U>
-        requires std::invocable<set_if_fn, T&, U, std::ranges::greater> // clang-format off
-        (T & left, U && right)
-        noexcept(nothrow_invocable<set_if_fn, T&, U, std::ranges::greater>) -> T& // clang-format on
-    { return set_if(left, cpp_forward(right), greater_v); };
-
-    using set_if_greater_fn = decltype(set_if_greater);
-
-    inline constexpr auto set_if_less = []<typename T, typename U>
-        requires std::invocable<set_if_fn, T&, U, std::ranges::less> // clang-format off
-        (T& left, U&& right)
-        noexcept(nothrow_invocable<set_if_fn, T&, U, std::ranges::less>) -> T& // clang-format on
-    { return set_if(left, cpp_forward(right), less_v); };
-
-    using set_if_less_fn = decltype(set_if_less);
+    inline constexpr struct set_if_less_fn
+    {
+        template<typename T, typename U>
+            requires std::invocable<set_if_fn, T&, U, std::ranges::less>
+        constexpr T& operator()(T& left, U&& right) const
+            noexcept(nothrow_invocable<set_if_fn, T&, U, std::ranges::less>)
+        {
+            return set_if(left, cpp_forward(right), less_v);
+        }
+    } set_if_less{};
 
     inline constexpr struct is_between_fn
     {
@@ -41,22 +47,19 @@ namespace stdsharp
             typename T,
             typename Proj = std::identity,
             std::indirect_strict_weak_order<std::projected<const T*, Proj>> Compare =
-                std::ranges::less // clang-format off
-        > // clang-format on
-        [[nodiscard]] constexpr auto operator()( // NOLINTBEGIN(*-easily-swappable-parameters)
+                std::ranges::less>
+        [[nodiscard]] constexpr auto operator()(
             const T& t,
-            const T& min,
-            const T& max,
+            decltype(t) min,
+            decltype(t) max,
             Compare cmp = {},
             Proj proj = {}
-        ) const // NOLINTEND(*-easily-swappable-parameters)
-            noexcept( //
-                nothrow_predicate<
-                    Compare,
-                    std::projected<const T*, Proj>,
-                    std::projected<const T*, Proj> // clang-format off
-                > // clang-format on
-            )
+        ) const noexcept( //
+            nothrow_predicate<
+                Compare,
+                std::projected<const T*, Proj>,
+                std::projected<const T*, Proj>> //
+        )
         {
             const auto& proj_max = invoke(proj, max);
             const auto& proj_min = invoke(proj, min);

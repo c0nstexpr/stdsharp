@@ -45,8 +45,7 @@ namespace stdsharp::cpo::inline cpo_impl
             template<
                 typename... Args,
                 std::invocable<Args...> Operation,
-                typename SymOp = ::meta::_t<arithmetic_operation<Operation>> // clang-format off
-            > // clang-format on
+                typename SymOp = ::meta::_t<arithmetic_operation<Operation>>>
             [[nodiscard]] constexpr auto
                 operator()(const Operation /*unused*/, Args&&... args) const
                 noexcept(noexcept(bind_lvalue(SymOp{}, cpp_forward(args)...)))
@@ -70,8 +69,9 @@ namespace stdsharp::cpo::inline cpo_impl
         };
     }
 
-    using symmetric_operation_fn =
-        sequenced_invocables<details::adl_symmetric_operation_fn, details::specialized_operation_fn>;
+    using symmetric_operation_fn = sequenced_invocables<
+        details::adl_symmetric_operation_fn,
+        details::specialized_operation_fn>;
 
     inline constexpr symmetric_operation_fn symmetric_operation{};
 }

@@ -4,19 +4,20 @@
 
 #include "../concepts/concepts.h"
 #include "../compilation_config_in.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp::details
 {
     template<typename T>
     struct value_wrapper
     {
-        T v_{};
+        T v{};
     };
 
     template<empty_type T>
     struct value_wrapper<T>
     {
-        STDSHARP_NO_UNIQUE_ADDRESS T v_{};
+        STDSHARP_NO_UNIQUE_ADDRESS T v{};
     };
 }
 
@@ -36,24 +37,17 @@ namespace stdsharp
         {
         }
 
-#define STDSHARP_OPERATOR(cv, ref)                         \
-    [[nodiscard]] constexpr cv T ref get() cv ref noexcept \
-    {                                                      \
-        return static_cast<cv T ref>(this->v_);            \
-    }                                                      \
-                                                           \
-    [[nodiscard]] constexpr explicit operator cv T ref() cv ref noexcept { return get(); }
+        template<typename Self>
+        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
+        {
+            return static_cast<cv_ref_align_t<Self&&,value_wrapper>>(cpp_forward(self)).v;
+        }
 
-        STDSHARP_OPERATOR(, &)
-        STDSHARP_OPERATOR(const, &)
-        STDSHARP_OPERATOR(, &&)
-        STDSHARP_OPERATOR(const, &&)
-        STDSHARP_OPERATOR(volatile, &)
-        STDSHARP_OPERATOR(const volatile, &)
-        STDSHARP_OPERATOR(volatile, &&)
-        STDSHARP_OPERATOR(const volatile, &&)
-
-#undef STDSHARP_OPERATOR
+        template<typename Self>
+        [[nodiscard]] constexpr explicit operator cv_ref_align_t<Self&&, T>(this Self&& self) noexcept
+        {
+            return static_cast<cv_ref_align_t<Self&&,value_wrapper>>(cpp_forward(self)).get();
+        }
     };
 
     template<typename T>

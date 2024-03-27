@@ -6,7 +6,7 @@ using namespace stdsharp;
 
 SCENARIO("pattern match", "[pattern match]") // NOLINT
 {
-    enum class my_enum
+    enum class my_enum : uint8_t
     {
         one,
         two,

@@ -51,7 +51,7 @@ namespace stdsharp
         }
 
         template<typename U, typename... Args>
-        constexpr decltype(auto) construct(U* const p, Args&&... args) const //
+        constexpr decltype(auto) construct(U* const p, Args&&... args) const
             noexcept(noexcept(traits::construct(this->get(), p, std::declval<Args>()...)))
         {
             return traits::construct(this->get(), p, cpp_forward(args)...);

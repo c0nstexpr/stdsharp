@@ -34,8 +34,7 @@ namespace stdsharp::details
         typename Proofed,
         template<template<typename...> typename, typename...>
         typename Traits,
-        typename... T // clang-format off
-    > // clang-format on
+        typename... T>
     consteval std::same_as<adl_proof_traits<Proofed, T...>> auto
         adl_proofed_traits(const Traits<Proofed, T...> t)
     {

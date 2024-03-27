@@ -76,7 +76,7 @@ namespace stdsharp
         }
     };
 
-    enum class ref_qualifier
+    enum class ref_qualifier : std::uint8_t
     {
         none,
         lvalue,
@@ -118,7 +118,7 @@ namespace stdsharp
         ref_qualifier::lvalue :
         std::is_rvalue_reference_v<T> ? ref_qualifier::rvalue : ref_qualifier::none;
 
-    enum class expr_req
+    enum class expr_req : std::uint8_t
     {
         ill_formed,
         well_formed,
@@ -128,9 +128,7 @@ namespace stdsharp
     constexpr auto get_expr_req(const bool well_formed, const bool no_exception = false) noexcept
     {
         return well_formed ? //
-            no_exception ? //
-                expr_req::no_exception :
-                expr_req::well_formed :
+            no_exception ? expr_req::no_exception : expr_req::well_formed :
             expr_req::ill_formed;
     }
 
@@ -169,9 +167,7 @@ namespace stdsharp
         std::conditional_t<
             std::ranges::equal_to{}(ref, ref_qualifier::rvalue),
             std::add_rvalue_reference_t<T>,
-            T // clang-format off
-        >
-    >; // clang-format on
+            T>>;
 
     template<typename T, bool Const, bool Volatile, ref_qualifier ref>
     using apply_qualifiers = apply_ref<apply_volatile<apply_const<T, Const>, Volatile>, ref>;
@@ -201,23 +197,16 @@ namespace stdsharp
     template<typename T, typename U>
     using ref_align_t = std::conditional_t<
         std::is_lvalue_reference_v<T>,
-        std::add_lvalue_reference_t<U>, // clang-format off
-        std::conditional_t<std::is_rvalue_reference_v<T>, std::add_rvalue_reference_t<U>, U>
-    >; // clang-format on
+        std::add_lvalue_reference_t<U>,
+        std::conditional_t<std::is_rvalue_reference_v<T>, std::add_rvalue_reference_t<U>, U>>;
 
     template<typename T, typename U>
-    using const_align_t = std::conditional_t<
-        std::is_const_v<std::remove_reference_t<T>>,
-        std::add_const_t<U>, // clang-format off
-        U
-    >; // clang-format on
+    using const_align_t =
+        std::conditional_t<std::is_const_v<std::remove_reference_t<T>>, std::add_const_t<U>, U>;
 
     template<typename T, typename U>
-    using volatile_align_t = std::conditional_t<
-        std::is_volatile_v<std::remove_reference_t<T>>,
-        std::add_volatile_t<U>, // clang-format off
-        U
-    >; // clang-format on
+    using volatile_align_t = std::
+        conditional_t<std::is_volatile_v<std::remove_reference_t<T>>, std::add_volatile_t<U>, U>;
 
     template<typename T, typename U>
     using cv_ref_align_t = ref_align_t<T, volatile_align_t<T, const_align_t<T, U>>>;
@@ -304,8 +293,7 @@ namespace stdsharp::details
     template<
         constant_value T,
         std::ranges::input_range Range = decltype(T::value),
-        nttp_able ValueType = std::ranges::range_value_t<Range> // clang-format off
-    > // clang-format on
+        nttp_able ValueType = std::ranges::range_value_t<Range>>
         requires requires {
             requires std::ranges::sized_range<Range>;
             requires std::copyable<ValueType>;
@@ -317,9 +305,7 @@ namespace stdsharp::details
 
         static constexpr auto array = []
         {
-            if constexpr( //
-                    requires { array_to_sequence<rng>(std::make_index_sequence<size>{}); }
-                )
+            if constexpr(requires { array_to_sequence<rng>(std::make_index_sequence<size>{}); })
                 return rng;
             else
             {
@@ -349,9 +335,8 @@ namespace stdsharp
     using make_index_sequence = make_integer_sequence<std::size_t, N>;
 
     template<auto From, std::size_t Size, auto PlusF = std::plus{}>
-    using make_value_sequence_t = decltype( //
-        details::make_value_sequence<From, PlusF>(std::make_index_sequence<Size>{})
-    );
+    using make_value_sequence_t =
+        decltype(details::make_value_sequence<From, PlusF>(std::make_index_sequence<Size>{}));
 
     template<typename... T>
     using index_sequence_for = make_index_sequence<sizeof...(T)>;
@@ -369,7 +354,7 @@ namespace stdsharp
 
         template<typename... Us>
             requires(std::constructible_from<T<Ts>, Us> && ...)
-        constexpr ttp_expend(Us&&... us) //
+        constexpr ttp_expend(Us&&... us)
             noexcept((std::is_nothrow_constructible_v<T<Ts>, Us> && ...)):
             T<Ts>(cpp_forward(us))...
         {
@@ -386,8 +371,7 @@ namespace stdsharp
             {
                 return std::type_identity<ttp_expend<T, U...>>{}; //
             }(std::declval<Seq>())
-        ) // clang-format off
-    >; // clang-format on
+        )>;
 
     template<template<auto> typename T, decltype(auto)... V>
     struct nttp_expend : T<V>...
@@ -396,7 +380,7 @@ namespace stdsharp
 
         template<typename... Us>
             requires(std::constructible_from<T<V>, Us> && ...)
-        constexpr nttp_expend(Us&&... us) //
+        constexpr nttp_expend(Us&&... us)
             noexcept((std::is_nothrow_constructible_v<T<V>, Us> && ...)):
             T<V>(cpp_forward(us))...
         {
@@ -408,7 +392,7 @@ namespace stdsharp
 
     template<template<auto> typename T, std::size_t Size>
     using make_nttp_expend = decltype( //
-        []<template<auto...> typename Inner, decltype(auto)... V>(const Inner<V...>) //
+        []<template<auto...> typename Inner, decltype(auto)... V>(const Inner<V...>)
         {
             return std::type_identity<nttp_expend<T, V...>>{}; //
         }(make_index_sequence<Size>{})
@@ -435,11 +419,10 @@ namespace stdsharp::cpo::inline cpo_impl
 
         [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
             noexcept(noexcept(get<I>(cpp_forward(t))))
-            requires requires //
-        {
-            get<I>(cpp_forward(t));
-            requires !requires { cpp_forward(t).template get<I>(); };
-        }
+            requires requires {
+                get<I>(cpp_forward(t));
+                requires !requires { cpp_forward(t).template get<I>(); };
+            }
         {
             return get<I>(cpp_forward(t));
         }
@@ -484,7 +467,7 @@ namespace stdsharp
 
             [[nodiscard]] constexpr auto to_string_view() const noexcept
             {
-                return static_cast<std::string_view>(*this); //
+                return static_cast<std::string_view>(*this);
             }
         };
 
@@ -543,11 +526,10 @@ namespace stdsharp
     using ebo_union = details::ebo_union<T>::type;
 
     template<typename T, typename Tuple>
-    concept piecewise_constructible_from = //
-        details::piecewise_traits<T, Tuple>::constructible_from;
+    concept piecewise_constructible_from = details::piecewise_traits<T, Tuple>::constructible_from;
 
     template<typename T, typename Tuple>
-    concept piecewise_nothrow_constructible_from = //
+    concept piecewise_nothrow_constructible_from =
         details::piecewise_traits<T, Tuple>::nothrow_constructible_from;
 }
 

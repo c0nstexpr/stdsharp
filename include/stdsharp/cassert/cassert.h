@@ -38,5 +38,4 @@ namespace stdsharp
 
     inline constexpr auto assert_not_null = //
         [](const nullable_pointer auto& ptr) noexcept { assert_not_equal(ptr, nullptr); };
-
 }

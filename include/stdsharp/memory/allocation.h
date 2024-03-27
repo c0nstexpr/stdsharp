@@ -112,9 +112,7 @@ namespace stdsharp::details
     concept allocation_common = requires(const T& t) {
         requires nothrow_copyable<std::decay_t<T>>;
         requires std::ranges::sized_range<T>;
-        {
-            std::ranges::size(t)
-        } -> std::same_as<allocator_size_type<Alloc>>;
+        { std::ranges::size(t) } -> std::same_as<allocator_size_type<Alloc>>;
     };
 }
 
@@ -123,20 +121,15 @@ namespace stdsharp
     template<typename T, typename Alloc>
     concept callocation = requires(const T& t) {
         requires details::allocation_common<T, Alloc>;
-        {
-            std::ranges::begin(t)
-        } -> std::same_as<allocator_const_pointer<Alloc>>;
+        { std::ranges::begin(t) } -> std::same_as<allocator_const_pointer<Alloc>>;
     };
 
     template<typename T, typename Alloc>
     concept allocation = requires(const T& t) {
         requires details::allocation_common<T, Alloc>;
-        {
-            std::ranges::begin(t)
-        } -> std::same_as<allocator_pointer<Alloc>>;
+        { std::ranges::begin(t) } -> std::same_as<allocator_pointer<Alloc>>;
 
-        requires details::allocation_concept<Alloc>:: //
-            template assignable_from_shadow<T>;
+        requires details::allocation_concept<Alloc>::template assignable_from_shadow<T>;
 
         requires nothrow_assignable_from<T&, allocation_result<Alloc>>;
     };
@@ -146,7 +139,7 @@ namespace stdsharp
     {
         template<typename U>
             requires(callocation<U, Alloc> || allocation<U, Alloc>)
-        constexpr decltype(auto) operator()(const U & rng) const noexcept
+        constexpr decltype(auto) operator()(const U& rng) const noexcept
         {
             return pointer_cast<T>(std::ranges::begin(rng));
         }
@@ -166,7 +159,7 @@ namespace stdsharp
     struct allocation_get_fn
     {
         template<typename U>
-        constexpr decltype(auto) operator()(const U & rng) const
+        constexpr decltype(auto) operator()(const U& rng) const
             noexcept(noexcept(*allocation_data<Alloc, T>(rng)))
             requires std::invocable<allocation_data_fn<Alloc, T>, const U&>
         {

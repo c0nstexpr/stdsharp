@@ -88,35 +88,33 @@ namespace stdsharp
             decltype(details::nested_spec_like(spec)),
             ResultT>;
 
-        if(spec.valueless_by_exception() || std::holds_alternative<std::monostate>(spec))
-            return std::optional<result_t>{std::nullopt};
-        return std::visit(
-            [&fc]<typename U>(U&& u) -> std::optional<result_t>
-            {
-                if constexpr(std::same_as<std::remove_cvref_t<U>, result_t>)
-                    return std::optional<result_t>{cpp_forward(u)};
-                else if constexpr(std::same_as<std::remove_cvref_t<U>, nested_arg_index>)
-                    return cpp_forward(u).template get_from_context<result_t>(fc);
-                else return std::nullopt;
-            },
-            spec
-        );
+        return spec.valueless_by_exception() || std::holds_alternative<std::monostate>(spec) ?
+            std::optional<result_t>{std::nullopt} :
+            std::visit(
+                [&fc]<typename U>(U&& u) -> std::optional<result_t>
+                {
+                    if constexpr(std::same_as<std::remove_cvref_t<U>, result_t>)
+                        return std::optional<result_t>{cpp_forward(u)};
+                    else if constexpr(std::same_as<std::remove_cvref_t<U>, nested_arg_index>)
+                        return cpp_forward(u).template get_from_context<result_t>(fc);
+                    else return std::nullopt;
+                },
+                spec
+            );
     }
 
     template<typename CharT>
-    void parse_assert(const details::parse_context<CharT>& ctx)
+    [[noreturn]] void parse_assert(const details::parse_context<CharT>& ctx)
     {
         const auto begin = ctx.begin();
-        throw std::format_error{
+        throw std::format_error{std::format(
+            "invalid format:\n \"{}\"\n{}",
+            std::basic_string_view{begin, ctx.end()},
             std::format(
-                "invalid format:\n \"{}\"\n{}",
-                std::basic_string_view{begin, ctx.end()},
-                std::format(
-                    "{}^ Unexpected character here",
-                    std::views::repeat(' ', begin - ctx.begin())
-                )
-            ) //
-        };
+                "{}^ Unexpected character here",
+                std::views::repeat(' ', begin - ctx.begin())
+            )
+        )};
     }
 
     template<typename CharT, std::predicate<CharT> Predicate>
@@ -139,12 +137,10 @@ namespace stdsharp
 
         if(begin == ctx.end() || *begin == '}') return;
 
-        throw std::format_error{
-            std::format(
-                "invalid format: \"{}\"\nEnd of string expected",
-                std::basic_string_view{begin, ctx.end()}
-            ) //
-        };
+        throw std::format_error{std::format(
+            "invalid format: \"{}\"\nEnd of string expected",
+            std::basic_string_view{begin, ctx.end()}
+        )};
     }
 
     template<typename CharT>
@@ -166,7 +162,7 @@ namespace stdsharp
         return {std::nullopt};
     }
 
-    enum class align_t
+    enum class align_t : std::uint8_t
     {
         none,
         left,
@@ -184,9 +180,9 @@ namespace stdsharp
             ctx.advance_to(align.end());
             switch(static_cast<char>(*align.begin()))
             {
-            case '<': return align_t::left; break;
-            case '^': return align_t::center; break;
-            case '>': return align_t::right; break;
+            case '<': return align_t::left;
+            case '^': return align_t::center;
+            case '>': return align_t::right;
             };
         }
 
@@ -208,7 +204,7 @@ namespace stdsharp
             return nested_arg_index{
                 std::ranges::empty(ref) ? //
                     ctx.next_arg_id() :
-                    details::parse_integer<std::size_t>(ref) //
+                    details::parse_integer<std::size_t>(ref)
             };
         }
         if(value)
@@ -222,7 +218,7 @@ namespace stdsharp
 
     struct precision_spec
     {
-        nested_spec<u64> precision{};
+        nested_spec<u64> precision;
     };
 
     template<typename CharT>

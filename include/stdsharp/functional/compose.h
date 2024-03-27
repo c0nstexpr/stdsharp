@@ -46,20 +46,17 @@ namespace stdsharp
     {
         using invocables = invocables<T...>;
 
-    private:
-        static constexpr decltype(auto) operator_impl(auto&&... args) //
-            noexcept(noexcept(details::composed_invoke(cpp_forward(args)...)))
-            requires requires { details::composed_invoke(cpp_forward(args)...); }
-        {
-            return compose_invoke(cpp_forward(args)...);
-        }
-
     public:
         using invocables::invocables;
 
         composed() = default;
 
-        STDSHARP_MEM_PACK(operator(), operator_impl, composed)
+        constexpr decltype(auto) operator()(this auto&& self, auto&&... args)
+            noexcept(noexcept(details::composed_invoke(cpp_forward(self), cpp_forward(args)...)))
+            requires requires { details::composed_invoke(cpp_forward(self), cpp_forward(args)...); }
+        {
+            return details::composed_invoke(cpp_forward(self), cpp_forward(args)...);
+        }
     };
 
     template<typename... T>

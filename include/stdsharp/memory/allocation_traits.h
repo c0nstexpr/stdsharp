@@ -38,11 +38,8 @@ namespace stdsharp
         static constexpr auto cget = allocation_cget<Alloc, T>;
 
         template<nothrow_constructible_from<pointer, size_type> Allocation = allocation_result>
-        static constexpr allocation<Alloc> auto allocate(
-            allocator_type& alloc,
-            const size_type size,
-            const cvp hint = nullptr //
-        )
+        static constexpr allocation<Alloc> auto
+            allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
         {
             return Allocation{allocator_traits::allocate(alloc, size, hint), size};
         }
@@ -51,7 +48,7 @@ namespace stdsharp
         static constexpr allocation<Alloc> auto try_allocate(
             allocator_type& alloc,
             const size_type size,
-            const cvp hint = nullptr //
+            const cvp hint = nullptr
         ) noexcept
         {
             return Allocation{allocator_traits::try_allocate(alloc, size, hint), size};
@@ -144,7 +141,8 @@ namespace stdsharp
                 nothrow_invocable<Fn&, allocator_type&, range_const_reference_t<Dst>> //
             )
             {
-                for(const auto& dst_allocation : cpp_forward(dst)) invoke(fn, alloc, dst_allocation);
+                for(const auto& dst_allocation : cpp_forward(dst))
+                    invoke(fn, alloc, dst_allocation);
             }
         } on_destroy{};
 
@@ -157,43 +155,31 @@ namespace stdsharp
 
     template<typename Alloc, typename Src, typename Dst, typename Fn>
     concept allocation_constructible = requires {
-        {
-            allocation_traits<Alloc>::on_construct
-        } -> std::invocable<Alloc&, Src, Dst, Fn>;
+        { allocation_traits<Alloc>::on_construct } -> std::invocable<Alloc&, Src, Dst, Fn>;
     };
 
     template<typename Alloc, typename Src, typename Dst, typename Fn>
     concept allocation_assignable = requires {
-        {
-            allocation_traits<Alloc>::on_assign
-        } -> std::invocable<Src, Dst, Fn>;
+        { allocation_traits<Alloc>::on_assign } -> std::invocable<Src, Dst, Fn>;
     };
 
     template<typename Alloc, typename Dst, typename Fn>
     concept allocation_destructible = requires {
-        {
-            allocation_traits<Alloc>::on_destroy
-        } -> std::invocable<Alloc&, Dst, Fn>;
+        { allocation_traits<Alloc>::on_destroy } -> std::invocable<Alloc&, Dst, Fn>;
     };
 
     template<typename Alloc, typename Src, typename Dst, typename Fn>
     concept allocation_nothrow_constructible = requires {
-        {
-            allocation_traits<Alloc>::on_construct
-        } -> nothrow_invocable<Alloc&, Src, Dst, Fn>;
+        { allocation_traits<Alloc>::on_construct } -> nothrow_invocable<Alloc&, Src, Dst, Fn>;
     };
 
     template<typename Alloc, typename Src, typename Dst, typename Fn>
     concept allocation_nothrow_assignable = requires {
-        {
-            allocation_traits<Alloc>::on_assign
-        } -> nothrow_invocable<Src, Dst, Fn>;
+        { allocation_traits<Alloc>::on_assign } -> nothrow_invocable<Src, Dst, Fn>;
     };
 
     template<typename Alloc, typename Dst, typename Fn>
     concept allocation_nothrow_destructible = requires {
-        {
-            allocation_traits<Alloc>::on_destroy
-        } -> nothrow_invocable<Alloc&, Dst, Fn>;
+        { allocation_traits<Alloc>::on_destroy } -> nothrow_invocable<Alloc&, Dst, Fn>;
     };
 }

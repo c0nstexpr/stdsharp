@@ -1,5 +1,3 @@
-//
-
 #pragma once
 
 #include <algorithm>
@@ -22,23 +20,21 @@ namespace stdsharp::details
         private:
             using func = std::tuple_element_t<I, indexed_values>;
 
-            template<typename This, typename... Args, typename Fn = cv_ref_align_t<This&&, func>>
+        public:
+            template<typename Self, typename... Args, typename Fn = cv_ref_align_t<Self&&, func>>
                 requires ::std::invocable<Fn, Args...>
-            static constexpr decltype(auto) operator_impl(This&& this_, Args&&... args) //
+            constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
                 noexcept(nothrow_invocable<Fn, Args...>)
             {
                 return invoke(
                     cpo::get_element<I>( //
-                        static_cast<cv_ref_align_t<This&&, indexed_values>>(
-                            static_cast<cv_ref_align_t<This&&, type>>(this_)
+                        static_cast<cv_ref_align_t<Self&&, indexed_values>>(
+                            static_cast<cv_ref_align_t<Self&&, type>>(cpp_forward(self))
                         )
                     ),
                     cpp_forward(args)...
                 );
             }
-
-        public:
-            STDSHARP_MEM_PACK(operator(), operator_impl, indexed_operator)
         };
 
         template<typename = std::index_sequence_for<Func...>>
@@ -68,7 +64,7 @@ namespace stdsharp
     public:
         template<typename... Args>
             requires std::constructible_from<m_invocables, Args...>
-        constexpr invocables(Args&&... args) //
+        constexpr invocables(Args&&... args)
             noexcept(nothrow_constructible_from<m_invocables, Args...>):
             m_invocables(cpp_forward(args)...)
         {
@@ -85,7 +81,7 @@ namespace stdsharp
     {
         template<typename T, typename... Args>
             requires std::invocable<get_element_t<Index, T>, Args...>
-        constexpr decltype(auto) operator()(T && t, Args&&... args) const
+        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<get_element_t<Index, T>, Args...>)
         {
             return cpo::get_element<Index>(t)(cpp_forward(args)...);
@@ -123,7 +119,7 @@ namespace stdsharp
     public:
         template<typename T, typename... Args>
             requires requires { typename invoke_at_t<T, Args...>; }
-        constexpr decltype(auto) operator()(T && t, Args&&... args) const
+        constexpr decltype(auto) operator()(T&& t, Args&&... args) const
             noexcept(nothrow_invocable<invoke_at_t<T, Args...>, T, Args...>)
         {
             return invoke_at_t<T, Args...>{}(t, cpp_forward(args)...);
@@ -156,17 +152,13 @@ namespace stdsharp
 
         sequenced_invocables() = default;
 
-    private:
-        template<typename This, typename... Args, typename Base = cv_ref_align_t<This&&, base>>
+        template<typename Self, typename... Args, typename Base = cv_ref_align_t<Self&&, base>>
             requires std::invocable<sequenced_invoke_fn, Base, Args...>
-        static constexpr decltype(auto) operator_impl(This&& this_, Args&&... args) //
+        constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
             noexcept(nothrow_invocable<sequenced_invoke_fn, Base, Args...>)
         {
-            return sequenced_invoke(static_cast<Base>(this_), cpp_forward(args)...);
+            return sequenced_invoke(static_cast<Base>(self), cpp_forward(args)...);
         }
-
-    public:
-        STDSHARP_MEM_PACK(operator(), operator_impl, sequenced_invocables)
     };
 
     template<typename... T>
@@ -179,25 +171,13 @@ namespace stdsharp
 
         using base::base;
 
-#define STDSHARP_NODISCARD_OPERATOR(cv, ref)                          \
-    template<typename... Args, typename Base = cv base ref>           \
-        requires std::invocable<Base, Args...>                        \
-    [[nodiscard]] constexpr decltype(auto) operator()(Args&&... args) \
-        cv ref noexcept(nothrow_invocable<cv Func ref, Args...>)      \
-    {                                                                 \
-        return static_cast<Base>(*this)(cpp_forward(args)...);        \
-    }
-
-        STDSHARP_NODISCARD_OPERATOR(, &)
-        STDSHARP_NODISCARD_OPERATOR(const, &)
-        STDSHARP_NODISCARD_OPERATOR(, &&)
-        STDSHARP_NODISCARD_OPERATOR(const, &&)
-        STDSHARP_NODISCARD_OPERATOR(volatile, &)
-        STDSHARP_NODISCARD_OPERATOR(const volatile, &)
-        STDSHARP_NODISCARD_OPERATOR(volatile, &&)
-        STDSHARP_NODISCARD_OPERATOR(const volatile, &&)
-
-#undef STDSHARP_NODISCARD_OPERATOR
+        template<typename Self, typename... Args, typename Base = cv_ref_align_t<Self&&, base>>
+            requires std ::invocable<Base, Args...>
+        [[nodiscard]] constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
+            noexcept(nothrow_invocable<Base, Args...>)
+        {
+            return static_cast<Base>(self)(cpp_forward(args)...);
+        }
     };
 
     template<typename Func>

@@ -22,10 +22,8 @@ namespace stdsharp
         single_stack_buffer& operator=(single_stack_buffer&&) = delete;
         ~single_stack_buffer() = default;
 
-        [[nodiscard]] constexpr void* allocate(
-            const std::size_t s,
-            const std::size_t alignment = max_alignment_v
-        ) noexcept
+        [[nodiscard]] constexpr void*
+            allocate(const std::size_t s, const std::size_t alignment = max_alignment_v) noexcept
         {
             if(s > size || p_ != nullptr) return nullptr;
 

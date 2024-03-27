@@ -19,9 +19,7 @@ namespace stdsharp
             std::array<value_type, N> arr{};
 
             std::ranges::copy(
-                cpp_forward(rng) | //
-                    std::views::transform(proj) | //
-                    std::views::take(N),
+                cpp_forward(rng) | std::views::transform(proj) | std::views::take(N),
                 arr.begin()
             );
 

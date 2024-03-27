@@ -23,23 +23,20 @@ namespace stdsharp
         template<
             typename Condition,
             std::predicate<const Condition&>... Predicate,
-            std::invocable<const Condition&>... Func // clang-format off
-        > // clang-format on
+            std::invocable<const Condition&>... Func>
         constexpr void operator()(
             const Condition& condition,
             std::pair<Predicate, Func>... cases //
         ) const
-            noexcept((
-                (nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func, Condition>)&&...
-            ))
+            noexcept(
+                ((nothrow_predicate<Predicate, Condition> && nothrow_invocable<Func, Condition>) &&
+                 ...)
+            )
         {
             (impl(condition, cases) || ...);
         }
 
-        template<
-            typename Condition,
-            std::invocable<const Condition>... Func // clang-format off
-        > // clang-format on
+        template<typename Condition, std::invocable<const Condition>... Func>
         constexpr void operator()(
             const Condition& condition,
             std::pair<Condition, Func>... cases //

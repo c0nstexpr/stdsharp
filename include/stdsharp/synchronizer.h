@@ -4,6 +4,7 @@
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
+#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -26,8 +27,10 @@ namespace stdsharp
                     [](const std::piecewise_construct_t, auto&&...) {}(std::declval<Args>()...);
                 };
             }
-        explicit(sizeof...(Args) == 1) constexpr synchronizer(Args&&... args) //
-            noexcept(nothrow_constructible_from<value_type, Args...> && nothrow_default_initializable<lock_type>):
+        explicit(sizeof...(Args) == 1) constexpr synchronizer(Args&&... args) noexcept(
+            nothrow_constructible_from<value_type, Args...> &&
+            nothrow_default_initializable<lock_type> //
+        ):
             value_(cpp_forward(args)...)
         {
         }
@@ -73,33 +76,37 @@ namespace stdsharp
         {
         }
 
-#define STDSHARP_SYN_MEM(volatile_, ref)                                                       \
-    template<typename... Args>                                                                 \
-    constexpr void read(                                                                       \
-        std::invocable<const volatile_ value_type ref> auto&& func,                            \
-        Args&&... args                                                                         \
-    ) const volatile_ ref                                                                      \
-        requires std::constructible_from<std::shared_lock<lock_type>, lock_type&, Args...>     \
-    {                                                                                          \
-        const std::shared_lock lock{lockable_, cpp_forward(args)...};                          \
-        invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
-    }                                                                                          \
-                                                                                               \
-    template<typename... Args>                                                                 \
-    constexpr void write(std::invocable<volatile_ value_type ref> auto&& func, Args&&... args) \
-        volatile_ ref                                                                          \
-        requires std::constructible_from<std::unique_lock<lock_type>, lock_type&, Args...>     \
-    {                                                                                          \
-        const std::unique_lock lock{lockable_, cpp_forward(args)...};                          \
-        invoke(cpp_forward(func), cpp_forward(*this).value_);                                  \
-    }
+        template<typename Self, typename... Args, typename SelfT = const Self&>
+        constexpr void read(
+            this const Self& self,
+            std ::invocable<const cv_ref_align_t<SelfT, value_type>> auto&& func,
+            Args&&... args
+        )
+            requires std ::constructible_from<std ::shared_lock<lock_type>, lock_type&, Args...>
+        {
+            auto&& this_ = static_cast<cv_ref_align_t<SelfT, synchronizer>>(cpp_forward(self));
+            const std ::shared_lock lock{
+                cpp_forward(this_).lockable_,
+                static_cast<decltype(args)>(args)...
+            };
+            invoke(cpp_forward(func), cpp_forward(this_).value_);
+        }
 
-        STDSHARP_SYN_MEM(, &)
-        STDSHARP_SYN_MEM(, &&)
-        STDSHARP_SYN_MEM(volatile, &)
-        STDSHARP_SYN_MEM(volatile, &&)
-
-#undef STDSHARP_SYN_MEM
+        template<typename Self, typename... Args>
+        constexpr void write(
+            this Self&& self,
+            std ::invocable<cv_ref_align_t<Self&&, value_type>> auto&& func,
+            Args&&... args
+        )
+            requires std ::constructible_from<std ::unique_lock<lock_type>, lock_type&, Args...>
+        {
+            auto&& this_ = static_cast<cv_ref_align_t<Self&&, synchronizer>>(cpp_forward(self));
+            const std ::unique_lock lock{
+                cpp_forward(this_).lockable_,
+                static_cast<decltype(args)>(args)...
+            };
+            invoke(cpp_forward(func), cpp_forward(this_).value_);
+        }
 
         constexpr const lock_type& lockable() const noexcept { return lockable_; }
 
