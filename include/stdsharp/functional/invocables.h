@@ -21,16 +21,14 @@ namespace stdsharp::details
             using func = std::tuple_element_t<I, indexed_values>;
 
         public:
-            template<typename Self, typename... Args, typename Fn = cv_ref_align_t<Self&&, func>>
+            template<typename Self, typename... Args, typename Fn = forward_cast_t<Self, func>>
                 requires ::std::invocable<Fn, Args...>
             constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
                 noexcept(nothrow_invocable<Fn, Args...>)
             {
                 return invoke(
-                    cpo::get_element<I>( //
-                        static_cast<cv_ref_align_t<Self&&, indexed_values>>(
-                            static_cast<cv_ref_align_t<Self&&, type>>(cpp_forward(self))
-                        )
+                    cpo::get_element<I>(
+                        stdsharp::forward_cast<Self, indexed_operator, type>(self)
                     ),
                     cpp_forward(args)...
                 );
@@ -152,12 +150,15 @@ namespace stdsharp
 
         sequenced_invocables() = default;
 
-        template<typename Self, typename... Args, typename Base = cv_ref_align_t<Self&&, base>>
+        template<typename Self, typename... Args, typename Base = forward_cast_t<Self, base>>
             requires std::invocable<sequenced_invoke_fn, Base, Args...>
         constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
             noexcept(nothrow_invocable<sequenced_invoke_fn, Base, Args...>)
         {
-            return sequenced_invoke(static_cast<Base>(self), cpp_forward(args)...);
+            return sequenced_invoke(
+                forward_cast<Self, sequenced_invocables, base>(self),
+                cpp_forward(args)...
+            );
         }
     };
 
@@ -171,12 +172,12 @@ namespace stdsharp
 
         using base::base;
 
-        template<typename Self, typename... Args, typename Base = cv_ref_align_t<Self&&, base>>
+        template<typename Self, typename... Args, typename Base = forward_cast_t<Self, base>>
             requires std ::invocable<Base, Args...>
         [[nodiscard]] constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
             noexcept(nothrow_invocable<Base, Args...>)
         {
-            return static_cast<Base>(self)(cpp_forward(args)...);
+            return forward_cast<Self, nodiscard_invocable, base>(self)(cpp_forward(args)...);
         }
     };
 

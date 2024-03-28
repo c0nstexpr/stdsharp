@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../macros.h"
 #include "../compilation_config_in.h"
 #include "../concepts/concepts.h"
 

@@ -134,18 +134,20 @@ namespace stdsharp::details
             }
 
         private:
-            template<std::size_t Index>
-            using indexed_value_type = std::tuple_element_t<Index, indexed_types>;
+            template<std::size_t J>
+            using indexed_value_t = indexed_value<std::tuple_element_t<J, indexed_types>, J>;
 
         public:
-            template<std ::size_t Index, typename Self>
+            template<std::size_t J, typename Self>
             [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
             {
-                using indexed = indexed_value<indexed_value_type<Index>, Index>;
-                return static_cast<cv_ref_align_t<Self&&, indexed>>(
-                           static_cast<cv_ref_align_t<Self&&, impl>>(cpp_forward(self))
-                )
-                    .get();
+                return forward_cast<Self, indexed_value_t<J>>(self).get();
+            }
+
+            template<std::size_t J, typename Self>
+            [[nodiscard]] constexpr decltype(auto) cget(this Self&& self) noexcept
+            {
+                return forward_cast<Self, indexed_value_t<J>>(self).cget();
             }
         };
     };

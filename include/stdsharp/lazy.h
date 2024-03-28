@@ -3,8 +3,7 @@
 #include <memory>
 #include <utility>
 
-#include "concepts/concepts.h"
-#include "stdsharp/type_traits/core_traits.h"
+#include "utility/forward_cast.h"
 
 namespace stdsharp
 {
@@ -161,25 +160,19 @@ namespace stdsharp
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
         template<typename Self>
-        constexpr decltype(auto) get(this Self&& self) noexcept( //
-            noexcept( //
-                generate_value(static_cast<cv_ref_align_t<Self&&, lazy_value>>(cpp_forward(self)))
-            )
-        )
-            requires requires {
-                generate_value(static_cast<cv_ref_align_t<Self&&, lazy_value>>(cpp_forward(self)));
-            }
+        constexpr decltype(auto) get(this Self&& self)
+            noexcept(noexcept(generate_value(forward_cast<Self, lazy_value>(self))))
+            requires requires { generate_value(forward_cast<Self, lazy_value>(self)); }
         {
-            auto&& this_ = static_cast<cv_ref_align_t<Self&&, lazy_value>>(cpp_forward(self));
+            auto&& this_ = forward_cast<Self, lazy_value>(self);
             generate_value(cpp_forward(this_));
             return cpp_forward(this_).value_;
         }
 
         template<typename Self>
-        constexpr decltype(auto) cget(this const Self& self) noexcept
+        constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            auto&& this_ = static_cast<cv_ref_align_t<const Self&, lazy_value>>(cpp_forward(self));
-            return cpp_forward(this_).value_;
+            return forward_cast<const Self, lazy_value>(self).value_;
         }
     }; // NOLINTEND(*-noexcept-*)
 

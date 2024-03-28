@@ -28,3 +28,15 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         }
     }
 }
+
+void foo()
+{
+    indexed_values<int, float> v0{};
+    int v1{};
+    auto&& v2 = v0.get<0>();
+    auto&& v3 = forward_cast<int&, int>(v1);
+
+    value_wrapper<int> v4{};
+
+    auto&& v5 = v4.get();
+}

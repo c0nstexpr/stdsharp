@@ -4,7 +4,7 @@
 
 #include "mutex/mutex.h"
 #include "reflection/reflection.h"
-#include "stdsharp/type_traits/core_traits.h"
+#include "utility/constructor.h"
 
 namespace stdsharp
 {
@@ -58,6 +58,9 @@ namespace stdsharp
         {
         }
 
+        using default_get_shared_lock_fn = constructor<std::shared_lock<lock_type>>;
+        using default_get_unique_lock_fn = constructor<std::unique_lock<lock_type>>;
+
     public:
         template<typename ValueTuple, typename LockableTuple>
             requires piecewise_constructible_from<value_type, ValueTuple> &&
@@ -73,39 +76,35 @@ namespace stdsharp
                 std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<ValueTuple>>>{},
                 std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<LockableTuple>>>{}
             )
+
         {
         }
 
-        template<typename Self, typename... Args, typename SelfT = const Self&>
-        constexpr void read(
-            this const Self& self,
-            std ::invocable<const cv_ref_align_t<SelfT, value_type>> auto&& func,
-            Args&&... args
-        )
-            requires std ::constructible_from<std ::shared_lock<lock_type>, lock_type&, Args...>
+        template<
+            typename Self,
+            typename Fn,
+            std::invocable<lock_type> GetLock = default_get_shared_lock_fn,
+            typename SelfT = const Self>
+            requires std ::invocable<Fn&, forward_cast_t<SelfT, value_type>> &&
+            lockable<std::invoke_result_t<GetLock>>
+        constexpr void read(this const Self&& self, Fn func, GetLock get_lock = {})
         {
-            auto&& this_ = static_cast<cv_ref_align_t<SelfT, synchronizer>>(cpp_forward(self));
-            const std ::shared_lock lock{
-                cpp_forward(this_).lockable_,
-                static_cast<decltype(args)>(args)...
-            };
-            invoke(cpp_forward(func), cpp_forward(this_).value_);
+            auto&& this_ = forward_cast<SelfT, synchronizer>(self);
+            const auto& lock = get_lock(cpp_forward(this_).lockable_);
+            invoke(func, cpp_forward(this_).value_);
         }
 
-        template<typename Self, typename... Args>
-        constexpr void write(
-            this Self&& self,
-            std ::invocable<cv_ref_align_t<Self&&, value_type>> auto&& func,
-            Args&&... args
-        )
-            requires std ::constructible_from<std ::unique_lock<lock_type>, lock_type&, Args...>
+        template<
+            typename Self,
+            typename Fn,
+            std::invocable<lock_type> GetLock = default_get_unique_lock_fn>
+            requires std::invocable<Fn&, forward_cast_t<Self, value_type>> &&
+            lockable<std::invoke_result_t<GetLock>>
+        constexpr void write(this Self&& self, Fn func, GetLock get_lock = {})
         {
-            auto&& this_ = static_cast<cv_ref_align_t<Self&&, synchronizer>>(cpp_forward(self));
-            const std ::unique_lock lock{
-                cpp_forward(this_).lockable_,
-                static_cast<decltype(args)>(args)...
-            };
-            invoke(cpp_forward(func), cpp_forward(this_).value_);
+            auto&& this_ = forward_cast<Self, synchronizer>(self);
+            const auto& lock = get_lock(cpp_forward(this_).lockable_);
+            invoke(func, cpp_forward(this_).value_);
         }
 
         constexpr const lock_type& lockable() const noexcept { return lockable_; }

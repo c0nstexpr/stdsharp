@@ -2,9 +2,9 @@
 
 #include <utility>
 
-#include "../concepts/concepts.h"
+#include "forward_cast.h"
+
 #include "../compilation_config_in.h"
-#include "stdsharp/type_traits/core_traits.h"
 
 namespace stdsharp::details
 {
@@ -40,13 +40,19 @@ namespace stdsharp
         template<typename Self>
         [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return static_cast<cv_ref_align_t<Self&&,value_wrapper>>(cpp_forward(self)).v;
+            return static_cast<forward_cast_t<Self, T>>(forward_cast<Self, value_wrapper>(self).v);
         }
 
         template<typename Self>
-        [[nodiscard]] constexpr explicit operator cv_ref_align_t<Self&&, T>(this Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return static_cast<cv_ref_align_t<Self&&,value_wrapper>>(cpp_forward(self)).get();
+            return static_cast<forward_cast_t<const Self, T>>(forward_cast<const Self, value_wrapper>(self).v);
+        }
+
+        template<std::derived_from<value_wrapper> Self>
+        [[nodiscard]] constexpr explicit operator forward_cast_t<Self, T>(this Self&& self) noexcept
+        {
+            return forward_cast<value_wrapper, Self>(self).get();
         }
     };
 
