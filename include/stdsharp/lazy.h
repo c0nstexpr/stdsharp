@@ -174,6 +174,12 @@ namespace stdsharp
         {
             return forward_cast<const Self, lazy_value>(self).value_;
         }
+
+        template<typename Self>
+        constexpr decltype(auto) cget(this const Self& self) noexcept
+        {
+            return forward_cast<const Self&, lazy_value>(self).value_;
+        }
     }; // NOLINTEND(*-noexcept-*)
 
     template<typename Fn>

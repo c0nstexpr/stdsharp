@@ -14,6 +14,11 @@ namespace stdsharp::details
     {
         using indexed_values = stdsharp::indexed_values<Func...>;
 
+        template<typename = std::index_sequence_for<Func...>>
+        struct impl;
+
+        using type = impl<>;
+
         template<typename T, std::size_t I>
         struct indexed_operator
         {
@@ -22,23 +27,17 @@ namespace stdsharp::details
 
         public:
             template<typename Self, typename... Args, typename Fn = forward_cast_t<Self, func>>
-                requires ::std::invocable<Fn, Args...>
+                requires ::std::invocable<Fn, Args...> &&
+                std::invocable<forward_cast_fn<Self, type>, Self>
             constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
                 noexcept(nothrow_invocable<Fn, Args...>)
             {
                 return invoke(
-                    cpo::get_element<I>(
-                        stdsharp::forward_cast<Self, indexed_operator, type>(self)
-                    ),
+                    cpo::get_element<I>(forward_cast<Self, type>(self)),
                     cpp_forward(args)...
                 );
             }
         };
-
-        template<typename = std::index_sequence_for<Func...>>
-        struct impl;
-
-        using type = impl<>;
 
         template<std::size_t... I>
         struct STDSHARP_EBO impl<std::index_sequence<I...>> :

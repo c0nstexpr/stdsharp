@@ -19,7 +19,7 @@ namespace stdsharp
         {
             template<typename T>
                 requires std::same_as<T, lvalue_binder<typename T::type>>
-            constexpr decltype(auto) operator()(const T & value) const noexcept
+            constexpr decltype(auto) operator()(const T& value) const noexcept
             {
                 return value.get();
             }

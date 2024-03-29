@@ -79,9 +79,54 @@ namespace stdsharp
     enum class ref_qualifier : std::uint8_t
     {
         none,
-        lvalue,
-        rvalue
+        rvalue,
+        lvalue
     };
+
+    template<typename T>
+    inline constexpr auto ref_qualifier_v = std::is_lvalue_reference_v<T> ? //
+        ref_qualifier::lvalue :
+        std::is_rvalue_reference_v<T> ? ref_qualifier::rvalue : ref_qualifier::none;
+
+    template<typename, ref_qualifier>
+    struct override_ref;
+
+    template<typename T>
+    struct override_ref<T, ref_qualifier::lvalue>
+    {
+        using type = std::remove_reference_t<T>&;
+    };
+
+    template<typename T>
+    struct override_ref<T, ref_qualifier::rvalue>
+    {
+        using type = std::remove_reference_t<T>&&;
+    };
+
+    template<typename T>
+    struct override_ref<T, ref_qualifier::none>
+    {
+        using type = T;
+    };
+
+    template<typename T, ref_qualifier ref>
+    using override_ref_t = typename override_ref<T, ref>::type;
+
+    template<typename T, typename... U>
+    struct ref_collapse
+    {
+        static constexpr auto value = std::max({ref_qualifier_v<T>, ref_qualifier_v<U...>});
+
+        using type = override_ref_t<T, value>;
+    };
+
+    template<typename T, typename... U>
+    inline constexpr auto ref_collapse_v = ref_collapse<T, U...>::value;
+
+    template<typename T, typename... U>
+    using ref_collapse_t = typename ref_collapse<T, U...>::type;
+
+    template<typename T, typename... U>
 }
 
 namespace stdsharp::details

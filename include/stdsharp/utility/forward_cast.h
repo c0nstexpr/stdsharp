@@ -8,7 +8,27 @@
 namespace stdsharp
 {
     template<typename From, typename To>
-    using forward_cast_t = cv_ref_align_t<From&&, To>;
+    using forward_cast_t = decltype(std::forward_like<From>(std::declval<To>()));
+}
+
+namespace stdsharp::details
+{
+    template<typename... Pairs>
+    struct forward_cast_pairs
+    {
+        template<typename... OtherPairs>
+        static forward_cast_pairs<Pairs..., OtherPairs...>
+            append(forward_cast_pairs<OtherPairs...>);
+
+        template<typename Pair>
+        using append_t = decltype(append(Pair{}));
+
+        static constexpr decltype(auto) invoke(auto&& from) noexcept
+            requires requires { (from | ... | Pairs{}); }
+        {
+            return (from | ... | Pairs{});
+        }
+    };
 }
 
 namespace stdsharp
@@ -19,19 +39,39 @@ namespace stdsharp
     template<typename From, typename To>
     struct forward_cast_fn<From, To>
     {
+    private:
+        template<typename...>
+        friend class forward_cast_fn;
+
+        using pairs = details::forward_cast_pairs<forward_cast_fn>;
+
+    public:
         using from_t = std::remove_cvref_t<From>;
         using to_t = std::remove_cvref_t<To>;
 
-        [[nodiscard]] constexpr decltype(auto) operator()(From&& from) const noexcept
-            requires std::derived_from<from_t, to_t> && not_same_as<from_t, to_t>
-        { // c-style cast allow us cast derived to inaccessible base
-            return (forward_cast_t<From, To>)cpp_forward(from); // NOLINT
+        template<typename T>
+            requires std::same_as<std::remove_cvref_t<T>, from_t> &&
+            std::is_base_of_v<to_t, from_t> && not_same_as<from_t, to_t>
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
+        { // c-style cast allow us cast to inaccessible base
+            return (forward_cast_t<From, To>)from; // NOLINT
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator()(From&& from) const noexcept
-            requires std::same_as<from_t, to_t>
+        template<typename T>
+            requires std::same_as<std::remove_cvref_t<T>, from_t> && std::same_as<from_t, to_t>
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         {
-            return static_cast<forward_cast_t<From, To>>(cpp_forward(from));
+            return static_cast<forward_cast_t<From, To>>(from);
+        }
+
+        template<typename T>
+            requires std::invocable<forward_cast_fn, T&>
+        [[nodiscard]] friend constexpr decltype(auto) operator|(
+            T&& from,
+            const forward_cast_fn& self //
+        ) noexcept
+        {
+            return self(from);
         }
     };
 
@@ -39,14 +79,19 @@ namespace stdsharp
     struct forward_cast_fn<From, To, Rest...>
     {
     private:
-        using cur_fn = forward_cast_fn<From, To>;
-        using next_fn = forward_cast_fn<To, Rest...>;
+        template<typename...>
+        friend class forward_cast_fn;
+
+        using current_t = forward_cast_fn<From, To>;
+
+        using pairs = details::forward_cast_pairs<current_t>:: //
+            template append_t<typename forward_cast_fn<To, Rest...>::pairs>;
 
     public:
-        [[nodiscard]] constexpr decltype(auto) operator()(From&& from) const noexcept
-            requires requires { next_fn{}(cur_fn{}(from)); }
+        [[nodiscard]] constexpr decltype(auto) operator()(auto&& from) const noexcept
+            requires requires { pairs::invoke(from); }
         {
-            return next_fn{}(cur_fn{}(from));
+            return pairs::invoke(from);
         }
     };
 
