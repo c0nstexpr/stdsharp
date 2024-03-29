@@ -375,3 +375,4 @@ build-preview/
 **/*.clangd
 *.profraw
 .VSCodeCounter/
+desktop.ini
