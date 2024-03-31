@@ -127,6 +127,8 @@ namespace stdsharp
     using ref_collapse_t = typename ref_collapse<T, U...>::type;
 
     template<typename T, typename... U>
+    using const_collapse_t = std::
+        conditional_t<(std::is_const_v<T> || ... || std::is_const_v<U>), std::add_const_t<T>, T>;
 }
 
 namespace stdsharp::details
@@ -484,98 +486,47 @@ namespace stdsharp
 
     template<typename T>
     inline constexpr std::string_view type_id = ::nameof::nameof_full_type<T>();
+}
 
-    namespace literals
+namespace stdsharp::literals
+{
+    template<std::size_t Size>
+    struct ltr : std::array<char, Size>
     {
-        template<std::size_t Size>
-        struct ltr : std::array<char, Size>
+    private:
+        using array_t = const char (&)[Size]; // NOLINT(*-avoid-c-arrays)
+
+    public:
+        using base = std::array<char, Size>;
+        using base::base;
+
+        constexpr ltr(array_t arr) noexcept { std::ranges::copy(arr, base::begin()); }
+
+        constexpr ltr& operator=(array_t arr) noexcept
         {
-        private:
-            using array_t = const char (&)[Size]; // NOLINT(*-avoid-c-arrays)
-
-        public:
-            using base = std::array<char, Size>;
-            using base::base;
-
-            constexpr ltr(array_t arr) noexcept { std::ranges::copy(arr, base::begin()); }
-
-            constexpr ltr& operator=(array_t arr) noexcept
-            {
-                std::ranges::copy(arr, base::begin());
-                return *this;
-            }
-
-            [[nodiscard]] constexpr operator std::string_view() const noexcept
-            {
-                return {base::data(), Size - 1};
-            }
-
-            [[nodiscard]] constexpr auto to_string_view() const noexcept
-            {
-                return static_cast<std::string_view>(*this);
-            }
-        };
-
-        template<std::size_t Size>
-        ltr(const char (&)[Size]) -> ltr<Size>; // NOLINT(*-avoid-c-arrays)
-
-        template<ltr Ltr>
-        [[nodiscard]] constexpr auto operator""_ltr() noexcept
-        {
-            return Ltr;
+            std::ranges::copy(arr, base::begin());
+            return *this;
         }
+
+        [[nodiscard]] constexpr operator std::string_view() const noexcept
+        {
+            return {base::data(), Size - 1};
+        }
+
+        [[nodiscard]] constexpr auto to_string_view() const noexcept
+        {
+            return static_cast<std::string_view>(*this);
+        }
+    };
+
+    template<std::size_t Size>
+    ltr(const char (&)[Size]) -> ltr<Size>; // NOLINT(*-avoid-c-arrays)
+
+    template<ltr Ltr>
+    [[nodiscard]] constexpr auto operator""_ltr() noexcept
+    {
+        return Ltr;
     }
-}
-
-namespace stdsharp::details
-{
-    template<typename T>
-    struct ebo_union
-    {
-        union type
-        {
-            T v;
-        };
-    };
-
-    template<typename T>
-        requires std::is_empty_v<T>
-    struct ebo_union<T>
-    {
-        union type
-        {
-            STDSHARP_NO_UNIQUE_ADDRESS T v;
-        };
-    };
-
-    template<
-        typename T,
-        typename Tuple,
-        typename = std::make_index_sequence<std::tuple_size_v<Tuple>>>
-    struct piecewise_traits;
-
-    template<typename T, typename Tuple, std::size_t... I>
-    struct piecewise_traits<T, Tuple, std::index_sequence<I...>>
-    {
-        static constexpr auto constructible_from =
-            requires { requires std::constructible_from<T, get_element_t<I, Tuple>...>; };
-
-        static constexpr auto nothrow_constructible_from =
-            requires { requires std::is_nothrow_constructible_v<T, get_element_t<I, Tuple>...>; };
-    };
-}
-
-namespace stdsharp
-{
-    template<typename T>
-    using ebo_union = details::ebo_union<T>::type;
-
-    template<typename T, typename Tuple>
-    concept piecewise_constructible_from = details::piecewise_traits<T, Tuple>::constructible_from;
-
-    template<typename T, typename Tuple>
-    concept piecewise_nothrow_constructible_from =
-        details::piecewise_traits<T, Tuple>::nothrow_constructible_from;
 }
 
 namespace meta::extension

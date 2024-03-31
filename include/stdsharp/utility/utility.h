@@ -25,6 +25,13 @@ namespace stdsharp
 
     template<typename T, typename U>
     using forward_like_t = decltype(forward_like<T>(std::declval<U>()));
+
+    inline constexpr struct as_lvalue_fn
+    {
+        STDSHARP_INTRINSIC constexpr auto& operator()(auto&& t) const noexcept { return t; }
+
+        void operator()(const auto&& t) = delete;
+    } as_lvalue{};
 }
 
 #include "../compilation_config_out.h"

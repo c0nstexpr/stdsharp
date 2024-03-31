@@ -3,7 +3,7 @@
 #include <shared_mutex>
 
 #include "mutex/mutex.h"
-#include "utility/forward_cast.h"
+#include "utility/utility.h"
 
 namespace stdsharp
 {
@@ -53,7 +53,7 @@ namespace stdsharp
                 .value = static_cast<cast_t>(value),
                 .lock =
                     Lock{
-                        static_cast<lock_type&>(forward_cast<Self, synchronizer&>(self).lockable_),
+                        as_lvalue(forward_cast<Self, synchronizer>(self)).lockable_,
                         cpp_forward(args)...
                     }
             };
