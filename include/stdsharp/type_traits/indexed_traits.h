@@ -1,9 +1,11 @@
-// TODO: __cpp_pack_indexing >= 202311L
+#pragma once // TODO: __cpp_pack_indexing >= 202311L
 
-#pragma once
-
-#include "core_traits.h"
+#include "../tuple/get.h"
 #include "../utility/value_wrapper.h"
+#include "regular_type_sequence.h"
+#include "regular_value_sequence.h"
+#include "type.h"
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp::details
@@ -240,10 +242,9 @@ namespace std
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::basic_indexed_types<T...>>
     {
-        using type = ::meta::_t< //
-            decltype( //
-                ::stdsharp::basic_indexed_types<T...>{}.get_type(::stdsharp::index_constant<I>{})
-            )>;
+        using type = decltype( //
+            ::stdsharp::basic_indexed_types<T...>{}.get_type(::stdsharp::index_constant<I>{})
+        )::type;
     };
 
     template<std::size_t I, ::stdsharp::adl_proofed_for<::stdsharp::basic_indexed_types> T>

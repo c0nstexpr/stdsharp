@@ -39,7 +39,7 @@ namespace stdsharp
         constexpr auto operator()(auto&& func, Args&&... args) const noexcept( //
             noexcept( //
                 std::bind_front(
-                    projected_invoke,
+                    project_invoke,
                     cpp_forward(func),
                     projector{},
                     wrap(cpp_forward(args))...
@@ -48,7 +48,7 @@ namespace stdsharp
         )
             requires requires {
                 std::bind_front(
-                    projected_invoke,
+                    project_invoke,
                     cpp_forward(func),
                     projector{},
                     wrap(cpp_forward(args))...
@@ -56,7 +56,7 @@ namespace stdsharp
             }
         {
             return std::bind_front(
-                projected_invoke,
+                project_invoke,
                 cpp_forward(func),
                 projector{},
                 wrap(cpp_forward(args))...

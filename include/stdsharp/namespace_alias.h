@@ -1,6 +1,6 @@
 #pragma once
 
-namespace std
+namespace std::literals
 {
 }
 
@@ -23,3 +23,5 @@ namespace stdsharp
     namespace ranges = ::ranges;
     namespace ctre = ::ctre;
 }
+
+using namespace std::literals;

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../type_traits/core_traits.h"
-#include "../concepts/concepts.h"
+#include <utility>
 
+#include "../concepts/type.h"
 #include "../compilation_config_in.h"
 
 namespace stdsharp
@@ -50,15 +50,15 @@ namespace stdsharp
         using to_t = std::remove_cvref_t<To>;
 
         template<typename T>
-            requires std::same_as<std::remove_cvref_t<T>, from_t> &&
-            std::is_base_of_v<to_t, from_t> && not_same_as<from_t, to_t>
+            requires std::same_as<std::remove_cvref_t<T>, from_t> && base_of<to_t, from_t> &&
+            not_same_as<from_t, to_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         { // c-style cast allow us cast to inaccessible base
             return (forward_cast_t<From, To>)from; // NOLINT
         }
 
         template<typename T>
-            requires std::same_as<std::remove_cvref_t<T>, from_t> && std::same_as<from_t, to_t>
+            requires std::same_as<std::remove_cvref_t<T>, from_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         {
             return static_cast<forward_cast_t<From, To>>(from);

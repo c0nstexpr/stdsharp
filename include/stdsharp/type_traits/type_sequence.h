@@ -12,7 +12,7 @@ namespace stdsharp::details
     template<template<auto...> typename Seq, auto... V>
     struct type_seq_converter<Seq<V...>>
     {
-        using type = regular_type_sequence<::meta::_t<decltype(V)>...>;
+        using type = regular_type_sequence<typename decltype(V)::type...>;
     };
 
     template<typename Seq>
