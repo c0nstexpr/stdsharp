@@ -3,7 +3,6 @@
 
 #include "../functional/always_return.h"
 #include "indexed_traits.h"
-#include "object.h"
 
 #include <algorithm>
 
@@ -66,11 +65,11 @@ namespace stdsharp
         static consteval to_value_sequence<
             make_value_sequence_t<seq::size() - 1, seq::size(), std::minus{}>>::
             template apply_t<seq::template at_t>
-            get_reverse_value_sequence();
+            get_reverse();
 
         template<typename Func>
             requires(std::invocable<Func&, decltype(Values)> && ...)
-        static consteval void invocable_test() {};
+        static consteval void invocable_test();
 
         template<typename Func>
         static constexpr auto nothrow_invocable_v =
@@ -78,14 +77,14 @@ namespace stdsharp
 
         template<typename Func>
             requires(std::predicate<Func&, const decltype(Values)&> && ...)
-        static consteval void predicate_test() {};
+        static consteval void predicate_test();
 
         template<typename Func>
         static constexpr auto nothrow_predicate_v =
             (nothrow_predicate<Func&, const decltype(Values)&> && ...);
 
     public:
-        using reverse_value_sequence = decltype(get_reverse_value_sequence<Values...>());
+        using reverse_t = decltype(get_reverse<Values...>());
 
         template<typename ResultType = void>
         struct invoke_fn
@@ -413,9 +412,9 @@ namespace stdsharp
 
             template<std::size_t... I>
             static constexpr at_t<select_indices[I]...>
-                get_type(std::index_sequence<I...>) noexcept;
+                impl(std::index_sequence<I...>) noexcept;
 
-            using type = decltype(get_type(std::make_index_sequence<select_indices.size()>{}));
+            using type = decltype(impl(std::make_index_sequence<select_indices.size()>{}));
         };
 
         template<typename Comp>
@@ -461,7 +460,7 @@ namespace stdsharp
                 Other>>::template append_by_seq_t<back_t<size() - Index - 1>>;
 
         template<typename Comp>
-        using unique_value_sequence_t = unique_value_sequence<Comp>::type;
+        using unique_t = unique_value_sequence<Comp>::type;
     };
 }
 

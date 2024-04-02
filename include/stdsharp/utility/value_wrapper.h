@@ -37,21 +37,21 @@ namespace stdsharp
         }
 
         template<typename Self>
-        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
+        [[nodiscard]] constexpr forward_cast_t<Self, T> get(this Self&& self) noexcept
         {
-            return (forward_cast<Self, value_wrapper>(self).v);
+            return forward_cast<Self, value_wrapper>(self).v;
         }
 
         template<typename Self, typename SelfT = const Self>
-        [[nodiscard]] constexpr decltype(auto) cget(this const Self&& self) noexcept
+        [[nodiscard]] constexpr forward_cast_t<SelfT, T> cget(this const Self&& self) noexcept
         {
-            return (forward_cast<SelfT, value_wrapper>(self).v);
+            return forward_cast<SelfT, value_wrapper>(self).v;
         }
 
         template<typename Self, typename SelfT = const Self&>
-        [[nodiscard]] constexpr decltype(auto) cget(this const Self& self) noexcept
+        [[nodiscard]] constexpr forward_cast_t<SelfT, T> cget(this const Self& self) noexcept
         {
-            return (forward_cast<SelfT, value_wrapper>(self).v);
+            return forward_cast<SelfT, value_wrapper>(self).v;
         }
 
         template<std::derived_from<value_wrapper> Self>

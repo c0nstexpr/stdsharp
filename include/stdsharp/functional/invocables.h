@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../type_traits/indexed_traits.h"
+
 #include <algorithm>
 #include <functional>
-
-#include "../type_traits/indexed_traits.h"
 
 #include "../compilation_config_in.h"
 
@@ -12,23 +12,18 @@ namespace stdsharp::details
     template<typename... Func>
     struct invocables_traits
     {
-        using indexed_values = stdsharp::indexed_values<Func...>;
-
         template<typename = std::index_sequence_for<Func...>>
         struct impl;
 
         using type = impl<>;
 
-        template<typename T, std::size_t I>
+        template<std::size_t I>
         struct indexed_operator
         {
-        private:
-            using func = std::tuple_element_t<I, indexed_values>;
-
-        public:
-            template<typename Self, typename... Args, typename Fn = forward_cast_t<Self, func>>
-                requires ::std::invocable<Fn, Args...> &&
-                std::invocable<forward_cast_fn<Self, type>, Self>
+            template<
+                typename Self,
+                typename... Args,
+                std::invocable<Args...> Fn = get_element_t<I, forward_cast_t<Self, type>>>
             constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
                 noexcept(nothrow_invocable<Fn, Args...>)
             {
@@ -39,13 +34,13 @@ namespace stdsharp::details
             }
         };
 
+        using indexed_values = stdsharp::indexed_values<Func...>;
+
         template<std::size_t... I>
-        struct STDSHARP_EBO impl<std::index_sequence<I...>> :
-            indexed_values,
-            indexed_operator<indexed_values, I>...
+        struct STDSHARP_EBO impl<std::index_sequence<I...>> : indexed_values, indexed_operator<I>...
         {
             using indexed_values::indexed_values;
-            using indexed_operator<indexed_values, I>::operator()...;
+            using indexed_operator<I>::operator()...;
         };
     };
 }

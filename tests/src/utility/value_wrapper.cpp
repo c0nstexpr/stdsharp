@@ -7,10 +7,11 @@ using namespace stdsharp;
 SCENARIO("value_wrapper", "[value_wrapper]") // NOLINT
 {
     STATIC_REQUIRE(default_initializable<value_wrapper<int>>);
+    STATIC_REQUIRE(constructible_from<value_wrapper<int>, float>);
+    STATIC_REQUIRE(constructible_from<value_wrapper<int>, const float&>);
     STATIC_REQUIRE(constructible_from<value_wrapper<int>, int>);
-    STATIC_REQUIRE(movable<value_wrapper<int>>);
-    STATIC_REQUIRE(copyable<value_wrapper<int>>);
-    STATIC_REQUIRE(swappable<value_wrapper<int>>);
+    STATIC_REQUIRE(nothrow_copyable<value_wrapper<int>>);
+    STATIC_REQUIRE(nothrow_swappable<value_wrapper<int>>);
 
     [[maybe_unused]] value_wrapper<int> wrapper{};
 

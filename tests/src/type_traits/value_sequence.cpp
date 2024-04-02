@@ -57,7 +57,7 @@ namespace // Escape Catch2 special characters like '[' and ']'
 {
     inline constexpr sequenced_invocables find_if_functor_3{
         [](const size_t v) { return v == 7; },
-        only_false
+        always_false
     };
 }
 
@@ -65,8 +65,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence find if",
     "[type traits]",
     ((auto Fn, auto Expect), Fn, Expect),
-    (only_true, 0),
-    (only_false, test_seq::size()),
+    (always_true, 0),
+    (always_false, test_seq::size()),
     (find_if_functor_3, 2)
 )
 {
@@ -89,7 +89,7 @@ namespace // Escape Catch2 special characters like '[' and ']'
 {
     inline constexpr sequenced_invocables count_if_functor_3{
         [](const size_t) { return true; },
-        only_false
+        always_false
     };
 }
 
@@ -97,8 +97,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence count if",
     "[type traits]",
     ((auto Fn, auto Expect), Fn, Expect),
-    (only_true, test_seq::size()),
-    (only_false, 0),
+    (always_true, test_seq::size()),
+    (always_false, 0),
     (count_if_functor_3, 4)
 )
 {

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "value_sequence.h"
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp::details
@@ -77,6 +78,11 @@ namespace stdsharp::details
         template<std::size_t From, std::size_t Size>
         using select_range_t =
             type_seq_converter_t<typename Base::template select_range_t<From, Size>>;
+
+        using reverse_t = details::type_seq_converter_t<typename Base::reverse_t>;
+
+        template<typename Cmp>
+        using unique_t = details::type_seq_converter_t<typename Base::template unique_t<Cmp>>;
     };
 }
 
@@ -95,14 +101,6 @@ namespace stdsharp
             return type_sequence<U...>{}; //
         }(std::declval<T>())
     );
-
-    template<typename... T>
-    using reverse_type_sequence =
-        details::type_seq_converter_t<reverse_value_sequence<std::type_identity<T>{}...>>;
-
-    template<typename... T>
-    using unique_type_sequence =
-        details::type_seq_converter_t<unique_value_sequence<basic_type_constant<T>{}...>>;
 }
 
 namespace std

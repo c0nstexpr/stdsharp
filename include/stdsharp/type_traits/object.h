@@ -7,6 +7,23 @@
 
 namespace stdsharp
 {
+    template<typename T>
+    struct basic_type_constant : std::type_identity<T>
+    {
+        template<typename U>
+        [[nodiscard]] constexpr bool
+            operator==(const basic_type_constant<U> /*unused*/) const noexcept
+        {
+            return std::same_as<T, U>;
+        }
+    };
+
+    template<typename T>
+    basic_type_constant(std::type_identity<T>) -> basic_type_constant<T>;
+
+    template<typename T>
+    using type_constant = adl_proof_t<basic_type_constant, T>;
+
     using ignore_t = decltype(std::ignore);
 
     inline constexpr struct empty_t : ignore_t
@@ -253,4 +270,13 @@ namespace stdsharp
     };
 
     inline constexpr make_inherited_fn make_inherited{};
+
+    template<typename T>
+    concept constant_value = cpp_is_constexpr(T::value);
+
+    template<auto Value>
+    using constant = std::integral_constant<decltype(Value), Value>;
+
+    template<std::size_t I>
+    using index_constant = std::integral_constant<std::size_t, I>;
 }
