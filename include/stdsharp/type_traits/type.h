@@ -3,8 +3,6 @@
 #include "../concepts/type.h"
 #include "regular_type_sequence.h"
 
-#include <functional>
-
 namespace stdsharp
 {
     template<typename T, typename U>
@@ -30,12 +28,9 @@ namespace stdsharp
 
     template<typename T, ref_qualifier ref>
     using apply_ref = std::conditional_t<
-        std::ranges::equal_to{}(ref, ref_qualifier::lvalue),
+        ref == ref_qualifier::lvalue,
         std::add_lvalue_reference_t<T>,
-        std::conditional_t<
-            std::ranges::equal_to{}(ref, ref_qualifier::rvalue),
-            std::add_rvalue_reference_t<T>,
-            T>>;
+        std::conditional_t<ref == ref_qualifier::rvalue, std::add_rvalue_reference_t<T>, T>>;
 
     template<typename T, bool Const, bool Volatile, ref_qualifier ref>
     using apply_qualifiers = apply_ref<apply_volatile<apply_const<T, Const>, Volatile>, ref>;
@@ -87,7 +82,13 @@ namespace stdsharp
     template<typename T, typename... U>
     struct ref_collapse
     {
-        static constexpr auto value = std::max({ref_qualifier_v<T>, ref_qualifier_v<U...>});
+        static constexpr auto value = []
+        {
+            ref_qualifier value = ref_qualifier::none;
+            for(const auto r : {ref_qualifier_v<T>, ref_qualifier_v<U>...})
+                if(r > value) value = r;
+            return value;
+        }();
 
         using type = override_ref_t<T, value>;
     };

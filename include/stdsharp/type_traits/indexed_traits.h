@@ -70,30 +70,22 @@ namespace stdsharp::details
         template<std::size_t J>
         using type = type_at<J, T...>;
 
-        template<std::size_t J, typename Self, typename U = indexed_value<J, type<J>>>
+        template<std::size_t J, typename Self>
         constexpr forward_cast_t<Self, type<J>> get(this Self&& self) noexcept
         {
-            return forward_cast<Self, indexed_values, U>(self).get();
+            return forward_cast<Self, indexed_values, indexed_value<J, type<J>>>(self).get();
         }
 
-        template<
-            std::size_t J,
-            typename Self,
-            typename SelfT = const Self,
-            typename U = indexed_value<J, type<J>>>
+        template<std::size_t J, typename Self, typename SelfT = const Self>
         constexpr forward_cast_t<SelfT, type<J>> cget(this const Self&& self) noexcept
         {
-            return forward_cast<SelfT, indexed_values, U>(self).get();
+            return forward_cast<SelfT, indexed_values, indexed_value<J, type<J>>>(self).cget();
         }
 
-        template<
-            std::size_t J,
-            typename Self,
-            typename SelfT = const Self&,
-            typename U = indexed_value<J, type<J>>>
+        template<std::size_t J, typename Self, typename SelfT = const Self&>
         constexpr forward_cast_t<SelfT, type<J>> cget(this const Self& self) noexcept
         {
-            return forward_cast<SelfT, indexed_values, U>(self).get();
+            return forward_cast<SelfT, indexed_values, indexed_value<J, type<J>>>(self).cget();
         }
     };
 }
@@ -103,18 +95,6 @@ namespace stdsharp
     template<typename... T>
     struct indexed_values : details::indexed_values<std::make_index_sequence<sizeof...(T)>, T...>
     {
-    private:
-        using m_base = details::indexed_values<std::make_index_sequence<sizeof...(T)>, T...>;
-
-    public:
-        indexed_values() = default;
-
-        template<typename... U>
-            requires list_initializable_from<m_base, U...>
-        constexpr indexed_values(U&&... u) noexcept(nothrow_list_initializable_from<m_base, U...>):
-            m_base{cpp_forward(u)...}
-        {
-        }
     };
 
     template<typename... T>

@@ -1,10 +1,11 @@
-
 #pragma once
 
 #include "../functional/always_return.h"
 #include "indexed_traits.h"
+#include "regular_value_sequence.h"
 
 #include <algorithm>
+
 
 namespace stdsharp
 {
@@ -411,8 +412,7 @@ namespace stdsharp
             }();
 
             template<std::size_t... I>
-            static constexpr at_t<select_indices[I]...>
-                impl(std::index_sequence<I...>) noexcept;
+            static constexpr at_t<select_indices[I]...> impl(std::index_sequence<I...>) noexcept;
 
             using type = decltype(impl(std::make_index_sequence<select_indices.size()>{}));
         };

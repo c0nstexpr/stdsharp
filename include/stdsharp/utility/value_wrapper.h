@@ -8,15 +8,43 @@
 namespace stdsharp::details
 {
     template<typename T>
-    struct value_wrapper
+    class value_wrapper
     {
         T v{};
+
+    public:
+        template<typename... U>
+            requires std::constructible_from<T, U...>
+        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
+            v(cpp_forward(u)...)
+        {
+        }
+
+        template<typename Self>
+        [[nodiscard]] constexpr forward_cast_t<Self, T> get(this Self&& self) noexcept
+        {
+            return forward_cast<Self, value_wrapper>(self).v;
+        }
     };
 
     template<empty_type T>
-    struct value_wrapper<T>
+    class value_wrapper<T> : T
     {
-        STDSHARP_NO_UNIQUE_ADDRESS T v{};
+    public:
+        using T::T;
+
+        template<typename... U>
+            requires std::constructible_from<T, U...>
+        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
+            T(cpp_forward(u)...)
+        {
+        }
+
+        template<typename Self>
+        [[nodiscard]] constexpr forward_cast_t<Self, T> get(this Self&& self) noexcept
+        {
+            return forward_cast<Self, value_wrapper>(self);
+        }
     };
 }
 
@@ -29,32 +57,26 @@ namespace stdsharp
 
         value_wrapper() = default;
 
-        template<typename... U>
-            requires std::constructible_from<T, U...>
-        constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            details::value_wrapper<T>{cpp_forward(u)...}
+        constexpr value_wrapper(T&& t)
+            noexcept(nothrow_constructible_from<details::value_wrapper<T>, T>)
+            requires std::constructible_from<details::value_wrapper<T>, T>
+            : details::value_wrapper<T>(cpp_move(t))
         {
-        }
-
-        template<typename Self>
-        [[nodiscard]] constexpr forward_cast_t<Self, T> get(this Self&& self) noexcept
-        {
-            return forward_cast<Self, value_wrapper>(self).v;
         }
 
         template<typename Self, typename SelfT = const Self>
-        [[nodiscard]] constexpr forward_cast_t<SelfT, T> cget(this const Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<SelfT, value_wrapper>(self).v;
+            return forward_cast<SelfT, value_wrapper>(self).get();
         }
 
         template<typename Self, typename SelfT = const Self&>
-        [[nodiscard]] constexpr forward_cast_t<SelfT, T> cget(this const Self& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast<SelfT, value_wrapper>(self).v;
+            return forward_cast<SelfT, value_wrapper>(self).get();
         }
 
-        template<std::derived_from<value_wrapper> Self>
+        template<typename Self>
         [[nodiscard]] constexpr explicit operator forward_cast_t<Self, T>(this Self&& self) noexcept
         {
             return forward_cast<value_wrapper, Self>(self).get();

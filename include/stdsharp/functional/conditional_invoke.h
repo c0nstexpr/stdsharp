@@ -12,14 +12,14 @@ namespace stdsharp
         constexpr decltype(auto) operator()(Func&& func, const auto& /*unused*/ = empty_invoke) //
             const noexcept(nothrow_invocable<Func>)
         {
-            return invoke(func);
+            return invoke(cpp_forward(func));
         }
 
         template<std::invocable Func = empty_invoke_fn>
         constexpr decltype(auto) operator()(const auto& /*unused*/, Func&& func = empty_invoke) //
             const noexcept(nothrow_invocable<Func>)
         {
-            return invoke(func);
+            return invoke(cpp_forward(func));
         }
     };
 

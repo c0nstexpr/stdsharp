@@ -6,10 +6,24 @@ using namespace stdsharp;
 
 SCENARIO("value_wrapper", "[value_wrapper]") // NOLINT
 {
+    struct empty_type
+    {
+        empty_type() = default;
+
+        empty_type(int /*unused*/) {}
+    };
+
     STATIC_REQUIRE(default_initializable<value_wrapper<int>>);
-    STATIC_REQUIRE(constructible_from<value_wrapper<int>, float>);
-    STATIC_REQUIRE(constructible_from<value_wrapper<int>, const float&>);
+    STATIC_REQUIRE(default_initializable<value_wrapper<empty_type>>);
+
     STATIC_REQUIRE(constructible_from<value_wrapper<int>, int>);
+
+    STATIC_REQUIRE(constructible_from<value_wrapper<string>, const char*>);
+    STATIC_REQUIRE(constructible_from<value_wrapper<string>, string>);
+
+    STATIC_REQUIRE(constructible_from<value_wrapper<empty_type>, int>);
+    STATIC_REQUIRE(constructible_from<value_wrapper<empty_type>, empty_type>);
+
     STATIC_REQUIRE(nothrow_copyable<value_wrapper<int>>);
     STATIC_REQUIRE(nothrow_swappable<value_wrapper<int>>);
 

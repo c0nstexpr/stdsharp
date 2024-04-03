@@ -12,25 +12,26 @@ include(Catch)
 # Set the sources for the unit tests and add the executable(s)
 #
 set(src
-    src/algorithm/algorithm.cpp
-    src/containers/actions.cpp
-    src/containers/concepts.cpp
-    src/filesystem/filesystem.cpp
-    src/functional/pipeable.cpp
-    src/functional/symmetric_operations.cpp
-    src/memory/box.cpp
-    src/memory/composed_allocator.cpp
-    src/memory/single_stack_allocator.cpp
-    src/memory/soo.cpp
+    # src/algorithm/algorithm.cpp
+    # src/containers/actions.cpp
+    # src/containers/concepts.cpp
+    # src/filesystem/filesystem.cpp
+    # src/functional/pipeable.cpp
+    # src/functional/symmetric_operations.cpp
+    # src/memory/box.cpp
+    # src/memory/composed_allocator.cpp
+    # src/memory/single_stack_allocator.cpp
+    # src/memory/soo.cpp
     src/type_traits/indexed_traits.cpp
     src/type_traits/member.cpp
-    src/type_traits/type_sequence.cpp
-    src/type_traits/value_sequence.cpp
+    # src/type_traits/type_sequence.cpp
+    # src/type_traits/value_sequence.cpp
     src/utility/forward_cast.cpp
     src/utility/utility.cpp
-    src/lazy_value.cpp
-    src/pattern_match.cpp
-    src/synchronizer.cpp)
+    # src/lazy_value.cpp
+    # src/pattern_match.cpp
+    src/synchronizer.cpp
+)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 

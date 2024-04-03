@@ -1,10 +1,6 @@
 #pragma once
 
-#include <type_traits>
-#include <tuple>
-
-#include "../utility/adl_proof.h"
-#include "../macros.h"
+#include "stdsharp/concepts/object.h"
 
 namespace stdsharp::cpo::inline cpo_impl
 {
@@ -13,19 +9,16 @@ namespace stdsharp::cpo::inline cpo_impl
     template<std::size_t I>
     struct get_element_fn
     {
-        [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-            noexcept(noexcept(cpp_forward(t).template get<I>()))
-            requires requires { cpp_forward(t).template get<I>(); }
+        [[nodiscard]] constexpr auto operator()(auto&& t) const
+            noexcept(noexcept(cpp_forward(t).template get<I>())) -> //
+            decltype(cpp_forward(t).template get<I>())
         {
             return cpp_forward(t).template get<I>();
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator()(auto&& t) const
-            noexcept(noexcept(get<I>(cpp_forward(t))))
-            requires requires {
-                get<I>(cpp_forward(t));
-                requires !requires { cpp_forward(t).template get<I>(); };
-            }
+        [[nodiscard]] constexpr auto operator()(auto&& t) const
+            noexcept(noexcept(get<I>(cpp_forward(t)))) -> decltype(get<I>(cpp_forward(t)))
+            requires(!requires { cpp_forward(t).template get<I>(); })
         {
             return get<I>(cpp_forward(t));
         }
@@ -33,6 +26,30 @@ namespace stdsharp::cpo::inline cpo_impl
 
     template<std::size_t I>
     inline constexpr get_element_fn<I> get_element;
+
+
+    template<std::size_t I>
+    struct cget_element_fn
+    {
+        template<typename T>
+        [[nodiscard]] constexpr decltype(auto) operator()(const T& t) const
+            noexcept(nothrow_invocable<get_element_fn<I>, T>)
+            requires std::invocable<get_element_fn<I>, T>
+        {
+            return get_element<I>(t);
+        }
+
+        template<typename T>
+        [[nodiscard]] constexpr decltype(auto) operator()(const T&& t) const
+            noexcept(nothrow_invocable<get_element_fn<I>, T>)
+            requires std::invocable<get_element_fn<I>, T>
+        {
+            return get_element<I>(cpp_move(t));
+        }
+    };
+
+    template<std::size_t I>
+    inline constexpr cget_element_fn<I> cget_element;
 }
 
 namespace stdsharp
@@ -40,29 +57,6 @@ namespace stdsharp
     template<std::size_t I, typename T>
     using get_element_t = decltype(cpo::get_element<I>(std::declval<T>()));
 
-    template<typename...>
-    struct basic_type_sequence;
-
-    template<auto...>
-    struct regular_value_sequence;
-}
-
-namespace std
-{
-    template<typename... T>
-    struct tuple_size<::stdsharp::basic_type_sequence<T...>>
-    {
-        static constexpr auto value = ::stdsharp::basic_type_sequence<T...>::size();
-    };
-
-    template<::stdsharp::adl_proofed_for<::stdsharp::basic_type_sequence> T>
-    struct tuple_size<T> : tuple_size<typename T::basic_type_sequence>
-    {
-    };
-
-    template<auto... V>
-    struct tuple_size<::stdsharp::regular_value_sequence<V...>>
-    {
-        static constexpr auto value = ::stdsharp::regular_value_sequence<V...>::size();
-    };
+    template<std::size_t I, typename T>
+    using cget_element_t = decltype(cpo::cget_element<I>(std::declval<T>()));
 }

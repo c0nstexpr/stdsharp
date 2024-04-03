@@ -11,20 +11,20 @@ namespace stdsharp::details
         noexcept( //
             composed_invoke<I + 1>(
                 cpp_forward(fn),
-                invoke_at<I>(cpp_forward(fn), cpp_forward(arg)...)
+                cpp_forward(fn).get<I>()(cpp_forward(arg)...)
             )
         )
     )
         requires requires {
             composed_invoke<I + 1>(
                 cpp_forward(fn),
-                invoke_at<I>(cpp_forward(fn), cpp_forward(arg)...)
+                cpp_forward(fn).get<I>()(cpp_forward(arg)...)
             );
         }
     {
         return composed_invoke<I + 1>(
             cpp_forward(fn),
-            invoke_at<I>(cpp_forward(fn), cpp_forward(arg)...)
+            cpp_forward(fn).get<I>()(cpp_forward(arg)...)
         );
     }
 

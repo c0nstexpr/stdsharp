@@ -9,9 +9,6 @@
 
 namespace stdsharp
 {
-    template<auto...>
-    struct regular_value_sequence;
-
     template<auto... V>
     struct regular_value_sequence
     {
@@ -21,10 +18,10 @@ namespace stdsharp
 
 namespace stdsharp::details
 {
-    template<template<auto...> typename T, decltype(auto)... V>
+    template<template<auto...> typename T, auto... V>
     consteval regular_value_sequence<V...> to_regular_value_sequence(const T<V...>&);
 
-    template<typename T, decltype(auto)... V>
+    template<typename T, auto... V>
     consteval regular_value_sequence<V...>
         to_regular_value_sequence(std::integer_sequence<T, V...>);
 
@@ -89,6 +86,15 @@ namespace stdsharp
     template<typename Rng>
     using rng_to_sequence = details::rng_to_sequence<Rng>::type;
 
-    template<decltype(auto) Rng>
+    template<auto Rng>
     using rng_v_to_sequence = rng_to_sequence<constant<Rng>>;
+}
+
+namespace std
+{
+    template<auto... V>
+    struct tuple_size<::stdsharp::regular_value_sequence<V...>>
+    {
+        static constexpr auto value = ::stdsharp::regular_value_sequence<V...>::size();
+    };
 }
