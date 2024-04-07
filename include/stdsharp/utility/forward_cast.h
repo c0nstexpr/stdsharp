@@ -1,8 +1,10 @@
 #pragma once
 
+#include "../concepts/type.h"
+#include "../macros.h"
+
 #include <utility>
 
-#include "../concepts/type.h"
 #include "../compilation_config_in.h"
 
 namespace stdsharp
@@ -23,10 +25,10 @@ namespace stdsharp::details
         template<typename Pair>
         using append_t = decltype(append(Pair{}));
 
-        static constexpr decltype(auto) invoke(auto&& from) noexcept
-            requires requires { (from | ... | Pairs{}); }
+        static constexpr auto invoke(auto&& from) noexcept //
+            -> decltype((cpp_forward(from) | ... | Pairs{}))
         {
-            return (from | ... | Pairs{});
+            return (cpp_forward(from) | ... | Pairs{});
         }
     };
 }
@@ -61,17 +63,17 @@ namespace stdsharp
             requires std::same_as<std::remove_cvref_t<T>, from_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         {
-            return static_cast<forward_cast_t<From, To>>(from);
+            return static_cast<forward_cast_t<From, To>>(cpp_forward(from));
         }
 
         template<typename T>
-            requires std::invocable<forward_cast_fn, T&>
+            requires std::invocable<forward_cast_fn, T>
         [[nodiscard]] friend constexpr decltype(auto) operator|(
             T&& from,
             const forward_cast_fn& self //
         ) noexcept
         {
-            return self(from);
+            return self(cpp_forward(from));
         }
     };
 
@@ -88,10 +90,10 @@ namespace stdsharp
             template append_t<typename forward_cast_fn<To, Rest...>::pairs>;
 
     public:
-        [[nodiscard]] constexpr decltype(auto) operator()(auto&& from) const noexcept
-            requires requires { pairs::invoke(from); }
+        [[nodiscard]] constexpr auto operator()(auto&& from) const noexcept -> //
+            decltype(pairs::invoke(cpp_forward(from)))
         {
-            return pairs::invoke(from);
+            return pairs::invoke(cpp_forward(from));
         }
     };
 

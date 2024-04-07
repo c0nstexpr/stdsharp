@@ -77,7 +77,7 @@ namespace stdsharp
     using make_index_sequence = make_integer_sequence<std::size_t, N>;
 
     template<auto From, std::size_t Size, auto PlusF = std::plus{}>
-    using make_value_sequence_t =
+    using make_value_sequence =
         decltype(details::make_value_sequence<From, PlusF>(std::make_index_sequence<Size>{}));
 
     template<typename... T>

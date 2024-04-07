@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../type_traits/indexed_traits.h"
+#include "invoke.h"
 
 #include <tuple>
 
@@ -22,7 +23,7 @@ namespace stdsharp::details
         {
             using fn = forward_cast_t<Self, type<J>>;
 
-            if constexpr(std::invocable<fn, Args...>) return type_constant<indexed_value<J, fn>>{};
+            if constexpr(std::invocable<fn, Args...>) return J;
             else return first_invocable<Self, J + 1, Args...>();
         }
 
@@ -55,11 +56,13 @@ namespace stdsharp::details
         template<
             typename Self,
             typename... Args,
-            std::invocable<Args...> Fn = decltype(first_invocable<0, Args...>())::type>
+            auto J = first_invocable<Self, 0, Args...>(),
+            std::invocable<Args...> Fn = forward_cast_t<Self, type<J>>>
         constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
             noexcept(nothrow_invocable<Fn, Args...>)
         {
-            return invoke(forward_cast<Self, sequenced_invocables, Fn>(self), cpp_forward(args)...);
+            auto&& fn = forward_cast<Self, sequenced_invocables>(self).template get<J>();
+            return invoke(cpp_forward(fn), cpp_forward(args)...);
         }
     };
 }

@@ -6,7 +6,6 @@
 
 #include <algorithm>
 
-
 namespace stdsharp
 {
     template<auto...>
@@ -40,96 +39,64 @@ namespace stdsharp::details
 
         constexpr auto operator()(const auto& /*unused*/) const noexcept { return false; }
     };
+
+    struct value_indexer
+    {
+        template<auto V>
+        struct filter
+        {
+            consteval decltype(V) get() const noexcept { return V; }
+        };
+
+        template<std::size_t>
+        struct invalid
+        {
+        };
+
+    public:
+        template<std::size_t I, std::size_t... J, auto... V>
+        static consteval decltype(auto) impl(
+            const std::index_sequence<J...> /*unused*/,
+            const regular_value_sequence<V...> /*unused*/
+        )
+        {
+            constexpr struct STDSHARP_EBO : std::conditional_t<I == J, filter<V>, invalid<J>>...
+            {
+            } f{};
+
+            return f.get();
+        }
+
+        template<std::size_t I, auto... V>
+        static constexpr decltype(auto) value =
+            impl<I>(std::make_index_sequence<sizeof...(V)>{}, regular_value_sequence<V...>{});
+    };
 }
 
 namespace stdsharp
 {
     template<auto... Values>
-    struct value_sequence : regular_value_sequence<Values...>
+    struct value_sequence
     {
     public:
-        using regular_value_sequence<Values...>::size;
+        static constexpr std::size_t size() noexcept { return sizeof...(Values); }
 
-    private:
-        static constexpr indexed_values values{Values...};
-
-        using values_t = std::decay_t<decltype(values)>;
+        template<std::size_t I>
+        using value_type = type_at<I, decltype(Values)...>;
 
         template<std::size_t I>
             requires requires { requires I < size(); }
-        [[nodiscard]] friend constexpr decltype(auto) get(const value_sequence /*unused*/) noexcept
+        static constexpr value_type<I> value = details::value_indexer::template value<I, Values...>;
+
+        template<std::size_t I>
+            requires requires { requires I < size(); }
+        [[nodiscard]] static constexpr value_type<I> get() noexcept
         {
             return value<I>;
         }
 
-        template<typename seq = value_sequence<Values...>>
-        static consteval to_value_sequence<
-            make_value_sequence_t<seq::size() - 1, seq::size(), std::minus{}>>::
-            template apply_t<seq::template at_t>
-            get_reverse();
-
-        template<typename Func>
-            requires(std::invocable<Func&, decltype(Values)> && ...)
-        static consteval void invocable_test();
-
-        template<typename Func>
-        static constexpr auto nothrow_invocable_v =
-            (nothrow_invocable<Func&, decltype(Values)> && ...);
-
-        template<typename Func>
-            requires(std::predicate<Func&, const decltype(Values)&> && ...)
-        static consteval void predicate_test();
-
-        template<typename Func>
-        static constexpr auto nothrow_predicate_v =
-            (nothrow_predicate<Func&, const decltype(Values)&> && ...);
-
-    public:
-        using reverse_t = decltype(get_reverse<Values...>());
-
-        template<typename ResultType = void>
-        struct invoke_fn
-        {
-            template<typename Func>
-                requires requires {
-                    invocable_test<Func>();
-                    requires std::same_as<ResultType, void>;
-                }
-            constexpr auto operator()(Func&& func) const
-                noexcept(nothrow_invocable_v<Func> && std::same_as<ResultType, void>)
-            {
-                (stdsharp::invoke(func, Values), ...);
-            };
-
-            template<typename Func>
-                requires requires {
-                    invocable_test<Func>();
-                    requires std::constructible_from<
-                        ResultType,
-                        std::invoke_result_t<Func, decltype(Values)>...>;
-                }
-            constexpr auto operator()(Func&& func) const noexcept( //
-                nothrow_invocable_v<Func> &&
-                nothrow_constructible_from<
-                    ResultType,
-                    std::invoke_result_t<Func, decltype(Values)>...> //
-            )
-            {
-                return ResultType{stdsharp::invoke(func, Values)...};
-            };
-        };
-
-        template<typename ResultType = void>
-        static constexpr invoke_fn<ResultType> invoke{};
-
         template<template<auto...> typename T>
         using apply_t = T<Values...>;
-
-        template<std::size_t I>
-        using value_type = std::tuple_element_t<I, values_t>;
-
-        template<std::size_t I>
-        static constexpr value_type<I> value = values.template get<I>();
 
         template<std::size_t... I>
         using at_t = regular_value_sequence<value<I>...>;
@@ -159,8 +126,21 @@ namespace stdsharp
         using transform_t = decltype(transform<Func...>());
 
     private:
-        template<std::size_t From, std::size_t... I>
-        static consteval at_t<(From + I)...> select_range(std::index_sequence<I...>) noexcept;
+        template<typename Func>
+            requires(std::invocable<Func&, decltype(Values)> && ...)
+        static consteval void invocable_test();
+
+        template<typename Func>
+        static constexpr auto nothrow_invocable_v =
+            (nothrow_invocable<Func&, decltype(Values)> && ...);
+
+        template<typename Func>
+            requires(std::predicate<Func&, const decltype(Values)&> && ...)
+        static consteval void predicate_test();
+
+        template<typename Func>
+        static constexpr auto nothrow_predicate_v =
+            (nothrow_predicate<Func&, const decltype(Values)&> && ...);
 
         template<typename IfFunc>
         struct if_not_fn
@@ -200,20 +180,73 @@ namespace stdsharp
             }
         };
 
-    public: // TODO: P1306 Expansion statements
+    public:
+        constexpr auto get_reverse(this const auto& /*unused*/) noexcept
+        {
+            return typename to_value_sequence<
+                make_value_sequence<size() - 1, size(), std::minus{}>>::template apply_t<at_t>{};
+        }
+
+        // TODO: P1306 Expansion statements
+        template<typename ResultType = void>
+        struct invoke_fn
+        {
+            template<typename Func>
+                requires requires {
+                    invocable_test<Func>();
+                    requires std::same_as<ResultType, void>;
+                }
+            constexpr auto operator()(Func&& func) const
+                noexcept(nothrow_invocable_v<Func> && std::same_as<ResultType, void>)
+            {
+                (stdsharp::invoke(func, Values), ...);
+            };
+
+            template<typename Func>
+                requires requires {
+                    invocable_test<Func>();
+                    requires std::constructible_from<
+                        ResultType,
+                        std::invoke_result_t<Func, decltype(Values)>...>;
+                }
+            constexpr auto operator()(Func&& func) const noexcept( //
+                nothrow_invocable_v<Func> &&
+                nothrow_constructible_from<
+                    ResultType,
+                    std::invoke_result_t<Func, decltype(Values)>...> //
+            )
+            {
+                return ResultType{stdsharp::invoke(func, Values)...};
+            };
+        };
+
+        template<typename ResultType = void>
+        static constexpr invoke_fn<ResultType> invoke{};
+
         static constexpr struct for_each_fn
         {
+        private:
+            static constexpr auto impl(auto&& value, auto& func, auto& condition) noexcept(
+                nothrow_invocable<decltype(func), decltype(value)> &&
+                nothrow_predicate<decltype(condition), const decltype(value)&> //
+            )
+            {
+                if(!invoke_r<bool>(condition, std::as_const(value))) return false;
+
+                stdsharp::invoke(func, cpp_forward(value));
+                return true;
+            }
+
+        public:
             template<typename Func, typename Condition = always_true_fn>
                 requires requires {
                     invocable_test<Func>();
                     predicate_test<Condition>();
                 }
-            constexpr auto operator()(Func func, Condition condition = {}) const
+            constexpr void operator()(Func func, Condition condition = {}) const
                 noexcept(nothrow_invocable_v<Func> && nothrow_predicate_v<Condition>)
             {
-                ((invoke_r<bool>(condition, Values) && (stdsharp::invoke(func, Values), true)) &&
-                 ...);
-                return func;
+                empty = (impl(Values, func, condition) && ...);
             }
         } for_each{};
 
@@ -227,11 +260,8 @@ namespace stdsharp
                 std::size_t i = 0;
 
                 for_each(
-                    [&func](const auto& v) noexcept(nothrow_predicate<Func, decltype(v)>)
-                    {
-                        return !invoke_r<bool>(func, v); //
-                    },
-                    [&i](const auto& /*unused*/) noexcept { ++i; }
+                    [&i](const auto& /*unused*/) noexcept { ++i; },
+                    std::not_fn(cpp_move(func))
                 );
 
                 return i;
@@ -246,12 +276,12 @@ namespace stdsharp
                 noexcept(nothrow_invocable_v<Func>)
             {
                 for_each(
-                    [&count](const auto& /*unused*/) noexcept { return count > 0; },
                     [&count, &func](const auto& v) noexcept(nothrow_invocable<Func, decltype(v)>)
                     {
                         stdsharp::invoke(func, v);
                         --count;
-                    }
+                    },
+                    [&count](const auto& /*unused*/) noexcept { return count > 0; }
                 );
             }
         } for_each_n{};
@@ -298,58 +328,61 @@ namespace stdsharp
 
         static constexpr result_compare_to_size<find_fn, false> contains{};
 
-        static constexpr struct adjacent_find_fn
-        {
-        private:
-            template<std::size_t I>
-            struct by_index
-            {
-                template<std::predicate<value_type<I>, value_type<I + 1>> Comp>
-                constexpr bool operator()(Comp& comp) const
-                    noexcept(nothrow_predicate<Comp, value_type<I>, value_type<I + 1>>)
-                {
-                    return invoke_r<bool>(comp, value<I>, value<I + 1>);
-                }
+        // static constexpr struct adjacent_find_fn
+        // {
+        // private:
+        //     template<std::size_t I>
+        //     struct by_index
+        //     {
+        //         template<std::predicate<value_type<I>, value_type<I + 1>> Comp>
+        //         constexpr bool operator()(Comp& comp) const
+        //             noexcept(nothrow_predicate<Comp, value_type<I>, value_type<I + 1>>)
+        //         {
+        //             return invoke_r<bool>(comp, value<I>, value<I + 1>);
+        //         }
 
-                constexpr auto
-                    operator()(const auto& /*unused*/, const auto& /*unused*/) const noexcept
-                {
-                    return false;
-                }
-            };
+        //         constexpr auto
+        //             operator()(const auto& /*unused*/, const auto& /*unused*/) const noexcept
+        //         {
+        //             return false;
+        //         }
+        //     };
 
-            template<typename Comp, std::size_t... I>
-            static constexpr auto impl(Comp& comp, const std::index_sequence<I...> /*unused*/)
-                noexcept((nothrow_invocable<by_index<I>, Comp> && ...))
-            {
-                std::size_t res{};
-                ((by_index<I>{}(comp) || (++res, false)) || ...);
-                return res;
-            }
+        //     template<typename Comp, std::size_t... I>
+        //     static constexpr auto impl(
+        //         Comp& comp,
+        //         const std::index_sequence<I...>
+        //         /*unused*/
+        //     ) noexcept((nothrow_invocable<by_index<I>, Comp> && ...))
+        //     {
+        //         std::size_t res{};
+        //         ((by_index<I>{}(comp) || (++res, false)) || ...);
+        //         return res;
+        //     }
 
-        public:
-            template<
-                typename Comp = std::ranges::equal_to,
-                typename Seq = std::make_index_sequence<size() - 2>>
-            [[nodiscard]] constexpr auto operator()(Comp comp = {}) const
-                noexcept(noexcept(impl(comp, Seq{})))
-                requires requires {
-                    requires size() >= 2;
-                    impl(comp, Seq{});
-                }
-            {
-                return impl(comp, Seq{});
-            }
+        // public:
+        //     template<
+        //         typename Comp = std::ranges::equal_to,
+        //         typename Seq = std::make_index_sequence<size() - 2>>
+        //     [[nodiscard]] constexpr auto operator()(Comp comp = {}) const
+        //         noexcept(noexcept(impl(comp, Seq{})))
+        //         requires requires {
+        //             requires size() >= 2;
+        //             impl(comp, Seq{});
+        //         }
+        //     {
+        //         return impl(comp, Seq{});
+        //     }
 
-            [[nodiscard]] constexpr auto operator()(const int /*unused*/ = {}) const noexcept
-            {
-                return size();
-            }
-        } adjacent_find{};
+        //     [[nodiscard]] constexpr auto operator()(const int /*unused*/ = {}) const noexcept
+        //     {
+        //         return size();
+        //     }
+        // } adjacent_find{};
 
         template<std::size_t From, std::size_t Size>
         using select_range_t =
-            to_value_sequence<make_value_sequence_t<From, Size>>::template apply_t<at_t>;
+            to_value_sequence<make_value_sequence<From, Size>>::template apply_t<at_t>;
 
         template<std::size_t Size>
         using back_t = select_range_t<size() - Size, Size>;

@@ -17,12 +17,8 @@ namespace stdsharp::details
             consteval type_constant<T> get() const noexcept { return {}; }
         };
 
+        template<std::size_t>
         struct invalid
-        {
-        };
-
-        template<>
-        struct filter<invalid>
         {
         };
 
@@ -33,7 +29,7 @@ namespace stdsharp::details
             const basic_type_sequence<T...> /*unused*/
         )
         {
-            constexpr struct : filter<std::conditional_t<I == J, T, invalid>>...
+            constexpr struct STDSHARP_EBO : std::conditional_t<I == J, filter<T>, invalid<J>>...
             {
             } f{};
 

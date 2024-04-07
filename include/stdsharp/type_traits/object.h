@@ -1,9 +1,10 @@
 
 #pragma once
 
+#include "../concepts/object.h"
 #include "expression.h"
 #include "regular_type_sequence.h"
-#include "../concepts/object.h"
+
 
 namespace stdsharp
 {

@@ -17,6 +17,7 @@ set(src
     # src/containers/concepts.cpp
     # src/filesystem/filesystem.cpp
     # src/functional/pipeable.cpp
+    src/functional/sequenced_invocables.cpp
     # src/functional/symmetric_operations.cpp
     # src/memory/box.cpp
     # src/memory/composed_allocator.cpp

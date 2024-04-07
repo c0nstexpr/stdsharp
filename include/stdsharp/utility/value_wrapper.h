@@ -55,6 +55,8 @@ namespace stdsharp
     {
         using value_type = T;
 
+        using details::value_wrapper<T>::value_wrapper;
+
         value_wrapper() = default;
 
         constexpr value_wrapper(T&& t)
@@ -74,12 +76,6 @@ namespace stdsharp
         [[nodiscard]] constexpr decltype(auto) cget(this const Self& self) noexcept
         {
             return forward_cast<SelfT, value_wrapper>(self).get();
-        }
-
-        template<typename Self>
-        [[nodiscard]] constexpr explicit operator forward_cast_t<Self, T>(this Self&& self) noexcept
-        {
-            return forward_cast<value_wrapper, Self>(self).get();
         }
     };
 

@@ -8,23 +8,38 @@ namespace stdsharp
 {
     inline constexpr struct always_return_fn
     {
-        constexpr decltype(auto) operator()(auto&& v, const auto&... /*unused*/) const noexcept
+        [[nodiscard]] constexpr decltype(auto
+        ) operator()(auto&& v, const auto&... /*unused*/) const noexcept
         {
             return cpp_forward(v);
         }
     } always_return{};
 
-    inline constexpr auto always_true = std::bind_front(always_return, true);
+    inline constexpr struct always_true_fn
+    {
+        [[nodiscard]] constexpr bool operator()(const auto&... /*unused*/) const noexcept
+        {
+            return true;
+        }
+    } always_true{};
 
-    using always_true_fn = decltype(always_true);
-
-    inline constexpr auto always_false = std::bind_front(always_return, false);
-
-    using always_false_fn = decltype(always_false);
+    inline constexpr struct always_false_fn
+    {
+        [[nodiscard]] constexpr bool operator()(const auto&... /*unused*/) const noexcept
+        {
+            return false;
+        }
+    } always_false{};
 
     template<typename T>
-    inline constexpr auto always_default = std::bind_front(always_return, T{});
+    struct always_default_fn
+    {
+        [[nodiscard]] constexpr auto operator()(const auto&... /*unused*/) const noexcept
+        {
+            return T{};
+        }
+    };
 
     template<typename T>
-    using always_default_fn = decltype(always_default<T>);
+    inline constexpr always_default_fn<T> always_default{};
 }

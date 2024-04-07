@@ -9,8 +9,8 @@ SCENARIO("indexed traits", "[type traits]")
 {
     GIVEN("type at")
     {
-        STATIC_REQUIRE(same_as<type_at<0, int, float>, int>);
-        STATIC_REQUIRE(same_as<type_at<1, int, float>, float>);
+        STATIC_REQUIRE(same_as<type_at<0, int, float, char, int>, int>);
+        STATIC_REQUIRE(same_as<type_at<1, int, float, char, int>, float>);
     }
 
     GIVEN("indexed values type")
