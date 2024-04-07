@@ -65,13 +65,6 @@ namespace // Escape Catch2 special characters like '[' and ']'
     };
 }
 
-void foo()
-{
-    auto v = find_if_functor_3_t::value;
-
-    v("");
-}
-
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence find if",
     "[type traits]",
@@ -102,9 +95,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
-    inline constexpr sequenced_invocables count_if_functor_3{
-        [](const size_t) { return true; },
-        always_false
+    struct count_if_functor_3_t
+    {
+        static constexpr sequenced_invocables value{
+            [](const size_t) { return true; },
+            always_false
+        };
     };
 }
 
@@ -114,10 +110,14 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ((auto Fn, auto Expect), Fn, Expect),
     (always_true, test_seq::size()),
     (always_false, 0),
-    (count_if_functor_3, 4)
+    (count_if_functor_3_t{}, 4)
 )
 {
-    STATIC_REQUIRE(test_seq::count_if(Fn) == Expect);
+    if constexpr(constant_value<decltype(Fn)>)
+    {
+        STATIC_REQUIRE(test_seq::count_if(Fn.value) == Expect);
+    }
+    else STATIC_REQUIRE(test_seq::count_if(Fn) == Expect);
 }
 
 SCENARIO("apply_t", "[type traits]") // NOLINT
@@ -237,13 +237,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, regular_value_sequence<0, 10, 1, 5, 10, 1>, regular_value_sequence<0, 10, 1, 5>) //
 )
 {
-    STATIC_REQUIRE( //
-        same_as<
-            typename to_value_sequence<Seq>:: //
-            template apply_t<unique_value_sequence>,
-            Expect
-        >
-    );
+    STATIC_REQUIRE(same_as<typename to_value_sequence<Seq>::template unique_t<>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -256,10 +250,5 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, regular_value_sequence<1, 2>, regular_value_sequence<2, 1>) //
 )
 {
-    STATIC_REQUIRE( //
-        same_as<
-            decltype(test_seq{}.get_reverse()),
-            Expect
-        >
-    );
+    STATIC_REQUIRE(same_as<decltype(to_value_sequence<Seq>{}.get_reverse()), Expect>);
 }

@@ -21,9 +21,9 @@ namespace stdsharp::details
         }
 
         template<typename Self>
-        [[nodiscard]] constexpr forward_cast_t<Self, T> get(this Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return forward_cast<Self, value_wrapper>(self).v;
+            return (forward_cast<Self, value_wrapper>(self).v);
         }
     };
 

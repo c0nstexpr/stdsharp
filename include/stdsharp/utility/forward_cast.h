@@ -2,16 +2,9 @@
 
 #include "../concepts/type.h"
 #include "../macros.h"
-
-#include <utility>
+#include "../type_traits/type.h"
 
 #include "../compilation_config_in.h"
-
-namespace stdsharp
-{
-    template<typename From, typename To>
-    using forward_cast_t = decltype(std::forward_like<From>(std::declval<To>()));
-}
 
 namespace stdsharp::details
 {
@@ -39,6 +32,9 @@ namespace stdsharp
     struct forward_cast_fn;
 
     template<typename From, typename To>
+    using forward_cast_t = forward_cast_fn<From, To>::cast_t;
+
+    template<typename From, typename To>
     struct forward_cast_fn<From, To>
     {
     private:
@@ -47,23 +43,30 @@ namespace stdsharp
 
         using pairs = details::forward_cast_pairs<forward_cast_fn>;
 
+        using no_ref_from_t = std::remove_reference_t<From>;
+
     public:
         using from_t = std::remove_cvref_t<From>;
         using to_t = std::remove_cvref_t<To>;
+        using cast_t = apply_qualifiers<
+            To,
+            const_<no_ref_from_t>,
+            volatile_<no_ref_from_t>,
+            ref_qualifier_v<From&&>>;
 
         template<typename T>
             requires std::same_as<std::remove_cvref_t<T>, from_t> && base_of<to_t, from_t> &&
             not_same_as<from_t, to_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         { // c-style cast allow us cast to inaccessible base
-            return (forward_cast_t<From, To>)from; // NOLINT
+            return (cast_t)from; // NOLINT
         }
 
         template<typename T>
             requires std::same_as<std::remove_cvref_t<T>, from_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         {
-            return static_cast<forward_cast_t<From, To>>(cpp_forward(from));
+            return static_cast<cast_t>(cpp_forward(from));
         }
 
         template<typename T>
@@ -87,7 +90,7 @@ namespace stdsharp
         using current_t = forward_cast_fn<From, To>;
 
         using pairs = details::forward_cast_pairs<current_t>:: //
-            template append_t<typename forward_cast_fn<To, Rest...>::pairs>;
+            template append_t<typename forward_cast_fn<typename current_t::cast_t, Rest...>::pairs>;
 
     public:
         [[nodiscard]] constexpr auto operator()(auto&& from) const noexcept -> //

@@ -16,7 +16,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    inline constexpr auto get_ref_qualifier = lvalue_ref<T> ? //
+    inline constexpr auto ref_qualifier_v = lvalue_ref<T> ? //
         ref_qualifier::lvalue :
         rvalue_ref<T> ? ref_qualifier::rvalue : ref_qualifier::none;
 
@@ -33,13 +33,14 @@ namespace stdsharp
         std::conditional_t<ref == ref_qualifier::rvalue, std::add_rvalue_reference_t<T>, T>>;
 
     template<typename T, bool Const, bool Volatile, ref_qualifier ref>
-    using apply_qualifiers = apply_ref<apply_volatile<apply_const<T, Const>, Volatile>, ref>;
+    using apply_qualifiers =
+        apply_ref<apply_volatile<apply_const<std::remove_cvref_t<T>, Const>, Volatile>, ref>;
 
     template<typename T>
     using add_const_lvalue_ref_t = std::add_lvalue_reference_t<std::add_const_t<T>>;
 
     template<typename T, typename U>
-    using ref_align_t = apply_ref<U, get_ref_qualifier<T>>;
+    using ref_align_t = apply_ref<U, ref_qualifier_v<T>>;
 
     template<typename T, typename U>
     using const_align_t = apply_const<U, const_<T>>;
@@ -49,11 +50,6 @@ namespace stdsharp
 
     template<typename T, typename U>
     using cv_ref_align_t = ref_align_t<T, volatile_align_t<T, const_align_t<T, U>>>;
-
-    template<typename T>
-    inline constexpr auto ref_qualifier_v = std::is_lvalue_reference_v<T> ? //
-        ref_qualifier::lvalue :
-        std::is_rvalue_reference_v<T> ? ref_qualifier::rvalue : ref_qualifier::none;
 
     template<typename, ref_qualifier>
     struct override_ref;

@@ -29,7 +29,6 @@ SCENARIO("value_wrapper", "[value_wrapper]") // NOLINT
     STATIC_REQUIRE(nothrow_copyable<value_wrapper<int>>);
     STATIC_REQUIRE(nothrow_swappable<value_wrapper<int>>);
 
-
     THEN("Set the wrapper value")
     {
         [[maybe_unused]] value_wrapper<int> wrapper{};

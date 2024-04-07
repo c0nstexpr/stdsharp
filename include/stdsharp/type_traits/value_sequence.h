@@ -104,13 +104,16 @@ namespace stdsharp
         template<auto... Func>
         struct transform_fn
         {
-            [[nodiscard]] constexpr value_sequence<stdsharp::invoke(Func..., Values)...>
+            [[nodiscard]] constexpr value_sequence<stdsharp::invoke(Func, Values)...>
                 operator()() const noexcept
-                requires(sizeof...(Func) == 1)
             {
                 return {};
             };
+        };
 
+        template<auto Func>
+        struct transform_fn<Func>
+        {
             [[nodiscard]] constexpr value_sequence<stdsharp::invoke(Func, Values)...>
                 operator()() const noexcept
             {
@@ -457,11 +460,13 @@ namespace stdsharp
             {
                 constexpr auto unique_indices = []
                 {
-                    std::array<std::size_t, size()> indices{find(Comp{}, Values)...};
+                    std::array<std::size_t, size()> indices{
+                        find_if(std::bind_front(Comp{}, Values))... //
+                    };
 
                     std::ranges::sort(indices);
 
-                    if(const auto res = std::ranges::unique(indices); res) res.back() = size();
+                    if(const auto res = std::ranges::unique(indices); res) res.front() = size();
 
                     return indices;
                 }();
@@ -492,7 +497,8 @@ namespace stdsharp
             to_value_sequence<typename to_value_sequence<front_t<Index>>::template append_t<
                 Other>>::template append_by_seq_t<back_t<size() - Index - 1>>;
 
-        template<typename Comp>
+        template<typename Comp = std::ranges::equal_to>
+            requires(cpp_is_constexpr(Comp{}))
         using unique_t = unique_value_sequence<Comp>::type;
     };
 }
