@@ -1,8 +1,9 @@
 #pragma once
 
+#include "../namespace_alias.h"
+
 #include <iterator>
 
-#include "../type_traits/core_traits.h"
 
 namespace stdsharp
 {
@@ -19,16 +20,12 @@ namespace stdsharp
     concept weakly_decrementable = std::movable<T> && requires(T i) {
         typename std::iter_difference_t<T>;
         requires std::signed_integral<std::iter_difference_t<T>>;
-        {
-            --i
-        } -> std::same_as<T&>;
+        { --i } -> std::same_as<T&>;
         i--;
     };
 
     template<typename T>
     concept decrementable = std::regular<T> && weakly_decrementable<T> && requires(T i) {
-        {
-            i--
-        } -> std::same_as<T>;
+        { i-- } -> std::same_as<T>;
     };
 }
