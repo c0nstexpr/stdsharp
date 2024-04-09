@@ -16,6 +16,7 @@ set(src
     # src/containers/actions.cpp
     # src/containers/concepts.cpp
     # src/filesystem/filesystem.cpp
+    src/functional/perfect_bind_front.cpp
     # src/functional/pipeable.cpp
     src/functional/sequenced_invocables.cpp
     # src/functional/symmetric_operations.cpp

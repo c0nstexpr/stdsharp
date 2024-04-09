@@ -6,7 +6,7 @@
 
 namespace stdsharp
 {
-    inline constexpr struct projected_invoke_fn
+    inline constexpr struct project_invoke_fn
     {
         template<typename Fn, typename Projector, typename... Args>
             requires requires {
@@ -24,8 +24,8 @@ namespace stdsharp
     } project_invoke{};
 
     template<typename... Args>
-    concept project_invocable = std::invocable<projected_invoke_fn, Args...>;
+    concept project_invocable = std::invocable<project_invoke_fn, Args...>;
 
     template<typename... Args>
-    concept project_nothrow_invocable = nothrow_invocable<projected_invoke_fn, Args...>;
+    concept project_nothrow_invocable = nothrow_invocable<project_invoke_fn, Args...>;
 }
