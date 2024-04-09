@@ -5,87 +5,120 @@
 
 #include "../compilation_config_in.h"
 
-namespace stdsharp::details
+namespace stdsharp
 {
-    template<typename>
-    struct type_seq_converter;
-
-    template<template<auto...> typename Seq, auto... V>
-    struct type_seq_converter<Seq<V...>>
-    {
-        using type = regular_type_sequence<typename decltype(V)::type...>;
-    };
-
-    template<typename Seq>
-    using type_seq_converter_t = type_seq_converter<Seq>::type;
-
-    template<typename... Types>
+    template<typename... T>
     struct type_sequence
     {
+        using value_seq_t = value_sequence<basic_type_constant<T>{}...>;
+
+        using regular_type_seq = regular_type_sequence<T...>;
+
     private:
-        using value_sequence = value_sequence<basic_type_constant<Types>{}...>;
+        template<auto... Func>
+        struct transform
+        {
+            using type = regular_type_sequence<
+                typename decltype(stdsharp::invoke(Func, basic_type_constant<T>{}))::type...>;
+        };
+
+        template<auto Func>
+        struct transform<Func>
+        {
+            using type = regular_type_sequence<
+                typename decltype(stdsharp::invoke(Func, basic_type_constant<T>{}))::type...>;
+        };
 
     public:
-        static constexpr std::size_t size() noexcept { return sizeof...(Types); }
+        static constexpr std::size_t size() noexcept { return sizeof...(T); }
 
         template<std::size_t I>
-        using type = type_at<I, Types...>;
+        using type = type_at<I, T...>;
 
-        template<template<typename...> typename T>
-        using apply_t = T<Types...>;
-
-        template<typename... Others>
-        using append_t = regular_type_sequence<Types..., Others...>;
+        template<template<typename...> typename U>
+        using apply_t = U<T...>;
 
         template<auto... Func>
-        using transform_fn = value_sequence::template transform_fn<Func...>;
+        using transform_t = transform<Func...>::type;
 
-        template<auto... Func>
-        static constexpr transform_fn<Func...> transform{};
+        template<typename U = void>
+        using invoke_fn = value_seq_t::template invoke_fn<U>;
 
-        template<auto... Func>
-            requires std::invocable<transform_fn<Func...>>
-        using transform_t = decltype(transform<Func...>());
+        template<typename U = void>
+        static constexpr invoke_fn<U> invoke{};
 
-        template<typename T = void>
-        using invoke_fn = value_sequence::template invoke_fn<T>;
-
-        template<typename T = void>
-        static constexpr invoke_fn<T> invoke{};
-
-        using for_each_fn = value_sequence::for_each_fn;
+        using for_each_fn = value_seq_t::for_each_fn;
 
         static constexpr for_each_fn for_each{};
 
-        template<std::size_t From, std::size_t Size>
-        using select_range_t =
-            type_seq_converter_t<typename value_sequence::template select_range_t<From, Size>>;
+        template<typename... Others>
+        using append_t = regular_type_sequence<T..., Others...>;
 
         template<typename... Others>
-        using append_front_t = regular_type_sequence<Others..., Types...>;
+        using append_front_t = regular_type_sequence<Others..., T...>;
 
+    private:
+        template<std::size_t Index>
+        struct insert
+        {
+            template<typename... Others, auto... I, auto... J>
+            static consteval regular_type_sequence<type<I>..., Others..., type<J + Index>...>
+                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+
+            template<typename... Others>
+            using type = decltype( //
+                impl<Others...>(
+                    std::make_index_sequence<Index>{},
+                    std::make_index_sequence<size() - Index>{}
+                )
+            );
+        };
+
+        template<std::size_t Index>
+        struct remove_at
+        {
+            template<auto... I, auto... J>
+            static consteval regular_type_sequence<type<I>..., type<J + Index + 1>...>
+                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+
+            using type = decltype( //
+                impl(
+                    std::make_index_sequence<Index>{},
+                    std::make_index_sequence<size() - Index - 1>{}
+                )
+            );
+        };
+
+        template<std::size_t Index>
+        struct replace_at
+        {
+            template<typename Other, auto... I, auto... J>
+            static consteval regular_type_sequence<type<I>..., Other, type<J + Index + 1>...>
+                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+
+            template<typename Other>
+            using type = decltype( //
+                impl<Other>(
+                    std::make_index_sequence<Index>{},
+                    std::make_index_sequence<size() - Index - 1>{}
+                )
+            );
+        };
+
+    public:
         template<std::size_t Index, typename... Other>
-        using insert_t = type_seq_converter_t<
-            typename Base::template insert_t<Index, basic_type_constant<Other>{}...>>;
+        using insert_t = insert<Index>::template type<Other...>;
 
         template<std::size_t... Index>
-        using remove_at_t = type_seq_converter_t<typename Base::template remove_at_t<Index...>>;
+        using remove_at_t = remove_at<Index...>::type;
 
         template<std::size_t Index, typename Other>
-        using replace_t = type_seq_converter_t<
-            typename Base::template replace_t<Index, basic_type_constant<Other>{}>>;
-
+        using replace_t = replace_at<Index>::template type<Other>;
     };
 }
 
 namespace stdsharp
 {
-    template<typename... Types>
-    using type_sequence = adl_proof_t<
-        details::type_sequence,
-        value_sequence<basic_type_constant<Types>{}...>,
-        Types...>;
-
     template<typename T>
     using to_type_sequence = decltype( //
         []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
@@ -95,17 +128,87 @@ namespace stdsharp
     );
 }
 
+namespace stdsharp::details
+{
+    template<typename>
+    struct reverse_type_sequence;
+
+    template<typename... T>
+    struct reverse_type_sequence<type_sequence<T...>>
+    {
+        using seq = type_sequence<T...>;
+
+        template<std::size_t... I>
+        static consteval regular_type_sequence<typename seq::template type<seq::size() - I - 1>...>
+            impl(std::index_sequence<I...>);
+
+        using type = decltype(impl(std::make_index_sequence<seq::size()>{}));
+    };
+
+    template<typename, typename>
+    struct unique_type_sequence;
+
+    template<typename... T, std::constructible_from Comp>
+    struct unique_type_sequence<type_sequence<T...>, Comp>
+    {
+        using seq = type_sequence<T...>;
+
+        static consteval auto size() noexcept { return seq::size(); }
+
+        template<std::size_t I>
+        static consteval auto fill_indices(auto& indices, std::size_t& i, Comp& comp)
+        {
+            using value_seq = seq::value_seq_t;
+
+            const auto found =
+                stdsharp::value_sequence_algo::find<value_seq>(value_seq::template get<I>(), comp);
+            if(found < i) return;
+            indices[i++] = I;
+        }
+
+        template<auto... I>
+        static consteval auto get_indices(const std::index_sequence<I...> /*unused*/)
+        {
+            std::array<std::size_t, size()> indices{};
+            std::size_t i = 0;
+            Comp comp{};
+            (fill_indices<I>(indices, i, comp), ...);
+            return std::pair{indices, i};
+        }
+
+        static constexpr auto indices_pair = get_indices(std::make_index_sequence<size()>{});
+
+        static constexpr auto indices_size = indices_pair.second;
+
+        template<auto... I>
+        static consteval regular_type_sequence<typename seq::template type<indices_pair.first[I]>...>
+            apply_indices(std::index_sequence<I...>);
+
+        using type = decltype(apply_indices(std::make_index_sequence<indices_size>{}));
+    };
+}
+
+namespace stdsharp::type_sequence_algo
+{
+    template<typename Seq>
+    using reverse_t = details::reverse_type_sequence<Seq>::type;
+
+    template<typename Seq, typename Comp = std::ranges::equal_to>
+    using unique_t = details::unique_type_sequence<Seq, Comp>::type;
+}
+
 namespace std
 {
-    template<::stdsharp::adl_proofed_for<stdsharp::details::type_sequence> Seq>
-    struct tuple_size<Seq> : stdsharp::index_constant<Seq::size()>
+    template<typename... T>
+    struct tuple_size<::stdsharp::type_sequence<T...>> :
+        stdsharp::index_constant<::stdsharp::type_sequence<T...>::size()>
     {
     };
 
-    template<std::size_t I, ::stdsharp::adl_proofed_for<stdsharp::details::type_sequence> Seq>
-    struct tuple_element<I, Seq>
+    template<std::size_t I, typename... T>
+    struct tuple_element<I, ::stdsharp::type_sequence<T...>>
     {
-        using type = Seq::template type<I>;
+        using type = ::stdsharp::type_sequence<T...>::template type<I>;
     };
 }
 

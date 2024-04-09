@@ -3,7 +3,7 @@
 #include "../functional/always_return.h"
 #include "indexed_traits.h"
 #include "regular_value_sequence.h"
-#include "stdsharp/functional/empty_invoke.h"
+#include "../functional/empty_invoke.h"
 
 #include <algorithm>
 
@@ -79,37 +79,19 @@ namespace stdsharp
         template<template<auto...> typename T>
         using apply_t = T<Values...>;
 
-        template<std::size_t... I>
-        using at_t = regular_value_sequence<get<I>()...>;
-
+    private:
         template<auto... Func>
-        struct transform_fn
+        struct transform
         {
-            [[nodiscard]] constexpr value_sequence<stdsharp::invoke(Func, Values)...>
-                operator()() const noexcept
-            {
-                return {};
-            };
+            using type = regular_value_sequence<stdsharp::invoke(Func, Values)...>;
         };
 
         template<auto Func>
-        struct transform_fn<Func>
+        struct transform<Func>
         {
-            [[nodiscard]] constexpr value_sequence<stdsharp::invoke(Func, Values)...>
-                operator()() const noexcept
-            {
-                return {};
-            };
+            using type = regular_value_sequence<stdsharp::invoke(Func, Values)...>;
         };
 
-        template<auto... Func>
-        static constexpr transform_fn<Func...> transform{};
-
-        template<auto... Func>
-            requires std::invocable<transform_fn<Func...>>
-        using transform_t = decltype(transform<Func...>());
-
-    private:
         template<typename Func>
             requires(std::invocable<Func&, decltype(Values)> && ...)
         static consteval void invocable_test()
@@ -120,7 +102,57 @@ namespace stdsharp
         static consteval void predicate_test()
             noexcept((nothrow_predicate<Func&, const decltype(Values)&> && ...));
 
+        template<std::size_t Index>
+        struct insert
+        {
+            template<auto... Others, auto... I, auto... J>
+            static consteval regular_value_sequence<get<I>()..., Others..., get<J + Index>()...>
+                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+
+            template<auto... Others>
+            using type = decltype( //
+                impl<Others...>(
+                    std::make_index_sequence<Index>{},
+                    std::make_index_sequence<size() - Index>{}
+                )
+            );
+        };
+
+        template<std::size_t Index>
+        struct remove_at
+        {
+            template<auto... I, auto... J>
+            static consteval regular_value_sequence<get<I>()..., get<J + Index + 1>()...>
+                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+
+            using type = decltype( //
+                impl(
+                    std::make_index_sequence<Index>{},
+                    std::make_index_sequence<size() - Index - 1>{}
+                )
+            );
+        };
+
+        template<std::size_t Index>
+        struct replace_at
+        {
+            template<auto Other, auto... I, auto... J>
+            static consteval regular_value_sequence<get<I>()..., Other, get<J + Index + 1>()...>
+                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+
+            template<auto Other>
+            using type = decltype( //
+                impl<Other>(
+                    std::make_index_sequence<Index>{},
+                    std::make_index_sequence<size() - Index - 1>{}
+                )
+            );
+        };
+
     public:
+        template<auto... Func>
+        using transform_t = transform<Func...>::type;
+
         // TODO: P1306 Expansion statements
         template<typename ResultType = void>
         struct invoke_fn
@@ -180,90 +212,21 @@ namespace stdsharp
             }
         } for_each{};
 
-        template<std::size_t From, std::size_t Size>
-        using select_range_t =
-            to_value_sequence<make_value_sequence<From, Size>>::template apply_t<at_t>;
-
-        template<std::size_t Size>
-        using back_t = select_range_t<size() - Size, Size>;
-
-        template<std::size_t Size>
-        using front_t = select_range_t<0, Size>;
-
         template<auto... Others>
         using append_t = regular_value_sequence<Values..., Others...>;
 
         template<auto... Others>
         using append_front_t = regular_value_sequence<Others..., Values...>;
 
-    private:
-        template<std::size_t Index>
-        struct insert
-        {
-            template<auto... Others, auto... Front, auto... Back>
-            static consteval regular_value_sequence<Front..., Others..., Back...> impl(
-                const regular_value_sequence<Front...> /*unused*/,
-                const regular_value_sequence<Back...> /*unused*/
-            )
-            {
-                return {};
-            }
-
-            template<auto... Others>
-            using type = decltype(impl<Others...>(front_t<Index>{}, back_t<size() - Index>{}));
-        };
-
-        template<std::size_t... Index>
-        struct remove_at
-        {
-            static constexpr std::array select_indices = []
-            {
-                constexpr std::pair pair = []
-                {
-                    std::array<std::size_t, size()> res{};
-                    std::array excepted = {Index...};
-
-                    std::ranges::sort(excepted);
-
-                    const auto size = static_cast<std::size_t>(
-                        std::ranges::set_difference(
-                            std::views::iota(std::size_t{0}, res.size()),
-                            excepted,
-                            res.begin()
-                        )
-                            .out -
-                        res.cbegin()
-                    );
-
-                    return std::pair{res, size};
-                }();
-
-                std::array<std::size_t, pair.second> res{};
-                std::ranges::copy_n(pair.first.cbegin(), pair.second, res.begin());
-
-                return res;
-            }();
-
-            template<std::size_t... I>
-            static constexpr at_t<select_indices[I]...> impl(std::index_sequence<I...>) noexcept;
-
-            using type = decltype(impl(std::make_index_sequence<select_indices.size()>{}));
-        };
-
-
-    public:
         template<std::size_t Index, auto... Other>
         using insert_t = insert<Index>::template type<Other...>;
 
-        template<std::size_t... Index>
-        using remove_at_t = remove_at<Index...>::type;
+        template<std::size_t Index>
+        using remove_at_t = remove_at<Index>::type;
 
         template<std::size_t Index, auto Other>
-        using replace_t =
-            to_value_sequence<typename to_value_sequence<front_t<Index>>::template append_t<
-                Other>>::template append_by_seq_t<back_t<size() - Index - 1>>;
+        using replace_t = replace_at<Index>::template type<Other>;
     };
-
 }
 
 namespace stdsharp::details
@@ -520,15 +483,25 @@ namespace stdsharp::value_sequence_algo
 
     template<typename Seq>
     inline constexpr adjacent_find_fn<Seq> adjacent_find{};
-
-    template<typename Seq>
-    using reverse_t =
-        to_value_sequence<make_value_sequence<Seq::size() - 1, Seq::size(), std::minus{}>>::
-            template apply_t<Seq::template at_t>;
 }
 
 namespace stdsharp::details
 {
+    template<typename>
+    struct reverse_value_sequence;
+
+    template<auto... V>
+    struct reverse_value_sequence<value_sequence<V...>>
+    {
+        using seq = value_sequence<V...>;
+
+        template<std::size_t... I>
+        static consteval regular_value_sequence<seq::template get<seq::size() - I - 1>()...>
+            impl(std::index_sequence<I...>);
+
+        using type = decltype(impl(std::make_index_sequence<seq::size()>{}));
+    };
+
     template<typename, typename>
     struct unique_value_sequence;
 
@@ -537,42 +510,45 @@ namespace stdsharp::details
     {
         using seq = value_sequence<Values...>;
 
-        static constexpr auto size() noexcept { return seq::size(); }
+        static consteval auto size() noexcept { return seq::size(); }
 
-        static constexpr auto unique_indices_value = []
+        template<std::size_t I>
+        static consteval auto fill_indices(auto& indices, std::size_t& i, Comp& comp)
         {
-            constexpr auto unique_indices = []
-            {
-                std::array<std::size_t, size()> indices{
-                    stdsharp::value_sequence_algo::find<seq>(Values, Comp{})...
-                };
+            const auto found =
+                stdsharp::value_sequence_algo::find<seq>(seq::template get<I>(), comp);
+            if(found < i) return;
+            indices[i++] = I;
+        }
 
-                std::ranges::sort(indices);
+        template<auto... I>
+        static consteval auto get_indices(const std::index_sequence<I...> /*unused*/)
+        {
+            std::array<std::size_t, size()> indices{};
+            std::size_t i = 0;
+            Comp comp{};
+            (fill_indices<I>(indices, i, comp), ...);
+            return std::pair{indices, i};
+        }
 
-                if(const auto res = std::ranges::unique(indices); res) res.front() = size();
+        static constexpr auto indices_pair = get_indices(std::make_index_sequence<size()>{});
 
-                return indices;
-            }();
+        static constexpr auto indices_size = indices_pair.second;
 
-            constexpr auto unique_indices_size =
-                std::ranges::find(unique_indices, size()) - unique_indices.cbegin();
+        template<auto... I>
+        static consteval regular_value_sequence<seq::template get<indices_pair.first[I]>()...>
+            apply_indices(std::index_sequence<I...>);
 
-            std::array<std::size_t, unique_indices_size> value{};
-
-            std::ranges::copy_n(unique_indices.cbegin(), value.size(), value.begin());
-
-            return value;
-        }();
-
-        using type = to_value_sequence<rng_v_to_sequence<unique_indices_value>>:: //
-            template apply_t<value_sequence<Values...>::template at_t>;
+        using type = decltype(apply_indices(std::make_index_sequence<indices_size>{}));
     };
 }
 
 namespace stdsharp::value_sequence_algo
 {
+    template<typename Seq>
+    using reverse_t = details::reverse_value_sequence<Seq>::type;
+
     template<typename Seq, typename Comp = std::ranges::equal_to>
-        requires(cpp_is_constexpr(Comp{}))
     using unique_t = details::unique_value_sequence<Seq, Comp>::type;
 }
 

@@ -29,23 +29,28 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::type<Index>, Expect>);
 }
 
+SCENARIO("type sequence apply", "[type traits]") // NOLINT
+{
+    STATIC_REQUIRE(default_initializable<test_seq::apply_t<type_sequence>>);
+}
+
+namespace
+{
+    inline constexpr auto type_sequence_invoker =
+        []<typename T>(const basic_type_constant<T>) consteval {};
+}
+
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: type sequence invoke",
     "[type traits]",
     identity,
-    decltype( //
-        []( //
-            const stdsharp::same_as_any<
-                basic_type_constant<int>,
-                basic_type_constant<char>,
-                basic_type_constant<unsigned>,
-                basic_type_constant<float>> auto
-        ) {}
-    )
+    decltype(type_sequence_invoker)
 )
 {
     STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
 }
+
+using value_seq_t = test_seq::value_seq_t;
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence find",
@@ -56,7 +61,9 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     // (void, test_seq::size())
 )
 {
-    STATIC_REQUIRE(test_seq::find(type_constant<T>{}) == Expect);
+    STATIC_REQUIRE(
+        value_sequence_algo::find<value_seq_t>(basic_type_constant<T>{}, std::equal_to{}) == Expect
+    );
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -68,23 +75,9 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (void, 0)
 )
 {
-    STATIC_REQUIRE(test_seq::count(type_constant<T>{}) == Expect);
-}
-
-SCENARIO("type sequence apply", "[type traits]") // NOLINT
-{
-    STATIC_REQUIRE(default_initializable<test_seq::apply_t<type_sequence>>);
-}
-
-TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: type sequence at",
-    "[type traits]",
-    ((typename Expect, auto... V), Expect, V...),
-    (regular_type_sequence<float, char>, 1, 2),
-    (regular_type_sequence<char, float>, 2, 4)
-)
-{
-    STATIC_REQUIRE(same_as<test_seq::at_t<V...>, Expect>);
+    STATIC_REQUIRE(
+        value_sequence_algo::count<value_seq_t>(type_constant<T>{}, std::equal_to{}) == Expect
+    );
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -138,20 +131,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence remove at",
     "[type traits]",
-    ((typename Expect, auto... I), Expect, I...),
-    ( //
-        regular_type_sequence<int, unsigned, float>,
-        1,
-        2
-    ),
-    ( //
-        regular_type_sequence<int, float, unsigned>,
-        2,
-        4
-    )
+    ((typename Expect, auto I), Expect, I),
+    (regular_type_sequence<int, char, unsigned, float>, 1),
+    (regular_type_sequence<int, float, unsigned, float>, 2)
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::remove_at_t<I...>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::remove_at_t<I>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -162,10 +147,5 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, test_seq, regular_type_sequence<int, float, char, unsigned>)
 )
 {
-    STATIC_REQUIRE( //
-        same_as<
-            typename Seq::template apply_t<unique_type_sequence>,
-            Expect // clang-format off
-        > // clang-format on
-    );
+    STATIC_REQUIRE(same_as<type_sequence_algo::unique_t<Seq, std::equal_to<>>, Expect>);
 }

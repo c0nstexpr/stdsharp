@@ -7,45 +7,57 @@
 
 namespace stdsharp
 {
-    template<template<typename...> typename Inner, typename... T>
+    template<template<typename...> typename Inner>
     struct adl_proof_traits
     {
-        struct proofed_t : Inner<T...>
+        template<typename... T>
+        struct types
         {
-            using Inner<T...>::Inner;
-        };
+            using traits = adl_proof_traits;
 
-    private:
-        friend consteval adl_proof_traits get_traits(const proofed_t&);
+            using inner_t = Inner<T...>;
+
+            struct proofed_t : inner_t
+            {
+                using inner_t::inner_t;
+            };
+
+        private:
+            friend consteval types get_types(const proofed_t&);
+        };
     };
 
     template<template<typename...> typename Inner, typename... T>
-    using adl_proof_t = typename adl_proof_traits<Inner, T...>::proofed_t;
+    using adl_proof_t = adl_proof_traits<Inner>::template types<T...>::proofed_t;
+
+    template<typename T>
+    using adl_proof_inner_t = decltype(get_inner(std::declval<T>()));
 }
 
 namespace stdsharp::details
 {
-    template<typename T, template<typename...> typename Proofed>
-    struct adl_proofed_for
-    {
-        template<typename>
-        struct traits;
+    template<
+        typename T,
+        template<typename...>
+        typename Proofed,
+        typename = decltype(get_types(std::declval<T>()))>
+    struct adl_proofed_for;
 
-        template<template<typename...> typename Inner, typename... U>
-        struct traits<adl_proof_traits<Inner, U...>>
-        {
-            static constexpr auto v =
-                std::same_as<typename adl_proof_traits<Inner, U...>::proofed_t, T> &&
-                std::same_as<T, Proofed<U...>>;
-        };
+    template<
+        typename T,
+        template<typename...>
+        typename Proofed,
+        template<typename...>
+        typename Types,
+        typename... U>
+    struct adl_proofed_for<T, Proofed, Types<U...>>
+    {
+        static constexpr auto value = std::same_as<T, adl_proof_t<Proofed, U...>>;
     };
 }
 
 namespace stdsharp
 {
     template<typename T, template<typename...> typename Proofed>
-    concept adl_proofed_for = requires(T t) {
-        requires details::adl_proofed_for<T, Proofed>::template traits<
-            decltype(get_traits(t))>::v;
-    };
+    concept adl_proofed_for = requires { requires details::adl_proofed_for<T, Proofed>::value; };
 }

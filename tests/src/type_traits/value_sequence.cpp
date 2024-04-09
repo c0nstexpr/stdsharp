@@ -73,17 +73,6 @@ SCENARIO("apply_t", "[type traits]") // NOLINT
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
-    "Scenario: value sequence at",
-    "[type traits]",
-    ((typename Expect, auto... V), Expect, V...),
-    (regular_value_sequence<1, size_t{7}>, 1, 2),
-    (regular_value_sequence<size_t{7}, to_array("my literal")>, 2, 4)
-)
-{
-    STATIC_REQUIRE(same_as<test_seq::at_t<V...>, Expect>);
-}
-
-TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence append",
     "[type traits]",
     ( //
@@ -134,20 +123,12 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: value sequence remove at",
     "[type traits]",
-    ((typename Expect, auto... I), Expect, I...),
-    ( //
-        regular_value_sequence<0, 1, to_array("my literal")>,
-        1,
-        2
-    ),
-    ( //
-        regular_value_sequence<0, 1, 1>,
-        2,
-        4
-    )
+    ((typename Expect, auto I), Expect, I),
+    (regular_value_sequence<0, 1, 1, to_array("my literal")>, 2),
+    (regular_value_sequence<0, 1, size_t{7}, 1>, 4)
 )
 {
-    STATIC_REQUIRE(same_as<test_seq::remove_at_t<I...>, Expect>);
+    STATIC_REQUIRE(same_as<test_seq::remove_at_t<I>, Expect>);
 }
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
@@ -251,15 +232,14 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: unique value sequence",
     "[type traits]",
     ((auto V, typename Seq, typename Expect), V, Seq, Expect),
-    (0, regular_value_sequence<>, regular_value_sequence<>),
-    (0, regular_value_sequence<0, 10, 1, 5, 10, 1>, regular_value_sequence<0, 10, 1, 5>) //
+    (0, value_sequence<>, regular_value_sequence<>),
+    (0, value_sequence<0, 10, 1, 5, 10, 1>, regular_value_sequence<0, 10, 1, 5>) //
 )
 {
     STATIC_REQUIRE( //
         same_as<
-            value_sequence_algo::unique_t<
-                to_value_sequence<Seq>,
-                sequenced_invocables<std::ranges::equal_to, always_false_fn>>,
+            value_sequence_algo::
+                unique_t<Seq, sequenced_invocables<std::ranges::equal_to, always_false_fn>>,
             Expect> //
     );
 }
@@ -268,11 +248,34 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: reverse value sequence",
     "[type traits]",
     ((auto V, typename Seq, typename Expect), V, Seq, Expect),
-    (0, regular_value_sequence<>, regular_value_sequence<>),
-    (0, regular_value_sequence<1>, regular_value_sequence<1>),
-    (0, regular_value_sequence<1, 2, 3, 4>, regular_value_sequence<4, 3, 2, 1>),
-    (0, regular_value_sequence<1, 2>, regular_value_sequence<2, 1>) //
+    (0, value_sequence<>, regular_value_sequence<>),
+    (0, value_sequence<1>, regular_value_sequence<1>),
+    (0, value_sequence<1, 2, 3, 4>, regular_value_sequence<4, 3, 2, 1>),
+    (0, value_sequence<1, 2>, regular_value_sequence<2, 1>) //
 )
 {
-    STATIC_REQUIRE(same_as<value_sequence_algo::reverse_t<to_value_sequence<Seq>>, Expect>);
+    STATIC_REQUIRE(same_as<value_sequence_algo::reverse_t<Seq>, Expect>);
+}
+
+SCENARIO("tuple traits for regular value sequence",
+         "[type traits]") // NOLINT
+{
+    STATIC_REQUIRE(tuple_size_v<test_seq> == 5);
+    STATIC_REQUIRE(std::same_as<tuple_element_t<0, test_seq>, int>);
+    STATIC_REQUIRE(std::same_as<tuple_element_t<2, test_seq>, size_t>);
+}
+
+SCENARIO("tuple traits for regular type sequence",
+         "[type traits]") // NOLINT
+{
+    {
+        using type_seq = basic_type_sequence<int, char, float>;
+        STATIC_REQUIRE(tuple_size_v<type_seq> == 3);
+    }
+
+    {
+        using type_seq = regular_type_sequence<int, char, float>;
+        STATIC_REQUIRE(::stdsharp::adl_proofed_for<type_seq, ::stdsharp::basic_type_sequence>);
+        STATIC_REQUIRE(tuple_size_v<type_seq> == 3);
+    }
 }
