@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../concepts/concepts.h"
-#include "../type_traits/core_traits.h"
 
 #include "../compilation_config_in.h"
 

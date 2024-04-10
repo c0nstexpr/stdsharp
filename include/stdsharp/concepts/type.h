@@ -107,4 +107,13 @@ namespace stdsharp
     concept nttp_able = requires {
         []<T...> {}();
     };
+
+    template<typename T, typename U>
+    concept const_aligned = (const_<T> == const_<U>);
+
+    template<typename T, typename U>
+    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>) && (rvalue_ref<T> == rvalue_ref<U>);
+
+    template<typename T, typename U>
+    concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
 }

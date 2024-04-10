@@ -6,30 +6,30 @@
 
 #include "../compilation_config_in.h"
 
-namespace stdsharp::details
-{
-    template<typename... Pairs>
-    struct forward_cast_pairs
-    {
-        template<typename... OtherPairs>
-        static forward_cast_pairs<Pairs..., OtherPairs...>
-            append(forward_cast_pairs<OtherPairs...>);
-
-        template<typename Pair>
-        using append_t = decltype(append(Pair{}));
-
-        static constexpr auto invoke(auto&& from) noexcept //
-            -> decltype((cpp_forward(from) | ... | Pairs{}))
-        {
-            return (cpp_forward(from) | ... | Pairs{});
-        }
-    };
-}
-
 namespace stdsharp
 {
-    template<typename...>
-    struct forward_cast_fn;
+    template<typename From, typename To, typename... Rest>
+    struct forward_cast_fn
+    {
+    private:
+        template<typename, typename, typename...>
+        friend class forward_cast_fn;
+
+        using current_fn = forward_cast_fn<From, To>;
+
+        template<typename... Fn>
+        using combined_fn = typename forward_cast_fn<typename current_fn::cast_t, Rest...>::
+            template combined_fn<Fn..., current_fn>;
+
+        using no_ref_from_t = std::remove_reference_t<From>;
+
+    public:
+        [[nodiscard]] constexpr auto operator()(auto&& from) const noexcept -> //
+            decltype(combined_fn<>{}(static_cast<From&&>(from)))
+        {
+            return combined_fn<>{}(static_cast<From&&>(from));
+        }
+    };
 
     template<typename From, typename To>
     using forward_cast_t = forward_cast_fn<From, To>::cast_t;
@@ -38,10 +38,18 @@ namespace stdsharp
     struct forward_cast_fn<From, To>
     {
     private:
-        template<typename...>
+        template<typename, typename, typename...>
         friend class forward_cast_fn;
 
-        using pairs = details::forward_cast_pairs<forward_cast_fn>;
+        template<typename... Fn>
+        struct combined_fn
+        {
+            constexpr auto operator()(auto&& from) const noexcept
+                -> decltype((cpp_forward(from) | ... | Fn{}) | forward_cast_fn<From, To>{})
+            {
+                return (cpp_forward(from) | ... | Fn{}) | forward_cast_fn<From, To>{};
+            }
+        };
 
         using no_ref_from_t = std::remove_reference_t<From>;
 
@@ -55,18 +63,12 @@ namespace stdsharp
             ref_qualifier_v<From&&>>;
 
         template<typename T>
-            requires std::same_as<std::remove_cvref_t<T>, from_t> && base_of<to_t, from_t> &&
-            not_same_as<from_t, to_t>
+            requires(base_of<to_t, from_t> || base_of<from_t, to_t>) &&
+            std::same_as<std::remove_reference_t<T>, no_ref_from_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
         { // c-style cast allow us cast to inaccessible base
-            return (cast_t)from; // NOLINT
-        }
-
-        template<typename T>
-            requires std::same_as<std::remove_cvref_t<T>, from_t>
-        [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
-        {
-            return static_cast<cast_t>(cpp_forward(from));
+            if constexpr(not_same_as<from_t, to_t>) return (cast_t)from; // NOLINT
+            else return static_cast<cast_t>(from);
         }
 
         template<typename T>
@@ -81,27 +83,7 @@ namespace stdsharp
     };
 
     template<typename From, typename To, typename... Rest>
-    struct forward_cast_fn<From, To, Rest...>
-    {
-    private:
-        template<typename...>
-        friend class forward_cast_fn;
-
-        using current_t = forward_cast_fn<From, To>;
-
-        using pairs = details::forward_cast_pairs<current_t>:: //
-            template append_t<typename forward_cast_fn<typename current_t::cast_t, Rest...>::pairs>;
-
-    public:
-        [[nodiscard]] constexpr auto operator()(auto&& from) const noexcept -> //
-            decltype(pairs::invoke(cpp_forward(from)))
-        {
-            return pairs::invoke(cpp_forward(from));
-        }
-    };
-
-    template<typename... T>
-    inline constexpr forward_cast_fn<T...> forward_cast{};
+    inline constexpr forward_cast_fn<From, To, Rest...> forward_cast{};
 }
 
 #include "../compilation_config_out.h"

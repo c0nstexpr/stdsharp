@@ -1,5 +1,8 @@
-#include "stdsharp/type_traits/member.h"
+#include "stdsharp/type_traits/type.h"
 #include "test.h"
+
+#include <type_traits>
+
 
 using namespace std;
 using namespace stdsharp;
@@ -18,17 +21,7 @@ struct my_class
 
 SCENARIO("member", "[type traits]") // NOLINT
 {
-    GIVEN( //
-        format(
-            "custom class type\n name: {}\nmember type: {}\nmem func type: {}\nreturn: {}\nargs:"
-            "{}",
-            type_id<my_class>,
-            type_id<my_class::mem_t>,
-            type_id<decltype(&my_class::mem_f)>,
-            type_id<my_class::mem_func_r_t>,
-            type_id<my_class::mem_func_args_t>
-        )
-    )
+    GIVEN("custom class type")
     {
         THEN("use member traits to get member type, type should be expected")
         {

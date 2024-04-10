@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bind_lvalue.h"
+#include "forward_bind.h"
 #include "operations.h"
 
 namespace stdsharp::cpo::inline cpo_impl
@@ -45,12 +45,12 @@ namespace stdsharp::cpo::inline cpo_impl
             template<
                 typename... Args,
                 std::invocable<Args...> Operation,
-                typename SymOp = ::meta::_t<arithmetic_operation<Operation>>>
+                typename SymOp = arithmetic_operation<Operation>::type>
             [[nodiscard]] constexpr auto
                 operator()(const Operation /*unused*/, Args&&... args) const
-                noexcept(noexcept(bind_lvalue(SymOp{}, cpp_forward(args)...)))
+                noexcept(noexcept(forward_bind_front(SymOp{}, cpp_forward(args)...)))
             {
-                return bind_lvalue(SymOp{}, cpp_forward(args)...);
+                return forward_bind_front(SymOp{}, cpp_forward(args)...);
             }
         };
 

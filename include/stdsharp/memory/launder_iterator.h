@@ -1,9 +1,9 @@
 #pragma once
 
-#include <new>
-
-#include "../default_operator.h"
 #include "../cassert/cassert.h"
+#include "../default_operator.h"
+
+#include <new>
 
 namespace stdsharp
 {

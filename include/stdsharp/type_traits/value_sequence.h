@@ -1,11 +1,12 @@
 #pragma once
 
 #include "../functional/always_return.h"
+#include "../functional/empty_invoke.h"
 #include "indexed_traits.h"
 #include "regular_value_sequence.h"
-#include "../functional/empty_invoke.h"
 
 #include <algorithm>
+
 
 namespace stdsharp
 {
@@ -28,7 +29,7 @@ namespace stdsharp::details
         template<auto V>
         struct filter
         {
-            consteval decltype(V) get() const noexcept { return V; }
+            [[nodiscard]] consteval decltype(V) get() const noexcept { return V; }
         };
 
         template<std::size_t>

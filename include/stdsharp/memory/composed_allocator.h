@@ -1,7 +1,7 @@
 #pragma once
 
-#include "allocator_traits.h"
 #include "../exception/exception.h"
+#include "allocator_traits.h"
 
 namespace stdsharp
 {

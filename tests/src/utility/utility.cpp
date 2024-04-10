@@ -18,6 +18,5 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     using res_t = forward_like_t<T, U>;
 
-    CAPTURE(type_id<T>, type_id<U>, type_id<res_t>, type_id<Expect>);
     STATIC_REQUIRE(same_as<res_t, Expect>);
 }

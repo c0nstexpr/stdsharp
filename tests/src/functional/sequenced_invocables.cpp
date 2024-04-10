@@ -7,8 +7,13 @@ using namespace stdsharp;
 
 SCENARIO("sequenced invocables", "[functional]")
 {
-    [[maybe_unused]] sequenced_invocables fn{[](int) {}, [](array<int, 1>) {}, empty_invoke};
+    sequenced_invocables fn{[](int i) { return i; }, [](array<int, 1>) {}, empty_invoke};
     using fn_t = decltype(fn);
+
+    REQUIRE(fn.get<0>()(1) == 1);
+    REQUIRE(fn.cget<0>()(1) == 1);
+    REQUIRE(fn(1) == 1);
+
     STATIC_REQUIRE(fn.size() == 3);
     STATIC_REQUIRE(std::invocable<fn_t, int>);
     STATIC_REQUIRE(std::invocable<fn_t&, int>);

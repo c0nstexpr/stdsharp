@@ -1,7 +1,7 @@
 #pragma once
 
-#include "single_stack_buffer.h"
 #include "aligned.h"
+#include "single_stack_buffer.h"
 
 namespace stdsharp
 {

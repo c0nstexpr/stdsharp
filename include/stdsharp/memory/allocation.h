@@ -1,8 +1,8 @@
 #pragma once
 
-#include "allocator_traits.h"
 #include "../functional/compose.h"
 #include "../ranges/ranges.h"
+#include "allocator_traits.h"
 
 namespace stdsharp::details
 {

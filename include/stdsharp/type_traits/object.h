@@ -5,7 +5,6 @@
 #include "expression.h"
 #include "regular_type_sequence.h"
 
-
 namespace stdsharp
 {
     template<typename T>

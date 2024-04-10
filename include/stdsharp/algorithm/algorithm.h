@@ -1,9 +1,11 @@
 #pragma once
 
-#include "../ranges/ranges.h"
 #include "../cassert/cassert.h"
-#include "../functional/operations.h"
 #include "../compare/compare.h"
+#include "../functional/operations.h"
+
+#include <algorithm>
+
 
 namespace stdsharp
 {
@@ -159,7 +161,7 @@ namespace stdsharp
                 cpp_move(out)
             );
 
-            return {cpp_move(r.in.base()), cpp_move(r.out)};
+            return {cpp_move(r).in.base(), cpp_move(r).out};
         }
     } move_n{};
 }

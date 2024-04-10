@@ -1,9 +1,9 @@
 #pragma once
 
-#include <span>
-
-#include "pointer_traits.h"
 #include "../cstdint/cstdint.h"
+#include "pointer_traits.h"
+
+#include <span>
 
 namespace stdsharp
 {

@@ -19,7 +19,7 @@ namespace stdsharp::filesystem
     public:
         using rep = Rep;
 
-        using period = ::meta::_t<std::ratio<Num, Denom>>;
+        using period = std::ratio<Num, Denom>::type;
 
         static constexpr auto num = period::num;
 
@@ -167,15 +167,19 @@ namespace stdsharp::filesystem
     using mebibytes = space_size<
         std::uintmax_t,
         std::ratio<details::size_numeration_base * kibibytes::period::num>>;
+
     using gibibytes = space_size<
         std::uintmax_t,
         std::ratio<details::size_numeration_base * mebibytes::period::num>>;
+
     using tebibytes = space_size<
         std::uintmax_t,
         std::ratio<details::size_numeration_base * gibibytes::period::num>>;
+
     using pebibytes = space_size<
         std::uintmax_t,
         std::ratio<details::size_numeration_base * tebibytes::period::num>>;
+
     using exbibytes = space_size<
         std::uintmax_t,
         std::ratio<details::size_numeration_base * pebibytes::period::num>>;

@@ -1,12 +1,11 @@
 #pragma once
 
-#include "../concepts/concepts.h"
-#include "../namespace_alias.h"
+#include "../concepts/object.h"
+#include "../functional/invoke.h"
 
 #include <gsl/assert>
 
 #include <cassert>
-#include <functional>
 
 
 namespace stdsharp
@@ -22,7 +21,7 @@ namespace stdsharp
     inline constexpr auto assert_with =
         []<typename... Args>(std::predicate<Args...> auto&& fn, Args&&... args) noexcept
     {
-        Expects(std::invoke(fn, cpp_forward(args)...)); //
+        Expects(invoke(fn, cpp_forward(args)...)); //
     };
 
     inline constexpr auto assert_equal = []<typename T, typename U>(T&& t, U&& u) noexcept

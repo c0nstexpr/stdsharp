@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../iterator/iterator.h"
-#include "invocables.h"
+#include "sequenced_invocables.h"
 #include "../cstdint/cstdint.h"
 
 namespace stdsharp

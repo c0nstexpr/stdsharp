@@ -1,6 +1,6 @@
+#include "box.h"
 #include "composed_allocator.h"
 #include "single_stack_allocator.h"
-#include "box.h"
 
 namespace stdsharp
 {

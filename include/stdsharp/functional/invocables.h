@@ -20,7 +20,7 @@ namespace stdsharp
         constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
             noexcept(nothrow_invocable<Fn, Args...>)
         {
-            return invoke(forward_cast<Self, indexed_invocable, Func>(self), cpp_forward(args)...);
+            return invoke(forward_cast<Self, indexed_invocable>(self).get(), cpp_forward(args)...);
         }
     };
 }
@@ -40,13 +40,13 @@ namespace stdsharp::details
         using type = type_at<J, Func...>;
 
         template<std::size_t J, typename Self>
-        constexpr forward_cast_t<Self, type<J>> get(this Self&& self) noexcept
+        constexpr decltype(auto) get(this Self&& self) noexcept
         {
             return forward_cast<Self, invocables, indexed_value<J, type<J>>>(self).get();
         }
 
         template<std::size_t J, typename Self, typename SelfT = const Self>
-        constexpr forward_cast_t<SelfT, type<J>> cget(this const Self&& self) noexcept
+        constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
             return forward_cast<SelfT, invocables, indexed_value<J, type<J>>>(self).cget();
         }

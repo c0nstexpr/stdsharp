@@ -1,8 +1,8 @@
 #pragma once
 
-#include <range/v3/functional/pipeable.hpp>
-
 #include "invocables.h"
+
+#include <range/v3/functional/pipeable.hpp>
 
 // port from range-v3 pipeable.hpp
 // add noexcept feature
@@ -10,26 +10,27 @@ namespace stdsharp
 {
     enum class pipe_mode : std::uint8_t
     {
+        none,
         left,
         right
     };
 
-    template<typename T, pipe_mode Mode = pipe_mode::left>
+    template<pipe_mode Mode = pipe_mode::left>
     struct pipeable_base
     {
         static constexpr auto pipe_mode = Mode;
 
     private:
-        template<typename Arg, decay_same_as<T> Pipe>
-            requires std::invocable<Pipe, Arg> && (Mode == pipe_mode::left)
+        template<typename Arg, std::invocable<Arg> Pipe>
+            requires(Mode == pipe_mode::left)
         friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe)
             noexcept(nothrow_invocable<Pipe, Arg>)
         {
             return invoke(cpp_forward(pipe), cpp_forward(arg));
         }
 
-        template<typename Arg, decay_same_as<T> Pipe>
-            requires std::invocable<Pipe, Arg> && (Mode == pipe_mode::right)
+        template<typename Arg, std::invocable<Arg> Pipe>
+            requires(Mode == pipe_mode::right)
         friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg)
             noexcept(nothrow_invocable<Pipe, Arg>)
         {
@@ -43,20 +44,17 @@ namespace stdsharp
     template<pipe_mode Mode = pipe_mode::left>
     struct make_pipeable_fn
     {
-        template<typename Fn>
-        struct piper : invocables<Fn>, pipeable_base<piper<Fn>, Mode>
+        template<
+            typename Fn,
+            std::constructible_from<Fn> DecayFn = std::decay_t<Fn>,
+            typename Invocable = invocables<DecayFn>>
+        constexpr auto operator()(Fn&& fn) const noexcept(nothrow_constructible_from<DecayFn, Fn>)
         {
-            piper() = default;
+            struct piper : Invocable, pipeable_base<Mode>
+            {
+            };
 
-            using invocables<Fn>::invocables;
-        };
-
-        template<typename Fn>
-            requires std::constructible_from<std::decay_t<Fn>, Fn>
-        constexpr auto operator()(Fn&& fn) const
-            noexcept(nothrow_constructible_from<std::decay_t<Fn>, Fn>)
-        {
-            return piper<std::decay_t<Fn>>{cpp_forward(fn)};
+            return piper{cpp_forward(fn)};
         }
     };
 
@@ -64,10 +62,11 @@ namespace stdsharp
     inline constexpr make_pipeable_fn<Mode> make_pipeable{};
 
     template<typename T, pipe_mode Mode = pipe_mode::left>
-    concept pipeable = std::derived_from<std::decay_t<T>, pipeable_base<T, Mode>> ||
-        (Mode == pipe_mode::left && ranges::is_pipeable_v<std::decay_t<T>>);
+    concept pipeable = std::derived_from<T, pipeable_base<Mode>> ||
+        (Mode == pipe_mode::left && ranges::is_pipeable_v<T>);
 
     template<typename Pipe>
-        requires pipeable<Pipe> || pipeable<Pipe, pipe_mode::right>
-    inline constexpr auto get_pipe_mode = pipeable<Pipe> ? pipe_mode::left : pipe_mode::right;
+    inline constexpr auto get_pipe_mode = pipeable<Pipe, pipe_mode::left> ? //
+        pipe_mode::left :
+        pipeable<Pipe, pipe_mode::right> ? pipe_mode::right : pipe_mode::none;
 }

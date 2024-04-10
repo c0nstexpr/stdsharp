@@ -13,8 +13,10 @@ namespace stdsharp::details
         T v{};
 
     public:
+        value_wrapper() = default;
+
         template<typename... U>
-            requires std::constructible_from<T, U...>
+            requires(sizeof...(U) > 0) && std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
             v(cpp_forward(u)...)
         {
@@ -31,19 +33,21 @@ namespace stdsharp::details
     class value_wrapper<T> : T
     {
     public:
+        value_wrapper() = default;
+
         using T::T;
 
         template<typename... U>
-            requires std::constructible_from<T, U...>
+            requires(sizeof...(U) > 0) && std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
             T(cpp_forward(u)...)
         {
         }
 
         template<typename Self>
-        [[nodiscard]] constexpr forward_cast_t<Self, T> get(this Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return forward_cast<Self, value_wrapper>(self);
+            return forward_cast<Self, value_wrapper, T>(self);
         }
     };
 }
@@ -55,9 +59,9 @@ namespace stdsharp
     {
         using value_type = T;
 
-        using details::value_wrapper<T>::value_wrapper;
-
         value_wrapper() = default;
+
+        using details::value_wrapper<T>::value_wrapper;
 
         constexpr value_wrapper(T&& t)
             noexcept(nothrow_constructible_from<details::value_wrapper<T>, T>)

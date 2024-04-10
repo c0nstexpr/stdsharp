@@ -1,13 +1,14 @@
 #pragma once
 
+#include "../cassert/cassert.h"
+#include "../type_traits/object.h"
+#include "../utility/constructor.h"
+#include "pointer_traits.h"
+
 #include <iterator>
 #include <memory_resource>
 #include <scoped_allocator>
-
-#include "../type_traits/special_member.h"
-#include "../utility/constructor.h"
-#include "../cassert/cassert.h"
-#include "pointer_traits.h"
+#include <utility>
 
 namespace stdsharp::details
 {
@@ -427,7 +428,7 @@ namespace stdsharp
     };
 
     template<typename T>
-    using allocator_of_t = ::meta::_t<allocator_of<T>>;
+    using allocator_of_t = allocator_of<T>::type;
 
     template<typename Alloc, typename Fn>
     concept allocator_move_assignable = std::copy_constructible<Fn> &&

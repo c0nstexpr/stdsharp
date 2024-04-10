@@ -3,8 +3,6 @@
 #include "../type_traits/indexed_traits.h"
 #include "invoke.h"
 
-#include <tuple>
-
 #include "../compilation_config_in.h"
 
 namespace stdsharp::details
@@ -34,20 +32,20 @@ namespace stdsharp::details
         using type = type_at<J, Func...>;
 
         template<std::size_t J, typename Self>
-        constexpr forward_cast_t<Self, type<J>> get(this Self&& self) noexcept
+        constexpr decltype(auto) get(this Self&& self) noexcept
         {
             return forward_cast<Self, sequenced_invocables, indexed_value<J, type<J>>>(self).get();
         }
 
         template<std::size_t J, typename Self, typename SelfT = const Self>
-        constexpr forward_cast_t<SelfT, type<J>> cget(this const Self&& self) noexcept
+        constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
             return forward_cast<SelfT, sequenced_invocables, indexed_value<J, type<J>>>(self) //
                 .cget();
         }
 
         template<std::size_t J, typename Self, typename SelfT = const Self&>
-        constexpr forward_cast_t<SelfT, type<J>> cget(this const Self& self) noexcept
+        constexpr decltype(auto) cget(this const Self& self) noexcept
         {
             return forward_cast<SelfT, sequenced_invocables, indexed_value<J, type<J>>>(self) //
                 .cget();

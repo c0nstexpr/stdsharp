@@ -7,6 +7,8 @@
 #include "to_lvalue.h"
 #include "forward_cast.h"
 
+#include <utility>
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp

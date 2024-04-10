@@ -84,3 +84,10 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
         }
     }
 }
+
+SCENARIO("move n", "[algorithm]")
+{
+    array<unique_object, 3> v0{};
+    array<unique_object, 3> v1{};
+    move_n(v0.begin(), v0.size(), v1.begin());
+}

@@ -216,15 +216,6 @@ namespace stdsharp
     template<typename Func, typename... Args>
     concept nothrow_predicate = nothrow_invocable_r<Func, bool, Args...>;
 
-    template<typename T, typename U>
-    concept const_aligned = (const_<T> == const_<U>);
-
-    template<typename T, typename U>
-    concept ref_aligned = (lvalue_ref<T> == lvalue_ref<U>) && (rvalue_ref<T> == rvalue_ref<U>);
-
-    template<typename T, typename U>
-    concept const_ref_aligned = const_aligned<T, U> && ref_aligned<T, U>;
-
     template<typename T>
     concept nullable_pointer = std::default_initializable<T> && //
         std::copy_constructible<T> && //

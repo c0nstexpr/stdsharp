@@ -3,8 +3,6 @@
 #include "../utility/value_wrapper.h"
 #include "object.h"
 
-#include <tuple>
-
 #include "../compilation_config_in.h"
 
 namespace stdsharp::details
@@ -14,7 +12,7 @@ namespace stdsharp::details
         template<typename T>
         struct filter
         {
-            consteval type_constant<T> get() const noexcept { return {}; }
+            [[nodiscard]] consteval type_constant<T> get() const noexcept { return {}; }
         };
 
         template<std::size_t>
@@ -65,6 +63,8 @@ namespace stdsharp::details
 
         template<std::size_t J>
         using type = type_at<J, T...>;
+
+        using index_sequence = std::index_sequence<I...>;
 
         template<std::size_t J, typename Self>
         constexpr forward_cast_t<Self, type<J>> get(this Self&& self) noexcept

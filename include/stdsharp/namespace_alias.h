@@ -1,6 +1,6 @@
 #pragma once
 
-namespace std::literals
+namespace std::inline literals
 {
 }
 
@@ -24,4 +24,4 @@ namespace stdsharp
     namespace ctre = ::ctre;
 }
 
-using namespace std::literals;
+using namespace ::std::literals;

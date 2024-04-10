@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../concepts/type.h"
+#include "../macros.h"
 #include "regular_type_sequence.h"
+#include "stdsharp/functional/invoke.h"
 
 namespace stdsharp
 {
@@ -221,10 +223,15 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
+    template<typename Template, typename... T>
+        requires requires { details::template_rebind_impl<T...>(std::declval<Template>()); }
+    using template_rebind = decltype(details::template_rebind_impl<T...>(std::declval<Template>()));
+
     template<typename>
     struct function_traits;
 
-    template<function T>
+    template<typename T>
+        requires requires { function_traits<std::decay_t<T>>{}; }
     struct function_traits<T> : function_traits<std::decay_t<T>>
     {
     };
@@ -255,40 +262,28 @@ namespace stdsharp
         using class_t = ClassT;
     };
 
-    template<typename T, typename ClassT>
-    concept member_of = std::same_as<typename member_traits<T>::class_t, ClassT>;
-
     template<auto Ptr>
     struct member_pointer_traits : member_traits<decltype(Ptr)>
     {
         static constexpr auto ptr = Ptr;
 
-        constexpr decltype(auto) operator()( //
-            decay_same_as<typename member_traits<decltype(Ptr)>::type> auto&& t
-        ) const noexcept
+        constexpr auto operator()(auto&&... args) const
+            noexcept(noexcept(invoke(ptr, cpp_forward(args)...))
+            ) -> decltype(invoke(ptr, cpp_forward(args)...))
         {
-            return cpp_forward(t).*ptr;
+            return invoke(ptr, cpp_forward(args)...);
         }
     };
 
-    template<auto Ptr>
-    using member_t = member_pointer_traits<Ptr>::type;
-
-    template<typename Template, typename... T>
-        requires requires { details::template_rebind_impl<T...>(std::declval<Template>()); }
-    using template_rebind = decltype(details::template_rebind_impl<T...>(std::declval<Template>()));
-
-    template<typename>
-    struct member_function_traits;
-
 #define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, qualifiers)                  \
     template<typename R, typename ClassT, typename... Args, bool Noexcept>                    \
-    struct member_function_traits<R ClassT::*(Args...)qualifiers noexcept(Noexcept)> :        \
+    struct member_traits<R (ClassT::*)(Args...)qualifiers noexcept(Noexcept)> :                 \
         function_traits<R (*)(Args...) noexcept(Noexcept)>                                    \
     {                                                                                         \
         static constexpr auto is_const = const_;                                              \
         static constexpr auto is_volatile = volatile_;                                        \
         static constexpr auto ref_type = ref_qualifier::ref_;                                 \
+                                                                                              \
         using class_t = ClassT;                                                               \
         using qualified_class_t = apply_qualifiers<class_t, is_const, is_volatile, ref_type>; \
     };
@@ -311,8 +306,10 @@ namespace stdsharp
 #undef STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK
 
     template<typename T, typename ClassT>
-    concept member_func_of =
-        std::is_member_pointer_v<T> && std::same_as<typename member_traits<T>::class_t, ClassT>;
+    concept member_of = std::same_as<typename member_traits<T>::class_t, ClassT>;
+
+    template<auto Ptr>
+    using member_t = member_pointer_traits<Ptr>::type;
 
     template<bool Noexcept, typename Ret, typename T, typename... Args>
     using mem_func_pointer = details::mem_func_pointer<Noexcept, Ret, T, Args...>::type;
