@@ -1,9 +1,10 @@
 #pragma once
 
-#include <gsl/pointers>
+#include "../concepts/object.h"
+#include "../type_traits/object.h"
+#include "../type_traits/type.h"
 
-#include "../type_traits/core_traits.h"
-#include "../concepts/concepts.h"
+#include <gsl/pointers>
 
 namespace stdsharp::details
 {

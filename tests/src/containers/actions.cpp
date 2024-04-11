@@ -1,25 +1,20 @@
 #include "stdsharp/containers/actions.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 template<typename Container>
     requires associative_like_container<Container>
 consteval auto erase_req_f()
 {
-    return requires(Container container) //
-    {
-        actions::cpo::erase(container, declval<typename Container::key_type>()); //
+    return requires(Container container) {
+        actions::cpo::erase(container, declval<typename Container::key_type>());
     };
 }
 
 template<sequence_container Container>
 consteval auto erase_req_f()
 {
-    return requires(Container container) //
-    {
-        actions::cpo::erase(container, declval<typename Container::value_type>()); //
+    return requires(Container container) {
+        actions::cpo::erase(container, declval<typename Container::value_type>());
     };
 }
 
@@ -28,8 +23,7 @@ concept erase_req = requires(
     Container container,
     Container::const_iterator iter,
     bool (&predicate)(Container::const_reference)
-) //
-{
+) {
     requires erase_req_f<Container>();
     actions::cpo::erase(container, iter);
     actions::cpo::erase(container, iter, iter);
@@ -45,7 +39,6 @@ TEMPLATE_TEST_CASE( // NOLINT
     (unordered_map<int, int>)
 )
 {
-    CAPTURE(type_id<TestType>);
     STATIC_REQUIRE(erase_req<TestType>);
 }
 
@@ -59,9 +52,8 @@ consteval auto emplace_req_f()
 template<sequence_container Container>
 consteval auto emplace_req_f()
 {
-    return requires(Container container, Container::value_type v) //
-    {
-        actions::emplace(container, container.cbegin(), v); //
+    return requires(Container container, Container::value_type v) {
+        actions::emplace(container, container.cbegin(), v);
     };
 }
 
@@ -77,7 +69,6 @@ TEMPLATE_TEST_CASE( // NOLINT
     (unordered_map<int, int>)
 )
 {
-    CAPTURE(type_id<TestType>);
     STATIC_REQUIRE(emplace_req<TestType>);
 }
 
@@ -89,34 +80,24 @@ TEMPLATE_TEST_CASE( // NOLINT
     list<int>
 )
 {
-    CAPTURE(type_id<TestType>);
-
-    STATIC_REQUIRE( //
-        requires(TestType v, TestType::value_type value) //
-        {
-            actions::emplace_back(v, value);
-            actions::emplace_front(v, value);
-        }
-    );
+    STATIC_REQUIRE(requires(TestType v, TestType::value_type value) {
+        actions::emplace_back(v, value);
+        actions::emplace_front(v, value);
+    });
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: pop where actions",
     "[containers][actions]",
-    // vector<int>,
+    vector<int>,
     deque<int>,
     list<int>
 )
 {
-    CAPTURE(type_id<TestType>);
-
-    STATIC_REQUIRE( //
-        requires(TestType v) //
-        {
-            actions::pop_back(v);
-            actions::pop_front(v);
-        }
-    );
+    STATIC_REQUIRE(requires(TestType v) {
+        actions::pop_back(v);
+        actions::pop_front(v);
+    });
 }
 
 TEMPLATE_TEST_CASE( // NOLINT
@@ -126,7 +107,5 @@ TEMPLATE_TEST_CASE( // NOLINT
     list<int>
 )
 {
-    CAPTURE(type_id<TestType>);
-
     STATIC_REQUIRE(requires(TestType v) { actions::resize(v, 5); });
 }

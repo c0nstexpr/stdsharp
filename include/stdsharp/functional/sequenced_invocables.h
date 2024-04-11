@@ -14,20 +14,24 @@ namespace stdsharp::details
     struct STDSHARP_EBO sequenced_invocables<std::index_sequence<I...>, Func...> :
         indexed_value<I, Func>...
     {
-    private:
-        template<typename Self, std::size_t J, typename... Args>
-            requires requires { requires J < sizeof...(Func); }
-        static consteval auto first_invocable() noexcept
-        {
-            using fn = forward_cast_t<Self, type<J>>;
-
-            if constexpr(std::invocable<fn, Args...>) return J;
-            else return first_invocable<Self, J + 1, Args...>();
-        }
-
     public:
         static constexpr auto size() noexcept { return sizeof...(Func); }
 
+    private:
+        template<typename Self, std::size_t J, typename... Args>
+        static consteval auto first_invocable() noexcept
+        {
+            if constexpr(J >= size()) return J;
+            else
+            {
+                using fn = forward_cast_t<Self, type<J>>;
+
+                if constexpr(std::invocable<fn, Args...>) return J;
+                else return first_invocable<Self, J + 1, Args...>();
+            }
+        }
+
+    public:
         template<std::size_t J>
         using type = type_at<J, Func...>;
 

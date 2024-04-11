@@ -1,9 +1,6 @@
 #include "stdsharp/utility/value_wrapper.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 SCENARIO("value_wrapper", "[value_wrapper]") // NOLINT
 {
     struct empty_type

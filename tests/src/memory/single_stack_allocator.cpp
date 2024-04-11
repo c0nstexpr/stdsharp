@@ -1,9 +1,6 @@
 #include "test.h"
 #include "stdsharp/memory/single_stack_allocator.h"
 
-using namespace stdsharp;
-using namespace std;
-
 SCENARIO("single stack allocator", "[memory][single_stack_allocator]") // NOLINT
 {
     struct base

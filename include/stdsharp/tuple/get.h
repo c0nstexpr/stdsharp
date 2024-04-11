@@ -27,7 +27,6 @@ namespace stdsharp::cpo::inline cpo_impl
     template<std::size_t I>
     inline constexpr get_element_fn<I> get_element;
 
-
     template<std::size_t I>
     struct cget_element_fn
     {

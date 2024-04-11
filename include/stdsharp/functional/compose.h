@@ -11,20 +11,20 @@ namespace stdsharp::details
         noexcept( //
             composed_invoke<I + 1>(
                 cpp_forward(fn),
-                cpp_forward(fn).get<I>()(cpp_forward(arg)...)
+                cpp_forward(fn).template get<I>()(cpp_forward(arg)...)
             )
         )
     )
         requires requires {
             composed_invoke<I + 1>(
                 cpp_forward(fn),
-                cpp_forward(fn).get<I>()(cpp_forward(arg)...)
+                cpp_forward(fn).template get<I>()(cpp_forward(arg)...)
             );
         }
     {
         return composed_invoke<I + 1>(
             cpp_forward(fn),
-            cpp_forward(fn).get<I>()(cpp_forward(arg)...)
+            cpp_forward(fn).template get<I>()(cpp_forward(arg)...)
         );
     }
 
@@ -66,14 +66,13 @@ namespace stdsharp
 namespace std
 {
     template<typename... T>
-    struct tuple_size<::stdsharp::composed<T...>> :
-        ::std::tuple_size<::stdsharp::indexed_types<T...>>
+    struct tuple_size<::stdsharp::composed<T...>> : ::std::tuple_size<::stdsharp::invocables<T...>>
     {
     };
 
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::composed<T...>> :
-        ::std::tuple_element<I, ::stdsharp::indexed_types<T...>>
+        ::std::tuple_element<I, ::stdsharp::invocables<T...>>
     {
     };
 }

@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../default_operator.h"
+#include "../format/format.h"
+#include "../pattern_match.h"
+
 #include <filesystem>
 #include <ratio>
-
-#include "../format/format.h"
-#include "../default_operator.h"
-#include "../pattern_match.h"
 
 namespace stdsharp::filesystem
 {
@@ -13,8 +13,7 @@ namespace stdsharp::filesystem
     class space_size;
 
     template<typename Rep, std::uintmax_t Num, std::uintmax_t Denom>
-    class space_size<Rep, std::ratio<Num, Denom>> :
-        default_arithmetic_operator<space_size<Rep, std::ratio<Num, Denom>>>
+    class space_size<Rep, std::ratio<Num, Denom>> : public default_operator::arithmetic
     {
     public:
         using rep = Rep;

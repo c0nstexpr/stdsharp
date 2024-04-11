@@ -1,9 +1,6 @@
 #include "test.h"
 #include "stdsharp/synchronizer.h"
 
-using namespace std;
-using namespace stdsharp;
-
 SCENARIO("synchronizer", "[synchronizer]") // NOLINT
 {
     struct my_mutex

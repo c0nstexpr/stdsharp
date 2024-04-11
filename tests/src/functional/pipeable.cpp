@@ -1,9 +1,6 @@
 #include "stdsharp/functional/pipeable.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 SCENARIO("pipeable, [functional]") // NOLINT
 {
     {

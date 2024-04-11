@@ -1,9 +1,6 @@
 #include "stdsharp/utility/forward_cast.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 struct t0
 {
 };

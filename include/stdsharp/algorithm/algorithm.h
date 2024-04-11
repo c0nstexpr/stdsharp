@@ -6,7 +6,6 @@
 
 #include <algorithm>
 
-
 namespace stdsharp
 {
     inline constexpr struct set_if_fn

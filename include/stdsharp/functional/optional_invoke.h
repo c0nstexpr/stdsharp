@@ -1,7 +1,7 @@
 #pragma once
 
-#include "invoke.h"
 #include "empty_invoke.h"
+#include "invoke.h"
 #include "sequenced_invocables.h"
 
 namespace stdsharp

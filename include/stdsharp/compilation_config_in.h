@@ -1,4 +1,4 @@
-#if defined( __GNUG__) || defined(_MSC_VER)
+#if defined(__GNUG__) || defined(_MSC_VER)
     #pragma push_macro("STDSHARP_ALWAYS_INLINE")
     #pragma push_macro("STDSHARP_NO_UNIQUE_ADDRESS")
     #pragma push_macro("STDSHARP_INTRINSIC")
@@ -17,10 +17,10 @@
 
 #ifdef _MSC_VER
     #define STDSHARP_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
-    #define STDSHARP_INTRINSIC  [[msvc::intrinsic]] [[nodiscard]]
+    #define STDSHARP_INTRINSIC [[msvc::intrinsic]] [[nodiscard]]
 #else
     #define STDSHARP_NO_UNIQUE_ADDRESS [[no_unique_address]]
-    #define STDSHARP_INTRINSIC  STDSHARP_ALWAYS_INLINE [[nodiscard]]
+    #define STDSHARP_INTRINSIC STDSHARP_ALWAYS_INLINE [[nodiscard]]
 #endif
 
 #if defined(_MSC_VER) || (defined(_WIN32) && defined(__clang__))

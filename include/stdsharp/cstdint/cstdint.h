@@ -1,10 +1,11 @@
 #pragma once
 
+#include "../utility/auto_cast.h"
+
 #include <climits>
 #include <limits>
 #include <stdexcept>
 
-#include "../utility/auto_cast.h"
 
 namespace stdsharp
 {

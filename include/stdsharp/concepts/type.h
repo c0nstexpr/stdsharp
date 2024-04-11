@@ -53,6 +53,9 @@ namespace stdsharp
     concept aggregate = std::is_aggregate_v<T>;
 
     template<typename T>
+    concept void_ = std::is_void_v<T>;
+
+    template<typename T>
     concept character = same_as_any<T, char, char8_t, char16_t, char32_t, wchar_t>;
 
     template<typename T>

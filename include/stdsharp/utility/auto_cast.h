@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../concepts/object.h"
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp

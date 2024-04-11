@@ -4,7 +4,6 @@
 
 #include <iterator>
 
-
 namespace stdsharp
 {
     template<std::indirectly_readable T>

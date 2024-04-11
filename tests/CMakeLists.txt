@@ -13,8 +13,8 @@ include(Catch)
 #
 set(src
     src/algorithm/algorithm.cpp
-    # src/containers/actions.cpp
-    # src/containers/concepts.cpp
+    src/containers/actions.cpp
+    src/containers/concepts.cpp
     src/filesystem/filesystem.cpp
     src/functional/forward_bind.cpp
     src/functional/pipeable.cpp
@@ -22,7 +22,8 @@ set(src
     src/functional/symmetric_operations.cpp
     # src/memory/box.cpp
     # src/memory/composed_allocator.cpp
-    # src/memory/single_stack_allocator.cpp
+    src/memory/pointer_traits.cpp
+    src/memory/single_stack_allocator.cpp
     # src/memory/soo.cpp
     src/type_traits/indexed_traits.cpp
     src/type_traits/member.cpp
@@ -31,7 +32,7 @@ set(src
     src/utility/forward_cast.cpp
     src/utility/utility.cpp
     src/utility/value_wrapper.cpp
-    # src/lazy_value.cpp
+    src/lazy.cpp
     # src/pattern_match.cpp
     # src/synchronizer.cpp
 )

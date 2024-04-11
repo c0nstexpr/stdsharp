@@ -1,8 +1,8 @@
 #pragma once
 
-#include <compare>
-
 #include "../concepts/concepts.h"
+
+#include <compare>
 
 namespace stdsharp
 {

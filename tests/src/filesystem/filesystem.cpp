@@ -1,9 +1,6 @@
 #include "stdsharp/filesystem/filesystem.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 using namespace stdsharp::filesystem;
 
 SCENARIO("space size", "[filesystem]") // NOLINT

@@ -7,7 +7,6 @@
 
 #include <algorithm>
 
-
 namespace stdsharp
 {
     template<auto...>

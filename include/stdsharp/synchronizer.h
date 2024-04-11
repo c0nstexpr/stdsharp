@@ -1,9 +1,9 @@
 #pragma once
 
-#include <shared_mutex>
-
 #include "mutex/mutex.h"
 #include "utility/utility.h"
+
+#include <shared_mutex>
 
 namespace stdsharp
 {

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../concepts/type.h"
+#include "../functional/invoke.h"
 #include "../macros.h"
 #include "regular_type_sequence.h"
-#include "stdsharp/functional/invoke.h"
 
 namespace stdsharp
 {
@@ -277,7 +277,7 @@ namespace stdsharp
 
 #define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, qualifiers)                  \
     template<typename R, typename ClassT, typename... Args, bool Noexcept>                    \
-    struct member_traits<R (ClassT::*)(Args...)qualifiers noexcept(Noexcept)> :                 \
+    struct member_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)> :              \
         function_traits<R (*)(Args...) noexcept(Noexcept)>                                    \
     {                                                                                         \
         static constexpr auto is_const = const_;                                              \
@@ -287,7 +287,6 @@ namespace stdsharp
         using class_t = ClassT;                                                               \
         using qualified_class_t = apply_qualifiers<class_t, is_const, is_volatile, ref_type>; \
     };
-
 
 #define STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \
     STDSHARP_MEMBER_FUNCTION_TRAITS(true, is_volatile, ref_type, const qualifiers)    \
@@ -313,4 +312,7 @@ namespace stdsharp
 
     template<bool Noexcept, typename Ret, typename T, typename... Args>
     using mem_func_pointer = details::mem_func_pointer<Noexcept, Ret, T, Args...>::type;
+
+    template<typename T>
+    inline constexpr auto type_info = std::ref(typeid(T));
 }

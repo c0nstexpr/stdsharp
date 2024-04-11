@@ -1,10 +1,10 @@
 #pragma once
 
-#include <array>
-#include <algorithm>
-#include <ranges>
-
 #include "../macros.h"
+
+#include <algorithm>
+#include <array>
+#include <ranges>
 
 namespace stdsharp
 {

@@ -2,9 +2,6 @@
 #include "stdsharp/type_traits/indexed_traits.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 SCENARIO("indexed traits", "[type traits]")
 {
     GIVEN("type at")

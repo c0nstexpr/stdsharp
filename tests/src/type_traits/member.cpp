@@ -4,9 +4,6 @@
 #include <type_traits>
 
 
-using namespace std;
-using namespace stdsharp;
-
 struct my_class
 {
     using mem_t = int;

@@ -1,9 +1,6 @@
 #include "stdsharp/algorithm/algorithm.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: set if",
     "[algorithm]",

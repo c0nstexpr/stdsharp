@@ -1,8 +1,6 @@
 #include "stdsharp/containers/concepts.h"
 #include "test.h"
-
-using namespace std;
-using namespace stdsharp;
+#include <initializer_list>
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: container concept",
@@ -14,7 +12,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using vec = vector<TestType>;
 
-        GIVEN(format("vector type {}", type_id<vec>))
+        GIVEN("vector type")
         {
             STATIC_REQUIRE(contiguous_container<vec>);
             STATIC_REQUIRE(!associative_container<vec>);
@@ -25,7 +23,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using arr = array<TestType, 5>;
 
-        GIVEN(format("array type {}", type_id<arr>))
+        GIVEN("array type")
         {
             STATIC_REQUIRE(container<arr>);
             STATIC_REQUIRE(!associative_container<arr>);
@@ -36,7 +34,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using forward_list = forward_list<TestType>;
 
-        GIVEN(format("forward list type {}", type_id<forward_list>))
+        GIVEN("forward list type")
         {
             STATIC_REQUIRE(container<forward_list>);
             STATIC_REQUIRE(!sequence_container<forward_list>);
@@ -48,7 +46,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using set = set<TestType>;
 
-        GIVEN(format("set type {}", type_id<set>))
+        GIVEN("set type")
         {
             STATIC_REQUIRE(!sequence_container<set>);
             STATIC_REQUIRE(unique_associative_container<set>);
@@ -59,7 +57,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using set = multiset<TestType>;
 
-        GIVEN(format("set type {}", type_id<set>))
+        GIVEN("set type")
         {
             STATIC_REQUIRE(!sequence_container<set>);
             STATIC_REQUIRE(!unique_associative_container<set>);
@@ -71,7 +69,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using map = unordered_map<int, TestType>;
 
-        GIVEN(format("unordered map type {}", type_id<map>))
+        GIVEN("unordered map type")
         {
             STATIC_REQUIRE(!sequence_container<map>);
             STATIC_REQUIRE(!associative_container<map>);
@@ -82,7 +80,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     {
         using map = unordered_multimap<int, TestType>;
 
-        GIVEN(format("unordered map type {}", type_id<map>))
+        GIVEN("unordered map type")
         {
             STATIC_REQUIRE(!sequence_container<map>);
             STATIC_REQUIRE(!associative_container<map>);

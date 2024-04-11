@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cmath>
-
 #include "../concepts/concepts.h"
+
+#include <cmath>
 
 namespace stdsharp
 {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <exception>
-#include <concepts>
 #include <array>
+#include <concepts>
+#include <exception>
 
 namespace stdsharp
 {

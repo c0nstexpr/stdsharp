@@ -2,9 +2,6 @@
 #include "stdsharp/type_traits/object.h"
 #include "test.h"
 
-using namespace stdsharp;
-using namespace std;
-
 SCENARIO("forward bind front", "[functional]") // NOLINT
 {
     struct t0 : unique_object{};

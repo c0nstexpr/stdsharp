@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../functional/nodiscard_invocable.h"
 #include "../functional/sequenced_invocables.h"
 #include "../utility/auto_cast.h"
 
@@ -7,59 +8,61 @@
 
 #include "../compilation_config_in.h"
 
-namespace stdsharp
+namespace stdsharp::details
 {
     template<typename Ptr>
-    struct pointer_traits : private std::pointer_traits<Ptr>
+    struct pointer_traits
     {
     private:
-        using base = std::pointer_traits<Ptr>;
+        using std_traits = std::pointer_traits<Ptr>;
+
+        struct no_type
+        {
+        };
+
+        static consteval auto get_pointer_type()
+        {
+            if constexpr(requires { typename std_traits::pointer; })
+                return type_constant<typename std_traits::pointer>{};
+            else return type_constant<Ptr>{};
+        }
+
+        static consteval auto get_element_type()
+        {
+            if constexpr(requires { typename std_traits::element_type; })
+                return type_constant<typename std_traits::element_type>{};
+            else if constexpr(dereferenceable<Ptr>)
+                return type_constant<std::remove_reference_t<decltype(*std::declval<Ptr>())>>{};
+            else return no_type{};
+        }
 
     public:
-        using typename base::pointer;
+        using pointer = decltype(get_pointer_type())::type;
 
-        using typename base::difference_type;
+        template<typename T = decltype(get_element_type())>
+        struct element_type_t
+        {
+            using element_type = T::type;
+        };
 
-        using typename base::element_type;
+        template<>
+        struct element_type_t<no_type>
+        {
+        };
 
         template<typename U>
-        using rebind = base::template rebind<U>;
-
-        using raw_pointer = std::conditional_t<
-            std::same_as<rebind<const element_type>, pointer>,
-            std::add_pointer_t<const element_type>,
-            std::add_pointer_t<element_type>>;
+        using rebind = decltype( //
+            []<typename Base = std_traits>
+            {
+                return type_constant<typename Base::template rebind<U>>{}; //
+            }()
+        );
 
     private:
-        using element_param_type = std::conditional_t<
-            std::same_as<const element_type, const void>,
-            private_object<pointer_traits>,
-            element_type>;
-
-        struct base_pointer_to
-        {
-            [[nodiscard]] constexpr pointer operator()(element_param_type& t) const
-                noexcept(noexcept(Ptr::pointer_to(t)))
-                requires requires { Ptr::pointer_to(t); }
-            {
-                return base::pointer_to(t);
-            }
-        };
-
-        struct convert_pointer_to
-        {
-            [[nodiscard]] constexpr pointer operator()(element_param_type& r) const
-                noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
-                requires explicitly_convertible<raw_pointer, pointer>
-            {
-                return auto_cast(std::addressof(r));
-            }
-        };
-
         struct std_to_address
         {
-            [[nodiscard]] constexpr auto operator()(const pointer& p
-            ) const noexcept -> decltype(std::to_address(p))
+            [[nodiscard]] constexpr decltype(auto) operator()(const pointer& p) const noexcept
+                requires requires { std::to_address(p); }
             {
                 return std::to_address(p);
             }
@@ -67,50 +70,173 @@ namespace stdsharp
 
         struct convert_to_address
         {
-            STDSHARP_INTRINSIC constexpr raw_pointer operator()(const pointer& p) const noexcept
-                requires nothrow_explicitly_convertible<pointer, raw_pointer>
+            [[nodiscard]] constexpr decltype(auto) operator()(const pointer& p) const noexcept
+                requires requires { std::addressof(*p); }
             {
-                return static_cast<raw_pointer>(p);
+                return std::addressof(*p);
             }
         };
 
     public:
-        using pointer_to_fn = sequenced_invocables<base_pointer_to, convert_pointer_to>;
-
-        static constexpr pointer_to_fn pointer_to{};
-
-        using to_address_fn = sequenced_invocables<std_to_address, convert_to_address>;
+        using to_address_fn =
+            nodiscard_invocable<stdsharp::sequenced_invocables<std_to_address, convert_to_address>>;
 
         static constexpr to_address_fn to_address{};
 
     private:
-        struct dereference_to_pointer
+        template<typename Element = decltype(get_element_type())::type>
+        static consteval auto get_raw_pointer()
         {
-            [[nodiscard]] constexpr pointer operator()(const raw_pointer p) const
-                noexcept(noexcept(pointer_to(*p), pointer{}))
-                requires requires {
-                    requires nullable_pointer<pointer>;
-                    pointer_to(*p);
-                }
+            if constexpr(std::invocable<to_address_fn, pointer>)
+                return static_cast<std::invoke_result_t<to_address_fn, pointer>>(nullptr);
+            else if constexpr(std::same_as<const void, Element>)
+                return static_cast<const void*>(nullptr);
+            else if constexpr(std::same_as<void, Element>)
             {
-                return p == nullptr ? pointer{} : pointer_to(*p);
+                if constexpr(requires { pointer{static_cast<const void*>(nullptr)}; })
+                    return static_cast<const void*>(nullptr);
+                else if constexpr(requires { pointer{static_cast<void*>(nullptr)}; })
+                    return static_cast<void*>(nullptr);
+                else return no_type{};
             }
-        };
-
-        struct convert_to_pointer
-        {
-            STDSHARP_INTRINSIC constexpr pointer operator()(const raw_pointer p) const
-                noexcept(nothrow_explicitly_convertible<raw_pointer, pointer>)
-                requires explicitly_convertible<raw_pointer, pointer>
-            {
-                return static_cast<pointer>(p);
-            }
-        };
+            else return no_type{};
+        }
 
     public:
-        using to_pointer_fn = sequenced_invocables<dereference_to_pointer, convert_to_pointer>;
+        template<typename RawPtr = decltype(get_raw_pointer())>
+        struct raw_pointer_t
+        {
+            using raw_pointer = RawPtr;
+        };
 
-        static constexpr to_pointer_fn to_pointer{};
+        template<>
+        struct raw_pointer_t<no_type>
+        {
+        };
+
+    private:
+        static consteval auto get_difference_type()
+        {
+            if constexpr(requires { typename std_traits::difference_type; })
+                return type_constant<typename std_traits::difference_type>{};
+            else if constexpr(requires(pointer p) { p - p; })
+                return type_constant<decltype(std::declval<pointer&>() - std::declval<pointer&>())>{
+                };
+            else if constexpr(requires(raw_pointer_t<>::raw_pointer p) { p - p; })
+            {
+                using raw_pointer = raw_pointer_t<>::raw_pointer;
+
+                return type_constant<
+                    decltype(std::declval<raw_pointer&>() - std::declval<raw_pointer&>())>{};
+            }
+            else return no_type{};
+        }
+
+    public:
+        template<typename T = decltype(get_difference_type())>
+        struct difference_type_t
+        {
+            using difference_type = T::type;
+        };
+
+        template<>
+        struct difference_type_t<no_type>
+        {
+        };
+
+        template<
+            typename = decltype(get_element_type())::type,
+            typename = decltype(get_raw_pointer())>
+        struct pointer_to_fn_t
+        {
+        };
+
+        template<
+            std::same_as<typename element_type_t<>::element_type> Element,
+            std::same_as<typename raw_pointer_t<>::raw_pointer> RawPtr>
+            requires(!void_<Element>)
+        struct pointer_to_fn_t<Element, RawPtr>
+        {
+        private:
+            struct base_pointer_to
+            {
+                [[nodiscard]] constexpr pointer operator()(Element& t) const
+                    noexcept(noexcept(Ptr::pointer_to(t)))
+                    requires requires { Ptr::pointer_to(t); }
+                {
+                    return std_traits::pointer_to(t);
+                }
+            };
+
+            struct convert_pointer_to
+            {
+                [[nodiscard]] constexpr pointer operator()(Element& r) const
+                    noexcept(nothrow_explicitly_convertible<RawPtr, pointer>)
+                    requires explicitly_convertible<RawPtr, pointer>
+                {
+                    return auto_cast(std::addressof(r));
+                }
+            };
+
+        public:
+            using pointer_to_fn = nodiscard_invocable<
+                stdsharp::sequenced_invocables<base_pointer_to, convert_pointer_to>>;
+
+            static constexpr pointer_to_fn pointer_to{};
+        };
+
+        template<typename = decltype(get_raw_pointer())>
+        struct to_pointer_fn_t
+        {
+        };
+
+        template<std::same_as<typename raw_pointer_t<>::raw_pointer> RawPtr>
+        struct to_pointer_fn_t<RawPtr>
+        {
+        private:
+            struct dereference_to_pointer
+            {
+                [[nodiscard]] constexpr pointer operator()(const RawPtr p) const
+                    noexcept(noexcept(pointer_to(*p), pointer{}))
+                    requires requires {
+                        requires nullable_pointer<pointer>;
+                        pointer_to(*p);
+                    }
+                {
+                    return p == nullptr ? pointer{} : pointer_to(*p);
+                }
+            };
+
+            struct convert_to_pointer
+            {
+                STDSHARP_INTRINSIC constexpr pointer operator()(const RawPtr p) const
+                    noexcept(nothrow_explicitly_convertible<RawPtr, pointer>)
+                    requires explicitly_convertible<RawPtr, pointer>
+                {
+                    return static_cast<pointer>(p);
+                }
+            };
+
+        public:
+            using to_pointer_fn = nodiscard_invocable<
+                stdsharp::sequenced_invocables<dereference_to_pointer, convert_to_pointer>>;
+
+            static constexpr to_pointer_fn to_pointer{};
+        };
+    };
+}
+
+namespace stdsharp
+{
+    template<typename Ptr>
+    struct pointer_traits :
+        details::pointer_traits<Ptr>,
+        details::pointer_traits<Ptr>::template element_type_t<>,
+        details::pointer_traits<Ptr>::template difference_type_t<>,
+        details::pointer_traits<Ptr>::template raw_pointer_t<>,
+        details::pointer_traits<Ptr>::template pointer_to_fn_t<>,
+        details::pointer_traits<Ptr>::template to_pointer_fn_t<>
+    {
     };
 
     inline constexpr struct to_void_pointer_fn

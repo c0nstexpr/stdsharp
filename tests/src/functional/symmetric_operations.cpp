@@ -1,9 +1,6 @@
 #include "stdsharp/functional/symmetric_operations.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: symmetric assign operation",
     "[functional][symmetric operation]",

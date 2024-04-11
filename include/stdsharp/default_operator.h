@@ -2,55 +2,55 @@
 
 #include "concepts/object.h"
 
-namespace stdsharp
+namespace stdsharp::default_operator
 {
-    template<typename T>
-    class default_increase
+    struct increase
     {
-        [[nodiscard]] friend constexpr auto operator++(T& t, int)
+        template<std::copy_constructible T>
+        [[nodiscard]] constexpr auto operator++(this T& t, int)
             noexcept(nothrow_copy_constructible<T> && noexcept(++t))
-            requires std::copy_constructible<T> && requires { ++t; }
+            requires requires { ++t; }
         {
-            const auto copied = t;
+            auto copied = t;
             ++t;
-            return copied;
+            return cpp_move(copied);
         }
 
-        [[nodiscard]] friend constexpr auto operator--(T& t, int)
+        template<std::copy_constructible T>
+        [[nodiscard]] constexpr auto operator--(this T& t, int)
             noexcept(nothrow_copy_constructible<T> && noexcept(--t))
-            requires std::copy_constructible<T> && requires { --t; }
+            requires requires { --t; }
         {
-            const auto copied = t;
+            auto copied = t;
             --t;
-            return copied;
+            return cpp_move(copied);
         }
     };
 
-    template<typename T>
-    class default_arithmetic_operator : default_increase<T>
+    struct arithmetic
     {
-        friend constexpr T& operator++(T& t) noexcept(noexcept(t += 1))
+        constexpr auto& operator++(this auto& t) noexcept(noexcept(t += 1))
             requires requires { t += 1; }
         {
             t += 1;
             return t;
         }
 
-        friend constexpr T& operator--(T& t) noexcept(noexcept(t -= 1))
+        constexpr auto& operator--(this auto& t) noexcept(noexcept(t -= 1))
             requires requires { t -= 1; }
         {
             t -= 1;
             return t;
         }
 
-#define STDSHARP_ARITH_OP(op)                                             \
-    [[nodiscard]] friend constexpr T operator op(T t, auto&& u) noexcept( \
-        noexcept(t op## = cpp_forward(u))                                 \
-    )                                                                     \
-        requires requires { t op## = cpp_forward(u); }                    \
-    {                                                                     \
-        t op## = cpp_forward(u);                                          \
-        return t;                                                         \
+#define STDSHARP_ARITH_OP(op)                                                        \
+    template<std::move_constructible T>                                              \
+    [[nodiscard]] constexpr T operator op(this T t, auto&& u) /**/                   \
+        noexcept(noexcept(t op## = cpp_forward(u)) && nothrow_move_constructible<T>) \
+        requires requires { t op## = cpp_forward(u); }                               \
+    {                                                                                \
+        t op## = cpp_forward(u);                                                     \
+        return cpp_move(t);                                                          \
     }
 
         STDSHARP_ARITH_OP(+)
@@ -64,59 +64,39 @@ namespace stdsharp
         STDSHARP_ARITH_OP(<<)
         STDSHARP_ARITH_OP(>>)
 
-        [[nodiscard]] friend constexpr decltype(auto) operator-(const T& t)
-            noexcept(noexcept(0 - t))
-            requires requires { 0 - t; }
+        [[nodiscard]] constexpr auto operator-(this const auto& t)
+            noexcept(noexcept(0 - t)) -> decltype(0 - t)
         {
             return 0 - t;
         };
     };
 
-    template<typename T>
-    class default_arrow_operator
+    struct arrow
     {
-        [[nodiscard]] constexpr decltype(auto) operator->() const
-            noexcept(noexcept(*static_cast<const T&>(*this)))
-            requires dereferenceable<const T>
+        [[nodiscard]] constexpr decltype(auto) operator->(this dereferenceable auto&& t)
+            noexcept(noexcept(*cpp_forward(t)))
         {
-            return *static_cast<const T&>(*this);
+            return *cpp_forward(t);
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator->()
-            noexcept(noexcept(*static_cast<T&>(*this)))
-            requires dereferenceable<T>
+        [[nodiscard]] constexpr decltype(auto
+        ) operator->*(this dereferenceable auto&& t, auto&& ptr)
+            noexcept(noexcept((*cpp_forward(t)).*cpp_forward(ptr)))
         {
-            return *static_cast<T&>(*this);
-        }
-
-        [[nodiscard]] friend constexpr decltype(auto) operator->*(const T& t, auto&& ptr)
-            noexcept(noexcept((*t).*cpp_forward(ptr)))
-            requires dereferenceable<const T>
-        {
-            return (*t).*cpp_forward(ptr);
-        }
-
-        [[nodiscard]] friend constexpr decltype(auto) operator->*(T& t, auto&& ptr)
-            noexcept(noexcept((*t).*cpp_forward(ptr)))
-            requires dereferenceable<T>
-        {
-            return (*t).*cpp_forward(ptr);
+            return (*cpp_forward(t)).*cpp_forward(ptr);
         }
     };
 
-    template<typename T>
-    class default_subscriptor
+    struct subscript
     {
 #if __cpp_multidimensional_subscript >= 202110L
-        [[nodiscard]] constexpr decltype(auto) operator[](auto&& first_arg, auto&&... args)
-            noexcept( //
-                noexcept(static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...])
-            )
-            requires requires {
-                static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...];
-            }
+        [[nodiscard]] constexpr decltype(auto
+        ) operator[](this auto&& t, auto&& first_arg, auto&&... args) noexcept( //
+            noexcept(cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...])
+        )
+            requires requires { cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...]; }
         {
-            return static_cast<const T&>(*this)[cpp_forward(first_arg)][cpp_forward(args)...];
+            return cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...];
         }
 #endif
     };

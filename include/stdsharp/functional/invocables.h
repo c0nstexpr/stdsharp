@@ -7,7 +7,6 @@
 
 #include "../compilation_config_in.h"
 
-
 namespace stdsharp
 {
     template<std::size_t I, typename Func>

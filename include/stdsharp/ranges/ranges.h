@@ -1,13 +1,13 @@
 #pragma once
 
-#include <ranges>
+#include "../functional/invocables.h"
+#include "../iterator/iterator.h"
+#include "../utility/utility.h"
 
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
 
-#include "../iterator/iterator.h"
-#include "../functional/invocables.h"
-#include "../utility/utility.h"
+#include <ranges>
 
 namespace stdsharp
 {

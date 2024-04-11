@@ -1,9 +1,6 @@
 #include "test.h"
 #include "stdsharp/pattern_match.h"
 
-using namespace std;
-using namespace stdsharp;
-
 SCENARIO("pattern match", "[pattern match]") // NOLINT
 {
     enum class my_enum : uint8_t

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "invoke.h"
-
 #include "../concepts/object.h"
+#include "invoke.h"
 
 namespace stdsharp
 {

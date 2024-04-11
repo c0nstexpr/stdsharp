@@ -1,14 +1,15 @@
 #pragma once
 
+#include "concepts/object.h"
+#include "utility/forward_cast.h"
+
 #include <memory>
 #include <utility>
-
-#include "utility/forward_cast.h"
 
 namespace stdsharp
 {
     template<std::invocable Fn>
-    class lazy_value // NOLINTBEGIN(*-noexcept-*)
+    class lazy // NOLINTBEGIN(*-noexcept-*)
     {
     public:
         using value_type = std::invoke_result_t<Fn>;
@@ -36,11 +37,11 @@ namespace stdsharp
         }
 
     public:
-        lazy_value() = default;
+        lazy() = default;
 
         template<typename... Args>
             requires std::constructible_from<Fn, Args...>
-        constexpr explicit(sizeof...(Args) == 1) lazy_value(Args&&... args)
+        constexpr explicit(sizeof...(Args) == 1) lazy(Args&&... args)
             noexcept(nothrow_constructible_from<Fn, Args...>):
             fn_(cpp_forward(args)...)
         {
@@ -78,7 +79,7 @@ namespace stdsharp
         }
 
     public:
-        constexpr lazy_value(const lazy_value& other)
+        constexpr lazy(const lazy& other)
             noexcept(nothrow_copy_constructible<Fn> && nothrow_copy_constructible<value_type>)
             requires std::copy_constructible<Fn> && std::copy_constructible<value_type>
             : has_value_(other.has_value_)
@@ -86,7 +87,7 @@ namespace stdsharp
             ctor(other);
         }
 
-        constexpr lazy_value(lazy_value&& other)
+        constexpr lazy(lazy&& other)
             noexcept(nothrow_move_constructible<Fn> && nothrow_move_constructible<value_type>)
             requires std::move_constructible<Fn> && std::move_constructible<value_type>
             : has_value_(other.has_value_)
@@ -94,7 +95,7 @@ namespace stdsharp
             ctor(cpp_move(other));
         }
 
-        constexpr lazy_value& operator=(const lazy_value& other)
+        constexpr lazy& operator=(const lazy& other)
             noexcept(nothrow_copy_assignable<Fn> && nothrow_copy_assignable<value_type>)
             requires copy_assignable<Fn> && copy_assignable<value_type>
         {
@@ -102,7 +103,7 @@ namespace stdsharp
             return *this;
         }
 
-        constexpr lazy_value& operator=(lazy_value&& other)
+        constexpr lazy& operator=(lazy&& other)
             noexcept(nothrow_move_assignable<Fn> && nothrow_move_assignable<value_type>)
             requires move_assignable<Fn> && move_assignable<value_type>
         {
@@ -110,13 +111,13 @@ namespace stdsharp
             return *this;
         }
 
-        constexpr ~lazy_value()
+        constexpr ~lazy()
         {
             if(has_value_) std::ranges::destroy_at(&value_);
             else std::ranges::destroy_at(&fn_);
         }
 
-        constexpr void swap(lazy_value& other) noexcept(
+        constexpr void swap(lazy& other) noexcept(
             nothrow_swappable<Fn> && //
             nothrow_swappable<value_type> && //
             nothrow_move_constructible<Fn> && //
@@ -161,10 +162,10 @@ namespace stdsharp
 
         template<typename Self>
         constexpr decltype(auto) get(this Self&& self)
-            noexcept(noexcept(generate_value(forward_cast<Self, lazy_value>(self))))
-            requires requires { generate_value(forward_cast<Self, lazy_value>(self)); }
+            noexcept(noexcept(generate_value(forward_cast<Self, lazy>(self))))
+            requires requires { generate_value(forward_cast<Self, lazy>(self)); }
         {
-            auto&& this_ = forward_cast<Self, lazy_value>(self);
+            auto&& this_ = forward_cast<Self, lazy>(self);
             generate_value(cpp_forward(this_));
             return cpp_forward(this_).value_;
         }
@@ -172,16 +173,16 @@ namespace stdsharp
         template<typename Self>
         constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<const Self, lazy_value>(self).value_;
+            return forward_cast<const Self, lazy>(self).value_;
         }
 
         template<typename Self>
         constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast<const Self&, lazy_value>(self).value_;
+            return forward_cast<const Self&, lazy>(self).value_;
         }
     }; // NOLINTEND(*-noexcept-*)
 
     template<typename Fn>
-    lazy_value(Fn&&) -> lazy_value<std::decay_t<Fn>>;
+    lazy(Fn&&) -> lazy<std::decay_t<Fn>>;
 }

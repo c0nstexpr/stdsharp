@@ -7,7 +7,6 @@
 
 #include <cassert>
 
-
 namespace stdsharp
 {
     inline constexpr auto is_debug =

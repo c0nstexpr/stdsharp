@@ -1,15 +1,15 @@
 #pragma once
 
-#include <ranges>
-#include <variant>
-#include <optional>
-#include <numeric>
-#include <format>
+#include "../cstdint/cstdint.h"
 
 #include <ctre.hpp>
+#include <format>
+#include <numeric>
+#include <optional>
+#include <ranges>
 #include <unicode-db.hpp>
+#include <variant>
 
-#include "../cstdint/cstdint.h"
 
 namespace stdsharp
 {

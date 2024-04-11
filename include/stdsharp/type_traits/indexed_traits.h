@@ -27,16 +27,17 @@ namespace stdsharp::details
             const basic_type_sequence<T...> /*unused*/
         )
         {
-            constexpr struct STDSHARP_EBO : std::conditional_t<I == J, filter<T>, invalid<J>>...
+            constexpr struct : std::conditional_t<I == J, filter<T>, invalid<J>>...
             {
             } f{};
 
-            return f.get();
+            return f;
         }
 
         template<std::size_t I, typename... T>
-        using type =
-            decltype(impl<I>(std::index_sequence_for<T...>{}, basic_type_sequence<T...>{}))::type;
+        using type = decltype( //
+            impl<I>(std::index_sequence_for<T...>{}, basic_type_sequence<T...>{}).get()
+        )::type;
     };
 }
 

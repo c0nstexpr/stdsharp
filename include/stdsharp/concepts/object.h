@@ -153,7 +153,6 @@ namespace stdsharp
         implicitly_constructible_from<T, const T> && //
         implicitly_constructible_from<T, const T&>;
 
-
     template<typename T, typename... Args>
     concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
 
@@ -230,8 +229,8 @@ namespace stdsharp
     };
 
     template<typename T>
-    concept dereferenceable = requires(T& t) {
-        { *t } -> referenceable;
+    concept dereferenceable = requires(T&& t) {
+        { *cpp_forward(t) } -> referenceable;
     };
 
     template<typename T>

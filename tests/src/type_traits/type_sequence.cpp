@@ -1,9 +1,6 @@
 #include "stdsharp/type_traits/type_sequence.h"
 #include "test.h"
 
-using namespace std;
-using namespace stdsharp;
-
 using test_seq = type_sequence<int, float, char, unsigned, float>;
 
 TEMPLATE_TEST_CASE( // NOLINT

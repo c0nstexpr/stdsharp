@@ -4,7 +4,6 @@
 #include "../utility/dispatcher.h"
 #include "allocation_value.h"
 
-
 namespace stdsharp::details
 {
     template<lifetime_req Req, allocator_req Alloc>

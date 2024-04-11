@@ -6,8 +6,8 @@
 namespace stdsharp
 {
     template<typename T>
-    concept allocator_contains = requires(const T& alloc, const allocator_cvp<T> cvp) {
-        { alloc.contains(cvp) } noexcept -> nothrow_boolean_testable;
+    concept allocator_contains = requires(const T& alloc, const allocator_pointer<T> p) {
+        { alloc.contains(p) } noexcept -> nothrow_boolean_testable;
     };
 
     template<allocator_contains FirstAlloc, allocator_req SecondAlloc>
@@ -117,9 +117,10 @@ namespace stdsharp
         constexpr void deallocate(value_type* const ptr, const std::size_t n) noexcept
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(first_cvp_traits::to_pointer(static_cast<const void*>(ptr))))
+            if(auto first_ptr_v = pointer_traits<first_ptr>::to_pointer(ptr);
+               first.contains(first_ptr_v))
                 first.deallocate(ptr, n);
-            else second.deallocate(ptr, n);
+            else second.deallocate(pointer_traits<second_ptr>::to_pointer(ptr), n);
         }
 
         [[nodiscard]] constexpr auto max_size() const noexcept
@@ -177,7 +178,7 @@ namespace stdsharp
         )
         {
             auto& [first, second] = alloc_pair_;
-            if(first.contains(first_cvp_traits::to_pointer(static_cast<const void*>(ptr))))
+            if(first.contains(pointer_traits<first_ptr>::to_pointer(ptr)))
                 return first_traits::construct(first, ptr, cpp_forward(args)...);
             return second_traits::construct(second, ptr, cpp_forward(args)...);
         }
@@ -187,8 +188,8 @@ namespace stdsharp
         {
             const auto vp = static_cast<const void*>(ptr);
             const auto& [first, second] = alloc_pair_;
-            return first.contains(first_cvp_traits::to_pointer(vp)) ||
-                second.contains(second_cvp_traits::to_pointer(vp));
+            return first.contains(pointer_traits<first_ptr>::to_pointer(vp)) ||
+                second.contains(pointer_traits<second_ptr>::to_pointer(vp));
         }
 
         [[nodiscard]] bool operator==(const composed_allocator&) const noexcept = default;
