@@ -31,7 +31,7 @@ void allocation_type_requirement_test()
 template<typename T, typename Value, typename Predicate>
 void allocation_emplace_value_test(T& box, const Value& value, Predicate predicate)
 {
-    WHEN(format("emplace a value, type id is {}", type_id<Value>))
+    WHEN("emplace a value")
     {
         const auto& res = box.emplace(value);
 
@@ -53,7 +53,7 @@ void allocation_emplace_execution_test(T& box)
 
     WHEN("assign custom type twice")
     {
-        INFO(format("custom type: {}", type_id<local>));
+        INFO("custom type");
 
         box.template emplace<local>(invoked);
         box.template emplace<local>(invoked);
@@ -71,7 +71,7 @@ void allocation_emplace_execution_test(T& box)
 template<typename T>
 void allocation_functionality_test(T box = {})
 {
-    GIVEN(format("an object allocation for type id {}", type_id<T>))
+    GIVEN("an object allocation")
     {
         allocation_emplace_value_test(
             box,

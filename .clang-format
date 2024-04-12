@@ -29,18 +29,18 @@ EmptyLineBeforeAccessModifier: Always
 FixNamespaceComments: false
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:           '(../)*compilation_config_in.h'
-    SortPriority:    99
-    Priority:        99
-  - Regex:           '".+"'
-    SortPriority:    0
-    Priority:        0
-  - Regex:           '<.+/.+>'
-    SortPriority:    1
-    Priority:        1
-  - Regex:           '<.+>'
-    SortPriority:    2
-    Priority:        2
+  - Regex: "(../)*compilation_config_in.h"
+    SortPriority: 99
+    Priority: 99
+  - Regex: '".+"'
+    SortPriority: 0
+    Priority: 0
+  - Regex: "<.+/.+>"
+    SortPriority: 1
+    Priority: 1
+  - Regex: "<.+>"
+    SortPriority: 2
+    Priority: 2
 IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
 IndentWidth: 4
@@ -49,7 +49,17 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
 PackConstructorInitializers: NextLine
-PenaltyBreakFirstLessLess: 3
+PenaltyBreakAssignment: 20
+PenaltyBreakBeforeFirstCallParameter: 10
+PenaltyBreakComment: 0
+PenaltyBreakFirstLessLess: 0
+PenaltyBreakOpenParenthesis: 10
+PenaltyBreakScopeResolution: 30
+PenaltyBreakString: 100
+PenaltyBreakTemplateDeclaration: 100
+PenaltyExcessCharacter: 1000
+PenaltyIndentedWhitespace: 0
+PenaltyReturnTypeOnItsOwnLine: 50
 PointerAlignment: Left
 QualifierAlignment: Left
 SeparateDefinitionBlocks: Always

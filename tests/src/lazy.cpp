@@ -1,11 +1,11 @@
 #include "stdsharp/lazy.h"
 #include "test.h"
 
-SCENARIO("lazy value", "[lazy value]") // NOLINT
+SCENARIO("lazy", "[lazy]") // NOLINT
 {
     GIVEN("a lazy value")
     {
-        stdsharp::lazy_value lazy{[]() { return std::string{"foo"}; }};
+        stdsharp::lazy lazy{[]() { return std::string{"foo"}; }};
 
         WHEN("get value")
         {
@@ -22,7 +22,7 @@ SCENARIO("lazy value", "[lazy value]") // NOLINT
         STATIC_REQUIRE(
             []
             {
-                stdsharp::lazy_value lazy{[]() { return value; }};
+                stdsharp::lazy lazy{[]() { return value; }};
                 return lazy.get();
             }() == value
         );

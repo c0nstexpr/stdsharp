@@ -2,7 +2,7 @@
 #include "stdsharp/functional/sequenced_invocables.h"
 #include "test.h"
 
-SCENARIO("sequenced invocables", "[functional]")
+SCENARIO("sequenced invocables", "[functional][sequenced invocables]")
 {
     sequenced_invocables fn{[](int i) { return i; }, [](array<int, 1>) {}};
     using fn_t = decltype(fn);

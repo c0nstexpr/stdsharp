@@ -54,7 +54,7 @@ namespace stdsharp
         using no_ref_from_t = std::remove_reference_t<From>;
 
     public:
-        using from_t = std::remove_cvref_t<From>;
+        using from_t = std::remove_cv_t<no_ref_from_t>;
         using to_t = std::remove_cvref_t<To>;
         using cast_t = apply_qualifiers<
             To,
@@ -66,7 +66,8 @@ namespace stdsharp
             requires(base_of<to_t, from_t> || base_of<from_t, to_t>) &&
             std::same_as<std::remove_reference_t<T>, no_ref_from_t>
         [[nodiscard]] constexpr decltype(auto) operator()(T&& from) const noexcept
-        { // c-style cast allow us cast to inaccessible base
+        {
+            // c-style cast allow us cast to inaccessible base
             if constexpr(not_same_as<from_t, to_t>) return (cast_t)from; // NOLINT
             else return static_cast<cast_t>(from);
         }

@@ -2,7 +2,7 @@
 #include "stdsharp/type_traits/indexed_traits.h"
 #include "test.h"
 
-SCENARIO("indexed traits", "[type traits]")
+SCENARIO("indexed traits", "[type traits][indexed traits]")
 {
     GIVEN("type at")
     {
@@ -16,8 +16,9 @@ SCENARIO("indexed traits", "[type traits]")
 
         THEN("type is constructible")
         {
-            STATIC_REQUIRE(std::default_initializable<indexed_values>);
-            STATIC_REQUIRE(list_initializable_from<indexed_values, int, float>);
+            STATIC_REQUIRE(default_initializable<indexed_values>);
+            STATIC_REQUIRE(constructible_from<indexed_values, int, float>);
+            STATIC_REQUIRE(constructible_from<indexed_values, const int&, const float&>);
         }
 
         [[maybe_unused]] indexed_values values;

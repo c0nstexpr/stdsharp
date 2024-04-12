@@ -1,5 +1,5 @@
-#include "test.h"
 #include "stdsharp/synchronizer.h"
+#include "test.h"
 
 SCENARIO("synchronizer", "[synchronizer]") // NOLINT
 {

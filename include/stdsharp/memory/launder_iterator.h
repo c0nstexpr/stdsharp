@@ -8,12 +8,16 @@
 namespace stdsharp
 {
     template<typename T> // NOLINTBEGIN(*-pointer-arithmetic)
-    class launder_iterator : default_operator::arithmetic, public std::random_access_iterator_tag
+    class launder_iterator :
+        public default_operator::arithmetic,
+        public default_operator::arrow,
+        public std::random_access_iterator_tag
     {
         T* ptr_;
 
     public:
         using value_type = T;
+        using difference_type = std::ptrdiff_t;
 
         constexpr launder_iterator(T* const ptr) noexcept: ptr_((assert_not_null(ptr), ptr)) {}
 
@@ -39,29 +43,27 @@ namespace stdsharp
             return ptr_ == other.ptr_;
         }
 
-        constexpr launder_iterator& operator+=(const std::ptrdiff_t diff) noexcept
+        constexpr launder_iterator& operator+=(const difference_type diff) noexcept
         {
             ptr_ += diff;
             return *this;
         }
 
-        constexpr launder_iterator& operator-=(const std::ptrdiff_t diff) noexcept
+        constexpr launder_iterator& operator-=(const difference_type diff) noexcept
         {
             ptr_ -= diff;
             return *this;
         }
 
-        [[nodiscard]] constexpr std::ptrdiff_t operator-(const launder_iterator& other) //
+        [[nodiscard]] constexpr difference_type operator-(const launder_iterator& other) //
             const noexcept
         {
             return ptr_ - other.ptr_;
         }
 
-        [[nodiscard]] constexpr auto operator->() const noexcept { return data(); }
-
         [[nodiscard]] constexpr decltype(auto) operator*() const noexcept { return *data(); }
 
-        [[nodiscard]] constexpr decltype(auto) operator[](const std::ptrdiff_t diff) const noexcept
+        [[nodiscard]] constexpr decltype(auto) operator[](const difference_type diff) const noexcept
         {
             return *std::launder(ptr_ + diff);
         }

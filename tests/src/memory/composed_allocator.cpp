@@ -1,9 +1,9 @@
-#include <ranges>
-
-#include "stdsharp/memory/single_stack_allocator.h"
-#include "stdsharp/memory/composed_allocator.h"
 #include "stdsharp/memory/allocator_reference.h"
+#include "stdsharp/memory/composed_allocator.h"
+#include "stdsharp/memory/single_stack_allocator.h"
 #include "test_allocator.h"
+
+#include <ranges>
 
 SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
 {

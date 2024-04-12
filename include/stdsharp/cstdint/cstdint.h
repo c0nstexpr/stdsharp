@@ -6,7 +6,6 @@
 #include <limits>
 #include <stdexcept>
 
-
 namespace stdsharp
 {
     inline constexpr std::size_t char_bit = CHAR_BIT;

@@ -33,6 +33,8 @@ namespace stdsharp::details
     struct STDSHARP_EBO invocables<std::index_sequence<I...>, Func...> :
         indexed_invocable<I, Func>...
     {
+        using indexed_invocable<I, Func>::operator()...;
+
         static constexpr auto size() noexcept { return sizeof...(Func); }
 
         template<std::size_t J>
@@ -63,6 +65,25 @@ namespace stdsharp
     template<typename... Func>
     struct invocables : details::invocables<std::index_sequence_for<Func...>, Func...>
     {
+    private:
+        using m_base = details::invocables<std::index_sequence_for<Func...>, Func...>;
+
+    public:
+        invocables() = default;
+
+        constexpr invocables(Func&&... func)
+            noexcept(nothrow_list_initializable_from<m_base, Func...>)
+            requires list_initializable_from<m_base, Func...>
+            : m_base{cpp_move(func)...}
+        {
+        }
+
+        template<typename... T>
+            requires list_initializable_from<m_base, T...>
+        constexpr invocables(T&&... t) noexcept(nothrow_list_initializable_from<m_base, T...>):
+            m_base{cpp_forward(t)...}
+        {
+        }
     };
 
     template<typename... T>

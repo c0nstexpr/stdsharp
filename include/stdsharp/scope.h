@@ -1,10 +1,10 @@
 #pragma once
 
-#include <exception>
-#include <optional>
-
 #include "enumeration.h"
 #include "type_traits/object.h"
+
+#include <exception>
+#include <optional>
 
 namespace stdsharp::scope
 {

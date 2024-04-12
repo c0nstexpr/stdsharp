@@ -7,7 +7,7 @@ namespace stdsharp::default_operator
     struct increase
     {
         template<std::copy_constructible T>
-        [[nodiscard]] constexpr auto operator++(this T& t, int)
+        [[nodiscard]] friend constexpr auto operator++(T& t, int)
             noexcept(nothrow_copy_constructible<T> && noexcept(++t))
             requires requires { ++t; }
         {
@@ -17,7 +17,7 @@ namespace stdsharp::default_operator
         }
 
         template<std::copy_constructible T>
-        [[nodiscard]] constexpr auto operator--(this T& t, int)
+        [[nodiscard]] friend constexpr auto operator--(T& t, int)
             noexcept(nothrow_copy_constructible<T> && noexcept(--t))
             requires requires { --t; }
         {
@@ -27,7 +27,7 @@ namespace stdsharp::default_operator
         }
     };
 
-    struct arithmetic
+    struct arithmetic : increase
     {
         constexpr auto& operator++(this auto& t) noexcept(noexcept(t += 1))
             requires requires { t += 1; }
@@ -64,24 +64,73 @@ namespace stdsharp::default_operator
         STDSHARP_ARITH_OP(<<)
         STDSHARP_ARITH_OP(>>)
 
-        [[nodiscard]] constexpr auto operator-(this const auto& t)
-            noexcept(noexcept(0 - t)) -> decltype(0 - t)
-        {
-            return 0 - t;
-        };
+#undef STDSHARP_ARITH_OP
+    };
+
+    struct inverse_arithmetic : arithmetic
+    {
+#define STDSHARP_ARITH_OP(op)                                                            \
+    template<typename U>                                                                 \
+    [[nodiscard]] friend constexpr decltype(auto) operator op(U&& u, auto&& t) /**/      \
+        noexcept(noexcept(cpp_forward(t) op cpp_forward(u)))                             \
+        requires requires {                                                              \
+            requires !std::is_base_of_v<inverse_arithmetic, std::remove_reference_t<U>>; \
+            cpp_forward(t) op cpp_forward(u);                                            \
+        }                                                                                \
+    {                                                                                    \
+        return cpp_forward(t) op cpp_forward(u);                                         \
+    }
+
+        STDSHARP_ARITH_OP(+)
+        STDSHARP_ARITH_OP(-)
+        STDSHARP_ARITH_OP(*)
+        STDSHARP_ARITH_OP(/)
+        STDSHARP_ARITH_OP(%)
+        STDSHARP_ARITH_OP(&)
+        STDSHARP_ARITH_OP(|)
+        STDSHARP_ARITH_OP(^)
+        STDSHARP_ARITH_OP(<<)
+        STDSHARP_ARITH_OP(>>)
+
+#undef STDSHARP_ARITH_OP
+
+#define STDSHARP_ARITH_OP(op)                                                                 \
+    [[nodiscard]] friend constexpr auto operator op(const auto& t) noexcept(noexcept(0 op t)) \
+        ->decltype(0 op t)                                                                    \
+    {                                                                                         \
+        return 0 op t;                                                                        \
+    };                                                                                        \
+                                                                                              \
+    template<std::default_initializable T>                                                    \
+    [[nodiscard]] friend constexpr decltype(auto) operator op(const T& t                      \
+    ) noexcept(noexcept(T {} op t))                                                           \
+        requires requires {                                                                   \
+            requires !requires { 0 op t; };                                                   \
+            T {}                                                                              \
+            op t;                                                                             \
+        }                                                                                     \
+    {                                                                                         \
+        return T {}                                                                           \
+        op t;                                                                                 \
+    };
+
+        STDSHARP_ARITH_OP(+)
+        STDSHARP_ARITH_OP(-)
+
+#undef STDSHARP_ARITH_OP
     };
 
     struct arrow
     {
-        [[nodiscard]] constexpr decltype(auto) operator->(this dereferenceable auto&& t)
-            noexcept(noexcept(*cpp_forward(t)))
+        [[nodiscard]] constexpr auto* operator->(this dereferenceable auto&& t)
+            noexcept(noexcept(std::addressof(*cpp_forward(t))))
         {
-            return *cpp_forward(t);
+            return std::addressof(*cpp_forward(t));
         }
 
-        [[nodiscard]] constexpr decltype(auto
-        ) operator->*(this dereferenceable auto&& t, auto&& ptr)
+        [[nodiscard]] constexpr auto operator->*(this dereferenceable auto&& t, auto&& ptr)
             noexcept(noexcept((*cpp_forward(t)).*cpp_forward(ptr)))
+            requires requires { (*cpp_forward(t)).*cpp_forward(ptr); }
         {
             return (*cpp_forward(t)).*cpp_forward(ptr);
         }
@@ -90,13 +139,52 @@ namespace stdsharp::default_operator
     struct subscript
     {
 #if __cpp_multidimensional_subscript >= 202110L
-        [[nodiscard]] constexpr decltype(auto
-        ) operator[](this auto&& t, auto&& first_arg, auto&&... args) noexcept( //
-            noexcept(cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...])
+        [[nodiscard]] constexpr decltype(auto) operator[]( //
+            this auto&& t,
+            auto&& first_arg,
+            auto&& second_arg
+        ) noexcept( //
+            noexcept( //
+                cpp_forward(t) //
+                    [cpp_forward(first_arg)] //
+                    [cpp_forward(second_arg)]
+            )
         )
-            requires requires { cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...]; }
+            requires requires {
+                cpp_forward(t) //
+                    [cpp_forward(first_arg)] //
+                    [cpp_forward(second_arg)];
+            }
         {
-            return cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...];
+            return cpp_forward(t) //
+                [cpp_forward(first_arg)] //
+                [cpp_forward(second_arg)];
+        }
+
+        [[nodiscard]] constexpr decltype(auto) operator[]( //
+            this auto&& t,
+            auto&& first_arg,
+            auto&& second_arg,
+            auto&&... args
+        ) noexcept( //
+            noexcept( //
+                cpp_forward(t) //
+                    [cpp_forward(first_arg)] //
+                    [cpp_forward(second_arg)] //
+                    [cpp_forward(args)...]
+            )
+        )
+            requires requires {
+                cpp_forward(t) //
+                    [cpp_forward(first_arg)] //
+                    [cpp_forward(second_arg)] //
+                    [cpp_forward(args)...];
+            }
+        {
+            return cpp_forward(t) //
+                [cpp_forward(first_arg)] //
+                [cpp_forward(second_arg)] //
+                [cpp_forward(args)...];
         }
 #endif
     };

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../cmath/cmath.h"
 #include "../utility/dispatcher.h"
 #include "allocation_value.h"
 
@@ -23,7 +22,7 @@ namespace stdsharp::details
 
         static constexpr auto req = allocator_traits::template type_req<fake_type>;
 
-        using dispatchers = invocables<
+        using dispatchers = stdsharp::invocables<
             dispatcher<
                 req.copy_construct,
                 void,
@@ -72,23 +71,24 @@ namespace stdsharp
 
         constexpr decltype(auto) dispatchers(this auto&& self) noexcept
         {
-            return cpo::get_element<0>(cpp_forward(self).values_);
+            return cpp_forward(self).values_.template get<0>();
         }
 
         template<std::size_t I>
         [[nodiscard]] constexpr bool equal_to(const allocation_value& other) const noexcept
         {
-            return cpo::get_element<I>(dispatchers()) == cpo::get_element<I>(other.dispatchers());
+            return dispatchers().template get<I>() == other.dispatchers().template get<I>();
         }
 
     public:
         allocation_value() = default;
 
-        constexpr void operator()(this auto&& self, auto&&... args)
-            noexcept(noexcept(cpp_forward(self).dispatchers()(cpp_forward(args)...)))
-            requires requires { cpp_forward(self).dispatchers()(cpp_forward(args)...); }
+        template<typename Self, auto ForwardCast = forward_cast<Self, allocation_value>>
+        constexpr void operator()(this Self&& self, auto&&... args)
+            noexcept(noexcept(ForwardCast(self).dispatchers()(cpp_forward(args)...)))
+            requires requires { ForwardCast(self).dispatchers()(cpp_forward(args)...); }
         {
-            cpp_forward(self).dispatchers()(cpp_forward(args)...);
+            ForwardCast(self).dispatchers()(cpp_forward(args)...);
         }
 
         constexpr bool operator==(const allocation_value& other) const noexcept
@@ -118,7 +118,7 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto value_size() const noexcept
         {
-            return cpo::get_element<1>(values_);
+            return values_.template get<1>();
         }
     };
 

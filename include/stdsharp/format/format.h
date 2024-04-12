@@ -10,7 +10,6 @@
 #include <unicode-db.hpp>
 #include <variant>
 
-
 namespace stdsharp
 {
     namespace details

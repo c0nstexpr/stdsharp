@@ -15,7 +15,7 @@ class t2 : t1
     float v;
 };
 
-SCENARIO("forward cast", "[utility]")
+SCENARIO("forward cast", "[utility][forward cast]")
 {
     STATIC_REQUIRE(same_as<forward_cast_t<int, int>, int&&>);
     STATIC_REQUIRE(same_as<forward_cast_t<int&, int>, int&>);

@@ -3,7 +3,6 @@
 
 #include <type_traits>
 
-
 struct my_class
 {
     using mem_t = int;
@@ -16,7 +15,7 @@ struct my_class
     mem_func_r_t mem_f(long, double);
 };
 
-SCENARIO("member", "[type traits]") // NOLINT
+SCENARIO("member", "[type traits][member]") // NOLINT
 {
     GIVEN("custom class type")
     {

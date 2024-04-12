@@ -5,7 +5,7 @@ using test_seq = type_sequence<int, float, char, unsigned, float>;
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: type sequence",
-    "[type traits]",
+    "[type traits][type sequence]",
     test_seq,
     type_sequence<>
 )
@@ -15,7 +15,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence type",
-    "[type traits]",
+    "[type traits][type sequence]",
     ((auto Index, typename Expect), Index, Expect),
     (0, int),
     (1, float),
@@ -26,7 +26,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::type<Index>, Expect>);
 }
 
-SCENARIO("type sequence apply", "[type traits]") // NOLINT
+SCENARIO("type sequence apply", "[type traits][type sequence]") // NOLINT
 {
     STATIC_REQUIRE(default_initializable<test_seq::apply_t<type_sequence>>);
 }
@@ -39,7 +39,7 @@ namespace
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: type sequence invoke",
-    "[type traits]",
+    "[type traits][type sequence]",
     identity,
     decltype(type_sequence_invoker)
 )
@@ -51,7 +51,7 @@ using value_seq_t = test_seq::value_seq_t;
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence find",
-    "[type traits]",
+    "[type traits][type sequence]",
     ((typename T, auto Expect), T, Expect),
     (int, 0) //,
     // (float, 1),
@@ -65,7 +65,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence count",
-    "[type traits]",
+    "[type traits][type sequence]",
     ((typename T, auto Expect), T, Expect),
     (int, 1),
     (float, 2),
@@ -79,7 +79,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence append",
-    "[type traits]",
+    "[type traits][type sequence]",
     ( //
 
         (auto V,typename Expect, typename FrontExpect, typename... T),
@@ -108,7 +108,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence insert",
-    "[type traits]",
+    "[type traits][type sequence]",
     ((auto Index, typename Expect, typename... T), Index, Expect, T...),
     ( //
         3,
@@ -127,7 +127,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: type sequence remove at",
-    "[type traits]",
+    "[type traits][type sequence]",
     ((typename Expect, auto I), Expect, I),
     (regular_type_sequence<int, char, unsigned, float>, 1),
     (regular_type_sequence<int, float, unsigned, float>, 2)
@@ -138,7 +138,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 
 TEMPLATE_TEST_CASE_SIG( // NOLINT
     "Scenario: unique type sequence",
-    "[type traits]",
+    "[type traits][type sequence]",
     ((auto V, typename Seq, typename Expect), V, Seq, Expect),
     (0, type_sequence<>, regular_type_sequence<>),
     (0, test_seq, regular_type_sequence<int, float, char, unsigned>)

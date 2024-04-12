@@ -17,24 +17,26 @@ set(src
     src/containers/concepts.cpp
     src/filesystem/filesystem.cpp
     src/functional/forward_bind.cpp
+    src/functional/invocables.cpp
     src/functional/pipeable.cpp
     src/functional/sequenced_invocables.cpp
     src/functional/symmetric_operations.cpp
-    # src/memory/box.cpp
-    # src/memory/composed_allocator.cpp
+    src/memory/box.cpp
+    src/memory/composed_allocator.cpp
     src/memory/pointer_traits.cpp
     src/memory/single_stack_allocator.cpp
-    # src/memory/soo.cpp
+    src/memory/soo.cpp
     src/type_traits/indexed_traits.cpp
     src/type_traits/member.cpp
     src/type_traits/type_sequence.cpp
     src/type_traits/value_sequence.cpp
     src/utility/forward_cast.cpp
+    src/utility/dispatcher.cpp
     src/utility/utility.cpp
     src/utility/value_wrapper.cpp
     src/lazy.cpp
-    # src/pattern_match.cpp
-    # src/synchronizer.cpp
+    src/pattern_match.cpp
+    src/synchronizer.cpp
 )
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)

@@ -46,6 +46,17 @@ namespace stdsharp::details
             func_t func;
             args_t args;
 
+            template<typename F, typename... Args>
+                requires std::constructible_from<func_t, F> &&
+                             std::constructible_from<args_t, Args...>
+            constexpr binder(F&& f, Args&&... args) noexcept(
+                nothrow_constructible_from<func_t, F> &&
+                nothrow_constructible_from<args_t, Args...> //
+            ):
+                func(cpp_forward(f)), args(forward(cpp_forward(args))...)
+            {
+            }
+
             template<
                 typename Self,
                 typename Seq = args_t::index_sequence,
@@ -65,14 +76,16 @@ namespace stdsharp::details
         template<
             typename Func,
             typename... BindArgs,
-            typename Binder = BinderImpl<Func, BindArgs...>>
+            typename Binder = BinderImpl<Func, BindArgs...>,
+            typename func_t = Binder::func_t,
+            typename args_t = Binder::args_t>
+            requires std::constructible_from<Binder, func_t, args_t>
         constexpr auto operator()(Func&& func, BindArgs&&... bind_args) const noexcept(
             nothrow_constructible_from<Binder, Func, forward_t<BindArgs>...> &&
-            noexcept(Binder{cpp_move(func), {forward(cpp_forward(bind_args))...}})
+            nothrow_constructible_from<Binder, func_t, args_t> //
         )
-            requires requires { Binder{cpp_move(func), {forward(cpp_forward(bind_args))...}}; }
         {
-            return Binder{cpp_move(func), {forward(cpp_forward(bind_args))...}};
+            return Binder{func_t{cpp_move(func)}, args_t{forward(cpp_forward(bind_args))...}};
         }
     };
 
@@ -85,6 +98,7 @@ namespace stdsharp::details
     private:
         using m_base = details::forward_bind::
             binder<forward_bind_front_binder<Func, BindArgs...>, Func, BindArgs...>;
+
         friend m_base;
 
         template<
@@ -105,6 +119,9 @@ namespace stdsharp::details
                 cpp_forward(args)...
             );
         }
+
+    public:
+        using m_base::m_base;
     };
 
     template<typename Func, typename... BindArgs>
@@ -116,6 +133,7 @@ namespace stdsharp::details
     private:
         using m_base = details::forward_bind::
             binder<forward_bind_back_binder<Func, BindArgs...>, Func, BindArgs...>;
+
         friend m_base;
 
         template<
@@ -136,6 +154,9 @@ namespace stdsharp::details
                 get_forwarded<BindArgs>(cpp_forward(self).m_base::args.template get<I>())...
             );
         }
+
+    public:
+        using m_base::m_base;
     };
 }
 

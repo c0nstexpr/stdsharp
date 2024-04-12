@@ -4,7 +4,7 @@
 
 TEMPLATE_TEST_CASE( // NOLINT
     "Scenario: container concept",
-    "[containers]",
+    "[containers][concepts]",
     int,
     unique_ptr<int>
 )

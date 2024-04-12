@@ -1,5 +1,5 @@
-#include "test.h"
 #include "stdsharp/pattern_match.h"
+#include "test.h"
 
 SCENARIO("pattern match", "[pattern match]") // NOLINT
 {
@@ -40,9 +40,8 @@ SCENARIO("pattern match", "[pattern match]") // NOLINT
             STATIC_REQUIRE( //
                 requires //
                 {
-                    constexpr_pattern_match::from_constant<my_enum::two>(
-                        [](const constant<my_enum::two>) {}
-                    );
+                    constexpr_pattern_match::
+                        from_constant<my_enum::two>([](const constant<my_enum::two>) {});
                 }
             );
         }

@@ -1,7 +1,7 @@
 #include "stdsharp/functional/pipeable.h"
 #include "test.h"
 
-SCENARIO("pipeable, [functional]") // NOLINT
+SCENARIO("pipeable, [functional][pipeable]") // NOLINT
 {
     {
         constexpr auto fn = make_pipeable<pipe_mode::left>(std::identity{});

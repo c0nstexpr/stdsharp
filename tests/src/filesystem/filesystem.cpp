@@ -3,7 +3,7 @@
 
 using namespace stdsharp::filesystem;
 
-SCENARIO("space size", "[filesystem]") // NOLINT
+SCENARIO("space size", "[filesystem][space size]") // NOLINT
 {
     using bytes = stdsharp::filesystem::bytes;
 

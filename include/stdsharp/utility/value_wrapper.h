@@ -31,6 +31,7 @@ namespace stdsharp::details
 
     template<empty_type T>
     class value_wrapper<T> : T
+
     {
     public:
         value_wrapper() = default;
@@ -54,7 +55,7 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
-    template<typename T>
+    template<typename T = void>
     struct value_wrapper : details::value_wrapper<T>
     {
         using value_type = T;
@@ -83,8 +84,18 @@ namespace stdsharp
         }
     };
 
+    template<void_ T>
+    struct value_wrapper<T>
+    {
+        constexpr void get() const noexcept {}
+
+        constexpr void cget() const noexcept {}
+    };
+
     template<typename T>
     value_wrapper(T&&) -> value_wrapper<std::decay_t<T>>;
+
+    value_wrapper() -> value_wrapper<>;
 }
 
 #include "../compilation_config_out.h"

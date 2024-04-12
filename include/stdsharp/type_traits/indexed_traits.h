@@ -92,6 +92,24 @@ namespace stdsharp
     template<typename... T>
     struct indexed_values : details::indexed_values<std::make_index_sequence<sizeof...(T)>, T...>
     {
+    private:
+        using m_base = details::indexed_values<std::make_index_sequence<sizeof...(T)>, T...>;
+
+    public:
+        indexed_values() = default;
+
+        constexpr indexed_values(T&&... t) noexcept(nothrow_list_initializable_from<m_base, T...>)
+            requires list_initializable_from<m_base, T...>
+            : m_base{cpp_move(t)...}
+        {
+        }
+
+        template<typename... U>
+            requires list_initializable_from<m_base, U...>
+        constexpr indexed_values(U&&... t) noexcept(nothrow_list_initializable_from<m_base, U...>):
+            m_base{cpp_forward(t)...}
+        {
+        }
     };
 
     template<typename... T>
