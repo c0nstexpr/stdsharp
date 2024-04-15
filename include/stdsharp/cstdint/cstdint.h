@@ -19,8 +19,7 @@ namespace stdsharp
     using u32 = std::uint32_t; // 32-bit unsigned integer type.
     using i64 = std::int64_t; // 64-bit signed integer type.
     using u64 = std::uint64_t; // 64-bit unsigned integer type.
-    using ssize_t =
-        std::make_signed_t<std::size_t>; // Signed integer type corresponding to `size_t`.
+    using ssize_t = std::make_signed_t<std::size_t>; // signed size_t.
 
     inline constexpr struct
     {

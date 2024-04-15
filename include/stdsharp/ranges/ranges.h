@@ -76,8 +76,8 @@ namespace stdsharp
     using cast_view = std::ranges::transform_view<T, cast_to_fn<U>>;
 
     template<typename T>
-    concept constant_iterator =
-        std::input_iterator<T> && std::same_as<iter_const_reference_t<T>, std::iter_reference_t<T>>;
+    concept constant_iterator = std::input_iterator<T> &&
+        std::same_as<iter_const_reference_t<T>, std::iter_reference_t<T>>;
 
     template<typename T>
     concept constant_range =

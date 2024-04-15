@@ -43,8 +43,8 @@ namespace stdsharp::actions::cpo::inline cpo_impl::details
         template<container_erasable Container>
         constexpr auto operator()(
             Container& container,
-            const std::equality_comparable_with<typename std::decay_t<Container>::value_type> auto&
-                value
+            const std::
+                equality_comparable_with<typename std::decay_t<Container>::value_type> auto& value
         ) const
             requires requires {
                 requires sequence_container<Container>;
@@ -58,8 +58,8 @@ namespace stdsharp::actions::cpo::inline cpo_impl::details
             requires associative_like_container<Container>
         constexpr auto operator()(
             Container& container,
-            const std::equality_comparable_with<typename std::decay_t<Container>::key_type> auto&
-                key
+            const std::
+                equality_comparable_with<typename std::decay_t<Container>::key_type> auto& key
         ) const
         {
             return container.erase(key);
@@ -93,50 +93,48 @@ namespace stdsharp::actions::cpo::inline cpo_impl
     inline constexpr erase_fn erase{};
 }
 
-namespace stdsharp::actions
-{
-#define STDSHARP_EMPLACE_WHERE_ACTION(where, iter)                                              \
-    namespace details                                                                           \
-    {                                                                                           \
-        struct emplace_##where##_default_fn                                                     \
-        {                                                                                       \
-            template<typename Container, typename... Args>                                      \
-                requires std::invocable<                                                        \
-                    emplace_fn,                                                                 \
-                    Container&,                                                                 \
-                    details::container_citer<Container>,                                        \
-                    Args...>                                                                    \
-            constexpr decltype(auto) operator()(Container& container, Args&&... args) const     \
-            {                                                                                   \
-                return *actions::emplace(container, container.c##iter(), cpp_forward(args)...); \
-            }                                                                                   \
-        };                                                                                      \
-                                                                                                \
-        struct emplace_##where##_mem_fn                                                         \
-        {                                                                                       \
-            template<typename... Args, container_emplace_constructible<Args...> Container>      \
-            constexpr typename std::decay_t<Container>::reference                               \
-                operator()(Container& container, Args&&... args) const                          \
-                requires requires {                                                             \
-                    requires stdsharp::container<Container>;                                    \
-                    container.emplace_##where(std::declval<Args>()...);                         \
-                }                                                                               \
-            {                                                                                   \
-                return container.emplace_##where(cpp_forward(args)...);                         \
-            }                                                                                   \
-        };                                                                                      \
-    }                                                                                           \
-    using emplace_##where##_fn = sequenced_invocables<                                          \
-        details::emplace_##where##_mem_fn,                                                      \
-        details::emplace_##where##_default_fn>;                                                 \
-                                                                                                \
-    inline constexpr emplace_##where##_fn emplace_##where{};
+#define STDSHARP_EMPLACE_WHERE_ACTION(where, iter)                                                  \
+    namespace stdsharp::actions::details                                                            \
+    {                                                                                               \
+        struct emplace_##where##_default_fn                                                         \
+        {                                                                                           \
+            template<typename Container, typename... Args>                                          \
+                requires std::                                                                      \
+                    invocable<emplace_fn, Container&, details::container_citer<Container>, Args...> \
+                constexpr decltype(auto) operator()(Container& container, Args&&... args) const     \
+            {                                                                                       \
+                return *actions::emplace(container, container.c##iter(), cpp_forward(args)...);     \
+            }                                                                                       \
+        };                                                                                          \
+                                                                                                    \
+        struct emplace_##where##_mem_fn                                                             \
+        {                                                                                           \
+            template<typename... Args, container_emplace_constructible<Args...> Container>          \
+            constexpr typename std::decay_t<Container>::reference                                   \
+                operator()(Container& container, Args&&... args) const                              \
+                requires requires {                                                                 \
+                    requires stdsharp::container<Container>;                                        \
+                    container.emplace_##where(std::declval<Args>()...);                             \
+                }                                                                                   \
+            {                                                                                       \
+                return container.emplace_##where(cpp_forward(args)...);                             \
+            }                                                                                       \
+        };                                                                                          \
+    }                                                                                               \
+                                                                                                    \
+    namespace stdsharp::actions                                                                     \
+    {                                                                                               \
+        using emplace_##where##_fn = sequenced_invocables<                                          \
+            details::emplace_##where##_mem_fn,                                                      \
+            details::emplace_##where##_default_fn>;                                                 \
+                                                                                                    \
+        inline constexpr emplace_##where##_fn emplace_##where{};                                    \
+    }
 
-    STDSHARP_EMPLACE_WHERE_ACTION(back, end)
-    STDSHARP_EMPLACE_WHERE_ACTION(front, begin)
+STDSHARP_EMPLACE_WHERE_ACTION(back, end)
+STDSHARP_EMPLACE_WHERE_ACTION(front, begin)
 
 #undef STDSHARP_EMPLACE_WHERE_ACTION
-}
 
 namespace stdsharp::actions::cpo::inline cpo_impl::details
 {

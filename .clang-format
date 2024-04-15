@@ -56,7 +56,7 @@ PenaltyBreakFirstLessLess: 0
 PenaltyBreakOpenParenthesis: 10
 PenaltyBreakScopeResolution: 30
 PenaltyBreakString: 100
-PenaltyBreakTemplateDeclaration: 100
+PenaltyBreakTemplateDeclaration: 0
 PenaltyExcessCharacter: 1000
 PenaltyIndentedWhitespace: 0
 PenaltyReturnTypeOnItsOwnLine: 50

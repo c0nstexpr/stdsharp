@@ -179,8 +179,9 @@ namespace stdsharp::details
             };
 
         public:
-            using pointer_to_fn = nodiscard_invocable<
-                stdsharp::sequenced_invocables<base_pointer_to, convert_pointer_to>>;
+            using pointer_to_fn =
+                nodiscard_invocable<stdsharp::
+                                        sequenced_invocables<base_pointer_to, convert_pointer_to>>;
 
             static constexpr pointer_to_fn pointer_to{};
         };

@@ -177,10 +177,10 @@ namespace stdsharp
     inline constexpr allocation_cget_fn<Alloc, T> allocation_cget{};
 
     template<typename Rng, typename Alloc>
-    concept callocations =
-        std::ranges::input_range<Rng> && callocation<range_const_reference_t<Rng>, Alloc>;
+    concept callocations = std::ranges::input_range<Rng> &&
+        callocation<range_const_reference_t<Rng>, Alloc>;
 
     template<typename Rng, typename Alloc>
-    concept allocations =
-        range_copyable<Rng, Rng> && allocation<std::ranges::range_value_t<Rng>, Alloc>;
+    concept allocations = range_copyable<Rng, Rng> &&
+        allocation<std::ranges::range_value_t<Rng>, Alloc>;
 }

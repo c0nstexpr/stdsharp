@@ -1,8 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <string_view>
-#include <algorithm>
 
 namespace stdsharp::literals
 {

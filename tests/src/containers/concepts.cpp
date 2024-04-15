@@ -1,5 +1,6 @@
 #include "stdsharp/containers/concepts.h"
 #include "test.h"
+
 #include <initializer_list>
 
 TEMPLATE_TEST_CASE( // NOLINT

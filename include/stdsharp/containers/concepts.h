@@ -23,8 +23,8 @@ namespace stdsharp
     };
 
     template<typename Rng, typename ValueType>
-    concept compatible_range =
-        ranges::input_range<Rng> && std::convertible_to<ranges::range_reference_t<Rng>, ValueType>;
+    concept compatible_range = ranges::input_range<Rng> &&
+        std::convertible_to<ranges::range_reference_t<Rng>, ValueType>;
 
     template<typename ValueType, typename Allocator>
     concept erasable = requires(Allocator allocator_instance, ValueType* ptr) {
@@ -72,9 +72,8 @@ namespace stdsharp
         requires(Allocator allocator_instance, ValueType* ptr, ValueType&& rv) {
             requires move_insertable<ValueType, Allocator>;
             requires nothrow_move_constructible<ValueType>;
-            requires noexcept(
-                allocator_traits<Allocator>::construct(allocator_instance, ptr, cpp_move(rv))
-            );
+            requires noexcept(allocator_traits<Allocator>::
+                                  construct(allocator_instance, ptr, cpp_move(rv)));
         };
 
     template<typename Container>
@@ -133,11 +132,10 @@ namespace stdsharp
     concept nothrow_emplace_constructible =
         requires(Allocator allocator_instance, ValueType* ptr, Args&&... args) {
             requires nothrow_constructible_from<ValueType, Args...>;
-            requires noexcept(allocator_traits<Allocator>::construct(
-                allocator_instance,
-                ptr,
-                cpp_forward(args)...
-            ));
+            requires noexcept( //
+                allocator_traits<Allocator>::
+                    construct(allocator_instance, ptr, cpp_forward(args)...)
+            );
         };
 
     template<typename Container, typename... Args>
@@ -160,20 +158,21 @@ namespace stdsharp
 namespace stdsharp::details
 {
     template<typename T, typename U>
-    concept iterator_identical =
-        requires(std::iterator_traits<T> t_traits, std::iterator_traits<U> u_traits) {
-            requires std::same_as<
-                typename decltype(t_traits)::value_type,
-                typename decltype(u_traits)::value_type>;
-            requires std::same_as<
-                typename decltype(t_traits)::difference_type,
-                typename decltype(u_traits)::difference_type>;
-            requires std::
-                same_as<typename decltype(t_traits)::pointer, typename decltype(u_traits)::pointer>;
-            requires std::same_as<
-                typename decltype(t_traits)::reference,
-                typename decltype(u_traits)::reference>;
-        };
+    concept iterator_identical = requires(
+        std::iterator_traits<T> t_traits,
+        std::iterator_traits<U> u_traits
+    ) {
+        requires std::same_as<
+            typename decltype(t_traits)::value_type,
+            typename decltype(u_traits)::value_type>;
+        requires std::same_as<
+            typename decltype(t_traits)::difference_type,
+            typename decltype(u_traits)::difference_type>;
+        requires std::
+            same_as<typename decltype(t_traits)::pointer, typename decltype(u_traits)::pointer>;
+        requires std::
+            same_as<typename decltype(t_traits)::reference, typename decltype(u_traits)::reference>;
+    };
 
     template<typename>
     struct insert_return_type_of;
@@ -411,8 +410,8 @@ namespace stdsharp
     };
 
     template<typename Container>
-    concept contiguous_container =
-        container<Container> && std::ranges::contiguous_range<std::decay_t<Container>>;
+    concept contiguous_container = container<Container> &&
+        std::ranges::contiguous_range<std::decay_t<Container>>;
 }
 
 namespace stdsharp::details
@@ -542,9 +541,9 @@ namespace stdsharp
                     decltype(instance),
                     decltype(const_iter),
                     decltype(const_iter)>::template value<decltype(key_cmp), decltype(alloc)> &&
-                    details::container_optional_constructible<
-                        decltype(instance),
-                        decltype(v_list)>::template value<decltype(key_cmp), decltype(alloc)>;
+                    details::
+                        container_optional_constructible<decltype(instance), decltype(v_list)>::
+                            template value<decltype(key_cmp), decltype(alloc)>;
 
             requires !compatible_range<decltype(v_list), decltype(value)> ||
                 details::container_optional_constructible<
@@ -563,12 +562,12 @@ namespace stdsharp
     };
 
     template<typename Container, typename... Members>
-    concept unique_associative_container =
-        associative_container<Container, Members...> && details::unique_associative<Container>;
+    concept unique_associative_container = associative_container<Container, Members...> &&
+        details::unique_associative<Container>;
 
     template<typename Container, typename... Members>
-    concept multikey_associative_container =
-        associative_container<Container, Members...> && details::multikey_associative<Container>;
+    concept multikey_associative_container = associative_container<Container, Members...> &&
+        details::multikey_associative<Container>;
 
     template<typename Container, typename... Members>
     concept unordered_associative_container = requires {

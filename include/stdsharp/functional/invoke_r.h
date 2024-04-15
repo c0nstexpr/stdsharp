@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../macros.h"
+
 #include <functional>
 #include <type_traits>
-
-#include "../macros.h"
 
 namespace stdsharp
 {

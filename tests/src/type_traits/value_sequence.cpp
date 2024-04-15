@@ -136,14 +136,20 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ('!', test_seq::size())
 )
 {
-    STATIC_REQUIRE(value_sequence_algo::find<test_seq>(V, sequenced_invocables{std::ranges::equal_to{}, always_false}) == Expect);
+    STATIC_REQUIRE(
+        value_sequence_algo::
+            find<test_seq>(V, sequenced_invocables{std::ranges::equal_to{}, always_false}) == Expect
+    );
 }
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
     struct find_if_functor_3_t
     {
-        static constexpr sequenced_invocables value{[](const size_t v) { return v == 7; }, always_false};
+        static constexpr sequenced_invocables value{
+            [](const size_t v) { return v == 7; },
+            always_false
+        };
     };
 }
 
@@ -172,14 +178,21 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     ('?', 0)
 )
 {
-    STATIC_REQUIRE(value_sequence_algo::count<test_seq>(V, sequenced_invocables{std::ranges::equal_to{}, always_false}) == Expect);
+    STATIC_REQUIRE(
+        value_sequence_algo::
+            count<test_seq>(V, sequenced_invocables{std::ranges::equal_to{}, always_false}) ==
+        Expect
+    );
 }
 
 namespace // Escape Catch2 special characters like '[' and ']'
 {
     struct count_if_functor_3_t
     {
-        static constexpr sequenced_invocables value{[](const size_t) { return true; }, always_false};
+        static constexpr sequenced_invocables value{
+            [](const size_t) { return true; },
+            always_false
+        };
     };
 }
 
@@ -202,7 +215,9 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 SCENARIO("Scenario: value adjacent find", "[type traits]") // NOLINT
 {
     STATIC_REQUIRE( //
-        invocable<value_sequence_algo::adjacent_find_fn<test_seq>, sequenced_invocables<std::ranges::equal_to, always_false_fn>> //
+        invocable<
+            value_sequence_algo::adjacent_find_fn<test_seq>,
+            sequenced_invocables<std::ranges::equal_to, always_false_fn>> //
     );
 }
 
@@ -216,7 +231,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            value_sequence_algo::unique_t<Seq, sequenced_invocables<std::ranges::equal_to, always_false_fn>>,
+            value_sequence_algo::
+                unique_t<Seq, sequenced_invocables<std::ranges::equal_to, always_false_fn>>,
             Expect> //
     );
 }

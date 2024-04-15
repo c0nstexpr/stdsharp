@@ -16,8 +16,8 @@ namespace stdsharp
 
             template<typename U>
                 requires explicitly_convertible<T, U>
-            STDSHARP_INTRINSIC constexpr
-                operator U() const&& noexcept(nothrow_explicitly_convertible<T, U>)
+            STDSHARP_INTRINSIC constexpr operator U(
+            ) const&& noexcept(nothrow_explicitly_convertible<T, U>)
             {
                 return static_cast<U>(cpp_forward(t));
             }

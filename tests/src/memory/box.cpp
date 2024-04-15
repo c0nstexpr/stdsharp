@@ -1,5 +1,4 @@
 #include "stdsharp/memory/box.h"
-#include "stdsharp/type_traits/expression.h"
 #include "test_worst_type.h"
 
 using allocator_t = allocator<unsigned char>;
@@ -28,13 +27,8 @@ void foo()
 {
     int v0{};
     launder_iterator v1{&v0};
-
-    auto v2 = v1.operator++()(1);
-    auto v3 = ++v1;
-
-    static_assert(random_access_iterator<decltype(v1)>);
-
-    auto v = std::views::counted(v1, size_t{0});
+    launder_iterator v2{&v0};
+    auto v3 = v1 == v2;
 }
 
 SCENARIO("constexpr box", "[memory]") // NOLINT

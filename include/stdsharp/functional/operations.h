@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../cstdint/cstdint.h"
 #include "../iterator/iterator.h"
 #include "sequenced_invocables.h"
-#include "../cstdint/cstdint.h"
 
 namespace stdsharp
 {
@@ -170,7 +170,7 @@ namespace stdsharp
 
     inline constexpr std::identity identity_v{};
 
-#define STDSHARP_INC_DEC_OPERATE(operator_prefix, op, al_op)                            \
+#define STDSHARP_INC_DEC_OPERATE(operator_prefix, op, al_op)                                       \
     inline constexpr struct pre_##operator_prefix##crease                                          \
     {                                                                                              \
         template<typename T>                                                                       \

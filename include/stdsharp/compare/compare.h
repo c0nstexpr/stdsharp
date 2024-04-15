@@ -24,6 +24,6 @@ namespace stdsharp
     concept ordering_predicate = ordering_like<Cat> && regular_invocable_r<Fn, Cat, T, U>;
 
     template<typename Fn, typename T, typename U, typename Cat = std::partial_ordering>
-    concept nothrow_ordering_predicate =
-        ordering_predicate<Fn, T, U, Cat> && nothrow_invocable_r<Fn, Cat, T, U>;
+    concept nothrow_ordering_predicate = ordering_predicate<Fn, T, U, Cat> &&
+        nothrow_invocable_r<Fn, Cat, T, U>;
 }

@@ -180,7 +180,8 @@ namespace stdsharp::details
         static constexpr auto indices_size = indices_pair.second;
 
         template<auto... I>
-        static consteval regular_type_sequence<typename seq::template type<indices_pair.first[I]>...>
+        static consteval regular_type_sequence<typename seq::
+                                                   template type<indices_pair.first[I]>...>
             apply_indices(std::index_sequence<I...>);
 
         using type = decltype(apply_indices(std::make_index_sequence<indices_size>{}));

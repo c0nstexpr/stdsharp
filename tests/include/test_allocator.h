@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
-
 #include "stdsharp/memory/allocator_traits.h"
 #include "test.h"
+
+#include <vector>
 
 using namespace std;
 using namespace stdsharp;

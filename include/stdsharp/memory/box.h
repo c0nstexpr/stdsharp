@@ -211,9 +211,8 @@ namespace stdsharp
                          details::box_compatible<Req, allocator_type, OtherReq>
             :
             alloc_adaptor_(other.get_allocator()),
-            allocations_{
-                allocation_traits::template allocate<allocation_type>(get_allocator(), other.size())
-            }
+            allocations_{allocation_traits::
+                             template allocate<allocation_type>(get_allocator(), other.size())}
         {
             allocation_construct(*this, other);
         }
@@ -231,9 +230,8 @@ namespace stdsharp
                          details::box_compatible<Req, allocator_type, OtherReq>
             :
             alloc_adaptor_(std::in_place, alloc),
-            allocations_{
-                allocation_traits::template allocate<allocation_type>(get_allocator(), other.size())
-            }
+            allocations_{allocation_traits::
+                             template allocate<allocation_type>(get_allocator(), other.size())}
         {
             allocation_construct(*this, other);
         }
@@ -258,11 +256,8 @@ namespace stdsharp
 
         constexpr void reset() noexcept
         {
-            allocation_traits::on_destroy(
-                get_allocator(),
-                get_allocations_view(),
-                allocation_value_
-            );
+            allocation_traits::
+                on_destroy(get_allocator(), get_allocations_view(), allocation_value_);
             allocation_value_ = {};
         }
 
@@ -496,11 +491,8 @@ namespace stdsharp
                 allocate(size);
             }
 
-            allocation_traits::template construct<T>(
-                get_allocator(),
-                get_allocation(),
-                cpp_forward(args)...
-            );
+            allocation_traits::
+                template construct<T>(get_allocator(), get_allocation(), cpp_forward(args)...);
 
             allocation_value_ = allocation_value{std::in_place_type_t<T>{}};
             return get<T>();

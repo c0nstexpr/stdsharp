@@ -27,9 +27,11 @@ namespace stdsharp::details
     };
 
     template<typename T>
-    concept is_allocator_pointer =
-        nullable_pointer<T> && nothrow_default_initializable<T> && nothrow_movable<T> &&
-        nothrow_swappable<T> && nothrow_copyable<T> && nothrow_weakly_equality_comparable<T> &&
+    concept is_allocator_pointer = nullable_pointer<T> && //
+        nothrow_default_initializable<T> && //
+        nothrow_swappable<T> && //
+        nothrow_copyable<T> && //
+        nothrow_weakly_equality_comparable<T> &&
         nothrow_weakly_equality_comparable_with<T, std::nullptr_t>;
 }
 

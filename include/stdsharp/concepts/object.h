@@ -70,16 +70,16 @@ namespace stdsharp
     concept inter_convertible = std::convertible_to<T, U> && convertible_from<T, U>;
 
     template<typename T, typename U>
-    concept nothrow_inter_convertible =
-        nothrow_convertible_to<T, U> && nothrow_convertible_from<T, U>;
+    concept nothrow_inter_convertible = nothrow_convertible_to<T, U> &&
+        nothrow_convertible_from<T, U>;
 
     template<typename T, typename U>
-    concept explicitly_inter_convertible =
-        explicitly_convertible<T, U> && explicitly_convertible_from<T, U>;
+    concept explicitly_inter_convertible = explicitly_convertible<T, U> &&
+        explicitly_convertible_from<T, U>;
 
     template<typename T, typename U>
-    concept nothrow_explicitly_inter_convertible =
-        nothrow_explicitly_convertible<T, U> && nothrow_explicitly_convertible_from<T, U>;
+    concept nothrow_explicitly_inter_convertible = nothrow_explicitly_convertible<T, U> &&
+        nothrow_explicitly_convertible_from<T, U>;
 
     template<typename B>
     concept boolean_testable = std::convertible_to<B, bool> && requires(B&& b) {
@@ -143,8 +143,8 @@ namespace stdsharp
         requires { std::declval<void(const T&)>()({std::declval<Args>()...}); };
 
     template<typename T>
-    concept implicitly_move_constructible =
-        std::move_constructible<T> && implicitly_constructible_from<T, T>;
+    concept implicitly_move_constructible = std::move_constructible<T> &&
+        implicitly_constructible_from<T, T>;
 
     template<typename T>
     concept implicitly_copy_constructible = std::copy_constructible<T> && //
@@ -157,8 +157,8 @@ namespace stdsharp
     concept nothrow_constructible_from = std::is_nothrow_constructible_v<T, Args...>;
 
     template<typename T>
-    concept nothrow_default_initializable =
-        std::default_initializable<T> && std::is_nothrow_default_constructible_v<T>;
+    concept nothrow_default_initializable = std::default_initializable<T> &&
+        std::is_nothrow_default_constructible_v<T>;
 
     template<typename T>
     concept nothrow_move_constructible = std::is_nothrow_move_constructible_v<T>;
@@ -205,12 +205,12 @@ namespace stdsharp
     concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
 
     template<typename Func, typename ReturnT, typename... Args>
-    concept regular_invocable_r =
-        std::regular_invocable<Func, Args...> && invocable_r<Func, ReturnT, Args...>;
+    concept regular_invocable_r = std::regular_invocable<Func, Args...> &&
+        invocable_r<Func, ReturnT, Args...>;
 
     template<typename Func, typename ReturnT, typename... Args>
-    concept nothrow_regular_invocable_r =
-        regular_invocable_r<Func, ReturnT, Args...> && nothrow_invocable_r<Func, ReturnT, Args...>;
+    concept nothrow_regular_invocable_r = regular_invocable_r<Func, ReturnT, Args...> &&
+        nothrow_invocable_r<Func, ReturnT, Args...>;
 
     template<typename Func, typename... Args>
     concept nothrow_predicate = nothrow_invocable_r<Func, bool, Args...>;
@@ -262,4 +262,10 @@ namespace stdsharp
         { t1 <<= t2 } -> std::same_as<T&>;
         { t1 >>= t2 } -> std::same_as<T&>;
     };
+
+    template<typename T, typename U>
+    concept decay_derived = std::is_base_of_v<std::remove_reference_t<U>, std::remove_reference_t<T>>;
+
+    template<typename T, typename U>
+    concept not_decay_derived = !decay_derived<T, U>;
 }

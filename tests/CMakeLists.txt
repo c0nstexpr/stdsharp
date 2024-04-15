@@ -36,8 +36,7 @@ set(src
     src/utility/value_wrapper.cpp
     src/lazy.cpp
     src/pattern_match.cpp
-    src/synchronizer.cpp
-)
+    src/synchronizer.cpp)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
@@ -50,7 +49,7 @@ target_compile_options(
   ${PROJECT_NAME}
   PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4459>
          $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments -ftime-trace
-         -fdiagnostics-show-template-tree>)
+         -fdiagnostics-show-template-tree -ftemplate-backtrace-limit=0>)
 target_enable_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address
                               undefined)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib)

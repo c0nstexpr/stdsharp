@@ -10,9 +10,10 @@ namespace stdsharp
     inline constexpr struct make_soo_allocator_fn
     {
         template<std::size_t Size, typename Allocator = std::allocator<byte>>
-        constexpr soo_allocator<Size, std::decay_t<Allocator>>
-            operator()(single_stack_buffer<Size>& buffer, Allocator&& alloc = Allocator{})
-                const noexcept
+        constexpr soo_allocator<Size, std::decay_t<Allocator>> operator()(
+            single_stack_buffer<Size>& buffer,
+            Allocator&& alloc = Allocator{}
+        ) const noexcept
         {
             return {buffer, cpp_forward(alloc)};
         }

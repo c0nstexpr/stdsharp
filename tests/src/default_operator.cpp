@@ -43,6 +43,9 @@ SCENARIO("incrementable", "[default operator]")
 {
     [[maybe_unused]] struct : increase
     {
+        using increase::operator++;
+        using increase::operator--;
+
         auto& operator++() { return *this; }
 
         auto& operator--() { return *this; }
@@ -52,7 +55,7 @@ SCENARIO("incrementable", "[default operator]")
     STATIC_REQUIRE(requires { v--; });
 }
 
-struct arith
+struct arith : arithmetic
 {
     auto& operator+=(int /*unused*/) { return *this; }
 
@@ -75,28 +78,32 @@ struct arith
     auto& operator>>=(int /*unused*/) { return *this; }
 };
 
-SCENARIO("arithmetic", "[default operator]")
-{
-    struct t : arith, arithmetic
-    {
-    };
+SCENARIO("arithmetic", "[default operator]") { arithmetic_test<arith>(); }
 
-    arithmetic_test<t>();
+struct comm :
+    arith,
+    plus_commutative,
+    minus_commutative,
+    multiply_commutative,
+    divide_commutative,
+    modulus_commutative,
+    bitwise_and_commutative,
+    bitwise_or_commutative,
+    bitwise_xor_commutative,
+    bitwise_left_shift_commutative,
+    bitwise_right_shift_commutative
+{
+};
+
+SCENARIO("commutative arithmetic", "[default operator]")
+{
+    arithmetic_test<comm>();
+    inverse_arithmetic_test<comm>();
 }
 
-SCENARIO("inverse arithmetic", "[default operator]")
+SCENARIO("commutative arithmetic with int", "[default operator]")
 {
-    struct t : arith, inverse_arithmetic
-    {
-    };
-
-    arithmetic_test<t>();
-    inverse_arithmetic_test<t>();
-}
-
-SCENARIO("inverse arithmetic with int", "[default operator]")
-{
-    struct t : arith, inverse_arithmetic
+    struct t : comm
     {
         int v;
     };

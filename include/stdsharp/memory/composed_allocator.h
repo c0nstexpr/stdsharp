@@ -14,13 +14,13 @@ namespace stdsharp
         requires requires(FirstAlloc::value_type value, const void* ptr) {
             requires std::same_as<decltype(value), typename SecondAlloc::value_type>;
             {
-                pointer_traits<
-                    typename allocator_traits<FirstAlloc>::const_void_pointer>::to_pointer(ptr)
+                pointer_traits<typename allocator_traits<FirstAlloc>::const_void_pointer>::
+                    to_pointer(ptr)
             } noexcept;
 
             {
-                pointer_traits<
-                    typename allocator_traits<SecondAlloc>::const_void_pointer>::to_pointer(ptr)
+                pointer_traits<typename allocator_traits<SecondAlloc>::const_void_pointer>::
+                    to_pointer(ptr)
             } noexcept;
         }
     class composed_allocator
@@ -83,34 +83,22 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto allocate(const std::size_t n, const void* const hint = nullptr)
         {
-            const auto ptr = first_traits::try_allocate(
-                alloc_pair_.first,
-                n,
-                first_cvp_traits::to_pointer(hint)
-            );
+            const auto ptr = first_traits::
+                try_allocate(alloc_pair_.first, n, first_cvp_traits::to_pointer(hint));
             return ptr == nullptr ? //
-                second_traits::allocate(
-                    alloc_pair_.second,
-                    n,
-                    second_cvp_traits::to_pointer(hint)
-                ) :
+                second_traits::
+                    allocate(alloc_pair_.second, n, second_cvp_traits::to_pointer(hint)) :
                 ptr;
         }
 
         [[nodiscard]] constexpr auto
             try_allocate(const std::size_t n, const void* const hint = nullptr) noexcept
         {
-            const auto ptr = first_traits::try_allocate(
-                alloc_pair_.first,
-                n,
-                first_cvp_traits::to_pointer(hint)
-            );
+            const auto ptr = first_traits::
+                try_allocate(alloc_pair_.first, n, first_cvp_traits::to_pointer(hint));
             return ptr == nullptr ? //
-                second_traits::try_allocate(
-                    alloc_pair_.second,
-                    n,
-                    second_cvp_traits::to_pointer(hint)
-                ) :
+                second_traits::
+                    try_allocate(alloc_pair_.second, n, second_cvp_traits::to_pointer(hint)) :
                 ptr;
         }
 
@@ -125,10 +113,9 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto max_size() const noexcept
         {
-            return std::min(
-                first_traits::max_size(alloc_pair_.first),
-                second_traits::max_size(alloc_pair_.second)
-            );
+            return std::
+                min(first_traits::max_size(alloc_pair_.first),
+                    second_traits::max_size(alloc_pair_.second));
         }
 
         [[nodiscard]] constexpr composed_allocator select_on_container_copy_construction() const
