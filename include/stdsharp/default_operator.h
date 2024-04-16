@@ -91,7 +91,8 @@ namespace stdsharp::default_operator
     struct subscript
     {
 #if __cpp_multidimensional_subscript >= 202110L
-        [[nodiscard]] constexpr decltype(auto) operator[](this auto&& t, auto&& first_arg, auto&&... args)
+        [[nodiscard]] constexpr decltype(auto
+        ) operator[](this auto&& t, auto&& first_arg, auto&&... args)
             noexcept(noexcept(cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...]))
             requires requires {
                 requires sizeof...(args) > 0;

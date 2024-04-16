@@ -12,10 +12,10 @@ SCENARIO("sequenced invocables", "[functional][sequenced invocables]")
     REQUIRE(fn(1) == 1);
 
     STATIC_REQUIRE(fn.size() == 2);
-    STATIC_REQUIRE(std::invocable<fn_t, int>);
-    STATIC_REQUIRE(std::invocable<fn_t&, int>);
-    STATIC_REQUIRE(std::invocable<fn_t, array<int, 1>>);
-    STATIC_REQUIRE(std::invocable<fn_t&, array<int, 1>>);
-    STATIC_REQUIRE(!std::invocable<fn_t, char*>);
-    STATIC_REQUIRE(!std::invocable<fn_t&, char*>);
+    STATIC_REQUIRE(invocable<fn_t, int>);
+    STATIC_REQUIRE(invocable<fn_t&, int>);
+    STATIC_REQUIRE(invocable<fn_t, array<int, 1>>);
+    STATIC_REQUIRE(invocable<fn_t&, array<int, 1>>);
+    STATIC_REQUIRE(!invocable<fn_t, char*>);
+    STATIC_REQUIRE(!invocable<fn_t&, char*>);
 }

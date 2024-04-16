@@ -35,7 +35,7 @@ namespace stdsharp::details
         }
 
         template<std::size_t I, typename... T>
-        using type = decltype( //
+        using type = typename decltype( //
             impl<I>(std::index_sequence_for<T...>{}, basic_type_sequence<T...>{}).get()
         )::type;
     };
@@ -127,7 +127,7 @@ namespace std
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::indexed_values<T...>>
     {
-        using type = ::stdsharp::indexed_values<T...>::template type<I>;
+        using type = typename ::stdsharp::indexed_values<T...>::template type<I>;
     };
 }
 

@@ -5,7 +5,7 @@ SCENARIO("lazy", "[lazy]") // NOLINT
 {
     GIVEN("a lazy value")
     {
-        stdsharp::lazy lazy{[]() { return std::string{"foo"}; }};
+        stdsharp::lazy lazy{[]() { return string{"foo"}; }};
 
         WHEN("get value")
         {

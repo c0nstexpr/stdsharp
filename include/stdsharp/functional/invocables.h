@@ -43,19 +43,19 @@ namespace stdsharp::details
         template<std::size_t J, typename Self>
         constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return forward_cast<Self, invocables, indexed_value<J, type<J>>>(self).get();
+            return forward_cast<Self, invocables, indexed_invocable<J, type<J>>>(self).get();
         }
 
         template<std::size_t J, typename Self, typename SelfT = const Self>
         constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<SelfT, invocables, indexed_value<J, type<J>>>(self).cget();
+            return forward_cast<SelfT, invocables, indexed_invocable<J, type<J>>>(self).cget();
         }
 
         template<std::size_t J, typename Self, typename SelfT = const Self&>
         constexpr forward_cast_t<SelfT, type<J>> cget(this const Self& self) noexcept
         {
-            return forward_cast<SelfT, invocables, indexed_value<J, type<J>>>(self).cget();
+            return forward_cast<SelfT, invocables, indexed_invocable<J, type<J>>>(self).cget();
         }
     };
 }
@@ -101,7 +101,7 @@ namespace std
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::invocables<T...>>
     {
-        using type = ::stdsharp::invocables<T...>::template type<I>;
+        using type = typename ::stdsharp::invocables<T...>::template type<I>;
     };
 }
 

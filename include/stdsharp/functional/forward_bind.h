@@ -14,8 +14,7 @@ namespace stdsharp::details
         }
 
         template<typename T, std::constructible_from<T> U = std::remove_cvref_t<T>>
-            requires std::move_constructible<U>
-        static constexpr auto forward(T&& t)
+        static constexpr std::move_constructible auto forward(T&& t)
             noexcept(nothrow_constructible_from<U, T> && nothrow_move_constructible<U>)
         {
             return U{cpp_forward(t)};
@@ -27,7 +26,8 @@ namespace stdsharp::details
         template<typename T, typename ForwardT>
         static constexpr decltype(auto) get_forwarded(ForwardT&& t) noexcept
         {
-            if constexpr(std::same_as<T, std::remove_cvref_t<ForwardT>>) return cpp_forward(t);
+            if constexpr(std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<ForwardT>>)
+                return cpp_forward(t);
             else return cpp_forward(t).get();
         }
 
@@ -60,10 +60,10 @@ namespace stdsharp::details
             template<
                 typename Self,
                 typename Seq = args_t::index_sequence,
-                auto ForwardCast = forward_cast<Self, binder, Impl>>
-            constexpr auto operator()(this Self&& self, auto&&... args)
-                noexcept(noexcept(ForwardCast(self).invoke(Seq{}, cpp_forward(args)...))) //
-                -> decltype(ForwardCast(self).invoke(Seq{}, cpp_forward(args)...))
+                auto ForwardCast = forward_cast<Self, Impl>>
+            constexpr decltype(auto) operator()(this Self&& self, auto&&... args)
+                noexcept(noexcept(ForwardCast(self).invoke(Seq{}, cpp_forward(args)...)))
+                requires requires { ForwardCast(self).invoke(Seq{}, cpp_forward(args)...); }
             {
                 return ForwardCast(self).invoke(Seq{}, cpp_forward(args)...);
             }

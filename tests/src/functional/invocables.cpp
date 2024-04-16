@@ -25,12 +25,16 @@ SCENARIO("invocables", "[function][invocables]") // NOLINT
 
     using invocables = invocables<f0, f1, f2, f3>;
 
-    STATIC_REQUIRE(std::constructible_from<invocables, f0, f1, f2, f3>);
-    STATIC_REQUIRE(std::constructible_from<invocables, f0, f1, f2>);
-    STATIC_REQUIRE(std::constructible_from<invocables, f0, f1>);
-    STATIC_REQUIRE(std::constructible_from<invocables, f0>);
-    STATIC_REQUIRE(std::constructible_from<invocables>);
-    STATIC_REQUIRE(!std::invocable<invocables, int>);
-    REQUIRE(invocables{}(static_cast<char*>(nullptr)) == 2);
-    REQUIRE(invocables{}(static_cast<int*>(nullptr)) == 3);
+    invocables fn{};
+
+    REQUIRE(fn.get<0>()(1) == 0);
+    REQUIRE(fn.cget<0>()(1) == 0);
+    STATIC_REQUIRE(constructible_from<invocables, f0, f1, f2, f3>);
+    STATIC_REQUIRE(constructible_from<invocables, f0, f1, f2>);
+    STATIC_REQUIRE(constructible_from<invocables, f0, f1>);
+    STATIC_REQUIRE(constructible_from<invocables, f0>);
+    STATIC_REQUIRE(constructible_from<invocables>);
+    STATIC_REQUIRE(!invocable<invocables, int>);
+    REQUIRE(fn(static_cast<char*>(nullptr)) == 2);
+    REQUIRE(fn(static_cast<int*>(nullptr)) == 3);
 }

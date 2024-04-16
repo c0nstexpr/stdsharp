@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../macros.h"
+#include "../namespace_alias.h"
 
 #include <functional>
 #include <type_traits>

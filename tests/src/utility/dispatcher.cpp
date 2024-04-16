@@ -18,7 +18,7 @@ SCENARIO("dispatcher basic requirements", "[utility][dispatcher]") // NOLINT
 
         dispatcher d{};
 
-        STATIC_REQUIRE(!std::invocable<dispatcher, int>);
+        STATIC_REQUIRE(!invocable<dispatcher, int>);
     }
 
     GIVEN("noexcept dispatcher")

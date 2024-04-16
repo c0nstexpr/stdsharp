@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../macros.h"
-#include "../namespace_alias.h"
+#include "../concepts/object.h"
 
 #include <functional>
 
@@ -9,11 +8,11 @@ namespace stdsharp
 {
     inline constexpr struct invoke_fn
     {
-        constexpr auto operator()(auto&&... args) const
-            noexcept(noexcept(std::invoke(cpp_forward(args)...))) //
-            -> decltype(std::invoke(cpp_forward(args)...))
+        template<typename... Args, std::invocable<Args...> Fn>
+        constexpr decltype(auto) operator()(Fn&& fn, Args&&... args) const
+            noexcept(nothrow_invocable<Fn, Args...>)
         {
-            return std::invoke(cpp_forward(args)...);
+            return std::invoke(cpp_forward(fn), cpp_forward(args)...);
         }
     } invoke{};
 }

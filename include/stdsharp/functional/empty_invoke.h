@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stdsharp/type_traits/object.h"
+#include "../type_traits/object.h"
 
 namespace stdsharp
 {

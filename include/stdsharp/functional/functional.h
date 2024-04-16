@@ -1,4 +1,5 @@
 #pragma once
+
 #include "pipeable.h"
 #include "stdsharp/functional/always_return.h"
 #include "stdsharp/functional/bind_front.h"

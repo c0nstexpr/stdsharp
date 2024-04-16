@@ -37,7 +37,7 @@ namespace stdsharp::details
         }
 
     public:
-        using pointer = decltype(get_pointer_type())::type;
+        using pointer = typename decltype(get_pointer_type())::type;
 
         template<typename T = decltype(get_element_type())>
         struct element_type_t

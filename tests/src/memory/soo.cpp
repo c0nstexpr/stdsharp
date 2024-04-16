@@ -7,10 +7,10 @@ SCENARIO("soo allocation basic requirements", "[memory][small object optimizatio
     using unique_t = unique_soo_box<>;
     using worst_t = soo_box_for<test_worst_type>;
 
-    STATIC_REQUIRE(::std::constructible_from<trivial_soo_box<>, trivial_soo_box<>::allocator_type>);
-    STATIC_REQUIRE(::std::constructible_from<normal_t, normal_t::allocator_type>);
-    STATIC_REQUIRE(::std::constructible_from<unique_t, normal_t::allocator_type>);
-    STATIC_REQUIRE(::std::constructible_from<worst_t, normal_t::allocator_type>);
+    STATIC_REQUIRE(constructible_from<trivial_soo_box<>, trivial_soo_box<>::allocator_type>);
+    STATIC_REQUIRE(constructible_from<normal_t, normal_t::allocator_type>);
+    STATIC_REQUIRE(constructible_from<unique_t, normal_t::allocator_type>);
+    STATIC_REQUIRE(constructible_from<worst_t, normal_t::allocator_type>);
 
     allocation_type_requirement_test<normal_t, unique_t, worst_t>();
 }

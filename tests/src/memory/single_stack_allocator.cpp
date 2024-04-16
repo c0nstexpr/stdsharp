@@ -36,7 +36,7 @@ SCENARIO("single stack allocator", "[memory][single_stack_allocator]") // NOLINT
             const base* const ptr = p1;
             constexpr int v = 42;
 
-            std::ranges::construct_at(p1, v);
+            construct_at(p1, v);
 
             REQUIRE(ptr->foo() == v);
 
@@ -50,7 +50,7 @@ SCENARIO("single stack allocator", "[memory][single_stack_allocator]") // NOLINT
             const derived* const ptr = p1;
             constexpr int v = 42;
 
-            std::ranges::construct_at(p1, v);
+            construct_at(p1, v);
 
             REQUIRE(ptr->foo() == v);
 

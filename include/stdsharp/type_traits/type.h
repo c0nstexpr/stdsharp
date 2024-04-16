@@ -150,7 +150,7 @@ namespace stdsharp
     ttp_expend(T<Ts>...) -> ttp_expend<T, Ts...>;
 
     template<template<typename> typename T, typename Seq>
-    using make_ttp_expend_by = decltype( //
+    using make_ttp_expend_by = typename decltype( //
         []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
         {
             return std::type_identity<ttp_expend<T, U...>>{}; //
@@ -268,17 +268,17 @@ namespace stdsharp
         static constexpr auto ptr = Ptr;
 
         constexpr auto operator()(auto&&... args) const
-            noexcept(noexcept(invoke(ptr, cpp_forward(args)...))
-            ) -> decltype(invoke(ptr, cpp_forward(args)...))
+            noexcept(noexcept(invoke(ptr, cpp_forward(args)...))) //
+            -> decltype(invoke(ptr, cpp_forward(args)...))
         {
             return invoke(ptr, cpp_forward(args)...);
         }
     };
 
-#define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, qualifiers)                  \
-    template<typename R, typename ClassT, typename... Args, bool Noexcept>                    \
-    struct member_traits<R (ClassT::*)(Args...) qualifiers noexcept(Noexcept)> :              \
-        function_traits<R (*)(Args...) noexcept(Noexcept)>                                    \
+#define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)       \
+    template<typename R, typename ClassT, typename... Args>                                   \
+    struct member_traits<R (ClassT::*)(Args...) qualifiers> :                                 \
+        function_traits<R (*)(Args...) noexcept(noexcept_)>                                   \
     {                                                                                         \
         static constexpr auto is_const = const_;                                              \
         static constexpr auto is_volatile = volatile_;                                        \
@@ -288,9 +288,13 @@ namespace stdsharp
         using qualified_class_t = apply_qualifiers<class_t, is_const, is_volatile, ref_type>; \
     };
 
-#define STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers) \
-    STDSHARP_MEMBER_FUNCTION_TRAITS(true, is_volatile, ref_type, const qualifiers)    \
-    STDSHARP_MEMBER_FUNCTION_TRAITS(false, is_volatile, ref_type, qualifiers)
+#define STDSHARP_MEMBER_FUNCTION_TRAITS_NOEXCEPT_PACK(const_, is_volatile, ref_type, qualifiers) \
+    STDSHARP_MEMBER_FUNCTION_TRAITS(const_, is_volatile, ref_type, true, qualifiers noexcept)    \
+    STDSHARP_MEMBER_FUNCTION_TRAITS(const_, is_volatile, ref_type, false, qualifiers)
+
+#define STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(is_volatile, ref_type, qualifiers)            \
+    STDSHARP_MEMBER_FUNCTION_TRAITS_NOEXCEPT_PACK(true, is_volatile, ref_type, const qualifiers) \
+    STDSHARP_MEMBER_FUNCTION_TRAITS_NOEXCEPT_PACK(false, is_volatile, ref_type, qualifiers)
 
 #define STDSHARP_MEMBER_FUNCTION_TRAITS_VOLATILE_PACK(ref_type, qualifiers)         \
     STDSHARP_MEMBER_FUNCTION_TRAITS_CONST_PACK(true, ref_type, volatile qualifiers) \

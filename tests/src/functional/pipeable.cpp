@@ -4,7 +4,7 @@
 SCENARIO("pipeable, [functional][pipeable]") // NOLINT
 {
     {
-        constexpr auto fn = make_pipeable<pipe_mode::left>(std::identity{});
+        constexpr auto fn = make_pipeable<pipe_mode::left>(identity{});
 
         fn(1);
 
@@ -12,7 +12,7 @@ SCENARIO("pipeable, [functional][pipeable]") // NOLINT
     }
 
     {
-        constexpr auto fn = make_pipeable<pipe_mode::right>(std::identity{});
+        constexpr auto fn = make_pipeable<pipe_mode::right>(identity{});
 
         STATIC_REQUIRE((fn | 1) == 1);
     }

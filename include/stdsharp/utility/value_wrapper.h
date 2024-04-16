@@ -10,13 +10,11 @@ namespace stdsharp::details
     template<typename T>
     class value_wrapper
     {
-        T v{};
+        T v;
 
     public:
-        value_wrapper() = default;
-
         template<typename... U>
-            requires(sizeof...(U) > 0) && std::constructible_from<T, U...>
+            requires std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
             v(cpp_forward(u)...)
         {

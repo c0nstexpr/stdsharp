@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../namespace_alias.h"
+
 #include <algorithm>
 #include <array>
 #include <string_view>

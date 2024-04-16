@@ -55,7 +55,7 @@ namespace stdsharp
             return resource() == other.resource();
         }
 
-        [[nodiscard]] constexpr bool contains(const void* const ptr) const noexcept
+        [[nodiscard]] constexpr bool contains(const T* const ptr) const noexcept
         {
             return resource().contains(ptr);
         }

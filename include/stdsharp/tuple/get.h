@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stdsharp/concepts/object.h"
+#include "../concepts/object.h"
 
 namespace stdsharp::cpo::inline cpo_impl
 {

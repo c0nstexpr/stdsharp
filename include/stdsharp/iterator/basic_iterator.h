@@ -18,7 +18,7 @@ namespace stdsharp
         using subscript::operator[];
         using increase::operator++;
         using increase::operator--;
-        using arithmetic::operator+;
+        using arithmetic::operator-;
 
         constexpr auto& operator++(this auto& t) noexcept(noexcept(++t.data()))
             requires requires { ++t.data(); }
@@ -32,20 +32,6 @@ namespace stdsharp
         {
             --t.data();
             return t;
-        }
-
-        [[nodiscard]] constexpr auto operator<=>(this const auto& left, const auto& right)
-            noexcept(noexcept(left.data() <=> right.data()))
-            requires requires { left.data() <=> right.data(); }
-        {
-            return left.data() <=> right.data();
-        }
-
-        [[nodiscard]] constexpr auto operator==(this const auto& left, const auto& right)
-            noexcept(noexcept(left.data() == right.data()))
-            requires requires { left.data() == right.data(); }
-        {
-            return left.data() == right.data();
         }
 
         constexpr auto& operator+=(this auto& t, const difference_type<decltype(t)>& diff) noexcept
@@ -69,6 +55,24 @@ namespace stdsharp
             requires requires { left.data() - right.data(); }
         {
             return left.data() - right.data();
+        }
+
+        [[nodiscard]] constexpr decltype(auto) operator<=>( //
+            this const auto& left,
+            decltype(left) right
+        ) noexcept(noexcept(left.data() <=> right.data()))
+            requires requires { left.data() <=> right.data(); }
+        {
+            return left.data() <=> right.data();
+        }
+
+        [[nodiscard]] constexpr decltype(auto) operator==( //
+            this const auto& left,
+            decltype(left) right
+        ) noexcept(noexcept(left.data() == right.data()))
+            requires requires { left.data() == right.data(); }
+        {
+            return left.data() == right.data();
         }
 
     private:

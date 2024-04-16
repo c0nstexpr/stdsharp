@@ -3,7 +3,7 @@
 
 using allocator_t = allocator<unsigned char>;
 
-SCENARIO("box basic requirements", "[memory]") // NOLINT
+SCENARIO("box basic requirements", "[memory][box]") // NOLINT
 {
     using normal_t = normal_box<allocator_t>;
     using unique_t = unique_box<allocator_t>;
@@ -18,20 +18,12 @@ SCENARIO("box basic requirements", "[memory]") // NOLINT
     allocation_type_requirement_test<normal_t, unique_t, worst_t>();
 }
 
-SCENARIO("box assign value", "[memory]") // NOLINT
+SCENARIO("box assign value", "[memory][box]") // NOLINT
 {
     allocation_functionality_test<normal_box<allocator_t>>();
 }
 
-void foo()
-{
-    int v0{};
-    launder_iterator v1{&v0};
-    launder_iterator v2{&v0};
-    auto v3 = v1 == v2;
-}
-
-SCENARIO("constexpr box", "[memory]") // NOLINT
+SCENARIO("constexpr box", "[memory][box]") // NOLINT
 {
     STATIC_REQUIRE(
         []

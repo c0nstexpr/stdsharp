@@ -92,7 +92,7 @@ namespace std
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::sequenced_invocables<T...>>
     {
-        using type = ::stdsharp::sequenced_invocables<T...>::template type<I>;
+        using type = typename ::stdsharp::sequenced_invocables<T...>::template type<I>;
     };
 }
 

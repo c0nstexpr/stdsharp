@@ -68,16 +68,11 @@ namespace stdsharp
         using m_dispatchers = details::box_traits<Req, Alloc>::dispatchers;
 
         indexed_values<m_dispatchers, std::size_t> values_{};
+        std::reference_wrapper<const std::type_info> type_ = type_info<void>;
 
         constexpr decltype(auto) dispatchers(this auto&& self) noexcept
         {
             return cpp_forward(self).values_.template get<0>();
-        }
-
-        template<std::size_t I>
-        [[nodiscard]] constexpr bool equal_to(const allocation_value& other) const noexcept
-        {
-            return dispatchers().template get<I>() == other.dispatchers().template get<I>();
         }
 
     public:
@@ -91,19 +86,18 @@ namespace stdsharp
             ForwardCast(self).dispatchers()(cpp_forward(args)...);
         }
 
+        [[nodiscard]] auto& type() const noexcept { return type_.get(); }
+
         constexpr bool operator==(const allocation_value& other) const noexcept
         {
-            return equal_to<0>(other) && //
-                equal_to<1>(other) && //
-                equal_to<2>(other) && //
-                equal_to<3>(other) && //
-                equal_to<4>(other);
+            return type_.get() == other.type_.get();
         }
 
         template<typename T, typename Op = allocation_value<Alloc, T>>
             requires details::box_type_compatible<Req, Alloc, T>
         explicit constexpr allocation_value(const std::in_place_type_t<T> /*unused*/) noexcept:
-            values_(m_dispatchers{Op{}, Op{}, Op{}, Op{}, Op{}}, std::size_t{sizeof(T)})
+            values_(m_dispatchers{Op{}, Op{}, Op{}, Op{}, Op{}}, std::size_t{sizeof(T)}),
+            type_(type_info<T>)
         {
         }
 
@@ -112,7 +106,8 @@ namespace stdsharp
         explicit constexpr allocation_value(
             const allocation_value<Alloc, details::box_traits<OtherReq, Alloc>> other
         ) noexcept:
-            values_(m_dispatchers{other, other, other, other, other}, {other.value_size_()})
+            values_(m_dispatchers{other, other, other, other, other}, {other.value_size_()}),
+            type_(other.type_)
         {
         }
 
@@ -562,7 +557,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto is_type() const noexcept
         {
             if constexpr(std::constructible_from<allocation_value, std::in_place_type_t<T>>)
-                return allocation_value_ == allocation_value{std::in_place_type_t<T>{}};
+                return allocation_value_.type() == type_info<T>;
             else return false;
         }
 

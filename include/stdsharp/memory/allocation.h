@@ -19,8 +19,13 @@ namespace stdsharp::details
         using allocation_result_base =
             std::ranges::subrange<pointer, const_pointer, std::ranges::subrange_kind::sized>;
 
+        struct basic_allocation_result
+        {
+            using allocator_type = Alloc;
+        };
+
         // NOLINTBEGIN(*-equals-default)
-        struct callocation_result : callocation_result_base
+        struct callocation_result : callocation_result_base, basic_allocation_result
         {
             using callocation_result_base::callocation_result_base;
 
@@ -32,7 +37,7 @@ namespace stdsharp::details
             }
         };
 
-        struct allocation_result : allocation_result_base
+        struct allocation_result : allocation_result_base, basic_allocation_result
         {
             using allocation_result_base::allocation_result_base;
 
@@ -109,8 +114,9 @@ namespace stdsharp::details
     };
 
     template<typename T, typename Alloc>
-    concept allocation_common = requires(const T& t) {
-        requires nothrow_copyable<std::decay_t<T>>;
+    concept allocation_common = requires(const T& t, std::remove_cvref_t<T> decay_t) {
+        requires nothrow_copyable<decltype(decay_t)>;
+        requires std::same_as<typename decltype(decay_t)::allocator_type, Alloc>;
         requires std::ranges::sized_range<T>;
         { std::ranges::size(t) } -> std::same_as<allocator_size_type<Alloc>>;
     };

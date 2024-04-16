@@ -13,9 +13,9 @@ SCENARIO("pointer traits", "[memory]") // NOLINT
 
         using traits = stdsharp::pointer_traits<fancy_pointer>;
 
-        STATIC_REQUIRE(std::same_as<traits::pointer, fancy_pointer>);
-        STATIC_REQUIRE(std::same_as<traits::difference_type, ptrdiff_t>);
-        STATIC_REQUIRE(std::same_as<traits::element_type, void>);
+        STATIC_REQUIRE(same_as<traits::pointer, fancy_pointer>);
+        STATIC_REQUIRE(same_as<traits::difference_type, ptrdiff_t>);
+        STATIC_REQUIRE(same_as<traits::element_type, void>);
         STATIC_REQUIRE( //
             !requires {
                 requires( //
@@ -41,10 +41,10 @@ SCENARIO("pointer traits", "[memory]") // NOLINT
 
         static_assert(dereferenceable<fancy_pointer>);
 
-        STATIC_REQUIRE(std::same_as<traits::pointer, fancy_pointer>);
-        STATIC_REQUIRE(std::same_as<traits::difference_type, ptrdiff_t>);
-        STATIC_REQUIRE(std::same_as<traits::element_type, const int>);
-        STATIC_REQUIRE(std::same_as<traits::raw_pointer, const int*>);
+        STATIC_REQUIRE(same_as<traits::pointer, fancy_pointer>);
+        STATIC_REQUIRE(same_as<traits::difference_type, ptrdiff_t>);
+        STATIC_REQUIRE(same_as<traits::element_type, const int>);
+        STATIC_REQUIRE(same_as<traits::raw_pointer, const int*>);
     }
 
     GIVEN("a int fancy pointer")
@@ -58,10 +58,10 @@ SCENARIO("pointer traits", "[memory]") // NOLINT
 
         using traits = stdsharp::pointer_traits<fancy_pointer>;
 
-        STATIC_REQUIRE(std::same_as<traits::pointer, fancy_pointer>);
-        STATIC_REQUIRE(std::same_as<traits::difference_type, ptrdiff_t>);
-        STATIC_REQUIRE(std::same_as<traits::element_type, const int>);
-        STATIC_REQUIRE(std::same_as<traits::raw_pointer, const int*>);
+        STATIC_REQUIRE(same_as<traits::pointer, fancy_pointer>);
+        STATIC_REQUIRE(same_as<traits::difference_type, ptrdiff_t>);
+        STATIC_REQUIRE(same_as<traits::element_type, const int>);
+        STATIC_REQUIRE(same_as<traits::raw_pointer, const int*>);
 
         int value = 42;
         int* ptr = &value;
@@ -77,10 +77,10 @@ SCENARIO("pointer traits", "[memory]") // NOLINT
     {
         using traits = stdsharp::pointer_traits<int*>;
 
-        STATIC_REQUIRE(std::same_as<traits::pointer, int*>);
-        STATIC_REQUIRE(std::same_as<traits::difference_type, ptrdiff_t>);
-        STATIC_REQUIRE(std::same_as<traits::element_type, int>);
-        STATIC_REQUIRE(std::same_as<traits::raw_pointer, int*>);
+        STATIC_REQUIRE(same_as<traits::pointer, int*>);
+        STATIC_REQUIRE(same_as<traits::difference_type, ptrdiff_t>);
+        STATIC_REQUIRE(same_as<traits::element_type, int>);
+        STATIC_REQUIRE(same_as<traits::raw_pointer, int*>);
 
         int value = 42;
         int* ptr = &value;

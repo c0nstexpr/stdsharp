@@ -27,8 +27,8 @@ SCENARIO("indexed traits", "[type traits][indexed traits]")
         {
             STATIC_REQUIRE(same_as<decltype(values.get<0>()), int&>);
             STATIC_REQUIRE(same_as<decltype(as_const(values).get<0>()), const int&>);
-            STATIC_REQUIRE(same_as<decltype(std::move(values).get<0>()), int&&>);
-            STATIC_REQUIRE(same_as<decltype(std::move(as_const(values)).get<0>()), const int&&>);
+            STATIC_REQUIRE(same_as<decltype(cpp_move(values).get<0>()), int&&>);
+            STATIC_REQUIRE(same_as<decltype(cpp_move(as_const(values)).get<0>()), const int&&>);
 
             STATIC_REQUIRE(same_as<decltype(cpo::get_element<0>(values)), int&>);
             STATIC_REQUIRE(same_as<get_element_t<0, indexed_values&>, int&>);

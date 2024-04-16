@@ -31,9 +31,9 @@ SCENARIO("value_wrapper", "[utility][value wrapper]") // NOLINT
         [[maybe_unused]] value_wrapper<int> wrapper{};
 
         STATIC_REQUIRE(same_as<decltype(wrapper.get()), int&>);
-        STATIC_REQUIRE(same_as<decltype(std::move(wrapper).get()), int&&>);
+        STATIC_REQUIRE(same_as<decltype(cpp_move(wrapper).get()), int&&>);
         STATIC_REQUIRE(same_as<decltype(wrapper.cget()), const int&>);
-        STATIC_REQUIRE(same_as<decltype(std::move(wrapper).cget()), const int&&>);
+        STATIC_REQUIRE(same_as<decltype(cpp_move(wrapper).cget()), const int&&>);
 
         STATIC_REQUIRE(
             []

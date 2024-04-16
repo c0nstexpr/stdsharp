@@ -137,8 +137,8 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 )
 {
     STATIC_REQUIRE(
-        value_sequence_algo::
-            find<test_seq>(V, sequenced_invocables{std::ranges::equal_to{}, always_false}) == Expect
+        value_sequence_algo::find<test_seq>(V, sequenced_invocables{equal_to{}, always_false}) ==
+        Expect
     );
 }
 
@@ -179,8 +179,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 )
 {
     STATIC_REQUIRE(
-        value_sequence_algo::
-            count<test_seq>(V, sequenced_invocables{std::ranges::equal_to{}, always_false}) ==
+        value_sequence_algo::count<test_seq>(V, sequenced_invocables{equal_to{}, always_false}) ==
         Expect
     );
 }
@@ -217,7 +216,7 @@ SCENARIO("Scenario: value adjacent find", "[type traits]") // NOLINT
     STATIC_REQUIRE( //
         invocable<
             value_sequence_algo::adjacent_find_fn<test_seq>,
-            sequenced_invocables<std::ranges::equal_to, always_false_fn>> //
+            sequenced_invocables<equal_to, always_false_fn>> //
     );
 }
 
@@ -231,8 +230,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            value_sequence_algo::
-                unique_t<Seq, sequenced_invocables<std::ranges::equal_to, always_false_fn>>,
+            value_sequence_algo::unique_t<Seq, sequenced_invocables<equal_to, always_false_fn>>,
             Expect> //
     );
 }
@@ -254,8 +252,8 @@ SCENARIO("tuple traits for regular value sequence",
          "[type traits][value sequence]") // NOLINT
 {
     STATIC_REQUIRE(tuple_size_v<test_seq> == 5);
-    STATIC_REQUIRE(std::same_as<tuple_element_t<0, test_seq>, int>);
-    STATIC_REQUIRE(std::same_as<tuple_element_t<2, test_seq>, size_t>);
+    STATIC_REQUIRE(same_as<tuple_element_t<0, test_seq>, int>);
+    STATIC_REQUIRE(same_as<tuple_element_t<2, test_seq>, size_t>);
 }
 
 SCENARIO("tuple traits for regular type sequence",

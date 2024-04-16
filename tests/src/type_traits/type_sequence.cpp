@@ -59,7 +59,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 )
 {
     STATIC_REQUIRE(
-        value_sequence_algo::find<value_seq_t>(basic_type_constant<T>{}, std::equal_to{}) == Expect
+        value_sequence_algo::find<value_seq_t>(basic_type_constant<T>{}, equal_to{}) == Expect
     );
 }
 
@@ -73,7 +73,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 )
 {
     STATIC_REQUIRE(
-        value_sequence_algo::count<value_seq_t>(type_constant<T>{}, std::equal_to{}) == Expect
+        value_sequence_algo::count<value_seq_t>(type_constant<T>{}, equal_to{}) == Expect
     );
 }
 
@@ -144,5 +144,5 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     (0, test_seq, regular_type_sequence<int, float, char, unsigned>)
 )
 {
-    STATIC_REQUIRE(same_as<type_sequence_algo::unique_t<Seq, std::equal_to<>>, Expect>);
+    STATIC_REQUIRE(same_as<type_sequence_algo::unique_t<Seq, equal_to<>>, Expect>);
 }

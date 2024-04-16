@@ -442,13 +442,16 @@ namespace stdsharp::details
         using size_t = std::size_t;
 
         template<typename... Optional>
-        static constexpr bool value = std::constructible_from<Container, Args..., Optional...> &&
-            []<size_t... I>(const std::index_sequence<I...>) consteval {
-                return value<type_at<I, Optional...>...>;
-            }(std::make_index_sequence<sizeof...(Optional) - 1>{});
+        static constexpr bool value =
+            []<size_t... I>(this const auto self, const std::index_sequence<I...>) consteval
+        {
+            constexpr auto count = sizeof...(I);
+            auto res = std::constructible_from<Container, Args..., type_at<I, Optional...>...>;
 
-        template<>
-        static constexpr bool value<> = std::constructible_from<Container, Args...>;
+            if constexpr(count > 0) res = res && self(std::make_index_sequence<count - 1>{});
+
+            return  res;
+        }(std::make_index_sequence<sizeof...(Optional)>{});
     };
 }
 

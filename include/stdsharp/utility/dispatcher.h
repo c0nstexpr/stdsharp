@@ -33,9 +33,10 @@ namespace stdsharp::details
             else
                 return +[](Args... args) noexcept(no_exception) -> Ret
                 {
-                    constexpr Fn c{}; // NOLINTBEGIN(*-redundant-casting)
-                    if constexpr(std::same_as<void, Ret>) c(static_cast<Args>(args)...);
-                    else return c(static_cast<Args>(args)...); // NOLINTEND(*-redundant-casting)
+                    return invoke_r<Ret>(
+                        Fn{},
+                        static_cast<Args>(args)... // NOLINT(*-redundant-casting)
+                    );
                 };
         }
 
