@@ -216,7 +216,7 @@ SCENARIO("Scenario: value adjacent find", "[type traits]") // NOLINT
     STATIC_REQUIRE( //
         invocable<
             value_sequence_algo::adjacent_find_fn<test_seq>,
-            sequenced_invocables<equal_to, always_false_fn>> //
+            sequenced_invocables<equal_to<>, always_false_fn>> //
     );
 }
 
@@ -230,7 +230,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
 {
     STATIC_REQUIRE( //
         same_as<
-            value_sequence_algo::unique_t<Seq, sequenced_invocables<equal_to, always_false_fn>>,
+            value_sequence_algo::unique_t<Seq, sequenced_invocables<equal_to<>, always_false_fn>>,
             Expect> //
     );
 }

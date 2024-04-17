@@ -106,8 +106,10 @@ namespace stdsharp
         struct insert
         {
             template<auto... Others, auto... I, auto... J>
-            static consteval regular_value_sequence<get<I>()..., Others..., get<J + Index>()...>
-                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+            static consteval auto impl(std::index_sequence<I...>, std::index_sequence<J...>)
+            {
+                return regular_value_sequence<get<I>()..., Others..., get<J + Index>()...>{};
+            }
 
             template<auto... Others>
             using type = decltype( //
@@ -533,10 +535,12 @@ namespace stdsharp::details
 
         static constexpr auto indices_pair = get_indices(std::make_index_sequence<size()>{});
 
+        static constexpr auto indices = indices_pair.first;
+
         static constexpr auto indices_size = indices_pair.second;
 
         template<auto... I>
-        static consteval regular_value_sequence<seq::template get<indices_pair.first[I]>()...>
+        static consteval regular_value_sequence<seq::template get<indices[I]>()...>
             apply_indices(std::index_sequence<I...>);
 
         using type = decltype(apply_indices(std::make_index_sequence<indices_size>{}));

@@ -62,17 +62,17 @@ namespace stdsharp::default_operator
         }
     };
 
-#define STDSHARP_ARITH_OP(name, op)                                 \
-    struct name##_commutative                                       \
-    {                                                               \
-        [[nodiscard]] friend constexpr decltype(auto) operator op(  \
-            not_decay_derived<name##_commutative> auto&& u,         \
-            decay_derived<name##_commutative> auto&& t              \
-        ) noexcept(noexcept(cpp_forward(t) op cpp_forward(u)))      \
-            requires requires { cpp_forward(t) op cpp_forward(u); } \
-        {                                                           \
-            return cpp_forward(t) op cpp_forward(u);                \
-        }                                                           \
+#define STDSHARP_ARITH_OP(name, op)                                      \
+    struct name##_commutative                                            \
+    {                                                                    \
+        template<not_decay_derived<name##_commutative> T>                \
+        [[nodiscard]] friend constexpr decltype(auto                     \
+        ) operator op(T&& u, decay_derived<name##_commutative> auto&& t) \
+            noexcept(noexcept(cpp_forward(t) op cpp_forward(u)))         \
+            requires requires { cpp_forward(t) op cpp_forward(u); }      \
+        {                                                                \
+            return cpp_forward(t) op cpp_forward(u);                     \
+        }                                                                \
     }
 
     STDSHARP_ARITH_OP(plus, +);
@@ -90,6 +90,7 @@ namespace stdsharp::default_operator
 
     struct subscript
     {
+        // TODO: multidimensional subscript
 #if __cpp_multidimensional_subscript >= 202110L
         [[nodiscard]] constexpr decltype(auto
         ) operator[](this auto&& t, auto&& first_arg, auto&&... args)
@@ -106,17 +107,19 @@ namespace stdsharp::default_operator
 
     struct arrow
     {
-        [[nodiscard]] constexpr auto* operator->(this dereferenceable auto&& t)
+        template<dereferenceable T>
+        [[nodiscard]] constexpr auto* operator->(this T&& t)
             noexcept(noexcept(std::addressof(*cpp_forward(t))))
         {
             return std::addressof(*cpp_forward(t));
         }
 
-        [[nodiscard]] constexpr auto operator->*(this dereferenceable auto&& t, auto&& ptr)
-            noexcept(noexcept((*cpp_forward(t)).*cpp_forward(ptr)))
-            requires requires { (*cpp_forward(t)).*cpp_forward(ptr); }
+        template<dereferenceable T>
+        [[nodiscard]] constexpr auto operator->*(this T&& t, auto&& ptr)
+            noexcept(noexcept((*cpp_forward(t)).*(cpp_forward(ptr))))
+            requires requires { (*cpp_forward(t)).*(cpp_forward(ptr)); }
         {
-            return (*cpp_forward(t)).*cpp_forward(ptr);
+            return (*cpp_forward(t)).*(cpp_forward(ptr));
         }
     };
 }

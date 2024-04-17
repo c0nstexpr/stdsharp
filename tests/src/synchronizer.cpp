@@ -33,5 +33,5 @@ SCENARIO("synchronizer", "[synchronizer]") // NOLINT
 
     synchronizer syn;
     int i{};
-    auto&& [value, lock] = syn.read_with(i);
+    [[maybe_unused]] auto&& [value, lock] = syn.read_with(i);
 }

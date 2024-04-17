@@ -4,6 +4,15 @@
 
 #include "../compilation_config_in.h"
 
+namespace stdsharp::details
+{
+    template<typename T>
+    concept iterator_has_mem_data = requires(T& v, const T& const_v) {
+        v.data();
+        const_v.data();
+    };
+}
+
 namespace stdsharp
 {
     struct STDSHARP_EBO basic_iterator :
@@ -15,61 +24,66 @@ namespace stdsharp
         template<typename T>
         using difference_type = std::iter_difference_t<decltype(std::declval<const T&>().data())>;
 
+// TODO: multidimensional subscript
+#if __cpp_multidimensional_subscript >= 202110L
         using subscript::operator[];
+#endif
+
         using increase::operator++;
         using increase::operator--;
         using arithmetic::operator-;
 
-        constexpr auto& operator++(this auto& t) noexcept(noexcept(++t.data()))
+        template<details::iterator_has_mem_data T>
+        constexpr auto& operator++(this T& t) noexcept(noexcept(++t.data()))
             requires requires { ++t.data(); }
         {
             ++t.data();
             return t;
         }
 
-        constexpr auto& operator--(this auto& t) noexcept(noexcept(--t.data()))
+        template<details::iterator_has_mem_data T>
+        constexpr auto& operator--(this T& t) noexcept(noexcept(--t.data()))
             requires requires { --t.data(); }
         {
             --t.data();
             return t;
         }
 
-        constexpr auto& operator+=(this auto& t, const difference_type<decltype(t)>& diff) noexcept
+        template<details::iterator_has_mem_data T>
+        constexpr auto& operator+=(this T& t, const difference_type<T>& diff) noexcept
             requires requires { t.data() += diff; }
         {
             t.data() += diff;
             return t;
         }
 
-        constexpr auto& operator-=(this auto& t, const difference_type<decltype(t)>& diff) noexcept
+        template<details::iterator_has_mem_data T>
+        constexpr auto& operator-=(this T& t, const difference_type<T>& diff) noexcept
             requires requires { t.data() -= diff; }
         {
             t.data() -= diff;
             return t;
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator-( //
-            this const auto& left,
-            decltype(left) right
-        ) noexcept(noexcept(left.data() - right.data()))
+        template<details::iterator_has_mem_data T>
+        [[nodiscard]] constexpr decltype(auto) operator-(this const T& left, decltype(left) right)
+            noexcept(noexcept(left.data() - right.data()))
             requires requires { left.data() - right.data(); }
         {
             return left.data() - right.data();
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator<=>( //
-            this const auto& left,
-            decltype(left) right
-        ) noexcept(noexcept(left.data() <=> right.data()))
+        template<details::iterator_has_mem_data T>
+        [[nodiscard]] constexpr decltype(auto) operator<=>(this const T& left, decltype(left) right)
+            noexcept(noexcept(left.data() <=> right.data()))
             requires requires { left.data() <=> right.data(); }
         {
             return left.data() <=> right.data();
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator==( //
-            this const auto& left,
-            decltype(left) right
-        ) noexcept(noexcept(left.data() == right.data()))
+        template<details::iterator_has_mem_data T>
+        [[nodiscard]] constexpr decltype(auto) operator==(this const T& left, decltype(left) right)
+            noexcept(noexcept(left.data() == right.data()))
             requires requires { left.data() == right.data(); }
         {
             return left.data() == right.data();
@@ -84,7 +98,8 @@ namespace stdsharp
         static constexpr void not_null(const auto& /*unused*/) noexcept {}
 
     public:
-        [[nodiscard]] constexpr decltype(auto) operator*(this const auto& t)
+        template<details::iterator_has_mem_data T>
+        [[nodiscard]] constexpr decltype(auto) operator*(this const T& t)
             noexcept(noexcept(*(t.data())))
             requires requires { *(t.data()); }
         {
@@ -93,9 +108,10 @@ namespace stdsharp
             return *ptr;
         }
 
+        template<details::iterator_has_mem_data T>
         [[nodiscard]] constexpr decltype(auto) operator[]( //
-            this const auto& t,
-            const difference_type<decltype(t)>& diff
+            this const T& t,
+            const difference_type<T>& diff
         ) noexcept(noexcept(*(t.data() + diff)))
             requires requires { *(t.data() + diff); }
         {

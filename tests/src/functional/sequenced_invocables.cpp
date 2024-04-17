@@ -1,4 +1,3 @@
-#include "stdsharp/functional/empty_invoke.h"
 #include "stdsharp/functional/sequenced_invocables.h"
 #include "test.h"
 

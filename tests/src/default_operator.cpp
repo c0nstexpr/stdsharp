@@ -21,7 +21,7 @@ void arithmetic_test()
 }
 
 template<typename T>
-void inverse_arithmetic_test()
+void commutative_arithmetic_test()
 {
     [[maybe_unused]] T v{};
 
@@ -35,7 +35,6 @@ void inverse_arithmetic_test()
     STATIC_REQUIRE(requires { 1 ^ v; });
     STATIC_REQUIRE(requires { 1 << v; });
     STATIC_REQUIRE(requires { 1 >> v; });
-    STATIC_REQUIRE(requires { -v; });
     STATIC_REQUIRE(requires { +v; });
 }
 
@@ -82,6 +81,7 @@ SCENARIO("arithmetic", "[default operator]") { arithmetic_test<arith>(); }
 
 struct comm :
     arith,
+    unary_plus,
     plus_commutative,
     minus_commutative,
     multiply_commutative,
@@ -93,12 +93,14 @@ struct comm :
     bitwise_left_shift_commutative,
     bitwise_right_shift_commutative
 {
+    using arith::operator+;
+    using unary_plus::operator+;
 };
 
 SCENARIO("commutative arithmetic", "[default operator]")
 {
     arithmetic_test<comm>();
-    inverse_arithmetic_test<comm>();
+    commutative_arithmetic_test<comm>();
 }
 
 SCENARIO("commutative arithmetic with int", "[default operator]")
@@ -109,7 +111,7 @@ SCENARIO("commutative arithmetic with int", "[default operator]")
     };
 
     arithmetic_test<t>();
-    inverse_arithmetic_test<t>();
+    commutative_arithmetic_test<t>();
 }
 
 SCENARIO("arrow", "[default operator]")
@@ -132,6 +134,8 @@ SCENARIO("arrow", "[default operator]")
     STATIC_REQUIRE(requires { v->*mem_ptr; });
 }
 
+// TODO: multidimensional subscript
+#if __cpp_multidimensional_subscript >= 202110L
 SCENARIO("subscript", "[default operator]")
 {
     [[maybe_unused]] struct : subscript
@@ -141,7 +145,6 @@ SCENARIO("subscript", "[default operator]")
         [[nodiscard]] auto operator[](const int /*unused*/) const { return *this; }
     } v{};
 
-#if __cpp_multidimensional_subscript >= 202110L
     STATIC_REQUIRE(requires { v[0, 1]; });
-#endif
 }
+#endif

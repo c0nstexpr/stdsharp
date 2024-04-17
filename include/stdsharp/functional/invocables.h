@@ -46,16 +46,17 @@ namespace stdsharp::details
             return forward_cast<Self, invocables, indexed_invocable<J, type<J>>>(self).get();
         }
 
-        template<std::size_t J, typename Self, typename SelfT = const Self>
+        template<std::size_t J, typename Self>
         constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<SelfT, invocables, indexed_invocable<J, type<J>>>(self).cget();
+            return forward_cast<const Self, invocables, indexed_invocable<J, type<J>>>(self).cget();
         }
 
-        template<std::size_t J, typename Self, typename SelfT = const Self&>
-        constexpr forward_cast_t<SelfT, type<J>> cget(this const Self& self) noexcept
+        template<std::size_t J, typename Self>
+        constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast<SelfT, invocables, indexed_invocable<J, type<J>>>(self).cget();
+            return forward_cast<const Self&, invocables, indexed_invocable<J, type<J>>>(self).cget(
+            );
         }
     };
 }

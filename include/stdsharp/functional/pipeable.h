@@ -16,22 +16,30 @@ namespace stdsharp
     };
 
     template<pipe_mode Mode = pipe_mode::left>
-    struct pipeable_base
+    struct pipeable_base;
+
+    template<>
+    struct pipeable_base<pipe_mode::left>
     {
-        static constexpr auto pipe_mode = Mode;
+        static constexpr auto pipe_mode = pipe_mode::left;
 
     private:
         template<typename Arg, std::invocable<Arg> Pipe>
-            requires(Mode == pipe_mode::left)
+            requires decay_derived<Pipe, pipeable_base>
         friend constexpr decltype(auto) operator|(Arg&& arg, Pipe&& pipe)
             noexcept(nothrow_invocable<Pipe, Arg>)
         {
             return invoke(cpp_forward(pipe), cpp_forward(arg));
         }
+    };
+
+    template<>
+    struct pipeable_base<pipe_mode::right>
+    {
+        static constexpr auto pipe_mode = pipe_mode::right;
 
         template<typename Arg, std::invocable<Arg> Pipe>
-            requires(Mode == pipe_mode::right)
-        friend constexpr decltype(auto) operator|(Pipe&& pipe, Arg&& arg)
+        constexpr decltype(auto) operator|(this Pipe&& pipe, Arg&& arg)
             noexcept(nothrow_invocable<Pipe, Arg>)
         {
             return invoke(cpp_forward(pipe), cpp_forward(arg));

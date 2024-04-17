@@ -33,8 +33,7 @@ SCENARIO("type sequence apply", "[type traits][type sequence]") // NOLINT
 
 namespace
 {
-    inline constexpr auto type_sequence_invoker =
-        []<typename T>(const basic_type_constant<T>) consteval {};
+    inline constexpr auto type_sequence_invoker = []<typename T>(const basic_type_constant<T>) {};
 }
 
 TEMPLATE_TEST_CASE( // NOLINT

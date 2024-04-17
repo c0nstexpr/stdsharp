@@ -1,14 +1,12 @@
 #pragma once
 
 #include "../concepts/type.h"
-#include "../macros.h"
 #include "../type_traits/type.h"
 
 #include "../compilation_config_in.h"
 
 namespace stdsharp
 {
-
     template<typename From, typename To>
     using forward_cast_t = apply_qualifiers<
         To,

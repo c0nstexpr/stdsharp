@@ -134,21 +134,7 @@ namespace stdsharp
     };
 
     [[nodiscard]] constexpr lifetime_req
-        minimize(const lifetime_req left, const lifetime_req right) noexcept
-    {
-        return {
-            std::min(left.default_construct, right.default_construct),
-            std::min(left.move_construct, right.move_construct),
-            std::min(left.copy_construct, right.copy_construct),
-            std::min(left.move_assign, right.move_assign),
-            std::min(left.copy_assign, right.copy_assign),
-            std::min(left.destruct, right.destruct),
-            std::min(left.swap, right.swap)
-        };
-    }
-
-    [[nodiscard]] constexpr lifetime_req
-        maximize(const lifetime_req left, const lifetime_req right) noexcept
+        at_least(const lifetime_req left, const lifetime_req right) noexcept
     {
         return {
             std::max(left.default_construct, right.default_construct),

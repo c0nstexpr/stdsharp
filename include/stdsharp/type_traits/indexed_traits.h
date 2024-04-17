@@ -7,37 +7,29 @@
 
 namespace stdsharp::details
 {
+    template<size_t>
+    struct invalid_type_indexer
+    {
+    };
+
+    template<typename... T>
     struct type_indexer
     {
-        template<typename T>
-        struct filter
-        {
-            [[nodiscard]] consteval type_constant<T> get() const noexcept { return {}; }
-        };
+        using size_t = std::size_t;
 
-        template<std::size_t>
-        struct invalid
+
+        template<size_t I, typename = std::index_sequence_for<T...>>
+        struct t;
+
+        template<size_t I, size_t... J>
+        struct t<I, std::index_sequence<J...>> :
+            std::conditional_t<I == J, std::type_identity<T>, invalid_type_indexer<J>>...
         {
         };
 
     public:
-        template<std::size_t I, std::size_t... J, typename... T>
-        static consteval auto impl(
-            const std::index_sequence<J...> /*unused*/,
-            const basic_type_sequence<T...> /*unused*/
-        )
-        {
-            constexpr struct : std::conditional_t<I == J, filter<T>, invalid<J>>...
-            {
-            } f{};
-
-            return f;
-        }
-
-        template<std::size_t I, typename... T>
-        using type = typename decltype( //
-            impl<I>(std::index_sequence_for<T...>{}, basic_type_sequence<T...>{}).get()
-        )::type;
+        template<size_t I>
+        using type = t<I>::type;
     };
 }
 
@@ -49,7 +41,7 @@ namespace stdsharp
     };
 
     template<std::size_t I, typename... T>
-    using type_at = details::type_indexer::type<I, T...>;
+    using type_at = details::type_indexer<T...>::template type<I>;
 }
 
 namespace stdsharp::details
@@ -68,21 +60,22 @@ namespace stdsharp::details
         using index_sequence = std::index_sequence<I...>;
 
         template<std::size_t J, typename Self>
-        constexpr forward_cast_t<Self, type<J>> get(this Self&& self) noexcept
+        constexpr decltype(auto) get(this Self&& self) noexcept
         {
             return forward_cast<Self, indexed_values, indexed_value<J, type<J>>>(self).get();
         }
 
-        template<std::size_t J, typename Self, typename SelfT = const Self>
-        constexpr forward_cast_t<SelfT, type<J>> cget(this const Self&& self) noexcept
+        template<std::size_t J, typename Self>
+        constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<SelfT, indexed_values, indexed_value<J, type<J>>>(self).cget();
+            return forward_cast<const Self, indexed_values, indexed_value<J, type<J>>>(self).cget();
         }
 
-        template<std::size_t J, typename Self, typename SelfT = const Self&>
-        constexpr forward_cast_t<SelfT, type<J>> cget(this const Self& self) noexcept
+        template<std::size_t J, typename Self>
+        constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast<SelfT, indexed_values, indexed_value<J, type<J>>>(self).cget();
+            return forward_cast<const Self&, indexed_values, indexed_value<J, type<J>>>(self).cget(
+            );
         }
     };
 }

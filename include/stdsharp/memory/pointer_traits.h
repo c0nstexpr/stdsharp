@@ -59,12 +59,37 @@ namespace stdsharp::details
         );
 
     private:
-        struct std_to_address
+        struct traits_to_address
+        {
+            void pointer_test(auto*);
+
+            [[nodiscard]] constexpr decltype(auto) operator()(const pointer& p) const noexcept
+                requires requires { std_traits::to_address(p); }
+            {
+                return std_traits::to_address(p);
+            }
+        };
+
+        struct cast_to_address
+        {
+            static constexpr auto cast_to_pointer(auto* p) noexcept { return p; }
+
+            [[nodiscard]] constexpr decltype(auto) operator()(const pointer& p) const noexcept
+                requires requires {
+                    cast_to_pointer(p);
+                    requires !function<decltype(cast_to_pointer(p))>;
+                }
+            {
+                return std::to_address(cast_to_pointer(p));
+            }
+        };
+
+        struct operator_to_address
         {
             [[nodiscard]] constexpr decltype(auto) operator()(const pointer& p) const noexcept
-                requires requires { std::to_address(p); }
+                requires requires { std::to_address(p.operator->()); }
             {
-                return std::to_address(p);
+                return std::to_address(p.operator->());
             }
         };
 
@@ -78,8 +103,11 @@ namespace stdsharp::details
         };
 
     public:
-        using to_address_fn =
-            nodiscard_invocable<stdsharp::sequenced_invocables<std_to_address, convert_to_address>>;
+        using to_address_fn = nodiscard_invocable<stdsharp::sequenced_invocables<
+            traits_to_address,
+            cast_to_address,
+            operator_to_address,
+            convert_to_address>>;
 
         static constexpr to_address_fn to_address{};
 
@@ -145,7 +173,7 @@ namespace stdsharp::details
         };
 
         template<
-            typename = decltype(get_element_type())::type,
+            typename = typename decltype(get_element_type())::type,
             typename = decltype(get_raw_pointer())>
         struct pointer_to_fn_t
         {
@@ -198,13 +226,13 @@ namespace stdsharp::details
             struct dereference_to_pointer
             {
                 [[nodiscard]] constexpr pointer operator()(const RawPtr p) const
-                    noexcept(noexcept(pointer_to(*p), pointer{}))
+                    noexcept(noexcept(pointer_to_fn_t<>::pointer_to(*p), pointer{}))
                     requires requires {
                         requires nullable_pointer<pointer>;
-                        pointer_to(*p);
+                        pointer_to_fn_t<>::pointer_to(*p);
                     }
                 {
-                    return p == nullptr ? pointer{} : pointer_to(*p);
+                    return p == nullptr ? pointer{} : pointer_to_fn_t<>::pointer_to(*p);
                 }
             };
 

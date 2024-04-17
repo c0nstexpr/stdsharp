@@ -61,8 +61,13 @@ namespace stdsharp
         struct insert
         {
             template<typename... Others, auto... I, auto... J>
-            static consteval regular_type_sequence<type<I>..., Others..., type<J + Index>...>
-                impl(std::index_sequence<I...>, std::index_sequence<J...>);
+            static consteval auto impl(std::index_sequence<I...>, std::index_sequence<J...>)
+            {
+                return regular_type_sequence<
+                    type_sequence::type<I>...,
+                    Others...,
+                    type_sequence::type<J + Index>...>{};
+            }
 
             template<typename... Others>
             using type = decltype( //
@@ -177,11 +182,12 @@ namespace stdsharp::details
 
         static constexpr auto indices_pair = get_indices(std::make_index_sequence<size()>{});
 
+        static constexpr auto indices = indices_pair.first;
+
         static constexpr auto indices_size = indices_pair.second;
 
         template<auto... I>
-        static consteval regular_type_sequence<typename seq::
-                                                   template type<indices_pair.first[I]>...>
+        static consteval regular_type_sequence<typename seq::template type<indices[I]>...>
             apply_indices(std::index_sequence<I...>);
 
         using type = decltype(apply_indices(std::make_index_sequence<indices_size>{}));
@@ -208,7 +214,7 @@ namespace std
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::type_sequence<T...>>
     {
-        using type = ::stdsharp::type_sequence<T...>::template type<I>;
+        using type = typename ::stdsharp::type_sequence<T...>::template type<I>;
     };
 }
 

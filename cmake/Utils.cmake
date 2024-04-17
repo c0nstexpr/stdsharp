@@ -5,11 +5,11 @@ option(
 
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-fdiagnostics-show-template-tree)
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   add_compile_options(/utf-8 /diagnostics:caret)
 endif()
 
@@ -37,9 +37,7 @@ function(target_include_as_system target_name)
                              ${included})
 endfunction()
 
-#
 # Create static or shared library, setup header and source files
-#
 function(config_lib lib_name lib_type)
   message("Configuring target library ${lib_name}")
 
@@ -85,7 +83,7 @@ function(config_lib lib_name lib_type)
 
   if(ARG_STD)
     target_compile_features(${lib_name} ${inc_tag} cxx_std_${ARG_STD})
-    message(STATUS "Using c++ ${ARG_STD}.\n")
+    message(STATUS "Using c++ ${ARG_STD}")
   endif()
 
   target_include_directories(
@@ -99,9 +97,7 @@ function(config_lib lib_name lib_type)
   set_target_properties(${lib_name} PROPERTIES VERSION "${ARG_VER}")
 endfunction()
 
-#
 # Create executable, setup header and source files
-#
 function(config_exe exe_name)
   cmake_parse_arguments(ARG "" "STD;VER" "EXE_SRC" ${ARGN})
 
@@ -119,13 +115,11 @@ function(config_exe exe_name)
 
   if(ARG_STD)
     target_compile_features(${exe_name} PUBLIC cxx_std_${ARG_STD})
-    message(STATUS "Using c++ ${ARG_STD}.\n")
+    message(STATUS "Using c++ ${ARG_STD}.")
   endif()
 endfunction()
 
-#
-# Create executable, setup header and source files
-#
+# install library
 function(target_install target)
   include(CMakePackageConfigHelpers)
   include(GNUInstallDirs)
@@ -235,33 +229,44 @@ include($\{CMAKE_CURRENT_LIST_DIR}/${target}Targets.cmake)"
     COMPONENT "${target}_Development")
 endfunction()
 
-function(target_enable_clang_tidy target)
+function(target_clang_tidy target)
   find_program(CLANG_TIDY clang-tidy)
-  if(CLANG_TIDY)
-    message(STATUS "found clang-tidy: ${CLANG_TIDY}")
 
-    get_target_property(bin_dir ${target} BINARY_DIR)
-    set(report_folder "${bin_dir}/clang-tidy-report")
-
-    set_target_properties(
-      ${target}
-      PROPERTIES
-        CXX_CLANG_TIDY
-        "${CLANG_TIDY};--enable-check-profile;--store-check-profile=${report_folder}"
-    )
-
-    add_custom_target(
-      ${target}ClangTidyClean ALL
-      COMMAND ${CMAKE_COMMAND} -E rm -rf ${report_folder}/
-      USES_TERMINAL)
-
-    add_dependencies(${target} ${target}ClangTidyClean)
-  else()
+  if(NOT EXISTS "${CLANG_TIDY}")
     message(STATUS "clang-tidy not found")
+    return()
   endif()
+
+  message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+
+  get_target_property(bin_dir ${target} BINARY_DIR)
+  set(report_folder "${bin_dir}/clang-tidy-report")
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    message(STATUS "Add extra MSVC arg for clang-tidy")
+    set(MSVC_TIDY
+        ";--extra-arg=/EHsc;--extra-arg=/std:c++latest;--extra-arg=-Wno-unknown-warning-option"
+    )
+  endif()
+
+  set_target_properties(
+    ${target}
+    PROPERTIES
+      CXX_CLANG_TIDY
+      "${CLANG_TIDY};
+--enable-check-profile;
+--store-check-profile=${report_folder}
+${MSVC_TIDY}")
+
+  add_custom_target(
+    ${target}ClangTidyClean ALL
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${report_folder}/
+    USES_TERMINAL)
+
+  add_dependencies(${target} ${target}ClangTidyClean)
 endfunction()
 
-function(target_enable_clang_sanitizer target type)
+function(target_clang_sanitizer target type)
   cmake_parse_arguments(ARG "" "" "SANITIZER" ${ARGN})
 
   foreach(sanitizer ${ARG_SANITIZER})
@@ -279,28 +284,37 @@ function(target_enable_clang_sanitizer target type)
                       "SHELL: $<${clang_debug_only}:${sanitizer_options}>")
 endfunction()
 
-function(target_coverage target_name)
+function(target_llvm_coverage target_name)
   message(STATUS "enable code coverage for ${target_name}")
   find_program(llvm_profdata "llvm-profdata")
   find_program(llvm_cov "llvm-cov")
 
-  if(NOT (${CMAKE_CXX_COMPILER_ID} MATCHES "(Apple)?[Cc]lang"))
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
     message(
       STATUS
-        "C++ Compiler should be Clang, ${CMAKE_CXX_COMPILER_ID} is not supported.\n"
+        "C++ Compiler should be Clang, ${CMAKE_CXX_COMPILER_ID} is not supported."
     )
     return()
   endif()
 
   if(NOT EXISTS "${llvm_profdata}" OR NOT EXISTS "${llvm_cov}")
-    message(STATUS "llvm-profdata or llvm-cov not found.\n")
+    message(STATUS "llvm-profdata or llvm-cov not found.")
     return()
   endif()
 
   message(STATUS "found llvm-profdata at: ${llvm_profdata}")
   message(STATUS "found llvm-cov at: ${llvm_cov}")
 
-  cmake_parse_arguments(ARG "" "FORMAT;PROFILE_FILE" "DEPENDS" ${ARGN})
+  cmake_parse_arguments(ARG "" "FORMAT" "DEPENDS" ${ARGN})
+
+  set(profile_file "${target_name}.profraw")
+
+  # Run first to generate profraw file
+  add_custom_command(
+    OUTPUT ${profile_file}
+    DEPENDS ${target_name}
+    COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${profile_file}
+            $<TARGET_FILE:${target_name}> || exit 0)
 
   set(options -fprofile-instr-generate -fcoverage-mapping)
 
@@ -310,28 +324,23 @@ function(target_coverage target_name)
   set(profdata_file_name "${target_name}.profdata")
 
   if(${ARG_FORMAT} STREQUAL text)
-    set(coverage_file json)
+    set(coverage_file_ext json)
   elseif(${ARG_FORMAT} STREQUAL lcov)
-    set(coverage_file lcov)
+    set(coverage_file_ext lcov)
   else()
     message(FATAL_ERROR "unknown format ${ARG_FORMAT}")
   endif()
 
-  if(NOT DEFINED ARG_PROFILE_FILE)
-    set(ARG_PROFILE_FILE "$ENV{LLVM_PROFILE_FILE}")
-  endif()
-
-  set(coverage_file "${target_name}Coverage.${coverage_file}")
+  set(coverage_file_ext "${target_name}Coverage.${coverage_file_ext}")
 
   add_custom_target(
     ${target_name}CoverageReport ALL
-    DEPENDS ${target_name} ${ARG_DEPENDS}
-    COMMAND ${CMAKE_COMMAND} -E rm -f "${profdata_file_name}" "${coverage_file}"
+    DEPENDS ${profile_file}
     COMMAND "${llvm_profdata}" merge --sparse -o="${profdata_file_name}"
-            "${ARG_PROFILE_FILE}"
+            "${profile_file}"
     COMMAND
       "${llvm_cov}" export -format=${ARG_FORMAT}
       -object="$<TARGET_FILE:${target_name}>"
-      -instr-profile="${profdata_file_name}" > "${coverage_file}"
+      -instr-profile="${profdata_file_name}" > "${coverage_file_ext}"
     USES_TERMINAL)
 endfunction()

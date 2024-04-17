@@ -450,7 +450,7 @@ namespace stdsharp::details
 
             if constexpr(count > 0) res = res && self(std::make_index_sequence<count - 1>{});
 
-            return  res;
+            return res;
         }(std::make_index_sequence<sizeof...(Optional)>{});
     };
 }

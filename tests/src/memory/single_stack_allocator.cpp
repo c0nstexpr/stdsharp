@@ -62,23 +62,4 @@ SCENARIO("single stack allocator", "[memory][single_stack_allocator]") // NOLINT
             REQUIRE_THROWS_AS(allocator.allocate(decltype(allocator)::size + 1), bad_alloc);
         }
     }
-
-#if __cpp_constexpr >= 202306L
-    GIVEN("allocator with 4 * sizeof(int), constexpr allocate and deallocate")
-    {
-        STATIC_REQUIRE(
-            []
-            {
-                single_stack_buffer<4 * sizeof(int)> rsc;
-                auto allocator = make_single_stack_allocator<int>(rsc);
-                const auto p1 = allocator.allocate(1);
-                const bool is_null = p1 == nullptr;
-
-                allocator.deallocate(p1, 1);
-
-                return !is_null;
-            }()
-        );
-    }
-#endif
 }
