@@ -29,9 +29,7 @@ namespace stdsharp
 
         constexpr void size_validate(const auto& allocation) const noexcept
         {
-            Expects(
-                allocation.size() * sizeof(typename allocation_traits::value_type) >= value_size()
-            );
+            Expects(allocation.size() * sizeof(allocation_traits::value_type) >= value_size());
         }
 
         constexpr void

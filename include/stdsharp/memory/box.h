@@ -480,7 +480,7 @@ namespace stdsharp
         {
             reset();
 
-            if(const auto size = sizeof(T); capacity() < size)
+            if(constexpr auto size = sizeof(T); capacity() < size)
             {
                 deallocate();
                 allocate(size);

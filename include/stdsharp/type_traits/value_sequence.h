@@ -106,7 +106,10 @@ namespace stdsharp
         struct insert
         {
             template<auto... Others, auto... I, auto... J>
-            static consteval auto impl(std::index_sequence<I...>, std::index_sequence<J...>)
+            static consteval auto impl( //
+                std::index_sequence<I...> /*unused*/,
+                std::index_sequence<J...> /*unused*/
+            )
             {
                 return regular_value_sequence<get<I>()..., Others..., get<J + Index>()...>{};
             }

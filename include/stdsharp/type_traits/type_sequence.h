@@ -61,7 +61,10 @@ namespace stdsharp
         struct insert
         {
             template<typename... Others, auto... I, auto... J>
-            static consteval auto impl(std::index_sequence<I...>, std::index_sequence<J...>)
+            static consteval auto impl( //
+                std::index_sequence<I...> /*unused*/,
+                std::index_sequence<J...> /*unused*/
+            )
             {
                 return regular_type_sequence<
                     type_sequence::type<I>...,
