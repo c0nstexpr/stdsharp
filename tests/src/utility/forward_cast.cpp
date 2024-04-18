@@ -49,6 +49,10 @@ SCENARIO("forward cast", "[utility][forward cast]")
     GIVEN("t2")
     {
         [[maybe_unused]] t2 v{};
+        STATIC_REQUIRE(same_as<decltype(forward_cast<t2&, t1>(v)), t1&>);
+        STATIC_REQUIRE(same_as<decltype(forward_cast<const t2&, t1>(v)), const t1&>);
+        STATIC_REQUIRE(same_as<decltype(forward_cast<t2&&, t1>(v)), t1&&>);
+        STATIC_REQUIRE(same_as<decltype(forward_cast<const t2&&, t1>(v)), const t1&&>);
 
         STATIC_REQUIRE(same_as<decltype(forward_cast<t2&, t1, t0>(v)), t0&>);
         STATIC_REQUIRE(same_as<decltype(forward_cast<const t2&, t1, t0>(v)), const t0&>);

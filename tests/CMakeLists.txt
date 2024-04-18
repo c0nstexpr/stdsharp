@@ -21,6 +21,7 @@ set(src
     src/functional/pipeable.cpp
     src/functional/sequenced_invocables.cpp
     src/functional/symmetric_operations.cpp
+    src/memory/allocation_value.cpp
     src/memory/box.cpp
     src/memory/composed_allocator.cpp
     src/memory/pointer_traits.cpp

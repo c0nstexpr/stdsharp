@@ -20,16 +20,18 @@ namespace stdsharp
 
         [[nodiscard]] bool operator==(const allocation_value&) const = default;
 
+        static constexpr auto data = allocation_traits::template data<T>;
+        static constexpr auto get = allocation_traits::template get<T>;
+
     private:
         using ctor = allocator_traits::constructor;
         using dtor = allocator_traits::destructor;
 
-        static constexpr auto data = allocation_traits::template data<T>;
-        static constexpr auto get = allocation_traits::template get<T>;
-
         constexpr void size_validate(const auto& allocation) const noexcept
         {
-            Expects(allocation.size() * sizeof(allocation_traits::value_type) >= value_size());
+            Expects(
+                allocation.size() * sizeof(typename allocation_traits::value_type) >= value_size()
+            );
         }
 
         constexpr void
@@ -40,10 +42,14 @@ namespace stdsharp
         }
 
     public:
+        static constexpr struct default_construct_t
+        {
+        } default_construct{};
+
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
-            const empty_t /*unused*/
+            const default_construct_t /*unused*/
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
             requires std::invocable<ctor, allocator_type&, T*>
         {
@@ -112,12 +118,13 @@ namespace stdsharp
         using allocator_type = allocation_traits::allocator_type;
         using size_type = allocator_traits::size_type;
 
+        static constexpr auto data = allocation_traits::template data<T>;
+        static constexpr auto get = allocation_traits::template get<T>;
+
     private:
         using ctor = allocator_traits::constructor;
         using dtor = allocator_traits::destructor;
         using size_t = std::size_t;
-
-        static constexpr auto data = allocation_traits::template data<T>;
 
         size_t size_;
 
@@ -154,10 +161,14 @@ namespace stdsharp
 
         [[nodiscard]] bool operator==(const allocation_value&) const = default;
 
+        static constexpr struct default_construct_t
+        {
+        } default_construct{};
+
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
-            const empty_t /*unused*/
+            const default_construct_t /*unused*/
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
             requires std::invocable<ctor, allocator_type&, T*>
         {

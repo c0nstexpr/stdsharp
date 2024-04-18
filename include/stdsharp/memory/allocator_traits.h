@@ -305,13 +305,13 @@ namespace stdsharp
 
         using m_base::max_size;
 
-        static constexpr allocator_type
+        [[nodiscard]] static constexpr allocator_type
             select_on_container_copy_construction(const allocator_type& alloc) noexcept
         {
             return alloc;
         }
 
-        static constexpr allocator_type
+        [[nodiscard]] static constexpr allocator_type
             select_on_container_copy_construction(const allocator_type& alloc)
                 noexcept(noexcept(alloc.select_on_container_copy_construction()))
             requires requires {
@@ -323,7 +323,7 @@ namespace stdsharp
             return alloc.select_on_container_copy_construction();
         }
 
-        static constexpr pointer allocate(
+        [[nodiscard]] static constexpr pointer allocate(
             allocator_type& alloc,
             const size_type count,
             const const_void_pointer hint = nullptr
@@ -342,7 +342,7 @@ namespace stdsharp
             m_base::deallocate(alloc, ptr, count);
         }
 
-        static constexpr pointer try_allocate(
+        [[nodiscard]] static constexpr pointer try_allocate(
             allocator_type& alloc,
             const size_type count,
             const const_void_pointer hint = nullptr
@@ -360,7 +360,7 @@ namespace stdsharp
             }
         }
 
-        static constexpr auto try_allocate(
+        [[nodiscard]] static constexpr auto try_allocate(
             allocator_type& alloc,
             const size_type count,
             [[maybe_unused]] const const_void_pointer hint = nullptr

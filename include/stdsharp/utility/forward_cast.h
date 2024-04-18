@@ -23,18 +23,24 @@ namespace stdsharp
         using next_fn = forward_cast_fn<current_cast_t, Rest...>;
 
     public:
-        [[nodiscard]] constexpr decltype(auto) operator()(auto&& from) const noexcept
-            requires std::invocable<current_fn, From> && std::invocable<next_fn, current_cast_t>
+        using from_t = std::remove_reference_t<From>;
+
+        [[nodiscard]] constexpr decltype(auto) operator()(from_t&& from) const noexcept
+            requires std::invocable<current_fn, from_t> && std::invocable<next_fn, current_cast_t>
         {
-            return next_fn{}(current_fn{}(static_cast<From&&>(from)));
+            return next_fn{}(current_fn{}(cpp_move(from)));
+        }
+
+        [[nodiscard]] constexpr decltype(auto) operator()(from_t& from) const noexcept
+            requires std::invocable<current_fn, from_t&> && std::invocable<next_fn, current_cast_t>
+        {
+            return next_fn{}(current_fn{}(from));
         }
     };
 
     template<typename From, typename To>
-        requires requires(std::remove_cvref_t<From> f, std::remove_cvref_t<To> t) {
-            requires not_same_as<decltype(f), decltype(t)>;
-            requires !(base_of<decltype(f), decltype(t)> || base_of<decltype(t), decltype(f)>);
-        }
+        requires not_decay_derived<From, To> && not_decay_derived<To, From> &&
+        not_same_as<std::remove_cvref_t<From>, std::remove_cvref_t<To>>
     struct forward_cast_fn<From, To>
     {
     };
@@ -42,19 +48,23 @@ namespace stdsharp
     template<typename From, typename To>
     struct forward_cast_fn<From, To>
     {
+        using from_t = std::remove_reference_t<From>;
         using cast_t = forward_cast_t<From, To>;
 
-        // c-style cast allow us cast to inaccessible base
-        [[nodiscard]] constexpr decltype(auto) operator()(std::remove_reference_t<From>&& from) //
+        [[nodiscard]] constexpr decltype(auto) operator()(from_t& from) //
             const noexcept
         {
-            return (cast_t)from; // NOLINT
+            // c-style cast allow us cast to inaccessible base
+            if constexpr(decay_derived<From, To>) return (cast_t)from; // NOLINT
+            else return static_cast<cast_t>(from);
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator()(std::remove_reference_t<From>& from) //
+        [[nodiscard]] constexpr decltype(auto) operator()(from_t&& from) //
             const noexcept
         {
-            return (cast_t)from; // NOLINT
+            // c-style cast allow us cast to inaccessible base
+            if constexpr(decay_derived<From, To>) return (cast_t)from; // NOLINT
+            else return static_cast<cast_t>(from);
         }
     };
 

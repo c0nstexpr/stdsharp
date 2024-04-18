@@ -262,11 +262,4 @@ namespace stdsharp
         { t1 <<= t2 } -> std::same_as<T&>;
         { t1 >>= t2 } -> std::same_as<T&>;
     };
-
-    template<typename T, typename U>
-    concept decay_derived =
-        std::is_base_of_v<std::remove_reference_t<U>, std::remove_reference_t<T>>;
-
-    template<typename T, typename U>
-    concept not_decay_derived = !decay_derived<T, U>;
 }

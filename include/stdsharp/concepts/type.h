@@ -67,8 +67,14 @@ namespace stdsharp
     template<typename T>
     concept carray = std::is_array_v<T>;
 
-    template<typename T, typename U>
-    concept base_of = std::is_base_of_v<T, U>;
+    template<typename B, typename D>
+    concept base_of = std::is_base_of_v<B, D>;
+
+    template<typename D, typename B>
+    concept decay_derived = base_of<std::remove_reference_t<B>, std::remove_reference_t<D>>;
+
+    template<typename D, typename B>
+    concept not_decay_derived = !decay_derived<D, B>;
 
     template<typename T>
     concept class_ = std::is_class_v<T>;

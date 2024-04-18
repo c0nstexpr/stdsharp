@@ -12,11 +12,25 @@ SCENARIO("soo allocation basic requirements", "[memory][small object optimizatio
     STATIC_REQUIRE(constructible_from<unique_t, normal_t::allocator_type>);
     STATIC_REQUIRE(constructible_from<worst_t, normal_t::allocator_type>);
 
-    allocation_type_requirement_test<normal_t, unique_t, worst_t>();
+    ALLOCATION_TYPE_REQUIRE(normal_t, unique_t, worst_t);
 }
 
 SCENARIO("use soo allocation store value", "[memory][small object optimization]") // NOLINT
 {
-    single_stack_buffer<> buffer{};
-    allocation_functionality_test(normal_soo_box<>{make_soo_allocator(buffer, {})});
+    GIVEN("an object allocation")
+    {
+        single_stack_buffer<> buffer{};
+        normal_soo_box<> box_v{make_soo_allocator(buffer, {})};
+
+        WHEN("emplace a vector")
+        {
+            const vector const_value {1, 2, 3};
+            const auto& res = box_v.emplace(const_value);
+            THEN("the return value should correct") { REQUIRE(res == const_value); }
+            AND_THEN("type should be expected")
+            {
+                REQUIRE(box_v.is_type<std::remove_cvref_t<decltype(const_value)>>());
+            }
+        }
+    }
 }
