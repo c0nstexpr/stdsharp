@@ -4,9 +4,9 @@
 #include "allocation_traits.h"
 #include "launder_iterator.h"
 
-namespace stdsharp
+namespace stdsharp::details
 {
-    template<allocator_req Allocator, typename T = Allocator::value_type>
+    template<typename Allocator, typename T>
     struct allocation_value
     {
         using allocation_traits = allocation_traits<Allocator>;
@@ -14,38 +14,63 @@ namespace stdsharp
         using allocator_type = allocation_traits::allocator_type;
         using size_type = allocator_traits::size_type;
 
+        using ctor = allocator_traits::constructor;
+        using dtor = allocator_traits::destructor;
+
+        static constexpr auto data = allocation_traits::template data<T>;
+        static constexpr auto get = allocation_traits::template get<T>;
+
+        constexpr void size_validate(this const auto& t, const auto& allocation) noexcept
+        {
+            Expects(
+                allocation.size() * sizeof(typename allocation_traits::value_type) >= t.value_size()
+            );
+        }
+
+        constexpr void size_validate(
+            this const auto& t,
+            const auto& src_allocation,
+            const auto& dst_allocation
+        ) noexcept
+        {
+            t.size_validate(src_allocation);
+            t.size_validate(dst_allocation);
+        }
+
+        static constexpr struct default_construct_t
+        {
+        } default_construct{};
+    };
+}
+
+namespace stdsharp
+{
+    template<allocator_req Allocator, typename T = Allocator::value_type>
+    struct allocation_value : private details::allocation_value<Allocator, T>
+    {
+        using m_base = details::allocation_value<Allocator, T>;
+
+    public:
+        using typename m_base::allocation_traits;
+        using typename m_base::allocator_traits;
+        using typename m_base::allocator_type;
+        using typename m_base::size_type;
+        using typename m_base::default_construct_t;
+        using m_base::default_construct;
+        using m_base::data;
+        using m_base::get;
+
         static constexpr auto always_equal = true;
 
         [[nodiscard]] static constexpr auto value_size() noexcept { return sizeof(T); }
 
         [[nodiscard]] bool operator==(const allocation_value&) const = default;
 
-        static constexpr auto data = allocation_traits::template data<T>;
-        static constexpr auto get = allocation_traits::template get<T>;
-
     private:
-        using ctor = allocator_traits::constructor;
-        using dtor = allocator_traits::destructor;
-
-        constexpr void size_validate(const auto& allocation) const noexcept
-        {
-            Expects(
-                allocation.size() * sizeof(typename allocation_traits::value_type) >= value_size()
-            );
-        }
-
-        constexpr void
-            size_validate(const auto& src_allocation, const auto& dst_allocation) const noexcept
-        {
-            size_validate(src_allocation);
-            size_validate(dst_allocation);
-        }
+        using typename m_base::ctor;
+        using typename m_base::dtor;
 
     public:
-        static constexpr struct default_construct_t
-        {
-        } default_construct{};
-
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
@@ -53,7 +78,7 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
             requires std::invocable<ctor, allocator_type&, T*>
         {
-            size_validate(allocation);
+            this->size_validate(allocation);
             ctor{}(allocator, data(allocation));
         }
 
@@ -64,7 +89,7 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, const T&>)
             requires std::invocable<ctor, allocator_type&, T*, const T&>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
             ctor{}(allocator, data(dst_allocation), get(src_allocation));
         }
 
@@ -75,7 +100,7 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, T>)
             requires std::invocable<ctor, allocator_type&, T*, T>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
             ctor{}(allocator, data(dst_allocation), cpp_move(get(src_allocation)));
         }
 
@@ -85,7 +110,7 @@ namespace stdsharp
         ) const noexcept(nothrow_copy_assignable<T>)
             requires copy_assignable<T>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
             get(dst_allocation) = get(src_allocation);
         }
 
@@ -95,7 +120,7 @@ namespace stdsharp
         ) const noexcept(nothrow_move_assignable<T>)
             requires move_assignable<T>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
             get(dst_allocation) = cpp_move(get(src_allocation));
         }
 
@@ -104,43 +129,33 @@ namespace stdsharp
             const allocation<Allocator> auto& allocation
         ) const noexcept
         {
-            size_validate(allocation);
+            this->size_validate(allocation);
             dtor{}(allocator, data(allocation));
         }
     };
 
     template<allocator_req Allocator, typename T>
-    struct allocation_value<Allocator, T[]> // NOLINT(*-c-arrays)
+    struct allocation_value<Allocator, T[]> :// NOLINT(*-c-arrays)
+        private details::allocation_value<Allocator, T>
     {
-    public:
-        using allocation_traits = allocation_traits<Allocator>;
-        using allocator_traits = allocation_traits::allocator_traits;
-        using allocator_type = allocation_traits::allocator_type;
-        using size_type = allocator_traits::size_type;
+        using m_base = details::allocation_value<Allocator, T>;
 
-        static constexpr auto data = allocation_traits::template data<T>;
-        static constexpr auto get = allocation_traits::template get<T>;
+    public:
+        using typename m_base::allocation_traits;
+        using typename m_base::allocator_traits;
+        using typename m_base::allocator_type;
+        using typename m_base::size_type;
+        using typename m_base::default_construct_t;
+        using m_base::default_construct;
+        using m_base::data;
+        using m_base::get;
 
     private:
-        using ctor = allocator_traits::constructor;
-        using dtor = allocator_traits::destructor;
+        using typename m_base::ctor;
+        using typename m_base::dtor;
         using size_t = std::size_t;
 
         size_t size_;
-
-        constexpr void size_validate(const auto& allocation) const noexcept
-        {
-            Expects(
-                allocation.size() * sizeof(typename allocation_traits::value_type) >= value_size()
-            );
-        }
-
-        constexpr void
-            size_validate(const auto& src_allocation, const auto& dst_allocation) const noexcept
-        {
-            size_validate(src_allocation);
-            size_validate(dst_allocation);
-        }
 
         [[nodiscard]] constexpr auto launder_begin(const auto& allocation) const noexcept
         {
@@ -161,10 +176,6 @@ namespace stdsharp
 
         [[nodiscard]] bool operator==(const allocation_value&) const = default;
 
-        static constexpr struct default_construct_t
-        {
-        } default_construct{};
-
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
@@ -172,9 +183,9 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
             requires std::invocable<ctor, allocator_type&, T*>
         {
-            size_validate(allocation);
+            this->size_validate(allocation);
 
-            auto p = data(allocation);
+            auto&& p = data(allocation);
             const auto count = size();
             for(size_t i = 0; i < count; ++i, ++p) ctor{}(allocator, p);
         }
@@ -186,9 +197,9 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, const T&>)
             requires std::invocable<ctor, allocator_type&, T*, const T&>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
 
-            auto dst_begin = data(dst_allocation);
+            auto&& dst_begin = data(dst_allocation);
             const auto& src_begin = launder_begin(src_allocation);
             const auto count = size();
 
@@ -203,9 +214,9 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, T>)
             requires std::invocable<ctor, allocator_type&, T*, T>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
 
-            auto dst_begin = data(dst_allocation);
+            auto&& dst_begin = data(dst_allocation);
             const auto& src_begin = launder_begin(src_allocation);
             const auto count = size();
 
@@ -219,7 +230,7 @@ namespace stdsharp
         ) const noexcept(nothrow_copy_assignable<T>)
             requires copy_assignable<T>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
             std::ranges::copy_n( //
                 launder_begin(src_allocation),
                 size(),
@@ -233,7 +244,7 @@ namespace stdsharp
         ) const noexcept(nothrow_move_assignable<T>)
             requires move_assignable<T>
         {
-            size_validate(src_allocation, dst_allocation);
+            this->size_validate(src_allocation, dst_allocation);
             move_n(launder_begin(src_allocation), size(), launder_begin(dst_allocation));
         }
 
@@ -242,9 +253,9 @@ namespace stdsharp
             const allocation<Allocator> auto& allocation
         ) const noexcept
         {
-            size_validate(allocation);
+            this->size_validate(allocation);
 
-            auto iter = launder_begin(allocation);
+            auto&& iter = launder_begin(allocation);
             const auto count = size();
             for(size_t i = 0; i < count; ++i, ++iter) dtor{}(allocator, iter.data());
         }

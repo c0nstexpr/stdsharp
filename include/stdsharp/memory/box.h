@@ -39,7 +39,7 @@ namespace stdsharp::details
             dispatcher<req.move_assign, void, const allocation_type&, const allocation_type&>,
             dispatcher<expr_req::no_exception, void, allocator_type&, const allocation_type&>>;
 
-        using allocation_value = allocation_value<allocator_type, box_traits>;
+        using allocation_value = stdsharp::allocation_value<allocator_type, box_traits>;
 
         using allocations_type = std::array<allocation_type, 1>;
         using callocations_type =
@@ -49,11 +49,11 @@ namespace stdsharp::details
     template<lifetime_req Req, typename Alloc, typename T>
     concept box_type_compatible = std::constructible_from<
         typename box_traits<Req, Alloc>::dispatchers,
-        allocation_value<Alloc, T>,
-        allocation_value<Alloc, T>,
-        allocation_value<Alloc, T>,
-        allocation_value<Alloc, T>,
-        allocation_value<Alloc, T>>;
+        stdsharp::allocation_value<Alloc, T>,
+        stdsharp::allocation_value<Alloc, T>,
+        stdsharp::allocation_value<Alloc, T>,
+        stdsharp::allocation_value<Alloc, T>,
+        stdsharp::allocation_value<Alloc, T>>;
 
     template<lifetime_req Req, typename Alloc, lifetime_req OtherReq>
     concept box_compatible =
