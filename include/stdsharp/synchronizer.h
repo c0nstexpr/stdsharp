@@ -60,31 +60,24 @@ namespace stdsharp
         }
 
     public:
-        template<typename Self, typename SelfT = const Self>
-        [[nodiscard]] constexpr auto read_with(this const Self&& self, auto&&... args)
-            requires requires {
-                forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>(
-                    cpp_forward(args)...
-                );
-            }
-        {
-            return forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>(
-                cpp_forward(args)...
-            );
-        }
+#define STDSHARP_SYNCHRONIZER_READ_WITH(ref)                                             \
+    template<typename Self, typename SelfT = const Self ref>                             \
+    [[nodiscard]] constexpr auto read_with(this const Self ref self, auto&&... args)     \
+        requires requires {                                                              \
+            forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>(    \
+                cpp_forward(args)...                                                     \
+            );                                                                           \
+        }                                                                                \
+    {                                                                                    \
+        return forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>( \
+            cpp_forward(args)...                                                         \
+        );                                                                               \
+    }
 
-        template<typename Self, typename SelfT = const Self&>
-        [[nodiscard]] constexpr auto read_with(this const Self& self, auto&&... args)
-            requires requires {
-                forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>(
-                    cpp_forward(args)...
-                );
-            }
-        {
-            return forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>(
-                cpp_forward(args)...
-            );
-        }
+        STDSHARP_SYNCHRONIZER_READ_WITH(&)
+        STDSHARP_SYNCHRONIZER_READ_WITH(&&)
+
+#undef STDSHARP_SYNCHRONIZER_READ_WITH
 
         template<typename Self, typename SelfT = const Self&>
         [[nodiscard]] constexpr auto write_with(this Self&& self, auto&&... args)
