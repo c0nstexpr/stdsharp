@@ -1,7 +1,9 @@
+#include "box.h"
 #include "stdsharp/memory/soo.h"
-#include "test_worst_type.h"
 
-SCENARIO("soo allocation basic requirements", "[memory][small object optimization]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("soo allocation basic requirements", "[memory][small object optimization]")
 {
     using normal_t = normal_soo_box<>;
     using unique_t = unique_soo_box<>;
@@ -15,22 +17,18 @@ SCENARIO("soo allocation basic requirements", "[memory][small object optimizatio
     ALLOCATION_TYPE_REQUIRE(normal_t, unique_t, worst_t);
 }
 
-SCENARIO("use soo allocation store value", "[memory][small object optimization]") // NOLINT
+struct vector_test_data
 {
-    GIVEN("an object allocation")
-    {
-        single_stack_buffer<> buffer{};
-        normal_soo_box<> box_v{make_soo_allocator(buffer, {})};
+    vector<unsigned> value{1, 2, 3};
+};
 
-        WHEN("emplace a vector")
-        {
-            const vector const_value {1, 2, 3};
-            const auto& res = box_v.emplace(const_value);
-            THEN("the return value should correct") { REQUIRE(res == const_value); }
-            AND_THEN("type should be expected")
-            {
-                REQUIRE(box_v.is_type<std::remove_cvref_t<decltype(const_value)>>());
-            }
-        }
-    }
+TEMPLATE_TEST_CASE(
+    "Scneario: soo box emplace value",
+    "[memory][small object optimization]",
+    vector_test_data
+)
+{
+    single_stack_buffer<> buffer{};
+
+    BOX_EMPLACE_TEST(normal_soo_box<>{make_soo_allocator(buffer, {})})
 }

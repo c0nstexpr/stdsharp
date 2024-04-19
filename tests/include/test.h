@@ -8,5 +8,6 @@ namespace stdsharp
 {
 }
 
-using namespace std;
-using namespace stdsharp;
+#define STDSHARP_TEST_NAMESPACES \
+    using namespace std;         \
+    using namespace stdsharp

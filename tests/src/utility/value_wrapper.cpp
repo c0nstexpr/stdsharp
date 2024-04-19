@@ -1,7 +1,9 @@
 #include "stdsharp/utility/value_wrapper.h"
 #include "test.h"
 
-SCENARIO("value_wrapper", "[utility][value wrapper]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("value_wrapper", "[utility][value wrapper]")
 {
     struct empty_type
     {

@@ -1,7 +1,9 @@
 #include "stdsharp/memory/single_stack_allocator.h"
 #include "test.h"
 
-SCENARIO("single stack allocator", "[memory][single_stack_allocator]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("single stack allocator", "[memory][single_stack_allocator]")
 {
     struct base
     {

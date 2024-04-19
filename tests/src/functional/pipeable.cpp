@@ -1,7 +1,9 @@
 #include "stdsharp/functional/pipeable.h"
 #include "test.h"
 
-SCENARIO("pipeable, [functional][pipeable]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("pipeable, [functional][pipeable]")
 {
     {
         constexpr auto fn = make_pipeable<pipe_mode::left>(identity{});

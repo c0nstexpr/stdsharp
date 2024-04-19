@@ -1,7 +1,9 @@
 #include "stdsharp/utility/dispatcher.h"
 #include "test.h"
 
-SCENARIO("dispatcher basic requirements", "[utility][dispatcher]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("dispatcher basic requirements", "[utility][dispatcher]")
 {
     GIVEN("well formed dispatcher")
     {

@@ -2,6 +2,8 @@
 #include "stdsharp/memory/allocation_value.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 SCENARIO("int allocation value", "[memory][allocation_value]")
 {
     using allocator_type = std::allocator<int>;

@@ -1,7 +1,9 @@
 #include "stdsharp/lazy.h"
 #include "test.h"
 
-SCENARIO("lazy", "[lazy]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("lazy", "[lazy]")
 {
     GIVEN("a lazy value")
     {

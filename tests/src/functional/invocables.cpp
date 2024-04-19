@@ -1,7 +1,9 @@
 #include "stdsharp/functional/invocables.h"
 #include "test.h"
 
-SCENARIO("invocables", "[function][invocables]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("invocables", "[function][invocables]")
 {
     struct f0
     {

@@ -1,6 +1,8 @@
 #include "stdsharp/containers/actions.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 template<typename Container>
     requires associative_like_container<Container>
 consteval auto erase_req_f()
@@ -30,7 +32,7 @@ concept erase_req = requires(
     actions::cpo::erase_if(container, predicate);
 };
 
-TEMPLATE_TEST_CASE( // NOLINT
+TEMPLATE_TEST_CASE(
     "Scenario: erase actions",
     "[containers][actions]",
     vector<int>,
@@ -60,7 +62,7 @@ consteval auto emplace_req_f()
 template<typename Container>
 concept emplace_req = emplace_req_f<Container>();
 
-TEMPLATE_TEST_CASE( // NOLINT
+TEMPLATE_TEST_CASE(
     "Scenario: emplace actions",
     "[containers][actions]",
     vector<int>,
@@ -72,13 +74,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     STATIC_REQUIRE(emplace_req<TestType>);
 }
 
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: emplace where actions",
-    "[containers][actions]",
-    vector<int>,
-    deque<int>,
-    list<int>
-)
+TEMPLATE_TEST_CASE("Scenario: emplace where actions", "[containers][actions]", vector<int>, deque<int>, list<int>)
 {
     STATIC_REQUIRE(requires(TestType v, TestType::value_type value) {
         actions::emplace_back(v, value);
@@ -86,13 +82,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     });
 }
 
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: pop where actions",
-    "[containers][actions]",
-    vector<int>,
-    deque<int>,
-    list<int>
-)
+TEMPLATE_TEST_CASE("Scenario: pop where actions", "[containers][actions]", vector<int>, deque<int>, list<int>)
 {
     STATIC_REQUIRE(requires(TestType v) {
         actions::pop_back(v);
@@ -100,12 +90,7 @@ TEMPLATE_TEST_CASE( // NOLINT
     });
 }
 
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: resize actions",
-    "[containers][actions]",
-    vector<int>,
-    list<int>
-)
+TEMPLATE_TEST_CASE("Scenario: resize actions", "[containers][actions]", vector<int>, list<int>)
 {
     STATIC_REQUIRE(requires(TestType v) { actions::resize(v, 5); });
 }

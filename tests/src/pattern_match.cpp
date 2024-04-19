@@ -1,7 +1,9 @@
 #include "stdsharp/pattern_match.h"
 #include "test.h"
 
-SCENARIO("pattern match", "[pattern match]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("pattern match", "[pattern match]")
 {
     enum class my_enum : uint8_t
     {

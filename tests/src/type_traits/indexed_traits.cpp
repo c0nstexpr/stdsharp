@@ -2,6 +2,8 @@
 #include "stdsharp/type_traits/indexed_traits.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 SCENARIO("indexed traits", "[type traits][indexed traits]")
 {
     GIVEN("type at")

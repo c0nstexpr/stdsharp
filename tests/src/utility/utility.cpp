@@ -1,7 +1,9 @@
 #include "stdsharp/utility/utility.h"
 #include "test.h"
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: forward like",
     "[utility]",
     ((typename T, typename U, typename Expect, auto V), T, U, Expect, V),

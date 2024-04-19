@@ -1,7 +1,9 @@
 #include "stdsharp/functional/forward_bind.h"
 #include "test.h"
 
-SCENARIO("forward bind", "[functional][forward bind]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("forward bind", "[functional][forward bind]")
 {
     struct t0 : unique_object
     {

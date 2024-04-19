@@ -1,7 +1,9 @@
 #include "stdsharp/functional/symmetric_operations.h"
 #include "test.h"
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: symmetric assign operation",
     "[functional][symmetric operation]",
     ((int Value), Value),

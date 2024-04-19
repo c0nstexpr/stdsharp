@@ -1,6 +1,8 @@
 #include "stdsharp/functional/sequenced_invocables.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 SCENARIO("sequenced invocables", "[functional][sequenced invocables]")
 {
     sequenced_invocables fn{[](int i) { return i; }, [](array<int, 1>) {}};

@@ -25,7 +25,7 @@ namespace std
     };
 
     template<::stdsharp::adl_proofed_for<::stdsharp::basic_type_sequence> T>
-    struct tuple_size<T> : tuple_size<typename T::basic_type_sequence>
+    struct tuple_size<T> : tuple_size<::stdsharp::adl_proof_inner_t<T>>
     {
     };
 }

@@ -1,7 +1,9 @@
 #include "stdsharp/algorithm/algorithm.h"
 #include "test.h"
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: set if",
     "[algorithm]",
     ((auto First, auto Second), First, Second),
@@ -28,7 +30,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     }
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: is between",
     "[algorithm]",
     ((auto Value, auto Min, auto Max), Value, Min, Max),
@@ -62,7 +64,7 @@ namespace
     constexpr auto unordered = [] { return partial_ordering::unordered; };
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: strict compare",
     "[algorithm]",
     ((auto Left, auto Right, auto GetCmp), Left, Right, GetCmp),

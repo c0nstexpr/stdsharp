@@ -1,19 +1,16 @@
 #include "stdsharp/type_traits/type_sequence.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 using test_seq = type_sequence<int, float, char, unsigned, float>;
 
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: type sequence",
-    "[type traits][type sequence]",
-    test_seq,
-    type_sequence<>
-)
+TEMPLATE_TEST_CASE("Scenario: type sequence", "[type traits][type sequence]", test_seq, type_sequence<>)
 {
     STATIC_REQUIRE(default_initializable<TestType>);
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence type",
     "[type traits][type sequence]",
     ((auto Index, typename Expect), Index, Expect),
@@ -26,7 +23,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::type<Index>, Expect>);
 }
 
-SCENARIO("type sequence apply", "[type traits][type sequence]") // NOLINT
+SCENARIO("type sequence apply", "[type traits][type sequence]")
 {
     STATIC_REQUIRE(default_initializable<test_seq::apply_t<type_sequence>>);
 }
@@ -36,7 +33,7 @@ namespace
     inline constexpr auto type_sequence_invoker = []<typename T>(const basic_type_constant<T>) {};
 }
 
-TEMPLATE_TEST_CASE( // NOLINT
+TEMPLATE_TEST_CASE(
     "Scenario: type sequence invoke",
     "[type traits][type sequence]",
     identity,
@@ -48,7 +45,7 @@ TEMPLATE_TEST_CASE( // NOLINT
 
 using value_seq_t = test_seq::value_seq_t;
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence find",
     "[type traits][type sequence]",
     ((typename T, auto Expect), T, Expect),
@@ -62,7 +59,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     );
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence count",
     "[type traits][type sequence]",
     ((typename T, auto Expect), T, Expect),
@@ -76,7 +73,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     );
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG( 
     "Scenario: type sequence append",
     "[type traits][type sequence]",
     ( //
@@ -105,7 +102,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::append_front_t<T...>, FrontExpect>);
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG( 
     "Scenario: type sequence insert",
     "[type traits][type sequence]",
     ((auto Index, typename Expect, typename... T), Index, Expect, T...),
@@ -124,7 +121,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::insert_t<Index, T...>, Expect>);
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence remove at",
     "[type traits][type sequence]",
     ((typename Expect, auto I), Expect, I),
@@ -135,7 +132,7 @@ TEMPLATE_TEST_CASE_SIG( // NOLINT
     STATIC_REQUIRE(same_as<test_seq::remove_at_t<I>, Expect>);
 }
 
-TEMPLATE_TEST_CASE_SIG( // NOLINT
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: unique type sequence",
     "[type traits][type sequence]",
     ((auto V, typename Seq, typename Expect), V, Seq, Expect),

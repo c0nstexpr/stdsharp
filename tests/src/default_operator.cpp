@@ -1,6 +1,8 @@
 #include "stdsharp/default_operator.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 using namespace default_operator;
 
 template<typename T>

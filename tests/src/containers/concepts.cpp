@@ -1,14 +1,9 @@
 #include "stdsharp/containers/concepts.h"
 #include "test.h"
 
-#include <initializer_list>
+STDSHARP_TEST_NAMESPACES;
 
-TEMPLATE_TEST_CASE( // NOLINT
-    "Scenario: container concept",
-    "[containers][concepts]",
-    int,
-    unique_ptr<int>
-)
+TEMPLATE_TEST_CASE("Scenario: container concept", "[containers][concepts]", int, unique_ptr<int>)
 {
     {
         using vec = vector<TestType>;

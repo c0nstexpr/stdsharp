@@ -1,12 +1,48 @@
 #include "stdsharp/memory/allocator_reference.h"
 #include "stdsharp/memory/composed_allocator.h"
 #include "stdsharp/memory/single_stack_allocator.h"
-#include "test_allocator.h"
+#include "test.h"
 
 #include <ranges>
+#include <vector>
 
-SCENARIO("allocate memory", "[memory][composed_allocator]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+template<typename T>
+struct test_allocator : allocator<T>
 {
+    vector<void*> allocated;
+    vector<void*> deallocated;
+
+    T* allocate(const size_t n)
+    {
+        const auto ptr = allocator<T>::allocate(n);
+        const auto void_p = to_void_pointer(ptr);
+
+        INFO(format("{} = my_alloc::allocate({})\n", void_p, n));
+        allocated.emplace_back(void_p);
+        return ptr;
+    }
+
+    void deallocate(T* p, const size_t n) noexcept
+    {
+        const auto void_p = to_void_pointer(p);
+
+        INFO(format("my_alloc::deallocate({}, {})\n", void_p, n));
+        allocator<T>::deallocate(p, n);
+        deallocated.emplace_back(void_p);
+    }
+
+    void leak_check() const noexcept
+    {
+        REQUIRE_THAT(allocated, Catch::Matchers::RangeEquals(deallocated));
+    }
+};
+
+SCENARIO("allocate memory", "[memory][composed_allocator]")
+{
+    STATIC_REQUIRE(allocator_req<test_allocator<int>>);
+
     GIVEN("an allocator tuple")
     {
         single_stack_buffer<sizeof(int) * 4> rsc;

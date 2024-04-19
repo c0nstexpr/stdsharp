@@ -1,6 +1,8 @@
 #include "stdsharp/utility/forward_cast.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
+
 struct t0
 {
 };

@@ -31,6 +31,7 @@ set(src
     src/type_traits/member.cpp
     src/type_traits/type_sequence.cpp
     src/type_traits/value_sequence.cpp
+    src/utility/adl_proof.cpp
     src/utility/dispatcher.cpp
     src/utility/forward_cast.cpp
     src/utility/utility.cpp

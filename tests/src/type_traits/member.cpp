@@ -1,7 +1,7 @@
 #include "stdsharp/type_traits/type.h"
 #include "test.h"
 
-#include <type_traits>
+STDSHARP_TEST_NAMESPACES;
 
 struct my_class
 {
@@ -15,7 +15,7 @@ struct my_class
     mem_func_r_t mem_f(long, double);
 };
 
-SCENARIO("member", "[type traits][member]") // NOLINT
+SCENARIO("member", "[type traits][member]")
 {
     GIVEN("custom class type")
     {

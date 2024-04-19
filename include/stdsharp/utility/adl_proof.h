@@ -31,7 +31,7 @@ namespace stdsharp
     using adl_proof_t = adl_proof_traits<Inner>::template types<T...>::proofed_t;
 
     template<typename T>
-    using adl_proof_inner_t = decltype(get_inner(std::declval<T>()));
+    using adl_proof_inner_t = typename decltype(get_types(std::declval<T>()))::inner_t;
 }
 
 namespace stdsharp::details

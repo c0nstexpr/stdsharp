@@ -1,7 +1,9 @@
 #include "stdsharp/synchronizer.h"
 #include "test.h"
 
-SCENARIO("synchronizer", "[synchronizer]") // NOLINT
+STDSHARP_TEST_NAMESPACES;
+
+SCENARIO("synchronizer", "[synchronizer]")
 {
     struct my_mutex
     {

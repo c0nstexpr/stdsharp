@@ -88,7 +88,8 @@ namespace stdsharp
         using m_base::size_validate;
 
         template<typename Allocation>
-        [[nodiscard]] constexpr decltype(auto) forward_value(const Allocation& src_allocation) const noexcept
+        [[nodiscard]] constexpr decltype(auto) forward_value(const Allocation& src_allocation
+        ) const noexcept
         {
             size_validate(src_allocation);
             return static_cast<forward_value_t<Allocation>>(get(src_allocation));

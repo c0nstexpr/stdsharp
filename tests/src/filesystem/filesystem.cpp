@@ -1,9 +1,10 @@
 #include "stdsharp/filesystem/filesystem.h"
 #include "test.h"
 
+STDSHARP_TEST_NAMESPACES;
 using namespace stdsharp::filesystem;
 
-SCENARIO("space size", "[filesystem][space size]") // NOLINT
+SCENARIO("space size", "[filesystem][space size]")
 {
     using bytes = stdsharp::filesystem::bytes;
 
