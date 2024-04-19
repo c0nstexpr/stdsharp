@@ -25,9 +25,9 @@ namespace stdsharp
         struct assign
         {
             template<typename T, typename U = T>
-                requires assignable<T&, U>
+                requires std::assignable_from<T&, U>
             constexpr decltype(auto) operator()(T& left, U&& right) const
-                noexcept(nothrow_assignable<T&, U>)
+                noexcept(nothrow_assignable_from<T&, U>)
             {
                 return left = cpp_forward(right);
             }
@@ -35,12 +35,12 @@ namespace stdsharp
 
         struct assign_by_construct
         {
-            template<typename T, typename... U, typename ActualT = std::remove_reference_t<T>>
-                requires std::constructible_from<ActualT, U...>
+            template<typename T, typename... U, typename DecayT = std::remove_reference_t<T>>
+                requires std::constructible_from<DecayT, U...>
             constexpr decltype(auto) operator()(T& left, U&&... right) const
-                noexcept(noexcept(left = ActualT{cpp_forward(right)...}))
+                noexcept(noexcept(left = DecayT{cpp_forward(right)...}))
             {
-                return left = ActualT{cpp_forward(right)...};
+                return left = DecayT{cpp_forward(right)...};
             }
         };
     }

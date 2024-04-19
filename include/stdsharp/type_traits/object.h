@@ -232,8 +232,8 @@ namespace stdsharp
         }
 
         template<typename U>
-            requires std::assignable_from<Base, U>
-        constexpr inherited& operator=(U&& u) noexcept(nothrow_assignable_from<Base, U>)
+            requires std::assignable_from<Base&, U>
+        constexpr inherited& operator=(U&& u) noexcept(nothrow_assignable_from<Base&, U>)
         {
             Base::operator=(cpp_forward(u));
             return *this;

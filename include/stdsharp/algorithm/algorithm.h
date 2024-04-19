@@ -154,8 +154,7 @@ namespace stdsharp
         constexpr move_n_result<In, Out>
             operator()(In in, const std::iter_difference_t<In> n, Out out) const
         {
-            auto&& r = std::ranges::
-                move(std::counted_iterator{cpp_move(in), n}, std::default_sentinel, cpp_move(out));
+            auto&& r = std::ranges::copy_n(std::move_iterator{cpp_move(in)}, n, cpp_move(out));
 
             return {cpp_move(r).in.base(), cpp_move(r).out};
         }

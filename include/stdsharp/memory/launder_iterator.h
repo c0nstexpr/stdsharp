@@ -26,6 +26,8 @@ namespace stdsharp
 
         [[nodiscard]] constexpr auto data() const noexcept { return std::launder(ptr_); }
 
+        [[nodiscard]] constexpr operator T*() const noexcept { return data(); }
+
         [[nodiscard]] constexpr decltype(auto) operator[](const difference_type diff) const noexcept
         {
             assert_not_null(ptr_);

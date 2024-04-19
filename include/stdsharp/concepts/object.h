@@ -26,17 +26,11 @@ namespace stdsharp
     template<typename T>
     concept trivial_move_assignable = std::is_trivially_move_assignable_v<T>;
 
-    template<typename T, typename U>
-    concept assignable = std::is_assignable_v<T, U>;
-
-    template<typename T, typename U>
-    concept nothrow_assignable = std::is_nothrow_assignable_v<T, U>;
+    template<typename T>
+    concept move_assignable = std::assignable_from<T&, T>;
 
     template<typename T>
-    concept move_assignable = std::is_move_assignable_v<T>;
-
-    template<typename T>
-    concept copy_assignable = std::is_copy_assignable_v<T>;
+    concept copy_assignable = std::assignable_from<T&, const T&>;
 
     template<typename T, typename U>
     concept nothrow_convertible_to = std::is_nothrow_convertible_v<T, U>;
@@ -45,7 +39,7 @@ namespace stdsharp
     concept inheritable = class_<T> && !final<T>;
 
     template<typename T, typename U>
-    concept assignable_to = assignable<U, T>;
+    concept assignable_to = std::assignable_from<U, T>;
 
     template<typename From, typename To>
     concept explicitly_convertible = requires(From&& v) { static_cast<To>(cpp_forward(v)); };
@@ -167,13 +161,14 @@ namespace stdsharp
     concept nothrow_copy_constructible = std::is_nothrow_copy_constructible_v<T>;
 
     template<typename T, typename U>
-    concept nothrow_assignable_from = std::is_nothrow_assignable_v<T, U>;
+    concept nothrow_assignable_from = std::assignable_from<T, U> &&
+        std::is_nothrow_assignable_v<T, U>;
 
     template<typename T>
-    concept nothrow_copy_assignable = std::is_nothrow_copy_assignable_v<T>;
+    concept nothrow_copy_assignable = copy_assignable<T> && std::is_nothrow_copy_assignable_v<T>;
 
     template<typename T>
-    concept nothrow_move_assignable = std::is_nothrow_move_assignable_v<T>;
+    concept nothrow_move_assignable = move_assignable<T> && std::is_nothrow_move_assignable_v<T>;
 
     template<typename T, typename U>
     concept nothrow_swappable_with =

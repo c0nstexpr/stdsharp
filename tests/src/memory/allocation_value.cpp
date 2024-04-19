@@ -1,3 +1,4 @@
+#include "stdsharp/cstdint/cstdint.h"
 #include "stdsharp/memory/allocation_value.h"
 #include "test.h"
 
