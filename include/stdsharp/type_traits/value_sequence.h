@@ -23,36 +23,42 @@ namespace stdsharp
 
 namespace stdsharp::details
 {
-    struct value_indexer
+    template<std::size_t Size, template<typename, typename> typename Impl>
+    struct seq_insert_trait
     {
-        template<auto V>
-        struct filter
+        template<std::size_t Index, auto... I, auto... J>
+        static consteval auto
+            impl(std::index_sequence<I...> /*unused*/, std::index_sequence<J...> /*unused*/)
         {
-            [[nodiscard]] consteval decltype(V) get() const noexcept { return V; }
-        };
-
-        template<std::size_t>
-        struct invalid
-        {
-        };
-
-    public:
-        template<std::size_t I, std::size_t... J, auto... V>
-        static consteval decltype(auto) impl(
-            const std::index_sequence<J...> /*unused*/,
-            const regular_value_sequence<V...> /*unused*/
-        )
-        {
-            constexpr struct STDSHARP_EBO : std::conditional_t<I == J, filter<V>, invalid<J>>...
-            {
-            } f{};
-
-            return f.get();
+            return typename Impl<std::index_sequence<I...>, std::index_sequence<(J + Index)...>>::
+                type{};
         }
 
-        template<std::size_t I, auto... V>
-        static constexpr decltype(auto) value =
-            impl<I>(std::make_index_sequence<sizeof...(V)>{}, regular_value_sequence<V...>{});
+        template<std::size_t Index>
+        using type = decltype( //
+            impl<Index>(std::make_index_sequence<Index>{}, std::make_index_sequence<Size - Index>{})
+        );
+    };
+
+    template<std::size_t Size, template<typename, typename> typename Impl>
+    struct seq_rmv_trait
+    {
+        template<std::size_t Index, auto... I, auto... J>
+        static consteval auto
+            impl(std::index_sequence<I...> /*unused*/, std::index_sequence<J...> /*unused*/)
+        {
+            return
+                typename Impl<std::index_sequence<I...>, std::index_sequence<(J + Index + 1)...>>::
+                    type{};
+        }
+
+        template<std::size_t Index>
+        using type = decltype( //
+            impl<Index>(
+                std::make_index_sequence<Index>{},
+                std::make_index_sequence<Size - Index - 1>{}
+            )
+        );
     };
 }
 
@@ -70,7 +76,7 @@ namespace stdsharp
             requires requires { requires I < size(); }
         [[nodiscard]] static constexpr value_type<I> get() noexcept
         {
-            return details::value_indexer::template value<I, Values...>;
+            return type_at<I, constant<Values>...>::value;
         }
 
         template<std::size_t I>
@@ -102,56 +108,17 @@ namespace stdsharp
         static consteval void predicate_test()
             noexcept((nothrow_predicate<Func&, const decltype(Values)&> && ...));
 
-        template<std::size_t Index>
-        struct insert
+        template<typename, typename>
+        struct seq_traits;
+
+        template<auto... I, auto... J>
+        struct seq_traits<std::index_sequence<I...>, std::index_sequence<J...>>
         {
-            template<auto... Others, auto... I, auto... J>
-            static consteval auto impl( //
-                std::index_sequence<I...> /*unused*/,
-                std::index_sequence<J...> /*unused*/
-            )
+            struct type
             {
-                return regular_value_sequence<get<I>()..., Others..., get<J + Index>()...>{};
-            }
-
-            template<auto... Others>
-            using type = decltype( //
-                impl<Others...>(
-                    std::make_index_sequence<Index>{},
-                    std::make_index_sequence<size() - Index>{}
-                )
-            );
-        };
-
-        template<std::size_t Index>
-        struct remove_at
-        {
-            template<auto... I, auto... J>
-            static consteval regular_value_sequence<get<I>()..., get<J + Index + 1>()...>
-                impl(std::index_sequence<I...>, std::index_sequence<J...>);
-
-            using type = decltype( //
-                impl(
-                    std::make_index_sequence<Index>{},
-                    std::make_index_sequence<size() - Index - 1>{}
-                )
-            );
-        };
-
-        template<std::size_t Index>
-        struct replace_at
-        {
-            template<auto Other, auto... I, auto... J>
-            static consteval regular_value_sequence<get<I>()..., Other, get<J + Index + 1>()...>
-                impl(std::index_sequence<I...>, std::index_sequence<J...>);
-
-            template<auto Other>
-            using type = decltype( //
-                impl<Other>(
-                    std::make_index_sequence<Index>{},
-                    std::make_index_sequence<size() - Index - 1>{}
-                )
-            );
+                template<auto... Others>
+                using apply = regular_value_sequence<get<I>()..., Others..., get<J>()...>;
+            };
         };
 
     public:
@@ -224,13 +191,15 @@ namespace stdsharp
         using append_front_t = regular_value_sequence<Others..., Values...>;
 
         template<std::size_t Index, auto... Other>
-        using insert_t = insert<Index>::template type<Other...>;
+        using insert_t = details::seq_insert_trait<size(), seq_traits>:: //
+            template type<Index>::template apply<Other...>;
+
+        template<std::size_t Index, auto... Other>
+        using replace_t = details::seq_rmv_trait<size(), seq_traits>:: //
+            template type<Index>::template apply<Other...>;
 
         template<std::size_t Index>
-        using remove_at_t = remove_at<Index>::type;
-
-        template<std::size_t Index, auto Other>
-        using replace_t = replace_at<Index>::template type<Other>;
+        using remove_at_t = replace_t<Index>;
     };
 }
 

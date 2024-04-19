@@ -57,70 +57,33 @@ namespace stdsharp
         using append_front_t = regular_type_sequence<Others..., T...>;
 
     private:
-        template<std::size_t Index>
-        struct insert
+        template<typename, typename>
+        struct seq_traits;
+
+        template<auto... I, auto... J>
+        struct seq_traits<std::index_sequence<I...>, std::index_sequence<J...>>
         {
-            template<typename... Others, auto... I, auto... J>
-            static consteval auto impl( //
-                std::index_sequence<I...> /*unused*/,
-                std::index_sequence<J...> /*unused*/
-            )
+            struct type
             {
-                return regular_type_sequence<
+                template<typename... Others>
+                using apply = regular_type_sequence<
                     type_sequence::type<I>...,
                     Others...,
-                    type_sequence::type<J + Index>...>{};
-            }
-
-            template<typename... Others>
-            using type = decltype( //
-                impl<Others...>(
-                    std::make_index_sequence<Index>{},
-                    std::make_index_sequence<size() - Index>{}
-                )
-            );
-        };
-
-        template<std::size_t Index>
-        struct remove_at
-        {
-            template<auto... I, auto... J>
-            static consteval regular_type_sequence<type<I>..., type<J + Index + 1>...>
-                impl(std::index_sequence<I...>, std::index_sequence<J...>);
-
-            using type = decltype( //
-                impl(
-                    std::make_index_sequence<Index>{},
-                    std::make_index_sequence<size() - Index - 1>{}
-                )
-            );
-        };
-
-        template<std::size_t Index>
-        struct replace_at
-        {
-            template<typename Other, auto... I, auto... J>
-            static consteval regular_type_sequence<type<I>..., Other, type<J + Index + 1>...>
-                impl(std::index_sequence<I...>, std::index_sequence<J...>);
-
-            template<typename Other>
-            using type = decltype( //
-                impl<Other>(
-                    std::make_index_sequence<Index>{},
-                    std::make_index_sequence<size() - Index - 1>{}
-                )
-            );
+                    type_sequence::type<J>...>;
+            };
         };
 
     public:
         template<std::size_t Index, typename... Other>
-        using insert_t = insert<Index>::template type<Other...>;
+        using insert_t = details::seq_insert_trait<size(), seq_traits>:: //
+            template type<Index>::template apply<Other...>;
 
-        template<std::size_t... Index>
-        using remove_at_t = remove_at<Index...>::type;
+        template<std::size_t Index, typename... Other>
+        using replace_t = details::seq_rmv_trait<size(), seq_traits>:: //
+            template type<Index>::template apply<Other...>;
 
-        template<std::size_t Index, typename Other>
-        using replace_t = replace_at<Index>::template type<Other>;
+        template<std::size_t Index>
+        using remove_at_t = replace_t<Index>;
     };
 }
 
