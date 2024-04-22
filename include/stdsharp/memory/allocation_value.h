@@ -18,9 +18,6 @@ namespace stdsharp::details
         using ctor = allocator_traits::constructor;
         using dtor = allocator_traits::destructor;
 
-        static constexpr auto data = allocation_traits::template data<T>;
-        static constexpr auto get = allocation_traits::template get<T>;
-
         template<typename>
         struct forward_value;
 
@@ -39,7 +36,7 @@ namespace stdsharp::details
         template<typename Allocation>
         using forward_value_t = forward_value<Allocation>::type;
 
-        constexpr void size_validate(this const auto& t, const auto&... allocations) noexcept
+        static constexpr void size_validate(const auto& t, const auto&... allocations) noexcept
         {
             ( //
                 Expects(
@@ -48,6 +45,19 @@ namespace stdsharp::details
                 ),
                 ...
             );
+        }
+
+        [[nodiscard]] constexpr auto data(this const auto& t, const auto& allocation) noexcept
+        {
+            size_validate(t, allocation);
+            return allocation_traits::template data<T>(allocation);
+        }
+
+        [[nodiscard]] constexpr decltype(auto) get(this const auto& t, const auto& allocation) //
+            noexcept
+        {
+            size_validate(t, allocation);
+            return allocation_traits::template get<T>(allocation);
         }
 
         static constexpr struct default_construct_t
@@ -61,15 +71,13 @@ namespace stdsharp
     template<allocator_req Allocator, typename T = Allocator::value_type>
     struct allocation_value : private details::allocation_value<Allocator, T>
     {
+    private:
         using m_base = details::allocation_value<Allocator, T>;
 
+        friend m_base;
+
     public:
-        using typename m_base::allocation_traits;
-        using typename m_base::allocator_traits;
         using typename m_base::allocator_type;
-        using typename m_base::size_type;
-        using typename m_base::default_construct_t;
-        using m_base::default_construct;
         using m_base::data;
         using m_base::get;
 
@@ -85,25 +93,21 @@ namespace stdsharp
     private:
         using typename m_base::ctor;
         using typename m_base::dtor;
-        using m_base::size_validate;
 
         template<typename Allocation>
-        [[nodiscard]] constexpr decltype(auto) forward_value(const Allocation& src_allocation
-        ) const noexcept
+        [[nodiscard]] constexpr decltype(auto) forward_value(const Allocation& src) const noexcept
         {
-            size_validate(src_allocation);
-            return static_cast<forward_value_t<Allocation>>(get(src_allocation));
+            return static_cast<forward_value_t<Allocation>>(get(src));
         }
 
     public:
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
-            const default_construct_t /*unused*/
+            const m_base::default_construct_t /*unused*/
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
             requires std::invocable<ctor, allocator_type&, T*>
         {
-            size_validate(allocation);
             ctor{}(allocator, data(allocation));
         }
 
@@ -115,7 +119,6 @@ namespace stdsharp
             const allocation<Allocator> auto& dst_allocation
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, Value>)
         {
-            size_validate(dst_allocation);
             ctor{}(allocator, data(dst_allocation), forward_value(src_allocation));
         }
 
@@ -126,7 +129,6 @@ namespace stdsharp
         ) const noexcept(nothrow_assignable_from<T&, Value>)
             requires std::assignable_from<T&, Value>
         {
-            size_validate(dst_allocation);
             get(dst_allocation) = forward_value(src_allocation);
         }
 
@@ -135,7 +137,6 @@ namespace stdsharp
             const allocation<Allocator> auto& allocation
         ) const noexcept
         {
-            size_validate(allocation);
             dtor{}(allocator, data(allocation));
         }
     };
@@ -144,54 +145,50 @@ namespace stdsharp
     struct allocation_value<Allocator, T[]> :// NOLINT(*-c-arrays)
         private details::allocation_value<Allocator, T>
     {
+    private:
         using m_base = details::allocation_value<Allocator, T>;
 
+        friend m_base;
+
     public:
-        using typename m_base::allocation_traits;
-        using typename m_base::allocator_traits;
         using typename m_base::allocator_type;
-        using typename m_base::size_type;
-        using typename m_base::default_construct_t;
-        using m_base::default_construct;
-        using m_base::data;
-        using m_base::get;
 
     private:
         using typename m_base::ctor;
         using typename m_base::dtor;
         using size_t = std::size_t;
-        using m_base::size_validate;
 
         size_t size_;
 
-        [[nodiscard]] constexpr auto launder_begin(const auto& allocation) const noexcept
+    public:
+        [[nodiscard]] constexpr auto data(const auto& allocation) const noexcept
         {
-            size_validate(allocation);
-            return launder_iterator{data(allocation)};
+            return launder_iterator{m_base::data(allocation)};
         }
 
-        [[nodiscard]] constexpr auto
-            forward_launder_begin(const callocation<Allocator> auto& allocation) const noexcept
-        {
-            return launder_begin(allocation);
-        }
-
-        [[nodiscard]] constexpr auto
-            forward_launder_begin(const allocation<Allocator> auto& allocation) const noexcept
-        {
-            return std::move_iterator{launder_begin(allocation)};
-        }
-
+    private:
         template<typename Allocation>
         using forward_value_t = m_base::template forward_value_t<Allocation>;
 
-        [[nodiscard]] constexpr auto forward_rng(const auto& allocation) const noexcept
+        [[nodiscard]] constexpr auto forward_data(const callocation<Allocator> auto& allocation) //
+            const noexcept
         {
-            return std::views::counted(forward_launder_begin(allocation), size());
+            return data(allocation);
+        }
+
+        [[nodiscard]] constexpr auto forward_data(const allocation<Allocator> auto& allocation) //
+            const noexcept
+        {
+            return std::move_iterator{data(allocation)};
         }
 
     public:
-        constexpr explicit allocation_value(const size_type size) noexcept: size_(size) {}
+        [[nodiscard]] constexpr auto get(const auto& allocation) const noexcept
+        {
+            return std::views::counted(data(allocation), size());
+        }
+
+        constexpr explicit allocation_value(const m_base::size_type size) noexcept: size_(size) {}
 
         [[nodiscard]] constexpr auto size() const noexcept { return size_; }
 
@@ -202,12 +199,11 @@ namespace stdsharp
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
-            const default_construct_t /*unused*/
+            const m_base::default_construct_t /*unused*/
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
             requires std::invocable<ctor, allocator_type&, T*>
         {
-            size_validate(allocation);
-            auto begin = data(allocation);
+            auto begin = m_base::data(allocation);
             for(const auto end = begin + size(); begin < end; ++begin) ctor{}(allocator, begin);
         }
 
@@ -219,27 +215,21 @@ namespace stdsharp
         ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, Value>)
             requires std::invocable<ctor, allocator_type&, T*, Value>
         {
-            size_validate(dst_allocation);
-
-            const auto& dst_begin = data(dst_allocation);
-            const auto& src_begin = forward_launder_begin(src_allocation);
+            const auto& dst_begin = m_base::data(dst_allocation);
+            const auto& src_begin = forward_data(src_allocation);
             const auto count = size();
 
-            for(size_t i = 0; i < count; ++i) ctor{}(allocator, dst_begin[i], src_begin[i]);
+            for(size_t i = 0; i < count; ++i) ctor{}(allocator, dst_begin + i, src_begin[i]);
         }
 
         template<typename Allocation, typename Value = forward_value_t<Allocation>>
         constexpr void operator()(
             const Allocation& src_allocation,
             const allocation<Allocator> auto& dst_allocation
-        ) const noexcept(nothrow_assignable_from<T, Value>)
-            requires std::assignable_from<T, Value>
+        ) const noexcept(nothrow_assignable_from<T&, Value>)
+            requires std::assignable_from<T&, Value>
         {
-            std::ranges::copy_n(
-                launder_begin(src_allocation),
-                size(),
-                forward_launder_begin(dst_allocation)
-            );
+            std::ranges::copy_n(forward_data(dst_allocation), size(), data(src_allocation));
         }
 
         constexpr void operator()(
@@ -247,8 +237,9 @@ namespace stdsharp
             const allocation<Allocator> auto& allocation
         ) const noexcept
         {
-            auto&& begin = launder_begin(allocation);
-            for(const auto& end = begin + size(); begin < end; ++begin) dtor{}(allocator, begin);
+            auto&& begin = m_base::data(allocation);
+            for(const auto& end = begin + size(); begin < end; ++begin)
+                dtor{}(allocator, std::launder(begin));
         }
     };
 }
