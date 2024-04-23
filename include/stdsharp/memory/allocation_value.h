@@ -60,9 +60,9 @@ namespace stdsharp::details
             return allocation_traits::template get<T>(allocation);
         }
 
-        static constexpr struct default_construct_t
+        static constexpr struct construct_t
         {
-        } default_construct{};
+        } construct{};
     };
 }
 
@@ -101,14 +101,16 @@ namespace stdsharp
         }
 
     public:
+        template<typename... Args>
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
-            const m_base::default_construct_t /*unused*/
-        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
-            requires std::invocable<ctor, allocator_type&, T*>
+            const m_base::construct_t /*unused*/,
+            Args&&... args
+        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, Args...>)
+            requires std::invocable<ctor, allocator_type&, T*, Args...>
         {
-            ctor{}(allocator, data(allocation));
+            ctor{}(allocator, data(allocation), cpp_forward(args)...);
         }
 
         template<typename SrcAllocation, typename Value = forward_value_t<SrcAllocation>>
@@ -196,15 +198,36 @@ namespace stdsharp
 
         [[nodiscard]] bool operator==(const allocation_value&) const = default;
 
+        template<typename... Args>
         constexpr void operator()(
             allocator_type& allocator,
             const allocation<Allocator> auto& allocation,
-            const m_base::default_construct_t /*unused*/
-        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*>)
-            requires std::invocable<ctor, allocator_type&, T*>
+            const m_base::construct_t /*unused*/,
+            Args&&... args
+        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, Args...>)
+            requires std::invocable<ctor, allocator_type&, T*, Args...>
         {
             auto begin = m_base::data(allocation);
-            for(const auto end = begin + size(); begin < end; ++begin) ctor{}(allocator, begin);
+            for(const auto end = begin + size(); begin < end; ++begin)
+                ctor{}(allocator, begin, cpp_forward(args)...);
+        }
+
+        static constexpr struct iter_construct_t
+        {
+        } iter_construct{};
+
+        template<std::forward_iterator Iter, typename ValueT = std::iter_reference_t<Iter>>
+        constexpr void operator()(
+            allocator_type& allocator,
+            const allocation<Allocator> auto& allocation,
+            const iter_construct_t /*unused*/,
+            Iter iter
+        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, ValueT>)
+            requires std::invocable<ctor, allocator_type&, T*, ValueT>
+        {
+            auto begin = m_base::data(allocation);
+            for(const auto end = begin + size(); begin < end; ++begin, ++iter)
+                ctor{}(allocator, begin, *iter);
         }
 
         template<typename Allocation, typename Value = forward_value_t<Allocation>>
@@ -229,7 +252,7 @@ namespace stdsharp
         ) const noexcept(nothrow_assignable_from<T&, Value>)
             requires std::assignable_from<T&, Value>
         {
-            std::ranges::copy_n(forward_data(dst_allocation), size(), data(src_allocation));
+            std::ranges::copy_n(forward_data(src_allocation), size(), data(dst_allocation));
         }
 
         constexpr void operator()(

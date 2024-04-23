@@ -7,7 +7,7 @@
 
 namespace stdsharp
 {
-    template<typename T> // NOLINTBEGIN(*-pointer-arithmetic)
+    template<typename T>
     class launder_iterator : public basic_iterator
     {
         T* ptr_;
@@ -35,7 +35,7 @@ namespace stdsharp
         }
 
         using basic_iterator::operator[];
-    }; // NOLINTEND(*-pointer-arithmetic)
+    };
 
     template<typename T>
     launder_iterator(T*) -> launder_iterator<T>;

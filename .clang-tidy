@@ -38,7 +38,8 @@ Checks: # enabled
     -*-reserved-identifier,
     -cert-dcl58-cpp,
     -*-avoid-nested-conditional-operator,
-    -*-inc-dec-in-conditions'
+    -*-inc-dec-in-conditions,
+    -*-pointer-arithmetic'
   # disabled alias
   - '-bugprone-narrowing-conversions,
     -cert-con36-c,
