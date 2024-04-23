@@ -5,10 +5,14 @@
 
 #include <new>
 
+#include "../compilation_config_in.h"
+
 namespace stdsharp
 {
     template<typename T>
-    class launder_iterator : public basic_iterator
+    class STDSHARP_EBO launder_iterator :
+        public basic_iterator,
+        public std::random_access_iterator_tag
     {
         T* ptr_;
 
@@ -40,3 +44,5 @@ namespace stdsharp
     template<typename T>
     launder_iterator(T*) -> launder_iterator<T>;
 }
+
+#include "../compilation_config_out.h"
