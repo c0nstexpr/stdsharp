@@ -38,7 +38,7 @@ namespace stdsharp
 
     private:
         template<typename Lock, typename... Args, typename T, typename Self>
-        // requires std::constructible_from<Lock, lock_type&, Args...>
+            requires std::constructible_from<Lock, lock_type&, Args...>
         constexpr auto write_impl(this Self&& self, T&& value, Args&&... args)
         {
             using cast_t = forward_cast_t<Self, T>;

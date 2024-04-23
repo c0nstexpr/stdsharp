@@ -6,9 +6,18 @@ STDSHARP_TEST_NAMESPACES;
 using namespace default_operator;
 
 template<typename T>
-void arithmetic_test()
+void arithmetic_test([[maybe_unused]] T v = {})
 {
-    [[maybe_unused]] T v{};
+    STATIC_REQUIRE(requires { v += 1; });
+    STATIC_REQUIRE(requires { v -= 1; });
+    STATIC_REQUIRE(requires { v *= 1; });
+    STATIC_REQUIRE(requires { v /= 1; });
+    STATIC_REQUIRE(requires { v %= 1; });
+    STATIC_REQUIRE(requires { v &= 1; });
+    STATIC_REQUIRE(requires { v |= 1; });
+    STATIC_REQUIRE(requires { v ^= 1; });
+    STATIC_REQUIRE(requires { v <<= 1; });
+    STATIC_REQUIRE(requires { v >>= 1; });
 
     STATIC_REQUIRE(requires { v + 1; });
     STATIC_REQUIRE(requires { v - 1; });
@@ -23,10 +32,8 @@ void arithmetic_test()
 }
 
 template<typename T>
-void commutative_arithmetic_test()
+void commutative_arithmetic_test([[maybe_unused]] T v = {})
 {
-    [[maybe_unused]] T v{};
-
     STATIC_REQUIRE(requires { 1 + v; });
     STATIC_REQUIRE(requires { 1 - v; });
     STATIC_REQUIRE(requires { 1 * v; });
@@ -40,43 +47,34 @@ void commutative_arithmetic_test()
     STATIC_REQUIRE(requires { +v; });
 }
 
+struct increase_t : increase
+{
+    using increase::operator++;
+    using increase::operator--;
+
+    increase_t& operator++();
+
+    increase_t& operator--();
+};
+
 SCENARIO("incrementable", "[default operator]")
 {
-    [[maybe_unused]] struct : increase
-    {
-        using increase::operator++;
-        using increase::operator--;
-
-        auto& operator++() { return *this; }
-
-        auto& operator--() { return *this; }
-    } v{};
-
-    STATIC_REQUIRE(requires { v++; });
-    STATIC_REQUIRE(requires { v--; });
+    STATIC_REQUIRE(requires(increase_t v) { v++; });
+    STATIC_REQUIRE(requires(increase_t v) { v--; });
 }
 
 struct arith : arithmetic
 {
-    auto& operator+=(int /*unused*/) { return *this; }
-
-    auto& operator-=(int /*unused*/) { return *this; }
-
-    auto& operator*=(int /*unused*/) { return *this; }
-
-    auto& operator/=(int /*unused*/) { return *this; }
-
-    auto& operator%=(int /*unused*/) { return *this; }
-
-    auto& operator&=(int /*unused*/) { return *this; }
-
-    auto& operator|=(int /*unused*/) { return *this; }
-
-    auto& operator^=(int /*unused*/) { return *this; }
-
-    auto& operator<<=(int /*unused*/) { return *this; }
-
-    auto& operator>>=(int /*unused*/) { return *this; }
+    arith& operator+=(int);
+    arith& operator-=(int);
+    arith& operator*=(int);
+    arith& operator/=(int);
+    arith& operator%=(int);
+    arith& operator&=(int);
+    arith& operator|=(int);
+    arith& operator^=(int);
+    arith& operator<<=(int);
+    arith& operator>>=(int);
 };
 
 SCENARIO("arithmetic", "[default operator]") { arithmetic_test<arith>(); }
@@ -138,15 +136,15 @@ SCENARIO("arrow", "[default operator]")
 
 // TODO: multidimensional subscript
 #if __cpp_multidimensional_subscript >= 202110L
+struct subscript_t : subscript
+{
+    using subscript::operator[];
+
+    subscript_t operator[](int) const;
+};
+
 SCENARIO("subscript", "[default operator]")
 {
-    [[maybe_unused]] struct : subscript
-    {
-        using subscript::operator[];
-
-        [[nodiscard]] auto operator[](const int /*unused*/) const { return *this; }
-    } v{};
-
-    STATIC_REQUIRE(requires { v[0, 1]; });
+    STATIC_REQUIRE(requires(subscript_t v) { v[0, 1]; });
 }
 #endif

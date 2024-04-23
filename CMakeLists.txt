@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 #
 project(
   stdsharp
-  VERSION 0.9.0
+  VERSION 0.9.1
   LANGUAGES CXX)
 
 include(cmake/Utils.cmake)

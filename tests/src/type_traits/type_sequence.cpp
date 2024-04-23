@@ -30,14 +30,20 @@ SCENARIO("type sequence apply", "[type traits][type sequence]")
 
 namespace
 {
-    inline constexpr auto type_sequence_invoker = []<typename T>(const basic_type_constant<T>) {};
+    struct type_sequence_invoker
+    {
+        template<typename T>
+        constexpr void operator()(const basic_type_constant<T> /*unused*/)
+        {
+        }
+    };
 }
 
 TEMPLATE_TEST_CASE(
     "Scenario: type sequence invoke",
     "[type traits][type sequence]",
     identity,
-    decltype(type_sequence_invoker)
+    type_sequence_invoker
 )
 {
     STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
@@ -49,9 +55,9 @@ TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence find",
     "[type traits][type sequence]",
     ((typename T, auto Expect), T, Expect),
-    (int, 0) //,
-    // (float, 1),
-    // (void, test_seq::size())
+    (int, 0),
+    (float, 1),
+    (void, test_seq::size())
 )
 {
     STATIC_REQUIRE(
@@ -73,7 +79,7 @@ TEMPLATE_TEST_CASE_SIG(
     );
 }
 
-TEMPLATE_TEST_CASE_SIG( 
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence append",
     "[type traits][type sequence]",
     ( //
@@ -102,7 +108,7 @@ TEMPLATE_TEST_CASE_SIG(
     STATIC_REQUIRE(same_as<test_seq::append_front_t<T...>, FrontExpect>);
 }
 
-TEMPLATE_TEST_CASE_SIG( 
+TEMPLATE_TEST_CASE_SIG(
     "Scenario: type sequence insert",
     "[type traits][type sequence]",
     ((auto Index, typename Expect, typename... T), Index, Expect, T...),
