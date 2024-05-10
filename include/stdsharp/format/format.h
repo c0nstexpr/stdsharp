@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../cstdint/cstdint.h"
+#include "../functional/operations.h"
 
-#include <ctre.hpp>
+#include <ctre/../ctre.hpp>
+
 #include <format>
 #include <numeric>
 #include <optional>
@@ -10,96 +12,51 @@
 #include <unicode-db.hpp>
 #include <variant>
 
+namespace stdsharp::details
+{
+    template<typename CharT>
+    using parse_context = std::basic_format_parse_context<CharT>;
+
+    template<typename OutputIt, typename CharT>
+    using context = std::basic_format_context<OutputIt, CharT>;
+
+    template<typename CharT>
+    using iter = typename std::basic_format_parse_context<CharT>::iterator;
+
+    template<std::integral T>
+    constexpr auto parse_integer(const auto& rng) noexcept
+    {
+        return std::accumulate(
+            rng.begin(),
+            rng.end(),
+            T{0},
+            []<typename U>(const T v, const U c)
+            {
+                for(const char char_num : "0123456789")
+                    if(c == U{char_num})
+                        return v * 10 + (char_num - '0'); // NOLINT(*-magic-numbers)
+
+                throw std::format_error{"invalid integer num"};
+            }
+        );
+    };
+}
+
 namespace stdsharp
 {
-    namespace details
+    template<typename T, typename OutputIt, typename CharT, typename Fn = identity_with_fn<const T&>>
+    [[nodiscard]] constexpr const T&
+        get_fmt_context_nested(const std::size_t value, const details::context<OutputIt, CharT>& fc)
     {
-        template<typename CharT>
-        using parse_context = std::basic_format_parse_context<CharT>;
+        auto& arg = fc.arg(value);
 
-        template<typename OutputIt, typename CharT>
-        using context = std::basic_format_context<OutputIt, CharT>;
-
-        template<typename CharT>
-        using iter = typename std::basic_format_parse_context<CharT>::iterator;
-
-        template<std::integral T>
-        constexpr auto parse_integer(const auto& rng) noexcept
-        {
-            return std::accumulate(
-                rng.begin(),
-                rng.end(),
-                T{0},
-                [](const T v, const auto c) noexcept
-                {
-                    constexpr auto base = 10;
-                    return v * base + static_cast<char>(c) - '0';
-                }
-            );
-        };
-    }
-
-    struct nested_arg_index
-    {
-        std::size_t value;
-
-        template<typename Visitor, typename OutputIt, typename CharT>
-        [[nodiscard]] constexpr decltype(auto) get_from_context(
-            const details::context<OutputIt, CharT>& fc,
-            Visitor&& vis //
-        ) const
-        {
-            return std::visit_format_arg(cpp_forward(vis), fc.arg(value));
-        }
-
-        template<typename T, typename OutputIt, typename CharT>
-            requires requires { true; }
-        [[nodiscard]] constexpr decltype(auto) get_from_context( //
-            const details::context<OutputIt, CharT>& fc
-        ) const
-        {
-            return get_from_context(
-                fc,
-                []<typename U>(U&& u) noexcept -> std::optional<T>
-                {
-                    if constexpr(std::convertible_to<U, T>) return static_cast<T>(cpp_forward(u));
-                    else return std::nullopt;
-                }
-            );
-        }
-    };
-
-    template<typename T>
-    using nested_spec = std::variant<std::monostate, T, nested_arg_index>;
-
-    namespace details
-    {
-        template<typename T>
-        T nested_spec_like(nested_spec<T>);
-    }
-
-    template<typename ResultT = void, typename SpecT, typename OutputIt, typename CharT>
-    [[nodiscard]] constexpr auto get_arg(const details::context<OutputIt, CharT>& fc, SpecT&& spec)
-        requires requires { details::nested_spec_like(spec); }
-    {
-        using result_t = std::conditional_t<
-            std::same_as<ResultT, void>,
-            decltype(details::nested_spec_like(spec)),
-            ResultT>;
-
-        return spec.valueless_by_exception() || std::holds_alternative<std::monostate>(spec) ?
-            std::optional<result_t>{std::nullopt} :
-            std::visit(
-                [&fc]<typename U>(U&& u) -> std::optional<result_t>
-                {
-                    if constexpr(std::same_as<std::remove_cvref_t<U>, result_t>)
-                        return std::optional<result_t>{cpp_forward(u)};
-                    else if constexpr(std::same_as<std::remove_cvref_t<U>, nested_arg_index>)
-                        return cpp_forward(u).template get_from_context<result_t>(fc);
-                    else return std::nullopt;
-                },
-                spec
-            );
+        return
+#if __cpp_lib_format >= 202306L
+            arg.visit(Fn{})
+#else
+            std::visit_format_arg(Fn{}, arg)
+#endif
+                ;
     }
 
     template<typename CharT>
@@ -136,107 +93,91 @@ namespace stdsharp
 
         if(begin == ctx.end() || *begin == '}') return;
 
-        throw std::format_error{std::format(
-            "invalid format: \"{}\"\nEnd of string expected",
-            std::basic_string_view{begin, ctx.end()}
-        )};
-    }
-
-    template<typename CharT>
-    struct fill_spec
-    {
-        std::optional<CharT> fill;
-    };
-
-    template<typename CharT>
-    [[nodiscard]] constexpr fill_spec<CharT> parse_fill_spec(details::parse_context<CharT>& ctx)
-    {
-        const auto& fill = ctre::starts_with<".">(ctx);
-
-        if(fill)
-        {
-            ctx.advance_to(fill.end());
-            return {*fill.begin()};
-        }
-        return {std::nullopt};
+        throw std::format_error{
+            std::format(
+                "invalid format: \"{}\"\nEnd of string expected",
+                std::basic_string_view{begin, ctx.end()}
+            ) //
+        };
     }
 
     enum class align_t : std::uint8_t
     {
-        none,
         left,
         right,
         center
     };
 
-    template<std::convertible_to<char> CharT>
-    [[nodiscard]] constexpr auto parse_align_spec(details::parse_context<CharT>& ctx)
+    template<typename CharT>
+    struct fill_and_align_spec
     {
-        const auto& align = ctre::starts_with<"[<^>]">(ctx);
+        align_t align{};
+        CharT fill = ' ';
+    };
 
-        if(align)
+    template<std::constructible_from<char> CharT>
+    [[nodiscard]] constexpr auto parse_fill_spec(details::parse_context<CharT>& ctx)
+    {
+        std::optional<fill_and_align_spec<CharT>> spec;
+
+        const auto& [whole, fill, align] = ctre::starts_with<"([^<^>])([<^>])">(ctx);
+
+        if(!whole) return spec;
+
+        ctx.advance_to(whole.end());
+
+        if(!align) return spec;
+
+        spec.emplace();
+
         {
-            ctx.advance_to(align.end());
-            switch(static_cast<char>(*align.begin()))
-            {
-            case '<': return align_t::left;
-            case '^': return align_t::center;
-            case '>': return align_t::right;
-            };
+            auto& align_v = spec->align;
+
+            if(const auto& align_char = *align.begin(); align_char == CharT{'<'})
+                align_v = align_t::left;
+            else if(align_char == CharT{'^'}) align_v = align_t::center;
+            else if(align_char == CharT{'>'}) align_v = align_t::right;
+            else throw std::format_error{"invalid align specifier"};
         }
 
-        return align_t::none;
+        if(fill) spec->fill = *fill.begin();
+
+        return spec;
     }
 
-    template<std::integral IntType, std::convertible_to<char> CharT>
-    [[nodiscard]] constexpr nested_spec<IntType>
-        parse_nested_integer_spec(details::parse_context<CharT>& ctx)
+    template<std::integral IntType, std::constructible_from<char> CharT>
+    [[nodiscard]] constexpr IntType parse_nested_integer_spec(details::parse_context<CharT>& ctx)
     {
-        const auto& captures = ctre::starts_with<R"(\{(\d*)\}|(\d*))">(ctx);
-        const auto& ref = captures.template get<1>();
-        const auto& value = captures.template get<2>();
-        const auto end = captures.end();
+        const auto& [whole, ref, value] = ctre::starts_with<R"(\{(\d*)\}|(\d*))">(ctx);
+
+        if(!whole) return {};
+
+        ctx.advance_to(whole.end());
 
         if(ref)
-        {
-            ctx.advance_to(end);
-            return nested_arg_index{
+            return get_fmt_context_nested<IntType>(
                 std::ranges::empty(ref) ? //
                     ctx.next_arg_id() :
-                    details::parse_integer<std::size_t>(ref)
-            };
-        }
-        if(value)
-        {
-            ctx.advance_to(end);
-            return details::parse_integer<std::size_t>(value);
-        }
+                    details::parse_integer<std::size_t>(ref),
+                ctx
+            );
+
+        if(value) return details::parse_integer<IntType>(value);
 
         return {};
     }
 
-    struct precision_spec
-    {
-        nested_spec<u64> precision;
-    };
-
-    template<typename CharT>
-    constexpr precision_spec parse_precision_spec(details::parse_context<CharT>& ctx)
+    template<std::integral IntType, typename CharT>
+    constexpr std::optional<IntType> parse_precision_spec(details::parse_context<CharT>& ctx)
     {
         const auto origin_begin = ctx.begin();
         const auto& dot = ctre::starts_with<"\\.">(ctx);
 
-        if(dot)
-        {
-            const auto dot_end = dot.end();
+        if(!dot) return {};
 
-            ctx.advance_to(dot_end);
+        ctx.advance_to(dot.end());
 
-            return {parse_nested_integer_spec<u64>(ctx)};
-        }
-
-        ctx.advance_to(origin_begin);
-        return {};
+        return parse_nested_integer_spec<IntType>(ctx);
     }
 
     struct locale_spec

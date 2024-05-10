@@ -168,6 +168,18 @@ namespace stdsharp
 
 #undef STDSHARP_ASSIGN_OPERATE
 
+    template<typename T>
+    struct identity_with_fn
+    {
+        constexpr decltype(auto) operator()(T&& t) const noexcept
+        {
+            return cpp_forward(t);
+        }
+    };
+
+    template<typename T>
+    inline constexpr identity_with_fn<T> identity_with_v{};
+
     inline constexpr std::identity identity_v{};
 
 #define STDSHARP_INC_DEC_OPERATE(operator_prefix, op, al_op)                                       \

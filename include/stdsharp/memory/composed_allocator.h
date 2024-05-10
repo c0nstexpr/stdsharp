@@ -137,20 +137,24 @@ namespace stdsharp
                 std::size_t count;
             } result;
 
-            aggregate_try(
-                [&result, this, n]
-                {
-                    const auto& res = first_traits::allocate_at_least(get_first_allocator(), n);
-
-                    result = {.ptr = first_ptr_traits::to_address(res.ptr), .count = res.count};
-                },
-                [&result, this, n]
+            try
+            {
+                const auto& res = first_traits::allocate_at_least(get_first_allocator(), n);
+                result = {.ptr = first_ptr_traits::to_address(res.ptr), .count = res.count};
+            }
+            catch(...)
+            {
+                auto&& first_ptr = std::current_exception();
+                try
                 {
                     const auto& res = second_traits::allocate_at_least(get_second_allocator(), n);
-
                     result = {.ptr = second_ptr_traits::to_address(res.ptr), .count = res.count};
                 }
-            );
+                catch(...)
+                {
+                    throw aggregate_exceptions{first_ptr, std::current_exception()};
+                }
+            }
 
             return result;
         }

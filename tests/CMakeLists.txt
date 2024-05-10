@@ -15,7 +15,7 @@ set(src
     src/algorithm/algorithm.cpp
     src/containers/actions.cpp
     src/containers/concepts.cpp
-    src/filesystem/filesystem.cpp
+    src/filesystem/space_size.cpp
     src/functional/forward_bind.cpp
     src/functional/invocables.cpp
     src/functional/pipeable.cpp
@@ -39,22 +39,32 @@ set(src
     src/default_operator.cpp
     src/lazy.cpp
     src/pattern_match.cpp
-    src/synchronizer.cpp)
+    src/synchronizer.cpp
+)
 
 config_lib(${PROJECT_NAME}Lib INTERFACE)
 
-target_link_libraries(${PROJECT_NAME}Lib INTERFACE stdsharp::stdsharp
-                                                   Catch2::Catch2WithMain)
+target_link_libraries(
+    ${PROJECT_NAME}Lib
+    INTERFACE stdsharp::stdsharp Catch2::Catch2WithMain
+)
 
 config_exe(${PROJECT_NAME} EXE_SRC ${src})
 
 target_compile_options(
-  ${PROJECT_NAME}
-  PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4459>
-         $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments -ftime-trace
-         -ftemplate-backtrace-limit=0>)
+    ${PROJECT_NAME}
+    PUBLIC
+        $<$<CXX_COMPILER_ID:MSVC>:/W4
+        /wd4459>
+        $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments
+        -ftime-trace
+        -ftemplate-backtrace-limit=0>
+)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+set_target_properties(
+    ${PROJECT_NAME}
+    PROPERTIES COMPILE_WARNING_AS_ERROR ON EXPORT_COMPILE_COMMANDS ON
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib)
 
@@ -66,9 +76,9 @@ target_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address undefined)
 option(ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
 
 if(${ENABLE_CLANG_TIDY})
-  message(STATUS "clang-tidy is enabled")
+    message(STATUS "clang-tidy is enabled")
 
-  target_clang_tidy(${PROJECT_NAME})
+    target_clang_tidy(${PROJECT_NAME})
 endif()
 
 #
@@ -77,7 +87,15 @@ endif()
 set(CODE_COVERAGE_EXT CACHE STRING "Enable code coverage")
 
 if(CODE_COVERAGE_EXT)
-  target_llvm_coverage(${PROJECT_NAME} FORMAT ${CODE_COVERAGE_EXT})
+    target_llvm_coverage(${PROJECT_NAME} FORMAT ${CODE_COVERAGE_EXT})
 endif()
 
 catch_discover_tests(${PROJECT_NAME})
+
+target_cmake_format(
+  ${PROJECT_NAME}
+  SRC
+    "${CMAKE_SOURCE_DIR}/CMakeLists.txt"
+    "${CMAKE_SOURCE_DIR}/cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+)

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../utility/auto_cast.h"
+#include "../namespace_alias.h"
 
 #include <climits>
-#include <limits>
-#include <stdexcept>
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
 
 namespace stdsharp
 {
@@ -24,18 +25,18 @@ namespace stdsharp
     inline constexpr struct
     {
         template<typename T>
-        [[nodiscard]] constexpr std::make_unsigned_t<T> operator()(const T t) noexcept
+        [[nodiscard]] constexpr auto operator()(const T t) noexcept
         {
-            return auto_cast(t);
+            return static_cast<std::make_unsigned_t<T>>(t);
         }
     } make_unsigned{};
 
     inline constexpr struct
     {
         template<typename T>
-        [[nodiscard]] constexpr std::make_signed_t<T> operator()(const T t) noexcept
+        [[nodiscard]] constexpr auto operator()(const T t) noexcept
         {
-            return auto_cast(t);
+            return static_cast<std::make_signed_t<T>>(t);
         }
     } make_signed{};
 

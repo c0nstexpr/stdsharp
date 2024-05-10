@@ -4,15 +4,15 @@
 #include "../ranges/ranges.h"
 #include "../type_traits/indexed_traits.h"
 
-#include <deque>
+#include <deque> // IWYU pragma: export
 #include <forward_list>
-#include <list>
-#include <map>
+#include <list> // IWYU pragma: export
+#include <map> // IWYU pragma: export
 #include <set>
 #include <type_traits>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include <unordered_map> // IWYU pragma: export
+#include <unordered_set> // IWYU pragma: export
+#include <vector> // IWYU pragma: export
 
 namespace stdsharp
 {

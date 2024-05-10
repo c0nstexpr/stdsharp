@@ -3,10 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 #
 # Project details
 #
-project(
-  stdsharp
-  VERSION 0.9.1
-  LANGUAGES CXX)
+project(stdsharp VERSION 0.9.1 LANGUAGES CXX)
 
 include(cmake/Utils.cmake)
 
@@ -22,39 +19,51 @@ find_package(nameof CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
 target_link_libraries(
-  ${PROJECT_NAME} INTERFACE range-v3::range-v3 Microsoft.GSL::GSL
-                            ctre::ctre nameof::nameof)
+    ${PROJECT_NAME}
+    INTERFACE range-v3::range-v3 Microsoft.GSL::GSL ctre::ctre nameof::nameof
+)
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
 target_install(${PROJECT_NAME} COMPATIBILITY SameMajorVersion DEPENDENCIES
-               ctre;range-v3;nameof;Microsoft.GSL)
+               ctre;range-v3;nameof;Microsoft.GSL
+)
 
-install(FILES cmake/Utils.cmake
-        DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}/stdsharp)
+install(
+    FILES cmake/Utils.cmake
+    DESTINATION ${${PROJECT_NAME}_INSTALL_CMAKEDIR}/stdsharp
+)
 
 get_directory_property(is_subproject PARENT_DIRECTORY)
 
 if(NOT is_subproject)
-  set(is_standalone YES)
+    set(is_standalone YES)
 else()
-  set(is_standalone NO)
+    set(is_standalone NO)
 endif()
 
 include(CMakeDependentOption)
 
-cmake_dependent_option(${PROJECT_NAME}_BUILD_TEST "Whether to build test" ON
-                       "${is_standalone}" OFF)
 cmake_dependent_option(
-  ${PROJECT_NAME}_INCLUDE_AS_SYSTEM
-  "Whether to include stdsharp headers as system headers" OFF
-  "${is_standalone}" ON)
+    ${PROJECT_NAME}_BUILD_TEST
+    "Whether to build test"
+    ON
+    "${is_standalone}"
+    OFF
+)
+cmake_dependent_option(
+    ${PROJECT_NAME}_INCLUDE_AS_SYSTEM
+    "Whether to include stdsharp headers as system headers"
+    OFF
+    "${is_standalone}"
+    ON
+)
 
 if(${PROJECT_NAME}_INCLUDE_AS_SYSTEM)
-  target_include_as_system(${PROJECT_NAME} INTERFACE)
+    target_include_as_system(${PROJECT_NAME} INTERFACE)
 endif()
 
 if(${PROJECT_NAME}_BUILD_TEST)
-  include(CTest)
-  add_subdirectory(tests)
+    include(CTest)
+    add_subdirectory(tests)
 endif()
