@@ -35,12 +35,12 @@ IncludeCategories:
   - Regex: '".+"'
     SortPriority: 0
     Priority: 0
-  - Regex: "<.+/.+>"
-    SortPriority: 1
-    Priority: 1
-  - Regex: "<.+>"
+  - Regex: "<(experimental\/)?[^\/.]+>"
     SortPriority: 2
     Priority: 2
+  - Regex: "<.+>"
+    SortPriority: 1
+    Priority: 1
 IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
 IndentWidth: 4

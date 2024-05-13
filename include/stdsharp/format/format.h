@@ -1,16 +1,14 @@
 #pragma once
 
-#include "../cstdint/cstdint.h"
-#include "../functional/operations.h"
+#include "../functional/sequenced_invocables.h"
 
-#include <ctre/../ctre.hpp>
+#include <ctre.hpp>
+#include <unicode-db.hpp>
 
 #include <format>
 #include <numeric>
 #include <optional>
 #include <ranges>
-#include <unicode-db.hpp>
-#include <variant>
 
 namespace stdsharp::details
 {
@@ -20,23 +18,45 @@ namespace stdsharp::details
     template<typename OutputIt, typename CharT>
     using context = std::basic_format_context<OutputIt, CharT>;
 
-    template<typename CharT>
-    using iter = typename std::basic_format_parse_context<CharT>::iterator;
-
-    template<std::integral T>
+    template<std::unsigned_integral T>
     constexpr auto parse_integer(const auto& rng) noexcept
     {
+        static const auto& char_num_range = []
+        {
+            using char_t = std::ranges::range_value_t<decltype(rng)>;
+
+            std::array rng{
+                char_t{'0'},
+                char_t{'1'},
+                char_t{'2'},
+                char_t{'3'},
+                char_t{'4'},
+                char_t{'5'},
+                char_t{'6'},
+                char_t{'7'},
+                char_t{'8'},
+                char_t{'9'}
+            };
+
+            std::ranges::sort(rng);
+
+            return rng;
+        }();
+
         return std::accumulate(
             rng.begin(),
             rng.end(),
             T{0},
-            []<typename U>(const T v, const U c)
+            []<typename U>(T v, const U& c)
             {
-                for(const char char_num : "0123456789")
-                    if(c == U{char_num})
-                        return v * 10 + (char_num - '0'); // NOLINT(*-magic-numbers)
+                const auto& found = std::ranges::lower_bound(char_num_range, c);
 
-                throw std::format_error{"invalid integer num"};
+                if(found == char_num_range.end()) throw std::format_error{"invalid integer num"};
+
+                v *= 10; // NOLINT(*-magic-numbers)
+                v += found - char_num_range.begin();
+
+                return v;
             }
         );
     };
@@ -44,40 +64,51 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
-    template<typename T, typename OutputIt, typename CharT, typename Fn = identity_with_fn<const T&>>
-    [[nodiscard]] constexpr const T&
-        get_fmt_context_nested(const std::size_t value, const details::context<OutputIt, CharT>& fc)
+    template<typename T = void>
+    struct visit_fmt_arg_fn
     {
-        auto& arg = fc.arg(value);
-
-        return
+        template<typename Visitor, typename OutputIt, typename CharT>
+        [[nodiscard]] constexpr decltype(auto) operator()(
+            const std::size_t value,
+            Visitor visitor,
+            const details::context<OutputIt, CharT>& fc
+        )
+        {
+            if constexpr(const auto& arg = fc.arg(value); std::same_as<T, void>)
 #if __cpp_lib_format >= 202306L
-            arg.visit(Fn{})
+                return arg.visit(visitor);
+            else return arg.template visit<T>(visitor);
 #else
-            std::visit_format_arg(Fn{}, arg)
+                return std::visit_format_arg(visitor, arg);
+            else return std::visit_format_arg<T>(visitor, arg);
 #endif
-                ;
-    }
+        }
+    };
+
+    template<typename T = void>
+    inline constexpr visit_fmt_arg_fn<T> visit_fmt_arg{};
 
     template<typename CharT>
     [[noreturn]] void parse_assert(const details::parse_context<CharT>& ctx)
     {
         const auto begin = ctx.begin();
-        throw std::format_error{std::format(
-            "invalid format:\n \"{}\"\n{}",
-            std::basic_string_view{begin, ctx.end()},
+        throw std::format_error{
             std::format(
-                "{}^ Unexpected character here",
-                std::views::repeat(' ', begin - ctx.begin())
-            )
-        )};
+                "invalid format:\n \"{}\"\n{}",
+                std::basic_string_view{begin, ctx.end()},
+                std::format(
+                    "{}^ Unexpected character here",
+                    std::views::repeat(' ', begin - ctx.begin())
+                )
+            ) //
+        };
     }
 
     template<typename CharT, std::predicate<CharT> Predicate>
     constexpr void parse_validate(const details::parse_context<CharT>& ctx, Predicate predicate)
     {
-        const auto begin = ctx.begin();
-        if(begin == ctx.end() || !predicate(*begin)) parse_assert(ctx, begin);
+        if(const auto begin = ctx.begin(); begin == ctx.end() || !predicate(*begin))
+            parse_assert(ctx, begin);
     }
 
     template<typename CharT>
@@ -103,6 +134,7 @@ namespace stdsharp
 
     enum class align_t : std::uint8_t
     {
+        none,
         left,
         right,
         center
@@ -116,22 +148,19 @@ namespace stdsharp
     };
 
     template<std::constructible_from<char> CharT>
-    [[nodiscard]] constexpr auto parse_fill_spec(details::parse_context<CharT>& ctx)
+    [[nodiscard]] constexpr fill_and_align_spec<CharT>
+        parse_fill_and_align_spec(details::parse_context<CharT>& ctx)
     {
-        std::optional<fill_and_align_spec<CharT>> spec;
-
         const auto& [whole, fill, align] = ctre::starts_with<"([^<^>])([<^>])">(ctx);
 
-        if(!whole) return spec;
+        if(!whole) return {};
 
-        ctx.advance_to(whole.end());
+        fill_and_align_spec<CharT> spec;
 
-        if(!align) return spec;
-
-        spec.emplace();
+        if(fill) spec.fill = *fill.begin();
 
         {
-            auto& align_v = spec->align;
+            auto& align_v = spec.align;
 
             if(const auto& align_char = *align.begin(); align_char == CharT{'<'})
                 align_v = align_t::left;
@@ -140,61 +169,63 @@ namespace stdsharp
             else throw std::format_error{"invalid align specifier"};
         }
 
-        if(fill) spec->fill = *fill.begin();
+        ctx.advance_to(whole.end());
 
         return spec;
     }
 
     template<std::integral IntType, std::constructible_from<char> CharT>
-    [[nodiscard]] constexpr IntType parse_nested_integer_spec(details::parse_context<CharT>& ctx)
+    [[nodiscard]] constexpr std::optional<IntType>
+        parse_nested_integer_spec(details::parse_context<CharT>& ctx)
     {
         const auto& [whole, ref, value] = ctre::starts_with<R"(\{(\d*)\}|(\d*))">(ctx);
 
         if(!whole) return {};
 
-        ctx.advance_to(whole.end());
-
-        if(ref)
-            return get_fmt_context_nested<IntType>(
+        const auto& int_v = ref ? //
+            visit_fmt_arg<IntType>(
                 std::ranges::empty(ref) ? //
                     ctx.next_arg_id() :
                     details::parse_integer<std::size_t>(ref),
+                sequenced_invocables{
+                    [](const IntType& v) { return v; },
+                    [] [[noreturn]] (const auto&)
+                    {
+                        throw std::format_error{"invalid integer character"}; //
+                    }
+                },
                 ctx
-            );
+            ) :
+            value ? details::parse_integer<IntType>(value) : IntType{};
 
-        if(value) return details::parse_integer<IntType>(value);
+        ctx.advance_to(whole.end());
 
-        return {};
+        return {int_v};
     }
 
-    template<std::integral IntType, typename CharT>
+    template<std::integral IntType, std::constructible_from<char> CharT>
     constexpr std::optional<IntType> parse_precision_spec(details::parse_context<CharT>& ctx)
     {
-        const auto origin_begin = ctx.begin();
         const auto& dot = ctre::starts_with<"\\.">(ctx);
 
         if(!dot) return {};
 
         ctx.advance_to(dot.end());
 
-        return parse_nested_integer_spec<IntType>(ctx);
+        const auto& int_v = parse_nested_integer_spec<IntType>(ctx);
+
+        return int_v ? int_v : throw std::format_error{"invalid precision specify"};
     }
 
-    struct locale_spec
-    {
-        bool use_locale{};
-    };
-
     template<typename CharT>
-    constexpr locale_spec parse_locale_spec(details::parse_context<CharT>& ctx)
+    constexpr bool parse_locale_spec(details::parse_context<CharT>& ctx)
     {
         const auto& use_locale = ctre::starts_with<"L">(ctx);
-        if(use_locale)
-        {
-            ctx.advance_to(use_locale.end());
-            return {true};
-        }
 
-        return {};
+        if(!use_locale) return false;
+
+        ctx.advance_to(use_locale.end());
+
+        return true;
     }
 }

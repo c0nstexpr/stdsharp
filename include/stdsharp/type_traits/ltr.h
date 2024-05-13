@@ -6,7 +6,7 @@
 #include <array>
 #include <string_view>
 
-namespace stdsharp::literals
+namespace stdsharp::inline literals
 {
     template<std::size_t Size>
     struct ltr : std::array<char, Size>
