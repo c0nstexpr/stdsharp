@@ -255,13 +255,4 @@ namespace stdsharp
     };
 
     inline constexpr make_inherited_fn make_inherited{};
-
-    template<typename T>
-    concept constant_value = cpp_is_constexpr(T::value);
-
-    template<auto Value>
-    using constant = std::integral_constant<decltype(Value), Value>;
-
-    template<std::size_t I>
-    using index_constant = std::integral_constant<std::size_t, I>;
 }

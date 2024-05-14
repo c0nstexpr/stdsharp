@@ -1,8 +1,7 @@
 #pragma once
 
 #include "../functional/invoke.h"
-#include "../utility/adl_proof.h"
-#include "object.h"
+#include "type.h"
 
 #include <ranges>
 #include <utility>

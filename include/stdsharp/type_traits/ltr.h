@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../namespace_alias.h"
+#include "type.h"
 
 #include <algorithm>
 #include <array>
@@ -8,14 +9,14 @@
 
 namespace stdsharp::inline literals
 {
-    template<std::size_t Size>
-    struct ltr : std::array<char, Size>
+    template<typename CharT, std::size_t Size>
+    struct ltr : std::array<CharT, Size>
     {
     private:
-        using array_t = const char (&)[Size]; // NOLINT(*-avoid-c-arrays)
+        using array_t = const CharT (&)[Size]; // NOLINT(*-avoid-c-arrays)
 
     public:
-        using base = std::array<char, Size>;
+        using base = std::array<CharT, Size>;
         using base::base;
 
         constexpr ltr(array_t arr) noexcept { std::ranges::copy(arr, base::begin()); }
@@ -37,12 +38,15 @@ namespace stdsharp::inline literals
         }
     };
 
-    template<std::size_t Size>
-    ltr(const char (&)[Size]) -> ltr<Size>; // NOLINT(*-avoid-c-arrays)
+    template<typename CharT, std::size_t Size>
+    ltr(const CharT (&)[Size]) -> ltr<CharT, Size>; // NOLINT(*-avoid-c-arrays)
 
     template<ltr Ltr>
     [[nodiscard]] constexpr auto operator""_ltr() noexcept
     {
         return Ltr;
     }
+
+    template<ltr Ltr>
+    using ltr_constant = constant<Ltr>;
 }

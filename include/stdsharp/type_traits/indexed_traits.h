@@ -1,7 +1,6 @@
 #pragma once // TODO: __cpp_pack_indexing >= 202311L
 
 #include "../utility/value_wrapper.h"
-#include "object.h"
 
 #include "../compilation_config_in.h"
 

@@ -3,6 +3,7 @@
 #include "../cstdint/cstdint.h"
 #include "../default_operator.h"
 #include "../format/format.h"
+#include "../functional/sequenced_invocables.h"
 
 #include <cstdint>
 #include <format>
@@ -93,8 +94,8 @@ namespace stdsharp::filesystem
 
 namespace stdsharp::filesystem::details
 {
-    template<typename>
-    inline constexpr auto space_size_unit_name = "unknown unit"sv;
+    template<typename T, typename>
+    inline constexpr std::conditional_t<true, void, T> space_size_unit_name;
 }
 
 namespace stdsharp::filesystem
@@ -115,30 +116,33 @@ namespace stdsharp::filesystem
     using petabytes = space_size<std::uintmax_t, std::peta>;
     using exabytes = space_size<std::uintmax_t, std::exa>;
 
-#define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(period, unit_name)                         \
-    template<>                                                                             \
-    inline constexpr std::string_view details::space_size_unit_name<period> = #unit_name;  \
-                                                                                           \
-    inline namespace literals                                                              \
-    {                                                                                      \
-        [[nodiscard]] constexpr auto operator""_##unit_name(unsigned long long v) noexcept \
-        {                                                                                  \
-            return space_size<unsigned long long, period>{v};                              \
-        }                                                                                  \
-                                                                                           \
-        [[nodiscard]] constexpr auto operator""_##unit_name(long double v) noexcept        \
-        {                                                                                  \
-            return space_size<long double, period>{v};                                     \
-        }                                                                                  \
-    }                                                                                      \
-                                                                                           \
-    template<typename CharT, typename Traits, typename Rep>                                \
-    constexpr auto& operator<<(                                                            \
-        std::basic_ostream<CharT, Traits>& os,                                             \
-        const space_size<Rep, period> size                                                 \
-    )                                                                                      \
-    {                                                                                      \
-        return os << size.size() << #unit_name;                                            \
+#define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(period, unit_name)                             \
+    template<>                                                                                 \
+    inline constexpr std::string_view details::space_size_unit_name<period, char>{#unit_name}; \
+    template<>                                                                                 \
+    inline constexpr std::wstring_view details::                                               \
+        space_size_unit_name<period, wchar_t>{L#unit_name};                                    \
+                                                                                               \
+    inline namespace literals                                                                  \
+    {                                                                                          \
+        [[nodiscard]] constexpr auto operator""_##unit_name(unsigned long long v) noexcept     \
+        {                                                                                      \
+            return space_size<unsigned long long, period>{v};                                  \
+        }                                                                                      \
+                                                                                               \
+        [[nodiscard]] constexpr auto operator""_##unit_name(long double v) noexcept            \
+        {                                                                                      \
+            return space_size<long double, period>{v};                                         \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    template<typename CharT, typename Traits, typename Rep>                                    \
+    constexpr auto& operator<<(                                                                \
+        std::basic_ostream<CharT, Traits>& os,                                                 \
+        const space_size<Rep, period> size                                                     \
+    )                                                                                          \
+    {                                                                                          \
+        return os << size.size() << #unit_name;                                                \
     }
 
 #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000
@@ -207,40 +211,81 @@ namespace std
 #endif
 
     template<typename Rep, typename Period, typename CharT>
+        requires(same_as<CharT, char> || same_as<CharT, wchar_t>)
     class formatter<::stdsharp::filesystem::space_size<Rep, Period>, CharT>
     {
         using space_size = ::stdsharp::filesystem::space_size<Rep, Period>;
 
-        static constexpr auto name = ::stdsharp::filesystem::details::space_size_unit_name<Period>;
+        static constexpr auto default_unit_name = []
+        {
+            if constexpr(requires {
+                             ::stdsharp::filesystem::details::space_size_unit_name<Period, CharT>;
+                         })
+                return ::stdsharp::filesystem::details::space_size_unit_name<Period, CharT>;
+            else return std::basic_string_view<CharT>{};
+        }();
 
-        optional<::stdsharp::fill_and_align_spec<CharT>> fill_and_align_;
-        optional<uintmax_t> width_;
-
-        optional<uintmax_t> precision_;
+        ::stdsharp::fill_and_align_spec<CharT> fill_and_align_;
+        ::stdsharp::uint_nested_maybe_spec<> width_;
+        ::stdsharp::uint_nested_maybe_spec<> precision_;
         bool use_locale_ = false;
+        optional<::stdsharp::nested_fmt_spec> unit_name_;
+
+        constexpr decltype(auto) get_format_string() const
+        {
+            if constexpr(same_as<CharT, char>) return use_locale_ ? "{:.{}L}{}" : "{:.{}}{}";
+            else if constexpr(same_as<CharT, wchar_t>)
+                return use_locale_ ? L"{:.{}L}{}" : L"{:.{}}{}";
+            else throw format_error{"Unsupported character type"};
+        }
+
+        constexpr auto get_nested(const auto& ctx, const size_t id)
+        {
+            return ::stdsharp::visit_fmt_arg<>(
+                id,
+                ctx,
+                ::stdsharp::sequenced_invocables{
+                    [](const integral auto value)
+                    { return value > 0 ? value : throw format_error{"invalid num"}; },
+                    [](const unsigned_integral auto value) { return value; },
+                    [] [[noreturn]] (const auto&) { throw format_error{"invalid num"}; }
+                }
+            );
+        }
 
     public:
         constexpr auto parse(basic_format_parse_context<CharT>& ctx)
         {
-            if(const auto& f_and_a = ::stdsharp::parse_fill_and_align_spec(ctx); f_and_a)
-            {
-                if(const auto& w = ::stdsharp::parse_nested_integer_spec<uintmax_t>(ctx); w)
-                {
-                    width_ = *w;
+            fill_and_align_ = ::stdsharp::parse_fill_and_align_spec(ctx);
+            width_ = ::stdsharp::parse_uint_maybe_nested_spec(ctx);
 
-                    fill_and_align_ = *f_and_a;
-                }
-                else throw format_error{"Specify align without width"};
-            }
+            if(fill_and_align_.align != ::stdsharp::format_align_t::none && width_.index() == 0)
+                throw format_error{"Specify align without width"};
 
-            precision_ = ::stdsharp::parse_precision_spec<uintmax_t>(ctx);
+            precision_ = ::stdsharp::parse_precision_spec(ctx);
             use_locale_ = ::stdsharp::parse_locale_spec(ctx);
+            unit_name_ = ::stdsharp::parse_nested_spec(ctx);
         }
 
         template<typename OutIt>
-        constexpr auto format(const space_size& size, basic_format_context<OutIt, CharT>& ctx)
+        constexpr auto format(const space_size& size, basic_format_context<OutIt, CharT>& ctx) const
         {
-            const auto& value = std::vformat(std::basic_format_string<CharT>{"{}"}, size.size());
+            const auto& value = std::format(
+                std::basic_format_string<CharT>{get_format_string()},
+                size.size(),
+                *precision_,
+                default_unit_name
+            );
+
+            const auto& out = ctx.out();
+
+            if(width_.index() == 0) return ranges::copy(value, out).out;
+
+            const auto width = width_.index() == 1 ? //
+                get<1>(width_) :
+                get_nested(ctx, get<2>(width_).id);
+
+            if(value.size() >= width) return ranges::copy(value, out).out;
         }
     };
 }
