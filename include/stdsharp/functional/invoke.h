@@ -2,8 +2,6 @@
 
 #include "../concepts/object.h"
 
-#include <functional>
-
 namespace stdsharp
 {
     inline constexpr struct invoke_fn

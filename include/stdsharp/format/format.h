@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../functional/invoke_r.h"
+#include "../functional/sequenced_invocables.h"
 
 #include <ctre.hpp>
 
@@ -12,12 +12,6 @@
 
 namespace stdsharp::details
 {
-    template<typename CharT>
-    using parse_context = std::basic_format_parse_context<CharT>;
-
-    template<typename OutputIt, typename CharT>
-    using context = std::basic_format_context<OutputIt, CharT>;
-
     template<typename CharT>
     constexpr std::conditional_t<true, void, CharT> space_char;
 
@@ -49,10 +43,10 @@ namespace stdsharp::details
     constexpr std::conditional_t<true, void, CharT> nested_fmt_regex;
 
     template<>
-    inline constexpr ctll::fixed_string nested_fmt_regex<char>{R"(\{(\d*)\}|(\d*))"};
+    inline constexpr ctll::fixed_string nested_fmt_regex<char>{R"(\{(\d*)\})"};
 
     template<>
-    inline constexpr ctll::fixed_string nested_fmt_regex<wchar_t>{LR"(\{(\d*)\}|(\d*))"};
+    inline constexpr ctll::fixed_string nested_fmt_regex<wchar_t>{LR"(\{(\d*)\})"};
 
     template<typename CharT>
     constexpr std::conditional_t<true, void, CharT> precision_dot_regex;
@@ -99,85 +93,57 @@ namespace stdsharp
     template<typename CharT>
     inline constexpr auto locale_regex = details::locale_regex<CharT>;
 
-    template<typename T = void>
-    struct visit_fmt_arg_fn
+    inline constexpr struct visit_fmt_arg_fn
     {
         template<typename Visitor, typename OutputIt, typename CharT>
-            requires invocable_r<Visitor, T, std::monostate> &&
-            invocable_r<Visitor, T, const bool&> && //
-            invocable_r<Visitor, T, const CharT&> && //
-            invocable_r<Visitor, T, const int&> && //
-            invocable_r<Visitor, T, const unsigned&> && //
-            invocable_r<Visitor, T, const long long&> && //
-            invocable_r<Visitor, T, const unsigned long long&> &&
-            invocable_r<Visitor, T, const float&> && //
-            invocable_r<Visitor, T, const double&> && //
-            invocable_r<Visitor, T, const long double&> && //
-            invocable_r<Visitor, T, const CharT*> && //
-            invocable_r<Visitor, T, const std::basic_string_view<CharT>&> && //
-            invocable_r<Visitor, T, const void*> && //
-            invocable_r<Visitor,
-                        T,
-                        const typename std::basic_format_arg<details::context<OutputIt, CharT>>::
-                            hanble&>
-        [[nodiscard]] constexpr decltype(auto) operator()(
-            const std::size_t value,
-            Visitor visitor,
-            const details::context<OutputIt, CharT>& fc
-        )
-        {
-            const auto& arg = fc.arg(value);
+            requires requires(const std::
+                                  basic_format_arg<std::basic_format_context<OutputIt, CharT>>::
+                                      handle handle) {
+                requires std::invocable<Visitor, const bool&>;
+                requires std::invocable<Visitor, const CharT&>;
+                requires std::invocable<Visitor, const int&>;
+                requires std::invocable<Visitor, const unsigned&>;
+                requires std::invocable<Visitor, const long long&>;
+                requires std::invocable<Visitor, const unsigned long long&>;
+                requires std::invocable<Visitor, const float&>;
+                requires std::invocable<Visitor, const double&>;
+                requires std::invocable<Visitor, const long double&>;
+                requires std::invocable<Visitor, const CharT*>;
+                requires std::invocable<Visitor, const std::basic_string_view<CharT*>>;
+                requires std::invocable<Visitor, const void*>;
+                requires std::invocable<Visitor, decltype(handle)>;
 
-#if __cpp_lib_format >= 202306L
-            return arg.template visit<T>(visitor);
-#else
-            return std::visit_format_arg<T>(visitor, arg);
-#endif
-        }
-    };
-
-    template<>
-    struct visit_fmt_arg_fn<void>
-    {
-        template<typename Visitor, typename OutputIt, typename CharT>
-            requires std::invocable<Visitor, std::monostate> &&
-            std::invocable<Visitor, const bool&> && //
-            std::invocable<Visitor, const CharT&> && //
-            std::invocable<Visitor, const int&> && //
-            std::invocable<Visitor, const unsigned&> && //
-            std::invocable<Visitor, const long long&> && //
-            std::invocable<Visitor, const unsigned long long&> &&
-            std::invocable<Visitor, const float&> && //
-            std::invocable<Visitor, const double&> && //
-            std::invocable<Visitor, const long double&> && //
-            std::invocable<Visitor, const CharT*> && //
-            std::invocable<Visitor, const std::basic_string_view<CharT*>&> && //
-            std::invocable<Visitor, const void*> && //
-            std::invocable<
-                         Visitor,
-                         const typename std::basic_format_arg<details::context<OutputIt, CharT>>::
-                             hanble&>
+                requires all_same<
+                    std::invoke_result_t<Visitor, const bool&>,
+                    std::invoke_result_t<Visitor, const CharT&>,
+                    std::invoke_result_t<Visitor, const int&>,
+                    std::invoke_result_t<Visitor, const unsigned&>,
+                    std::invoke_result_t<Visitor, const long long&>,
+                    std::invoke_result_t<Visitor, const unsigned long long&>,
+                    std::invoke_result_t<Visitor, const float&>,
+                    std::invoke_result_t<Visitor, const double&>,
+                    std::invoke_result_t<Visitor, const long double&>,
+                    std::invoke_result_t<Visitor, const CharT*>,
+                    std::invoke_result_t<Visitor, const std::basic_string_view<CharT*>>,
+                    std::invoke_result_t<Visitor, const void*>,
+                    std::invoke_result_t<Visitor, decltype(handle)>>;
+            }
         [[nodiscard]] constexpr decltype(auto) operator()(
+            const std::basic_format_context<OutputIt, CharT>& ctx,
             const std::size_t id,
-            Visitor visitor,
-            const details::context<OutputIt, CharT>& fc
-        )
+            Visitor visitor
+        ) const
         {
-            const auto& arg = fc.arg(id);
-
 #if __cpp_lib_format >= 202306L
-            return arg.visit(visitor);
+            return ctx.arg(id).visit(visitor);
 #else
-            return std::visit_format_arg(visitor, arg);
+            return std::visit_format_arg(cpp_move(visitor), ctx.arg(id));
 #endif
         }
-    };
-
-    template<typename T = void>
-    inline constexpr visit_fmt_arg_fn<T> visit_fmt_arg{};
+    } visit_fmt_arg{};
 
     template<typename CharT>
-    [[noreturn]] void parse_assert(const details::parse_context<CharT>& ctx)
+    [[noreturn]] void parse_assert(const std::basic_format_parse_context<CharT>& ctx)
     {
         const auto begin = ctx.begin();
         throw std::format_error{
@@ -193,20 +159,21 @@ namespace stdsharp
     }
 
     template<typename CharT, std::predicate<CharT> Predicate>
-    constexpr void parse_validate(const details::parse_context<CharT>& ctx, Predicate predicate)
+    constexpr void
+        parse_validate(const std::basic_format_parse_context<CharT>& ctx, Predicate predicate)
     {
         if(const auto begin = ctx.begin(); begin == ctx.end() || !predicate(*begin))
             parse_assert(ctx, begin);
     }
 
     template<typename CharT>
-    constexpr void parse_not_end_assert(const details::parse_context<CharT>& ctx)
+    constexpr void parse_not_end_assert(const std::basic_format_parse_context<CharT>& ctx)
     {
         parse_validate(ctx, [](const auto) { return true; });
     }
 
     template<typename CharT>
-    constexpr void parse_end_assert(const details::parse_context<CharT>& ctx)
+    constexpr void parse_end_assert(const std::basic_format_parse_context<CharT>& ctx)
     {
         const auto begin = ctx.begin();
 
@@ -275,7 +242,7 @@ namespace stdsharp
 
     template<typename CharT, auto Regex = details::fill_and_align_regex<CharT>>
     [[nodiscard]] constexpr fill_and_align_spec<CharT>
-        parse_fill_and_align_spec(details::parse_context<CharT>& ctx)
+        parse_fill_and_align_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         const auto& [whole, fill, align] = ctre::starts_with<Regex>(ctx);
 
@@ -299,7 +266,7 @@ namespace stdsharp
 
     template<typename CharT, auto Regex = details::nested_fmt_regex<CharT>>
     [[nodiscard]] constexpr std::optional<nested_fmt_spec>
-        parse_nested_spec(details::parse_context<CharT>& ctx)
+        parse_nested_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         const auto& [whole, ref] = ctre::starts_with<Regex>(ctx);
 
@@ -311,15 +278,18 @@ namespace stdsharp
 
         ctx.advance_to(whole.end());
 
-        return {int_v};
+        return nested_fmt_spec{int_v};
     }
 
     template<std::unsigned_integral IntType = uintmax_t>
     using uint_nested_maybe_spec = std::variant<std::monostate, IntType, nested_fmt_spec>;
 
-    template<typename IntType = uintmax_t, typename CharT, auto Regex = details::precision_dot_regex<CharT>>
+    template<
+        typename IntType = uintmax_t,
+        typename CharT,
+        auto Regex = details::precision_dot_regex<CharT>>
     constexpr uint_nested_maybe_spec<IntType>
-        parse_uint_maybe_nested_spec(details::parse_context<CharT>& ctx)
+        parse_uint_maybe_nested_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         if(const auto& [whole, int_v] = ctre::starts_with<details::int_regex<CharT>>(ctx); whole)
         {
@@ -332,9 +302,12 @@ namespace stdsharp
         return std::monostate{};
     }
 
-    template<typename IntType, typename CharT, auto Regex = details::precision_dot_regex<CharT>>
+    template<
+        typename IntType = uintmax_t,
+        typename CharT,
+        auto Regex = details::precision_dot_regex<CharT>>
     constexpr uint_nested_maybe_spec<IntType>
-        parse_precision_spec(details::parse_context<CharT>& ctx)
+        parse_precision_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         const auto& dot = ctre::starts_with<Regex>(ctx);
 
@@ -350,7 +323,7 @@ namespace stdsharp
     }
 
     template<typename CharT, auto Regex = details::locale_regex<CharT>>
-    constexpr bool parse_locale_spec(details::parse_context<CharT>& ctx)
+    constexpr bool parse_locale_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         const auto& use_locale = ctre::starts_with<Regex>(ctx);
 
@@ -359,5 +332,43 @@ namespace stdsharp
         ctx.advance_to(use_locale.end());
 
         return true;
+    }
+
+    template<std::unsigned_integral IntType, typename OutputIt, typename CharT>
+    static constexpr std::optional<IntType> get_maybe_nested_uint(
+        const ::stdsharp::uint_nested_maybe_spec<IntType>& spec,
+        const std::basic_format_context<OutputIt, CharT>& ctx
+    )
+    {
+        switch(spec.index())
+        {
+        case 0: return {};
+
+        case 1: return get<1>(spec);
+
+        case 2:
+            return ::stdsharp::visit_fmt_arg(
+                ctx,
+                get<2>(spec).id,
+                sequenced_invocables{
+                    []<std::integral T>(const T& value)
+                    {
+                        return std::unsigned_integral<T> || value > 0 ?
+                            static_cast<IntType>(value) :
+                            throw std::format_error{"invalid num"};
+                    },
+                    [] [[noreturn]] (const auto& v)
+                    {
+                        return ::stdsharp::dependent_false<decltype(v)>() ?
+                            IntType{} :
+                            throw std::format_error{"invalid num"};
+                    }
+                }
+            );
+        }
+
+        std::unreachable();
+
+        return {};
     }
 }

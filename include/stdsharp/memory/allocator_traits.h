@@ -2,12 +2,8 @@
 
 #include "../cassert/cassert.h"
 #include "../type_traits/object.h"
-#include "../utility/constructor.h"
 #include "pointer_traits.h"
 
-#include <iterator>
-#include <memory_resource>
-#include <scoped_allocator>
 #include <utility>
 
 namespace stdsharp::details

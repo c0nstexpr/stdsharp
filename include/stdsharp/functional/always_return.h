@@ -3,8 +3,6 @@
 #include "../macros.h"
 #include "../namespace_alias.h"
 
-#include <functional>
-
 namespace stdsharp
 {
     inline constexpr struct always_return_fn

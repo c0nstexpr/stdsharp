@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../concepts/type.h"
 #include "../type_traits/type.h"
 
 #include "../compilation_config_in.h"

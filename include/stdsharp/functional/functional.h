@@ -1,14 +1,17 @@
 #pragma once
 
-#include "pipeable.h"
-#include "stdsharp/functional/always_return.h"
-#include "stdsharp/functional/bind_front.h"
-#include "stdsharp/functional/compose.h"
-#include "stdsharp/functional/invoke.h"
-#include "stdsharp/functional/invoke_r.h"
-#include "stdsharp/functional/nodiscard_invocable.h"
-#include "stdsharp/functional/optional_invoke.h"
-#include "stdsharp/functional/project_invoke.h"
-#include "symmetric_operations.h"
-
-#include <range/v3/functional.hpp>
+#include "always_return.h" // IWYU pragma: export
+#include "bind_front.h" // IWYU pragma: export
+#include "compose.h" // IWYU pragma: export
+#include "conditional_invoke.h" // IWYU pragma: export
+#include "forward_bind.h" // IWYU pragma: export
+#include "invocables.h" // IWYU pragma: export
+#include "invoke.h" // IWYU pragma: export
+#include "invoke_r.h" // IWYU pragma: export
+#include "nodiscard_invocable.h" // IWYU pragma: export
+#include "operations.h" // IWYU pragma: export
+#include "optional_invoke.h" // IWYU pragma: export
+#include "pipeable.h" // IWYU pragma: export
+#include "project_invoke.h" // IWYU pragma: export
+#include "sequenced_invocables.h" // IWYU pragma: export
+#include "symmetric_operations.h" // IWYU pragma: export

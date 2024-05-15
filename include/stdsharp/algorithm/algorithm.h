@@ -4,6 +4,7 @@
 #include "../functional/operations.h"
 
 #include <algorithm>
+#include <gsl/gsl>
 
 namespace stdsharp
 {

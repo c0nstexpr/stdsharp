@@ -1,9 +1,11 @@
 #pragma once
 
-#include "../concepts/type.h"
 #include "../functional/invoke.h"
-#include "../macros.h"
 #include "regular_type_sequence.h"
+
+#include <range/v3/functional/pipeable.hpp>
+
+#include <compare>
 
 namespace stdsharp
 {
@@ -328,4 +330,93 @@ namespace stdsharp
 
     template<std::size_t I>
     using index_constant = std::integral_constant<std::size_t, I>;
+
+    template<typename T>
+    struct basic_type_constant : std::type_identity<T>
+    {
+        template<typename U>
+        [[nodiscard]] constexpr bool
+            operator==(const basic_type_constant<U> /*unused*/) const noexcept
+        {
+            return std::same_as<T, U>;
+        }
+    };
+
+    template<typename T>
+    basic_type_constant(std::type_identity<T>) -> basic_type_constant<T>;
+
+    template<typename T>
+    using type_constant = adl_proof_t<basic_type_constant, T>;
+
+    using ignore_t = decltype(std::ignore);
+
+    inline constexpr struct empty_t : ignore_t
+    {
+        using ignore_t::operator=;
+
+        empty_t() = default;
+
+        constexpr empty_t(const auto&... /*unused*/) noexcept {}
+
+        constexpr bool operator!() const noexcept { return true; }
+
+        template<std::constructible_from T>
+        explicit constexpr operator T() const noexcept(nothrow_constructible_from<T>)
+        {
+            return T{};
+        }
+
+        constexpr const auto* operator->() const noexcept { return this; }
+
+        constexpr const auto& operator->*(const auto& /*unused*/) const noexcept { return *this; }
+
+#define STDSHARP_EMPTY_OPERATOR(op) \
+    constexpr auto& operator op() const noexcept { return *this; }
+
+        STDSHARP_EMPTY_OPERATOR(+)
+        STDSHARP_EMPTY_OPERATOR(-)
+        STDSHARP_EMPTY_OPERATOR(~)
+        STDSHARP_EMPTY_OPERATOR(*)
+
+#undef STDSHARP_EMPTY_OPERATOR
+
+#define STDSHARP_EMPTY_OPERATOR(...) \
+    constexpr auto& operator __VA_ARGS__(const auto&...) const noexcept { return *this; }
+
+        STDSHARP_EMPTY_OPERATOR(())
+        STDSHARP_EMPTY_OPERATOR([])
+
+#undef STDSHARP_EMPTY_OPERATOR
+
+#define STDSHARP_EMPTY_OPERATOR(op)                                \
+    constexpr auto& operator op() const noexcept { return *this; } \
+    constexpr auto& operator op(int) const noexcept { return *this; }
+
+        STDSHARP_EMPTY_OPERATOR(++)
+        STDSHARP_EMPTY_OPERATOR(--)
+
+#undef STDSHARP_EMPTY_OPERATOR
+
+#define STDSHARP_EMPTY_OPERATOR(op)                                                      \
+    constexpr decltype(auto) operator op(const empty_t) const noexcept { return *this; } \
+    constexpr decltype(auto) operator op##=(const empty_t) const noexcept { return *this; }
+
+        STDSHARP_EMPTY_OPERATOR(+)
+        STDSHARP_EMPTY_OPERATOR(-)
+        STDSHARP_EMPTY_OPERATOR(*)
+        STDSHARP_EMPTY_OPERATOR(/)
+        STDSHARP_EMPTY_OPERATOR(%)
+        STDSHARP_EMPTY_OPERATOR(&)
+        STDSHARP_EMPTY_OPERATOR(|)
+        STDSHARP_EMPTY_OPERATOR(^)
+        STDSHARP_EMPTY_OPERATOR(<<)
+        STDSHARP_EMPTY_OPERATOR(>>)
+
+        constexpr auto operator<=>(const empty_t /*unused*/) const noexcept
+        {
+            return std::strong_ordering::equal;
+        }
+
+        constexpr bool operator==(const empty_t /*unused*/) const noexcept { return true; }
+    } empty;
 }

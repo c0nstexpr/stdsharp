@@ -280,9 +280,6 @@ function(target_clang_tidy target)
     if(ARG_ENABLE_PROFILE)
         get_target_property(bin_dir ${target} BINARY_DIR)
         set(report_folder "${bin_dir}/clang-tidy-report")
-        set(profile_arg
-            ";--enable-check-profile;--store-check-profile=${report_folder}"
-        )
 
         add_custom_target(
             ${target}ClangTidyClean
@@ -292,19 +289,21 @@ function(target_clang_tidy target)
         )
 
         add_dependencies(${target} ${target}ClangTidyClean)
+
+        list(
+            APPEND
+            CLANG_TIDY
+            "--enable-check-profile"
+            "--store-check-profile=${report_folder}"
+        )
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         message(STATUS "Add extra MSVC arg for clang-tidy")
-        set(MSVC_TIDY
-            ";--extra-arg=/EHsc;--extra-arg=/std:c++latest;--extra-arg=-Wno-unknown-warning-option"
-        )
+        list(APPEND CLANG_TIDY "-EHsc" "-std:c++latest")
     endif()
 
-    set_target_properties(
-        ${target}
-        PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}${profile_arg}${MSVC_TIDY}"
-    )
+    set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
 endfunction()
 
 function(target_clang_sanitizer target type)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "empty_invoke.h"
+#include "../type_traits/type.h"
 
 namespace stdsharp
 {
@@ -9,14 +9,14 @@ namespace stdsharp
     {
         template<std::invocable Func>
             requires Condition
-        constexpr decltype(auto) operator()(Func&& func, const auto& /*unused*/ = empty_invoke) //
+        constexpr decltype(auto) operator()(Func&& func, const auto& /*unused*/ = empty) //
             const noexcept(nothrow_invocable<Func>)
         {
             return invoke(cpp_forward(func));
         }
 
-        template<std::invocable Func = empty_invoke_fn>
-        constexpr decltype(auto) operator()(const auto& /*unused*/, Func&& func = empty_invoke) //
+        template<std::invocable Func = empty_t>
+        constexpr decltype(auto) operator()(const auto& /*unused*/, Func&& func = empty) //
             const noexcept(nothrow_invocable<Func>)
         {
             return invoke(cpp_forward(func));

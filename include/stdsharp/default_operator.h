@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cassert/cassert.h"
 #include "concepts/object.h"
 
 namespace stdsharp::default_operator

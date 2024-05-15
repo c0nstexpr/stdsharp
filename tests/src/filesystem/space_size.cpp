@@ -12,17 +12,8 @@ SCENARIO("space size", "[filesystem][space size]")
     STATIC_REQUIRE(invocable<plus<>, bytes, bytes>);
     STATIC_REQUIRE(invocable<minus<>, bytes, bytes>);
 
-    STATIC_REQUIRE((1_bit + 1_bit) == 2_bit);
+    STATIC_REQUIRE((1_bits + 1_bits) == 2_bits);
 
-    {
-        constexpr auto v = 1'000'042_KB;
-
-        REQUIRE(format("{:-<5MB}", v) == "1000MB42KB");
-        REQUIRE(format("{:-<5.1GB}", v) == "1GB--");
-        REQUIRE(format("{:->5.1GB}", v) == "--1GB");
-        REQUIRE(format("{:-<5GB}", v) == "1GB0MB42KB");
-        REQUIRE(format("{:-^5.1GB}", v) == "-1GB-");
-        REQUIRE(format("{:.4GB}", v) == "1GB0MB42KB0B");
-        REQUIRE(format("{}", 1.2_GB) == "1.2GB");
-    }
+    REQUIRE(format("{}", 42_KB) == "42KB");
+    REQUIRE(format("{:-^18.2{1}}", 1.2_GB, "GigaBytes") == "--1.20GigaBytes--");
 };

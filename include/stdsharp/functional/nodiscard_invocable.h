@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../utility/value_wrapper.h"
-#include "invoke.h"
 
 namespace stdsharp
 {

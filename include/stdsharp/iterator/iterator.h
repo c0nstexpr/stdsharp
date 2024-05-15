@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../namespace_alias.h"
+#include "basic_iterator.h" // IWYU pragma: export
 
 #include <iterator>
 

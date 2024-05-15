@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-namespace stdsharp::literals
+namespace stdsharpinline ::literals
 {
     inline std::filesystem::path operator""_path(const char* const str, const std::size_t len)
     {
