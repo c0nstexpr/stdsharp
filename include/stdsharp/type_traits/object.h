@@ -4,6 +4,8 @@
 #include "expression.h"
 #include "regular_type_sequence.h"
 
+#include "../compilation_config_in.h"
+
 namespace stdsharp
 {
     struct lifetime_req
@@ -173,8 +175,11 @@ namespace stdsharp
         ~private_object() = default;
     };
 
+    template<typename...>
+    struct inherited;
+
     template<typename Base, typename... T>
-    struct inherited : Base, T...
+    struct STDSHARP_EBO inherited<Base, T...> : Base, T...
     {
         using base = regular_type_sequence<Base, T...>;
 
@@ -210,6 +215,11 @@ namespace stdsharp
         }
     };
 
+    template<>
+    struct inherited<>
+    {
+    };
+
     template<typename... T>
     inherited(T&&...) -> inherited<std::decay_t<T>...>;
 
@@ -226,3 +236,5 @@ namespace stdsharp
 
     inline constexpr make_inherited_fn make_inherited{};
 }
+
+#include "../compilation_config_out.h"

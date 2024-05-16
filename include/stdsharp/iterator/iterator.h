@@ -2,8 +2,6 @@
 
 #include "basic_iterator.h" // IWYU pragma: export
 
-#include <iterator>
-
 namespace stdsharp
 {
     template<std::indirectly_readable T>

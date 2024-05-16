@@ -2,6 +2,8 @@
 
 #include "../default_operator.h"
 
+#include <iterator>
+
 #include "../compilation_config_in.h"
 
 namespace stdsharp::details
@@ -15,6 +17,9 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
+    template<typename Category = std::random_access_iterator_tag>
+        requires std::derived_from<Category, std::input_iterator_tag> ||
+                     std::derived_from<Category, std::output_iterator_tag>
     struct STDSHARP_EBO basic_iterator :
         default_operator::arithmetic,
         default_operator::arrow,
@@ -28,6 +33,8 @@ namespace stdsharp
     public:
         template<typename T>
         using difference_type = std::iter_difference_t<decltype(std::declval<const T&>().data())>;
+
+        using iterator_category = Category;
 
 // TODO: multidimensional subscript
 #if __cpp_multidimensional_subscript >= 202110L

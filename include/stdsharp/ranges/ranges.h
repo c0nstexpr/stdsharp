@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../functional/invocables.h"
 #include "../iterator/iterator.h"
 #include "../utility/utility.h"
 
@@ -124,36 +123,34 @@ namespace stdsharp::details
     template<typename Fn>
     struct index_fn
     {
-        template<typename R, typename... Args>
-        constexpr decltype(auto) operator()(
-            R&& r,
-            const std::ranges::range_difference_t<R>& i,
-            Args&&... args //
-        ) const
-            requires requires(std::invoke_result_t<Fn, R, decltype(i)> result) {
-                requires sizeof...(Args) == 0 ||
-                        std::invocable<index_fn, decltype(result), Args...>;
-            }
+        template<typename R, typename Diff = std::ranges::range_difference_t<R>>
+            requires std::invocable<Fn, R, Diff>
+        constexpr decltype(auto) operator()(R&& r, const Diff& i) const
         {
-            auto&& result = Fn{}(cpp_forward(r), i);
-            if constexpr(sizeof...(Args) == 0) return result;
-            else return (*this)(cpp_forward(result), cpp_forward(args)...);
+            return Fn{}(cpp_forward(r), i);
+        }
+
+        template<typename R, typename Diff = std::ranges::range_difference_t<R>, typename... Args>
+            requires (sizeof...(Args) >= 1) && std::invocable<index_fn, std::invoke_result_t<Fn, R, Diff>, Args...>
+        constexpr decltype(auto) operator()(R&& r, const Diff& i, Args&&... args) const
+        {
+            return (*this)((*this)(cpp_forward(r), i), cpp_forward(args)...);
         }
     };
 }
 
 namespace stdsharp
 {
-    inline constexpr details::index_fn<::ranges::index_fn> index{};
+    inline constexpr details::index_fn<ranges::index_fn> index{};
 
-    inline constexpr details::index_fn<::ranges::at_fn> index_at{};
+    inline constexpr details::index_fn<ranges::at_fn> index_at{};
 }
 
 namespace stdsharp::views
 {
     template<typename T>
-    inline constexpr auto forwarding = std::ranges::views::transform(forward_like<T>);
+    inline constexpr auto forwarding = std::views::transform(forward_like<T>);
 
     template<typename U>
-    inline constexpr auto cast = std::ranges::views::transform(cast_to<U>);
+    inline constexpr auto cast = std::views::transform(cast_to<U>);
 }

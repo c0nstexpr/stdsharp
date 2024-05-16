@@ -1,7 +1,7 @@
 #pragma once
 
 #include <concepts>
-#include <mutex>
+#include <mutex> // IWYU pragma: export
 
 using namespace std::literals;
 
