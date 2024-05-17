@@ -29,6 +29,100 @@ namespace stdsharp::details
         nothrow_copyable<T> && //
         nothrow_weakly_equality_comparable<T> &&
         nothrow_weakly_equality_comparable_with<T, std::nullptr_t>;
+
+    template<
+        typename Alloc,
+        typename TTraits = std::allocator_traits<Alloc>,
+        typename Ptr = TTraits::pointer,
+        typename ConstPtr = TTraits::const_pointer,
+        typename VoidPtr = TTraits::void_pointer,
+        typename CVP = TTraits::const_void_pointer,
+        typename Value = TTraits::value_type,
+        typename Size = TTraits::size_type,
+        typename UTraits = allocator_concept_traits::rebind_traits<TTraits>,
+        typename UAlloc = UTraits::allocator_type,
+        typename AlwaysEqual = TTraits::is_always_equal,
+        typename CopyAssign = TTraits::propagate_on_container_copy_assignment,
+        typename MoveAssign = TTraits::propagate_on_container_move_assignment,
+        typename Swap = TTraits::propagate_on_container_swap>
+    concept allocator_req = requires(
+        Alloc alloc,
+        Value v,
+        Ptr p,
+        ConstPtr const_p,
+        CVP cvp,
+        Size size,
+        TTraits t_traits,
+        UTraits::pointer other_p,
+        UTraits::const_pointer other_const_p,
+        UTraits::allocator_type u_alloc
+    ) {
+        nothrow_copyable<Alloc>;
+
+        requires !const_volatile<Value>;
+
+        requires is_allocator_pointer<Ptr> && is_allocator_pointer<ConstPtr> &&
+            is_allocator_pointer<VoidPtr> && is_allocator_pointer<CVP>;
+
+        requires std::random_access_iterator<Ptr> && std::contiguous_iterator<Ptr>;
+
+        requires nothrow_convertible_to<Ptr, ConstPtr> && std::random_access_iterator<ConstPtr> &&
+            std::contiguous_iterator<ConstPtr>;
+
+        requires nothrow_convertible_to<Ptr, VoidPtr> &&
+            nothrow_explicitly_convertible<VoidPtr, Ptr> &&
+            std::same_as<VoidPtr, typename UTraits::void_pointer>;
+
+        requires nothrow_convertible_to<Ptr, CVP> && nothrow_convertible_to<ConstPtr, CVP> &&
+            nothrow_explicitly_convertible<CVP, ConstPtr> && nothrow_convertible_to<VoidPtr, CVP> &&
+            std::same_as<CVP, typename UTraits::const_void_pointer>;
+
+        requires std::unsigned_integral<Size>;
+
+        requires std::signed_integral<typename TTraits::difference_type>;
+
+        requires std::same_as<typename UTraits::template rebind_alloc<Value>, Alloc>;
+
+        { *p } -> std::same_as<std::add_lvalue_reference_t<Value>>;
+        { *const_p } -> std::same_as<add_const_lvalue_ref_t<Value>>;
+        { *const_p } -> std::same_as<add_const_lvalue_ref_t<Value>>;
+
+        requires requires() {
+            nothrow_constructible_from<Alloc, const UAlloc&>;
+            nothrow_constructible_from<Alloc, UAlloc>;
+
+            { other_p->v } -> std::same_as<decltype(((*other_p).v))>;
+            { other_const_p->v } -> std::same_as<decltype(((*other_const_p).v))>;
+
+            t_traits.construct(alloc, other_p);
+            t_traits.destroy(alloc, other_p);
+        };
+
+        { alloc == alloc, alloc != alloc } noexcept;
+
+        stdsharp::pointer_traits<Ptr>::pointer_to(v);
+
+        { t_traits.allocate(alloc, size) } -> std::same_as<Ptr>;
+        { t_traits.allocate(alloc, size, cvp) } -> std::same_as<Ptr>;
+
+        alloc.deallocate(p, size);
+
+        { t_traits.max_size(alloc) } noexcept -> std::same_as<Size>;
+
+        requires std::derived_from<AlwaysEqual, std::true_type> ||
+            std::derived_from<AlwaysEqual, std::false_type>;
+
+        { t_traits.select_on_container_copy_construction(alloc) } -> std::same_as<Alloc>;
+
+        requires std::derived_from<CopyAssign, std::true_type> && nothrow_copy_assignable<Alloc> ||
+                std::derived_from<CopyAssign, std::false_type>;
+
+        requires std::derived_from<MoveAssign, std::true_type> && nothrow_move_assignable<Alloc> ||
+                std::derived_from<MoveAssign, std::false_type>;
+
+        requires std::derived_from<Swap, std::true_type> && nothrow_swappable<Alloc> ||
+                std::derived_from<Swap, std::false_type>;
+    };
 }
 
 namespace stdsharp
@@ -41,105 +135,7 @@ namespace stdsharp
     concept over_aligned = alignof(T) > max_alignment_v;
 
     template<typename Alloc>
-    concept allocator_req = requires {
-        typename Alloc::value_type;
-        nothrow_copyable<Alloc>;
-
-        requires requires(
-            Alloc alloc,
-            std::allocator_traits<Alloc> t_traits,
-            decltype(t_traits)::pointer p,
-            decltype(t_traits)::const_pointer const_p,
-            decltype(t_traits)::void_pointer void_p,
-            decltype(t_traits)::const_void_pointer const_void_p,
-            decltype(t_traits)::value_type v,
-            decltype(t_traits)::size_type size,
-            details::allocator_concept_traits::rebind_traits<decltype(t_traits)> u_traits,
-            decltype(t_traits)::is_always_equal always_equal,
-            decltype(t_traits)::propagate_on_container_copy_assignment copy_assign,
-            decltype(t_traits)::propagate_on_container_move_assignment move_assign,
-            decltype(t_traits)::propagate_on_container_swap swap
-        ) {
-            requires !const_volatile<decltype(v)>;
-
-            requires details::is_allocator_pointer<decltype(p)> &&
-                details::is_allocator_pointer<decltype(const_p)> &&
-                details::is_allocator_pointer<decltype(void_p)> &&
-                details::is_allocator_pointer<decltype(const_void_p)>;
-
-            requires std::random_access_iterator<decltype(p)> &&
-                std::contiguous_iterator<decltype(p)>;
-
-            requires nothrow_convertible_to<decltype(p), decltype(const_p)> &&
-                std::random_access_iterator<decltype(const_p)> &&
-                std::contiguous_iterator<decltype(const_p)>;
-
-            requires nothrow_convertible_to<decltype(p), decltype(void_p)> &&
-                nothrow_explicitly_convertible<decltype(void_p), decltype(p)> &&
-                std::same_as<decltype(void_p), typename decltype(u_traits)::void_pointer>;
-
-            requires nothrow_convertible_to<decltype(p), decltype(const_void_p)> &&
-                nothrow_convertible_to<decltype(const_p), decltype(const_void_p)> &&
-                nothrow_explicitly_convertible<decltype(const_void_p), decltype(const_p)> &&
-                nothrow_convertible_to<decltype(void_p), decltype(const_void_p)> &&
-                std::same_as<
-                         decltype(const_void_p),
-                         typename decltype(u_traits)::const_void_pointer>;
-
-            requires std::unsigned_integral<decltype(size)>;
-
-            requires std::signed_integral<typename decltype(t_traits)::difference_type>;
-
-            requires std::
-                same_as<typename decltype(u_traits)::template rebind_alloc<decltype(v)>, Alloc>;
-
-            { *p } -> std::same_as<std::add_lvalue_reference_t<decltype(v)>>;
-            { *const_p } -> std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
-            { *const_p } -> std::same_as<add_const_lvalue_ref_t<decltype(v)>>;
-
-            requires requires(
-                decltype(u_traits)::pointer other_p,
-                decltype(u_traits)::const_pointer other_const_p,
-                decltype(u_traits)::allocator_type u_alloc
-            ) {
-                nothrow_constructible_from<Alloc, const decltype(u_alloc)&>;
-                nothrow_constructible_from<Alloc, decltype(u_alloc)>;
-
-                { other_p->v } -> std::same_as<decltype(((*other_p).v))>;
-                { other_const_p->v } -> std::same_as<decltype(((*other_const_p).v))>;
-
-                t_traits.construct(alloc, other_p);
-                t_traits.destroy(alloc, other_p);
-            };
-
-            { alloc == alloc, alloc != alloc } noexcept;
-
-            pointer_traits<decltype(p)>::pointer_to(v);
-
-            { t_traits.allocate(alloc, size) } -> std::same_as<decltype(p)>;
-            { t_traits.allocate(alloc, size, const_void_p) } -> std::same_as<decltype(p)>;
-
-            alloc.deallocate(p, size);
-
-            { t_traits.max_size(alloc) } noexcept -> std::same_as<decltype(size)>;
-
-            requires std::derived_from<decltype(always_equal), std::true_type> ||
-                std::derived_from<decltype(always_equal), std::false_type>;
-
-            { t_traits.select_on_container_copy_construction(alloc) } -> std::same_as<Alloc>;
-
-            requires std::derived_from<decltype(copy_assign), std::true_type> &&
-                    nothrow_copy_assignable<Alloc> ||
-                    std::derived_from<decltype(copy_assign), std::false_type>;
-
-            requires std::derived_from<decltype(move_assign), std::true_type> &&
-                    nothrow_move_assignable<Alloc> ||
-                    std::derived_from<decltype(move_assign), std::false_type>;
-
-            requires std::derived_from<decltype(swap), std::true_type> &&
-                    nothrow_swappable<Alloc> || std::derived_from<decltype(swap), std::false_type>;
-        };
-    };
+    concept allocator_req = details::allocator_req<Alloc>;
 
     template<auto = -1>
     struct allocator_propagation

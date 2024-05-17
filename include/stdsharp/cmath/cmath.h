@@ -1,17 +1,14 @@
 #pragma once
 
-#include <cmath>
+#include "../namespace_alias.h"
+
+#include <cmath> // IWYU pragma: export
 #include <concepts>
 
 namespace stdsharp
 {
-    constexpr auto ceil_quotient(const std::integral auto x, decltype(x) y) noexcept
+    constexpr auto ceil(const std::integral auto x, decltype(x) y) noexcept
     {
         return (x + y - 1) / y;
-    }
-
-    constexpr auto ceil_quotient(const std::floating_point auto x, decltype(x) y) noexcept
-    {
-        return ceil(x / y);
     }
 }

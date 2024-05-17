@@ -2,8 +2,6 @@
 
 #include "../type_traits/indexed_traits.h"
 
-#include <tuple>
-
 #include "../compilation_config_in.h"
 
 namespace stdsharp

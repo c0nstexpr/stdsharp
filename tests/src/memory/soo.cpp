@@ -23,7 +23,7 @@ struct vector_test_data
 };
 
 TEMPLATE_TEST_CASE(
-    "Scneario: soo box emplace value",
+    "Scenario: soo box emplace value",
     "[memory][small object optimization]",
     vector_test_data
 )

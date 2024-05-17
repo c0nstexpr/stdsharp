@@ -3,7 +3,6 @@
 #include "../namespace_alias.h"
 
 #include <concepts>
-#include <type_traits>
 
 namespace stdsharp
 {

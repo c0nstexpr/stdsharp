@@ -620,6 +620,10 @@ namespace stdsharp::details
 namespace stdsharp
 {
     template<typename Container, typename... Members>
+    concept associative_like_container =
+        details::associative_like_container<Container, details::container_members<Members...>>;
+
+    template<typename Container, typename... Members>
     concept associative_container =
         details::associative_container<Container, details::container_members<Members...>>;
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "aligned.h"
 #include "single_stack_buffer.h"
 
 namespace stdsharp

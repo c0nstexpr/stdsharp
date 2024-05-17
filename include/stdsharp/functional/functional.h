@@ -14,4 +14,3 @@
 #include "pipeable.h" // IWYU pragma: export
 #include "project_invoke.h" // IWYU pragma: export
 #include "sequenced_invocables.h" // IWYU pragma: export
-#include "symmetric_operations.h" // IWYU pragma: export

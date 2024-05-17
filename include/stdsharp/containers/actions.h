@@ -1,6 +1,7 @@
 #pragma once
 
 #include "concepts.h"
+#include "../utility/constructor.h"
 
 #include <range/v3/action.hpp>
 

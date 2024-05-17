@@ -3,7 +3,6 @@
 #include "../namespace_alias.h"
 
 #include <array>
-#include <concepts>
 #include <exception>
 
 namespace stdsharp

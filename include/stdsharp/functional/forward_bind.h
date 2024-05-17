@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../type_traits/indexed_traits.h"
-#include "invoke.h"
 
 namespace stdsharp::details
 {

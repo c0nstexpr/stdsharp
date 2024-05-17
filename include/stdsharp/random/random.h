@@ -1,27 +1,38 @@
 #pragma once
 
+#include "../cmath/cmath.h"
 #include "../concepts/object.h"
 #include "../cstdint/cstdint.h"
 
+#include <array>
+#include <bitset>
 #include <random>
-
 
 namespace stdsharp::details
 {
-    template<typename S, typename ResultType = S::result_type, typename It = ResultType*>
-    concept seed_sequence_concept =
-        requires(S q, const S r, std::initializer_list<ResultType> il, It it) {
-            requires std::unsigned_integral<ResultType>;
-            requires std::constructible_from<S>;
-            requires std::constructible_from<S, It, It>;
-            requires std::constructible_from<S, std::initializer_list<ResultType>>;
+    template<
+        typename S,
+        typename ResultType = S::result_type,
+        typename It = ResultType*,
+        typename IL = std::initializer_list<ResultType>>
+    concept seed_sequence_concept = requires(
+        S q,
+        const S r,
+        IL il,
+        It it //
+    ) {
+        requires std::unsigned_integral<ResultType>;
 
-            { q.generate(it, it) } -> std::same_as<void>;
+        S();
+        S(it, it);
+        S(il);
 
-            { r.size() } -> std::same_as<std::size_t>;
+        { q.generate(it, it) } -> std::same_as<void>;
 
-            { r.param(it) } -> std::same_as<void>;
-        };
+        { r.size() } -> std::same_as<std::size_t>;
+
+        { r.param(it) } -> std::same_as<void>;
+    };
 
     template<
         typename E,
@@ -77,6 +88,8 @@ namespace stdsharp::details
     ) {
         requires arithmetic<T>;
 
+        D();
+        D(p);
         requires std::copy_constructible<D>;
         requires copy_assignable<D>;
 
@@ -90,8 +103,8 @@ namespace stdsharp::details
         { x.param() } -> std::same_as<P>;
         { d.param(p) } -> std::same_as<void>;
 
-        { d(g) } -> std::same_as<D>;
-        { d(g, p) } -> std::same_as<D>;
+        { d(g) } -> std::same_as<T>;
+        { d(g, p) } -> std::same_as<T>;
 
         { x.min() } -> std::same_as<T>;
         { x.max() } -> std::same_as<T>;
@@ -117,12 +130,51 @@ namespace stdsharp
 
     inline constexpr struct
     {
-        [[nodiscard]] auto& operator()() const
+        [[nodiscard]] std::random_device& operator()() const
         {
             thread_local std::random_device random_device;
             return random_device;
         }
     } get_random_device{};
+
+    inline constexpr struct get_seed_seq_fn
+    {
+    private:
+        static auto make_seq()
+        {
+            const auto num = get_random_device()();
+
+            constexpr auto num_type_size = sizeof(num) * char_bit;
+            constexpr auto seed_num_type_size = 32;
+
+            if constexpr(seed_num_type_size >= num_type_size) return std::seed_seq{num};
+
+            std::bitset<num_type_size> bits{num};
+            std::array<std::uint_least32_t, ceil(num_type_size, seed_num_type_size)> seeds{};
+
+            for(auto i = 0; i < num_type_size;)
+            {
+                std::bitset<seed_num_type_size> seed_bits;
+
+                for(auto j = 0; j < seed_num_type_size && i < num_type_size; ++j, ++i)
+                    seed_bits[j] = bits[i];
+
+                seeds[i] = static_cast<std::uint_least32_t>(seed_bits.to_ullong());
+
+                bits >>= seed_num_type_size;
+            }
+
+            return std::seed_seq{seeds.begin(), seeds.end()};
+        }
+
+    public:
+        [[nodiscard]] std::seed_seq& operator()() const
+        {
+            thread_local std::seed_seq seq{get_random_device()()};
+
+            return seq;
+        }
+    } get_seed_seq{};
 
     template<random_number_engine Engine = std::default_random_engine>
         requires std::constructible_from<std::random_device::result_type>
@@ -150,14 +202,24 @@ namespace stdsharp
 
     inline constexpr struct make_uniform_distribution_fn
     {
+    private:
+        template<typename T>
+        static constexpr auto min_value = std::numeric_limits<T>::min();
+
+        template<typename T>
+        static constexpr auto max_value = std::numeric_limits<T>::max();
+
+    public:
         template<same_as_any<short, int, long, long long, ushort, unsigned, ulong, ull> T>
-        [[nodiscard]] auto operator()(const T min, decltype(min) max) const
+        [[nodiscard]] auto
+            operator()(const T min = min_value<T>, decltype(min) max = max_value<T>) const
         {
             return std::uniform_int_distribution<T>{min, max};
         }
 
         template<same_as_any<float, double, long double> T>
-        [[nodiscard]] auto operator()(const T min, decltype(min) max) const
+        [[nodiscard]] auto
+            operator()(const T min = min_value<T>, decltype(min) max = max_value<T>) const
         {
             return std::uniform_real_distribution<T>{min, max};
         }

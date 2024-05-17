@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../concepts/object.h"
 #include "invoke.h"
 
 namespace stdsharp
