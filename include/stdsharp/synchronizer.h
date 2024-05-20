@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mutex/mutex.h"
-#include "utility/utility.h"
+#include "utility/forward_cast.h"
 
 #include <shared_mutex>
 
@@ -53,7 +53,7 @@ namespace stdsharp
                 .value = static_cast<cast_t>(value),
                 .lock =
                     Lock{
-                        as_lvalue(forward_cast<Self, synchronizer>(self)).lockable_,
+                        forward_cast<Self&, synchronizer>(self).lockable_,
                         cpp_forward(args)...
                     }
             };

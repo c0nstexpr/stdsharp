@@ -1,11 +1,8 @@
 #pragma once
 
 #include "../functional/always_return.h"
-#include "../functional/empty_invoke.h"
 #include "indexed_traits.h"
 #include "regular_value_sequence.h"
-
-#include <algorithm>
 
 namespace stdsharp
 {
@@ -229,9 +226,9 @@ namespace stdsharp::details
         static consteval void invocable_test() noexcept(nothrow_invocable<ForEach, Fn>);
 
         template<typename Seq, typename Predicate, typename ForEach = Seq::for_each_fn>
-            requires std::invocable<ForEach, empty_invoke_fn, Predicate>
+            requires std::invocable<ForEach, empty_t, Predicate>
         static consteval void predicate_test()
-            noexcept(nothrow_invocable<ForEach, empty_invoke_fn, Predicate>);
+            noexcept(nothrow_invocable<ForEach, empty_t, Predicate>);
 
         template<typename IfFunc>
         struct if_not_fn

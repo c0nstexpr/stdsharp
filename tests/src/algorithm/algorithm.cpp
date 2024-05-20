@@ -1,4 +1,5 @@
 #include "stdsharp/algorithm/algorithm.h"
+#include "stdsharp/type_traits/object.h"
 #include "test.h"
 
 STDSHARP_TEST_NAMESPACES;

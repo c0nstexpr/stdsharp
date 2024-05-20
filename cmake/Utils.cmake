@@ -300,7 +300,7 @@ function(target_clang_tidy target)
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         message(STATUS "Add extra MSVC arg for clang-tidy")
-        list(APPEND CLANG_TIDY "-EHsc" "-std:c++latest")
+        list(APPEND CLANG_TIDY "--extra-arg=-EHsc") #TODO: https://github.com/llvm/llvm-project/issues/44701
     endif()
 
     set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")

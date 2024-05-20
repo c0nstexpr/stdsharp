@@ -1,4 +1,5 @@
 #include "stdsharp/functional/forward_bind.h"
+#include "stdsharp/type_traits/object.h"
 #include "test.h"
 
 STDSHARP_TEST_NAMESPACES;

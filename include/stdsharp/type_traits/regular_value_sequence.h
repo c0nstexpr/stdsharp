@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../functional/invoke.h"
 #include "type.h"
 
 #include <ranges>

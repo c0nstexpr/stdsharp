@@ -3,11 +3,6 @@
 
 STDSHARP_TEST_NAMESPACES;
 
-void foo(set<int>::iterator it)
-{
-    it = it;
-}
-
 TEMPLATE_TEST_CASE("Scenario: container concept", "[containers][concepts]", int, unique_ptr<int>)
 {
     {

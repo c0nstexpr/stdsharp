@@ -13,20 +13,21 @@ include(Catch)
 #
 set(src
     src/algorithm/algorithm.cpp
-    src/bitset/bitset.cpp
-    src/containers/actions.cpp
-    src/containers/concepts.cpp
+    # src/bitset/bitset.cpp
+    # src/containers/actions.cpp
+    # src/containers/concepts.cpp
     src/filesystem/space_size.cpp
     src/functional/forward_bind.cpp
     src/functional/invocables.cpp
     src/functional/pipeable.cpp
     src/functional/sequenced_invocables.cpp
-    src/memory/allocation_value.cpp
-    src/memory/box.cpp
-    src/memory/composed_allocator.cpp
-    src/memory/pointer_traits.cpp
-    src/memory/single_stack_allocator.cpp
-    src/memory/soo.cpp
+    # src/memory/allocation_value.cpp
+    # src/memory/box.cpp
+    # src/memory/composed_allocator.cpp
+    src/memory/launder_iterator.cpp
+    # src/memory/pointer_traits.cpp
+    # src/memory/single_stack_allocator.cpp
+    # src/memory/soo.cpp
     src/random/random.cpp
     src/type_traits/indexed_traits.cpp
     src/type_traits/member.cpp

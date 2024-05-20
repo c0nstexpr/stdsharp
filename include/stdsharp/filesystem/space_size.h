@@ -117,43 +117,46 @@ namespace stdsharp::filesystem
 #define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(period, unit_name) \
     STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, #unit_name)
 
-#define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, literal)            \
-    template<>                                                                              \
-    inline constexpr auto details::space_size_unit_name<period, char> = literal##sv;        \
-                                                                                            \
-    template<>                                                                              \
-    inline constexpr auto details::space_size_unit_name<period, wchar_t> = L##literal##sv;  \
-                                                                                            \
-    template<>                                                                              \
-    inline constexpr auto details::space_size_unit_name<period, char8_t> = u8##literal##sv; \
-                                                                                            \
-    template<>                                                                              \
-    inline constexpr auto details::space_size_unit_name<period, char16_t> = u##literal##sv; \
-                                                                                            \
-    template<>                                                                              \
-    inline constexpr auto details::space_size_unit_name<period, char32_t> = U##literal##sv; \
-                                                                                            \
-    inline namespace literals                                                               \
-    {                                                                                       \
-        [[nodiscard]] constexpr auto operator""_##unit_name(unsigned long long v) noexcept  \
-        {                                                                                   \
-            return space_size<unsigned long long, period>{v};                               \
-        }                                                                                   \
-                                                                                            \
-        [[nodiscard]] constexpr auto operator""_##unit_name(long double v) noexcept         \
-        {                                                                                   \
-            return space_size<long double, period>{v};                                      \
-        }                                                                                   \
-    }                                                                                       \
-                                                                                            \
-    template<typename CharT, typename Traits, typename Rep>                                 \
-        requires requires { details::space_size_unit_name<period, CharT>; }                 \
-    constexpr auto& operator<<(                                                             \
-        std::basic_ostream<CharT, Traits>& os,                                              \
-        const space_size<Rep, period> size                                                  \
-    )                                                                                       \
-    {                                                                                       \
-        return os << size.size() << details::space_size_unit_name<period, CharT>;           \
+#define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, literal)           \
+    namespace details                                                                      \
+    {                                                                                      \
+        template<>                                                                         \
+        inline constexpr auto space_size_unit_name<period, char> = literal##sv;            \
+                                                                                           \
+        template<>                                                                         \
+        inline constexpr auto space_size_unit_name<period, wchar_t> = L##literal##sv;      \
+                                                                                           \
+        template<>                                                                         \
+        inline constexpr auto space_size_unit_name<period, char8_t> = u8##literal##sv;     \
+                                                                                           \
+        template<>                                                                         \
+        inline constexpr auto space_size_unit_name<period, char16_t> = u##literal##sv;     \
+                                                                                           \
+        template<>                                                                         \
+        inline constexpr auto space_size_unit_name<period, char32_t> = U##literal##sv;     \
+    }                                                                                      \
+                                                                                           \
+    inline namespace literals                                                              \
+    {                                                                                      \
+        [[nodiscard]] constexpr auto operator""_##unit_name(unsigned long long v) noexcept \
+        {                                                                                  \
+            return space_size<unsigned long long, period>{v};                              \
+        }                                                                                  \
+                                                                                           \
+        [[nodiscard]] constexpr auto operator""_##unit_name(long double v) noexcept        \
+        {                                                                                  \
+            return space_size<long double, period>{v};                                     \
+        }                                                                                  \
+    }                                                                                      \
+                                                                                           \
+    template<typename CharT, typename Traits, typename Rep>                                \
+        requires requires { details::space_size_unit_name<period, CharT>; }                \
+    constexpr auto& operator<<(                                                            \
+        std::basic_ostream<CharT, Traits>& os,                                             \
+        const space_size<Rep, period> size                                                 \
+    )                                                                                      \
+    {                                                                                      \
+        return os << size.size() << details::space_size_unit_name<period, CharT>;          \
     }
 
 #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000
@@ -254,11 +257,9 @@ namespace std
                     unit_name_->id,
                     ::stdsharp::sequenced_invocables{
                         [](const str_view& value) { return value; },
-                        [] [[noreturn]] (const auto& v)
+                        [](const auto&) -> str_view
                         {
-                            return ::stdsharp::dependent_false<decltype(v)>() ?
-                                str_view{} :
-                                throw format_error{"invalid unit name type"};
+                            throw format_error{"invalid unit name type"}; //
                         }
                     }
                 ) :

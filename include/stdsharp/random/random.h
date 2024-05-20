@@ -148,23 +148,25 @@ namespace stdsharp
             constexpr auto seed_num_type_size = 32;
 
             if constexpr(seed_num_type_size >= num_type_size) return std::seed_seq{num};
-
-            std::bitset<num_type_size> bits{num};
-            std::array<std::uint_least32_t, ceil(num_type_size, seed_num_type_size)> seeds{};
-
-            for(auto i = 0; i < num_type_size;)
+            else
             {
-                std::bitset<seed_num_type_size> seed_bits;
+                std::bitset<num_type_size> bits{num};
+                std::array<std::uint_least32_t, ceil(num_type_size, seed_num_type_size)> seeds{};
 
-                for(auto j = 0; j < seed_num_type_size && i < num_type_size; ++j, ++i)
-                    seed_bits[j] = bits[i];
+                for(auto i = 0; i < num_type_size;)
+                {
+                    std::bitset<seed_num_type_size> seed_bits;
 
-                seeds[i] = static_cast<std::uint_least32_t>(seed_bits.to_ullong());
+                    for(auto j = 0; j < seed_num_type_size && i < num_type_size; ++j, ++i)
+                        seed_bits[j] = bits[i];
 
-                bits >>= seed_num_type_size;
+                    seeds[i] = static_cast<std::uint_least32_t>(seed_bits.to_ullong());
+
+                    bits >>= seed_num_type_size;
+                }
+
+                return std::seed_seq{seeds.begin(), seeds.end()};
             }
-
-            return std::seed_seq{seeds.begin(), seeds.end()};
         }
 
     public:
@@ -186,7 +188,7 @@ namespace stdsharp
     template<typename Engine>
     inline constexpr make_engine_fn<Engine> make_engine{};
 
-    template<typename Engine>
+    template<typename Engine = std::default_random_engine>
         requires std::invocable<make_engine_fn<Engine>>
     struct get_engine_fn
     {
@@ -197,7 +199,7 @@ namespace stdsharp
         }
     };
 
-    template<typename Engine>
+    template<typename Engine = std::default_random_engine>
     inline constexpr get_engine_fn<Engine> get_engine{};
 
     inline constexpr struct make_uniform_distribution_fn

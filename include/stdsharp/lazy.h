@@ -4,7 +4,6 @@
 #include "utility/forward_cast.h"
 
 #include <memory>
-#include <utility>
 
 namespace stdsharp
 {

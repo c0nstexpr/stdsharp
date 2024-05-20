@@ -6,6 +6,8 @@
 #include <iterator>
 #include <ranges>
 
+#include "../compilation_config_in.h"
+
 namespace stdsharp::details
 {
     template<std::size_t N, bool IsConst>
@@ -35,12 +37,17 @@ namespace stdsharp::details
         }
 
         [[nodiscard]] constexpr decltype(auto) operator*() const { return (*set_)[i_]; }
+
+        void operator->() const = delete;
     };
 
     template<std::size_t N, bool IsConst, typename Base = bitset_iterator_base<N, IsConst>>
-    struct bitset_iterator : Base, iterator_value_type_traits<Base>
+    struct STDSHARP_EBO bitset_iterator : Base, iter_value_type_traits<Base>
     {
-        [[nodiscard]] constexpr decltype(auto) operator[](const std::iter_difference_t<Base> index
+        using Base::Base;
+
+        [[nodiscard]] constexpr decltype(auto) operator[](
+            const std::iter_difference_t<Base> index //
         ) const
         {
             return (*this->set_)[this->i_ + index];
@@ -53,11 +60,13 @@ namespace stdsharp
     template<std::size_t N>
     struct bitset_iterator : details::bitset_iterator<N, false>
     {
+        using details::bitset_iterator<N, false>::bitset_iterator;
     };
 
     template<std::size_t N>
     struct bitset_const_iterator : details::bitset_iterator<N, true>
     {
+        using details::bitset_iterator<N, true>::bitset_iterator;
     };
 
     template<std::size_t N>
@@ -78,6 +87,8 @@ namespace stdsharp
 
     inline constexpr struct bitset_rng_fn : bitset_crng_fn
     {
+        using bitset_crng_fn::operator();
+
         template<std::size_t N>
         [[nodiscard]] constexpr auto operator()(std::bitset<N>& set) const
         {
@@ -85,3 +96,5 @@ namespace stdsharp
         }
     } bitset_rng{};
 }
+
+#include "../compilation_config_out.h"

@@ -333,7 +333,36 @@ namespace stdsharp
 
         return true;
     }
+}
 
+namespace stdsharp::details
+{
+    template<std::unsigned_integral IntType>
+    struct fmt_int_cast_fn
+    {
+        constexpr auto operator()(const std::integral auto& value)
+        {
+            return value > 0 ? static_cast<IntType>(value) : throw std::format_error{"invalid num"};
+        }
+
+        constexpr auto operator()(const std::unsigned_integral auto& value)
+        {
+            return static_cast<IntType>(value);
+        }
+    };
+
+    template<std::unsigned_integral IntType>
+    struct fmt_int_invalid_cast_fn
+    {
+        [[noreturn]] constexpr IntType operator()(const auto& /*unused*/)
+        {
+            throw std::format_error{"invalid num"};
+        }
+    };
+}
+
+namespace stdsharp
+{
     template<std::unsigned_integral IntType, typename OutputIt, typename CharT>
     static constexpr std::optional<IntType> get_maybe_nested_uint(
         const ::stdsharp::uint_nested_maybe_spec<IntType>& spec,
@@ -350,20 +379,9 @@ namespace stdsharp
             return ::stdsharp::visit_fmt_arg(
                 ctx,
                 get<2>(spec).id,
-                sequenced_invocables{
-                    []<std::integral T>(const T& value)
-                    {
-                        return std::unsigned_integral<T> || value > 0 ?
-                            static_cast<IntType>(value) :
-                            throw std::format_error{"invalid num"};
-                    },
-                    [] [[noreturn]] (const auto& v)
-                    {
-                        return ::stdsharp::dependent_false<decltype(v)>() ?
-                            IntType{} :
-                            throw std::format_error{"invalid num"};
-                    }
-                }
+                sequenced_invocables<
+                    details::fmt_int_cast_fn<IntType>,
+                    details::fmt_int_invalid_cast_fn<IntType>>{}
             );
         }
 

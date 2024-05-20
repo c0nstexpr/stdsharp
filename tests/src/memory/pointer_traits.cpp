@@ -1,4 +1,3 @@
-#include "stdsharp/default_operator.h"
 #include "stdsharp/memory/pointer_traits.h"
 #include "test.h"
 

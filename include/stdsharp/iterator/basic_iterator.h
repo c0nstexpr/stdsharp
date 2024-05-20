@@ -19,9 +19,10 @@ namespace stdsharp::details
 namespace stdsharp
 {
     template<typename T>
-    struct iterator_value_type_traits
+        requires requires { typename std::remove_reference_t<std::iter_reference_t<T>>; }
+    struct iter_value_type_traits
     {
-        using value_type = std::iter_reference_t<T>;
+        using value_type = std::remove_reference_t<std::iter_reference_t<T>>;
     };
 
     template<typename Category = std::random_access_iterator_tag>
@@ -60,7 +61,7 @@ namespace stdsharp
         }
 
         template<details::iterator_has_mem_data T>
-        constexpr auto& operator+=(this T& t, const std::iter_difference_t<T>& diff) noexcept
+        constexpr auto& operator+=(this T& t, const auto& diff) noexcept
             requires requires { t.data() += diff; }
         {
             t.data() += diff;
@@ -68,7 +69,7 @@ namespace stdsharp
         }
 
         template<details::iterator_has_mem_data T>
-        constexpr auto& operator-=(this T& t, const std::iter_difference_t<T>& diff) noexcept
+        constexpr auto& operator-=(this T& t, const auto& diff) noexcept
             requires requires { t.data() -= diff; }
         {
             t.data() -= diff;
@@ -77,10 +78,14 @@ namespace stdsharp
 
         template<
             details::iterator_has_mem_data T,
-            typename Diff = std::iter_difference_t<decltype(std::declval<const T&>().data())>>
+            typename Data = decltype(std::declval<const T&>().data()),
+            typename Diff = std::iter_difference_t<Data>>
+
         [[nodiscard]] constexpr Diff operator-(this const T& left, decltype(left) right)
             noexcept(noexcept(static_cast<Diff>(left.data() - right.data())))
-            requires requires { static_cast<Diff>(left.data() - right.data()); }
+            requires requires {
+                { left.data() - right.data() } -> explicitly_convertible<Diff>;
+            }
         {
             return static_cast<Diff>(left.data() - right.data());
         }

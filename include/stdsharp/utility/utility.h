@@ -1,10 +1,12 @@
 #pragma once
 
-#include "auto_cast.h"
-#include "cast_to.h"
-#include "constructor.h"
-#include "forward_cast.h"
-#include "to_lvalue.h"
+#include "adl_proof.h" // IWYU pragma: export
+#include "auto_cast.h" // IWYU pragma: export
+#include "cast_to.h" // IWYU pragma: export
+#include "constructor.h" // IWYU pragma: export
+#include "forward_cast.h" // IWYU pragma: export
+#include "to_lvalue.h" // IWYU pragma: export
+#include "value_wrapper.h" // IWYU pragma: export
 
 #include <utility>
 
