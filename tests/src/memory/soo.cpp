@@ -28,7 +28,7 @@ TEMPLATE_TEST_CASE(
     vector_test_data
 )
 {
-    single_stack_buffer<> buffer{};
+    fixed_single_resource<> buffer{};
 
     BOX_EMPLACE_TEST(normal_soo_box<>{make_soo_allocator(buffer, {})})
 }

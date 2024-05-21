@@ -91,9 +91,11 @@ namespace stdsharp::default_operator
     {
         // TODO: multidimensional subscript
 #if __cpp_multidimensional_subscript >= 202110L
-        [[nodiscard]] constexpr decltype(auto
-        ) operator[](this auto&& t, auto&& first_arg, auto&&... args)
-            noexcept(noexcept(cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...]))
+        [[nodiscard]] constexpr decltype(auto) operator[](
+            this auto&& t,
+            auto&& first_arg,
+            auto&&... args //
+        ) noexcept(noexcept(cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...]))
             requires requires {
                 requires sizeof...(args) > 0;
                 cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...];
@@ -101,19 +103,23 @@ namespace stdsharp::default_operator
         {
             return cpp_forward(t)[cpp_forward(first_arg)][cpp_forward(args)...];
         }
+#else
+        void operator[](const auto&) = delete;
+
 #endif
     };
 
     struct arrow
     {
-        template<dereferenceable T>
+        template<typename T>
         [[nodiscard]] constexpr auto* operator->(this T&& t)
             noexcept(noexcept(std::addressof(*cpp_forward(t))))
+            requires requires { std::addressof(*cpp_forward(t)); }
         {
             return std::addressof(*cpp_forward(t));
         }
 
-        template<dereferenceable T>
+        template<typename T>
         [[nodiscard]] constexpr auto operator->*(this T&& t, auto&& ptr)
             noexcept(noexcept((*cpp_forward(t)).*(cpp_forward(ptr))))
             requires requires { (*cpp_forward(t)).*(cpp_forward(ptr)); }

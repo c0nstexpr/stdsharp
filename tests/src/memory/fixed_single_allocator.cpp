@@ -1,9 +1,9 @@
-#include "stdsharp/memory/single_stack_allocator.h"
+#include "stdsharp/memory/fixed_single_allocator.h"
 #include "test.h"
 
 STDSHARP_TEST_NAMESPACES;
 
-SCENARIO("single stack allocator", "[memory][single_stack_allocator]")
+SCENARIO("allocator", "[memory][fixed single allocator]")
 {
     struct base
     {
@@ -25,11 +25,11 @@ SCENARIO("single stack allocator", "[memory][single_stack_allocator]")
         [[nodiscard]] constexpr int foo() const override { return v; }
     };
 
-    single_stack_buffer<sizeof(derived)> rsc;
+    fixed_single_resource<sizeof(derived)> rsc;
 
     GIVEN("allocator with " << decltype(rsc)::size << " bytes")
     {
-        auto allocator = make_single_stack_allocator<derived>(rsc);
+        auto allocator = make_fixed_single_allocator<derived>(rsc);
 
         THEN("constructing a derived type at allocator")
         {

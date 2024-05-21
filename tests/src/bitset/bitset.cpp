@@ -6,6 +6,7 @@ STDSHARP_TEST_NAMESPACES;
 SCENARIO("bitset iterator", "[bitset]")
 {
     STATIC_REQUIRE(random_access_iterator<bitset_iterator<4>>);
+    STATIC_REQUIRE(constructible_from<bitset_iterator<4>, bitset<4>&, size_t>);
 }
 
 SCENARIO("bitset range", "[bitset]")

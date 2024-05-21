@@ -1,6 +1,6 @@
 #include "stdsharp/memory/allocator_reference.h"
 #include "stdsharp/memory/composed_allocator.h"
-#include "stdsharp/memory/single_stack_allocator.h"
+#include "stdsharp/memory/fixed_single_allocator.h"
 #include "test.h"
 
 #include <ranges>
@@ -45,11 +45,11 @@ SCENARIO("allocate memory", "[memory][composed_allocator]")
 
     GIVEN("an allocator tuple")
     {
-        single_stack_buffer<sizeof(int) * 4> rsc;
+        fixed_single_resource<sizeof(int) * 4> rsc;
         test_allocator<int> test_alloc;
 
         composed_allocator alloc{
-            make_single_stack_allocator<int>(rsc),
+            make_fixed_single_allocator<int>(rsc),
             allocator_reference{test_alloc}
         };
 

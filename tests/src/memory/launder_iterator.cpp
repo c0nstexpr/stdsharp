@@ -3,7 +3,7 @@
 
 STDSHARP_TEST_NAMESPACES;
 
-SCENARIO("launder iterator", "[memory]")
+SCENARIO("launder iterator", "[memory][launder iterator]")
 {
-    STATIC_REQUIRE(contiguous_iterator<launder_iterator<int*>>);
+    STATIC_REQUIRE(contiguous_iterator<launder_iterator<int>>);
 }

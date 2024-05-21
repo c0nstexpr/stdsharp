@@ -169,12 +169,11 @@ namespace stdsharp::details
         typename U,
         typename TTraits = std::iterator_traits<T>,
         typename UTraits = std::iterator_traits<U>>
-    concept iterator_identical = requires {
-        requires std::same_as<typename TTraits::value_type, typename UTraits::value_type>;
-        requires std::same_as<typename TTraits::difference_type, typename UTraits::difference_type>;
-        requires std::same_as<typename TTraits::pointer, typename UTraits::pointer>;
-        requires std::same_as<typename TTraits::reference, typename UTraits::reference>;
-    };
+    concept iterator_identical =
+        std::same_as<typename TTraits::value_type, typename UTraits::value_type> &&
+        std::same_as<typename TTraits::difference_type, typename UTraits::difference_type> &&
+        std::same_as<typename TTraits::pointer, typename UTraits::pointer> &&
+        std::same_as<typename TTraits::reference, typename UTraits::reference>;
 
     template<
         typename ContainerType,
@@ -184,7 +183,6 @@ namespace stdsharp::details
         ContainerType instance,
         ValueType value,
         const ValueType& const_value,
-        Iter iter,
         ContainerType::const_iterator const_iter
     ) //
     {
@@ -203,19 +201,11 @@ namespace stdsharp::details
         typename ValueType = Container::value_type,
         typename Allocator = allocator_of_t<Container>,
         typename Traits = allocator_traits<Allocator>,
-        typename Ref = Container::reference,
-        typename CRef = Container::const_reference,
         typename Diff = Container::difference_type,
         typename Size = Container::size_type,
         typename Iter = Container::iterator,
         typename CIter = Container::const_iterator>
     concept container = requires(Container instance, const Container const_instance) {
-        requires std::same_as<ValueType, std::ranges::range_value_t<Container>>;
-
-        requires std::same_as<Ref, std::add_lvalue_reference_t<ValueType>>;
-
-        requires std::same_as<CRef, add_const_lvalue_ref_t<ValueType>>;
-
         requires std::forward_iterator<Iter>;
         requires std::convertible_to<Iter, CIter>;
         requires std::forward_iterator<CIter>;
@@ -233,12 +223,12 @@ namespace stdsharp::details
             !std::default_initializable<Members> || requires { Container(); };
 
         requires !(std::move_constructible<Members> && container_move_insertable<Container>) ||
-            requires { instance = cpp_move(instance); };
+            requires { Container(cpp_move(instance)); };
 
         requires !(std::copy_constructible<Members> && container_copy_insertable<Container>) ||
             requires { Container(instance); };
 
-        requires !(Traits::propagate_on_container_move_assignment::value ||
+        requires !(Traits::propagate_on_move_v ||
                    move_assignable<Members> && move_assignable<ValueType> &&
                        container_move_insertable<Container>) ||
             requires { instance = cpp_move(instance); };

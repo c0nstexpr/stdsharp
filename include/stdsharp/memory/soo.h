@@ -1,17 +1,17 @@
 #include "box.h"
 #include "composed_allocator.h"
-#include "single_stack_allocator.h"
+#include "fixed_single_allocator.h"
 
 namespace stdsharp
 {
     template<std::size_t Size = default_soo_size, allocator_req Allocator = std::allocator<byte>>
-    using soo_allocator = composed_allocator<single_stack_allocator<byte, Size>, Allocator>;
+    using soo_allocator = composed_allocator<fixed_single_allocator<byte, Size>, Allocator>;
 
     inline constexpr struct make_soo_allocator_fn
     {
         template<std::size_t Size, typename Allocator = std::allocator<byte>>
         constexpr soo_allocator<Size, std::decay_t<Allocator>> operator()(
-            single_stack_buffer<Size>& buffer,
+            fixed_single_resource<Size>& buffer,
             Allocator&& alloc = Allocator{}
         ) const noexcept
         {

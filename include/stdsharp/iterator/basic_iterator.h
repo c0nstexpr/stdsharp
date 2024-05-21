@@ -1,140 +1,94 @@
 #pragma once
 
-#include "../cassert/cassert.h"
 #include "../default_operator.h"
+#include "../utility/forward_cast.h"
 
 #include <iterator>
 
 #include "../compilation_config_in.h"
 
-namespace stdsharp::details
-{
-    template<typename T>
-    concept iterator_has_mem_data = requires(T& v, const T& const_v) {
-        v.data();
-        const_v.data();
-    };
-}
-
 namespace stdsharp
 {
-    template<typename T>
-        requires requires { typename std::remove_reference_t<std::iter_reference_t<T>>; }
-    struct iter_value_type_traits
-    {
-        using value_type = std::remove_reference_t<std::iter_reference_t<T>>;
-    };
+    template<class_ T, typename Category = std::random_access_iterator_tag>
+        requires requires(T& t) {
+            requires std::derived_from<Category, std::input_iterator_tag> ||
+                std::derived_from<Category, std::output_iterator_tag>;
 
-    template<typename Category = std::random_access_iterator_tag>
-        requires std::derived_from<Category, std::input_iterator_tag> ||
-                     std::derived_from<Category, std::output_iterator_tag>
+            requires dereferenceable<const T&>;
+            ++t;
+        }
     struct STDSHARP_EBO basic_iterator :
+        T,
         default_operator::arithmetic,
         default_operator::arrow,
         default_operator::subscript,
         default_operator::plus_commutative
     {
+        using T::T;
+
         using iterator_category = Category;
 
-// TODO: multidimensional subscript
-#if __cpp_multidimensional_subscript >= 202110L
-        using subscript::operator[];
-#endif
-
-        using increase::operator++;
-        using increase::operator--;
-        using arithmetic::operator-;
-
-        template<details::iterator_has_mem_data T>
-        constexpr auto& operator++(this T& t) noexcept(noexcept(++t.data()))
-        {
-            ++t.data();
-            return t;
-        }
-
-        template<details::iterator_has_mem_data T>
-        constexpr auto& operator--(this T& t) noexcept(noexcept(--t.data()))
-            requires requires { --t.data(); }
-        {
-            --t.data();
-            return t;
-        }
-
-        template<details::iterator_has_mem_data T>
-        constexpr auto& operator+=(this T& t, const auto& diff) noexcept
-            requires requires { t.data() += diff; }
-        {
-            t.data() += diff;
-            return t;
-        }
-
-        template<details::iterator_has_mem_data T>
-        constexpr auto& operator-=(this T& t, const auto& diff) noexcept
-            requires requires { t.data() -= diff; }
-        {
-            t.data() -= diff;
-            return t;
-        }
-
-        template<
-            details::iterator_has_mem_data T,
-            typename Data = decltype(std::declval<const T&>().data()),
-            typename Diff = std::iter_difference_t<Data>>
-
-        [[nodiscard]] constexpr Diff operator-(this const T& left, decltype(left) right)
-            noexcept(noexcept(static_cast<Diff>(left.data() - right.data())))
-            requires requires {
-                { left.data() - right.data() } -> explicitly_convertible<Diff>;
-            }
-        {
-            return static_cast<Diff>(left.data() - right.data());
-        }
-
-        template<details::iterator_has_mem_data T>
-        [[nodiscard]] constexpr decltype(auto) operator<=>(this const T& left, decltype(left) right)
-            noexcept(noexcept(left.data() <=> right.data()))
-            requires requires { left.data() <=> right.data(); }
-        {
-            return left.data() <=> right.data();
-        }
-
-        template<details::iterator_has_mem_data T>
-        [[nodiscard]] constexpr decltype(auto) operator==(this const T& left, decltype(left) right)
-            noexcept(noexcept(left.data() == right.data()))
-            requires requires { left.data() == right.data(); }
-        {
-            return left.data() == right.data();
-        }
+        using value_type = std::remove_reference_t<decltype(*std::declval<const T&>())>;
 
     private:
-        static constexpr void not_null(const nullable_pointer auto& ptr) noexcept
-        {
-            assert_not_null(ptr);
-        }
+        static consteval T& val();
+        static consteval const T& cval();
 
-        static constexpr void not_null(const auto& /*unused*/) noexcept {}
+        static consteval auto diff_type()
+        {
+            if constexpr(requires { cval() - cval(); })
+                return type_constant<decltype(cval() - cval())>{};
+            else return type_constant<void>{};
+        }
 
     public:
-        template<details::iterator_has_mem_data T>
-        [[nodiscard]] constexpr decltype(auto) operator*(this const T& t)
-            noexcept(noexcept(*(t.data())))
-            requires requires { *(t.data()); }
+        using difference_type = typename decltype(diff_type())::type;
+
+        using default_operator::arithmetic::operator++;
+        using T::operator++;
+
+        using default_operator::arithmetic::operator*;
+        using T::operator*;
+
+        using default_operator::arithmetic::operator--;
+
+        template<typename U>
+            requires requires { --val(); }
+        constexpr U& operator--(this U& u) noexcept(noexcept(--val()))
         {
-            const auto& ptr = t.data();
-            not_null(ptr);
-            return *ptr;
+            --forward_cast<U&, T>(u);
+            return u;
         }
 
-        template<details::iterator_has_mem_data T>
-        [[nodiscard]] constexpr decltype(auto) operator[]( //
-            this const T& t,
-            const std::iter_difference_t<T>& diff
-        ) noexcept(noexcept(*(t.data() + diff)))
-            requires requires { *(t.data() + diff); }
+        using default_operator::subscript::operator[];
+
+        template<typename U>
+            requires not_same_as<difference_type, void>
+        constexpr decltype(auto) operator[](this const U& u, const difference_type& diff)
+            noexcept(noexcept(cval()[diff]))
+            requires requires { cval()[diff]; }
         {
-            const auto& ptr = t.data();
-            not_null(ptr);
-            return *(ptr + diff);
+            return forward_cast<const U&, T>(u)[diff];
+        }
+
+        using default_operator::arithmetic::operator-;
+
+        template<typename U>
+            requires not_same_as<difference_type, void>
+        constexpr difference_type operator-(this const U& u, decltype(u) u2)
+            noexcept(noexcept(cval() - cval()))
+        {
+            return forward_cast<const U&, T>(u) - forward_cast<const U&, T>(u2);
+        }
+
+        template<typename U>
+            requires not_same_as<difference_type, void>
+        constexpr U& operator-=(this U& u, const difference_type& diff)
+            noexcept(noexcept(std::declval<T&>() += -diff))
+            requires requires(T& t) { t += -diff; }
+        {
+            forward_cast<const U&, T>(u) += -diff;
+            return u;
         }
     };
 }
