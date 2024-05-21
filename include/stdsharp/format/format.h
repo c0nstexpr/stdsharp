@@ -229,8 +229,10 @@ namespace stdsharp
         requires requires { details::zero_num_char<CharT>; }
     [[nodiscard]] constexpr auto parse_decimal_integer(const Rng& rng) noexcept
     {
-        const auto& num_rng = rng |
-            std::views::transform(std::bind_back(std::minus<>{}, details::zero_num_char<CharT>));
+        const auto& num_rng = std::views::transform(
+            rng,
+            [](const CharT& char_v) { return char_v - details::zero_num_char<CharT>; }
+        );
 
         return std::accumulate(
             num_rng.begin(),

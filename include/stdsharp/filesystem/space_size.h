@@ -5,7 +5,7 @@
 #include "../format/format.h"
 
 #include <ratio>
-#include <sstream>
+#include <string_view>
 
 namespace stdsharp::filesystem
 {
@@ -117,46 +117,46 @@ namespace stdsharp::filesystem
 #define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(period, unit_name) \
     STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, #unit_name)
 
-#define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, literal)           \
-    namespace details                                                                      \
-    {                                                                                      \
-        template<>                                                                         \
-        inline constexpr auto space_size_unit_name<period, char> = literal##sv;            \
-                                                                                           \
-        template<>                                                                         \
-        inline constexpr auto space_size_unit_name<period, wchar_t> = L##literal##sv;      \
-                                                                                           \
-        template<>                                                                         \
-        inline constexpr auto space_size_unit_name<period, char8_t> = u8##literal##sv;     \
-                                                                                           \
-        template<>                                                                         \
-        inline constexpr auto space_size_unit_name<period, char16_t> = u##literal##sv;     \
-                                                                                           \
-        template<>                                                                         \
-        inline constexpr auto space_size_unit_name<period, char32_t> = U##literal##sv;     \
-    }                                                                                      \
-                                                                                           \
-    inline namespace literals                                                              \
-    {                                                                                      \
-        [[nodiscard]] constexpr auto operator""_##unit_name(unsigned long long v) noexcept \
-        {                                                                                  \
-            return space_size<unsigned long long, period>{v};                              \
-        }                                                                                  \
-                                                                                           \
-        [[nodiscard]] constexpr auto operator""_##unit_name(long double v) noexcept        \
-        {                                                                                  \
-            return space_size<long double, period>{v};                                     \
-        }                                                                                  \
-    }                                                                                      \
-                                                                                           \
-    template<typename CharT, typename Traits, typename Rep>                                \
-        requires requires { details::space_size_unit_name<period, CharT>; }                \
-    constexpr auto& operator<<(                                                            \
-        std::basic_ostream<CharT, Traits>& os,                                             \
-        const space_size<Rep, period> size                                                 \
-    )                                                                                      \
-    {                                                                                      \
-        return os << size.size() << details::space_size_unit_name<period, CharT>;          \
+#define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, literal)                 \
+    namespace details                                                                            \
+    {                                                                                            \
+        template<>                                                                               \
+        inline constexpr std::string_view space_size_unit_name<period, char>{literal};           \
+                                                                                                 \
+        template<>                                                                               \
+        inline constexpr std::wstring_view space_size_unit_name<period, wchar_t>{L##literal};    \
+                                                                                                 \
+        template<>                                                                               \
+        inline constexpr std::u8string_view space_size_unit_name<period, char8_t>{u8##literal};  \
+                                                                                                 \
+        template<>                                                                               \
+        inline constexpr std::u16string_view space_size_unit_name<period, char16_t>{u##literal}; \
+                                                                                                 \
+        template<>                                                                               \
+        inline constexpr std::u32string_view space_size_unit_name<period, char32_t>{U##literal}; \
+    }                                                                                            \
+                                                                                                 \
+    inline namespace literals                                                                    \
+    {                                                                                            \
+        [[nodiscard]] constexpr auto operator""_##unit_name(unsigned long long v) noexcept       \
+        {                                                                                        \
+            return space_size<unsigned long long, period>{v};                                    \
+        }                                                                                        \
+                                                                                                 \
+        [[nodiscard]] constexpr auto operator""_##unit_name(long double v) noexcept              \
+        {                                                                                        \
+            return space_size<long double, period>{v};                                           \
+        }                                                                                        \
+    }                                                                                            \
+                                                                                                 \
+    template<typename CharT, typename Traits, typename Rep>                                      \
+        requires requires { details::space_size_unit_name<period, CharT>; }                      \
+    constexpr auto& operator<<(                                                                  \
+        std::basic_ostream<CharT, Traits>& os,                                                   \
+        const space_size<Rep, period> size                                                       \
+    )                                                                                            \
+    {                                                                                            \
+        return os << size.size() << details::space_size_unit_name<period, CharT>;                \
     }
 
 #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000
@@ -247,7 +247,7 @@ namespace std
         optional<::stdsharp::nested_fmt_spec> unit_name_;
 
         template<typename OutIt>
-        constexpr auto get_format_string(const basic_format_context<OutIt, CharT>& ctx) const
+        [[nodiscard]] constexpr auto get_format_string(const basic_format_context<OutIt, CharT>& ctx) const
         {
             using str_view = basic_string_view<CharT>;
 
@@ -293,10 +293,10 @@ namespace std
         }
 
         template<typename Ctx>
-        constexpr auto get_formatted(const Rep& value, const Ctx& ctx) const
+        [[nodiscard]] constexpr auto get_formatted(const Rep& value, const Ctx& ctx) const
         {
             const auto& fmt = get_format_string(ctx);
-            return vformat(fmt, make_format_args<Ctx>(value));
+            return vformat(fmt, basic_format_args<Ctx>{make_format_args<Ctx>(value)});
         }
 
     public:

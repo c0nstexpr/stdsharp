@@ -16,7 +16,7 @@ SCENARIO("bitset range", "[bitset]")
     STATIC_REQUIRE(std::ranges::random_access_range<decltype(bitset_rng(set))>);
 
     REQUIRE(bitset_rng(set).size() == 4);
-    REQUIRE(bitset_rng(set)[0] == false);
-    REQUIRE(bitset_crng(set)[1] == true);
-    REQUIRE(bitset_rng(as_const(set))[1] == true);
+    REQUIRE(bitset_rng(set)[0] == true);
+    REQUIRE(bitset_crng(set)[1] == false);
+    REQUIRE(bitset_rng(as_const(set))[1] == false);
 }

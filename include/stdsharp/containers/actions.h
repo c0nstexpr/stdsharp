@@ -1,9 +1,11 @@
 #pragma once
 
-#include "concepts.h"
 #include "../utility/constructor.h"
+#include "concepts.h"
 
 #include <range/v3/action.hpp>
+
+#include <algorithm>
 
 namespace stdsharp::actions::details
 {
