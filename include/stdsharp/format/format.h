@@ -78,6 +78,33 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
+
+    template<typename CharT = char>
+    struct make_format_args_fn;
+
+    template<>
+    struct make_format_args_fn<char>
+    {
+        template<typename... Args>
+        [[nodiscard]] constexpr auto operator()(Args&&... args) const
+        {
+            return std::make_format_args(std::forward<Args>(args)...);
+        }
+    };
+
+    template<>
+    struct make_format_args_fn<wchar_t>
+    {
+        template<typename... Args>
+        [[nodiscard]] constexpr auto operator()(Args&&... args) const
+        {
+            return std::make_wformat_args(std::forward<Args>(args)...);
+        }
+    };
+
+    template<typename CharT = char>
+    inline constexpr make_format_args_fn<CharT> make_format_args{};
+
     template<typename CharT>
     inline constexpr auto fill_and_align_regex = details::fill_and_align_regex<CharT>;
 
