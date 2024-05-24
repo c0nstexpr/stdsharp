@@ -4,18 +4,21 @@
 
 STDSHARP_TEST_NAMESPACES;
 
-struct vector_data
+template<typename ValueType>
+struct test_data
 {
-    using allocation_value_type = vector<int>;
     using allocator_type = std::allocator<stdsharp::byte>;
     using allocation_traits = allocation_traits<allocator_type>;
-    using allocation_value_t =
-        allocation_value<allocator_type, allocation_value_type>;
-
     static constexpr array<int, 3> data{1, 2, 3};
-    static constexpr std::ranges::empty_view<int> default_value{};
-    static constexpr size_t allocation_size = sizeof(allocation_value_type);
+
+    using allocation_value_t = allocation_value<allocator_type, ValueType>;
+};
+
+struct vector_data : test_data<vector<int>>
+{
     static constexpr allocation_value_t allocation_value{};
+    static constexpr size_t allocation_size = sizeof(vector<int>);
+    static constexpr std::ranges::empty_view<int> default_value{};
 
     static constexpr void set_value(const auto& allocation_value, const auto& allocation)
     {
@@ -29,18 +32,11 @@ struct vector_data
     }
 };
 
-struct array_data
+struct array_data : test_data<int[]> // NOLINT(*-arrays)
 {
-    using allocation_value_type = int[]; // NOLINT(*-arrays)
-    using allocator_type = std::allocator<stdsharp::byte>;
-    using allocation_traits = allocation_traits<allocator_type>;
-    using allocation_value_t =
-        allocation_value<allocator_type, allocation_value_type>;
-
-    static constexpr array<int, 3> data{1, 2, 3};
-    static constexpr std::ranges::repeat_view<int, int> default_value{0, 3};
+    static constexpr allocation_value_t allocation_value{3};
     static constexpr size_t allocation_size = data.size() * sizeof(int);
-    static constexpr allocation_value_t allocation_value{data.size()};
+    static constexpr std::ranges::repeat_view<int, int> default_value{0, 3};
 
     static constexpr void set_value(const auto& allocation_value, const auto& allocation)
     {
@@ -54,7 +50,12 @@ struct array_data
     }
 };
 
-TEMPLATE_TEST_CASE("Scenario: allocation value", "[memory][allocation_value]", vector_data, array_data)
+TEMPLATE_TEST_CASE(
+    "Scenario: allocation value",
+    "[memory][allocation_value]",
+    vector_data,
+    array_data
+)
 {
     using allocation_traits = TestType::allocation_traits;
 
@@ -79,7 +80,10 @@ TEMPLATE_TEST_CASE("Scenario: allocation value", "[memory][allocation_value]", v
         THEN("set the value to int sequence")
         {
             TestType::set_value(allocation_value, allocation_1);
-            REQUIRE_THAT(allocation_value.get(allocation_1), Catch::Matchers::RangeEquals(TestType::data));
+            REQUIRE_THAT(
+                allocation_value.get(allocation_1),
+                Catch::Matchers::RangeEquals(TestType::data)
+            );
         }
 
         allocation_value(allocator, allocation_1);
@@ -94,7 +98,10 @@ TEMPLATE_TEST_CASE("Scenario: allocation value", "[memory][allocation_value]", v
             allocation_value(allocator, callocation_1, allocation_2);
             THEN("value is seq")
             {
-                REQUIRE_THAT(allocation_value.get(allocation_2), Catch::Matchers::RangeEquals(TestType::data));
+                REQUIRE_THAT(
+                    allocation_value.get(allocation_2),
+                    Catch::Matchers::RangeEquals(TestType::data)
+                );
             }
             allocation_value(allocator, allocation_2);
         }
@@ -102,7 +109,10 @@ TEMPLATE_TEST_CASE("Scenario: allocation value", "[memory][allocation_value]", v
         THEN("move construct")
         {
             allocation_value(allocator, allocation_1, allocation_2);
-            REQUIRE_THAT(allocation_value.get(allocation_2), Catch::Matchers::RangeEquals(TestType::data));
+            REQUIRE_THAT(
+                allocation_value.get(allocation_2),
+                Catch::Matchers::RangeEquals(TestType::data)
+            );
             allocation_value(allocator, allocation_2);
         }
 
@@ -110,7 +120,10 @@ TEMPLATE_TEST_CASE("Scenario: allocation value", "[memory][allocation_value]", v
         {
             allocation_value(allocator, allocation_2, {});
             allocation_value(callocation_1, allocation_2);
-            REQUIRE_THAT(allocation_value.get(allocation_2), Catch::Matchers::RangeEquals(TestType::data));
+            REQUIRE_THAT(
+                allocation_value.get(allocation_2),
+                Catch::Matchers::RangeEquals(TestType::data)
+            );
             allocation_value(allocator, allocation_2);
         }
 
@@ -118,7 +131,10 @@ TEMPLATE_TEST_CASE("Scenario: allocation value", "[memory][allocation_value]", v
         {
             allocation_value(allocator, allocation_2, {});
             allocation_value(allocation_1, allocation_2);
-            REQUIRE_THAT(allocation_value.get(allocation_2), Catch::Matchers::RangeEquals(TestType::data));
+            REQUIRE_THAT(
+                allocation_value.get(allocation_2),
+                Catch::Matchers::RangeEquals(TestType::data)
+            );
             allocation_value(allocator, allocation_2);
         }
 

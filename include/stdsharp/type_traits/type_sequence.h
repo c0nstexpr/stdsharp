@@ -90,13 +90,7 @@ namespace stdsharp::details
     template<typename... T>
     struct reverse_type_sequence<type_sequence<T...>>
     {
-        using seq = type_sequence<T...>;
-
-        template<std::size_t... I>
-        static consteval regular_type_sequence<typename seq::template type<seq::size() - I - 1>...>
-            impl(std::index_sequence<I...>);
-
-        using type = decltype(impl(std::make_index_sequence<seq::size()>{}));
+        using type = reverse_sequence_traits<type_sequence<T...>>::type;
     };
 
     template<typename, typename>
