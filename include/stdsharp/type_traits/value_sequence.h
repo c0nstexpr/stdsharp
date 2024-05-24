@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../functional/always_return.h"
+#include "details/seq_traits.h"
 #include "indexed_traits.h"
 #include "regular_value_sequence.h"
 
@@ -18,51 +19,11 @@ namespace stdsharp
     );
 }
 
-namespace stdsharp::details
-{
-    template<std::size_t Size, template<typename, typename> typename Impl>
-    struct seq_insert_trait
-    {
-        template<std::size_t Index, auto... I, auto... J>
-        static consteval auto
-            impl(std::index_sequence<I...> /*unused*/, std::index_sequence<J...> /*unused*/)
-        {
-            return typename Impl<std::index_sequence<I...>, std::index_sequence<(J + Index)...>>::
-                type{};
-        }
-
-        template<std::size_t Index>
-        using type = decltype( //
-            impl<Index>(std::make_index_sequence<Index>{}, std::make_index_sequence<Size - Index>{})
-        );
-    };
-
-    template<std::size_t Size, template<typename, typename> typename Impl>
-    struct seq_rmv_trait
-    {
-        template<std::size_t Index, auto... I, auto... J>
-        static consteval auto
-            impl(std::index_sequence<I...> /*unused*/, std::index_sequence<J...> /*unused*/)
-        {
-            return
-                typename Impl<std::index_sequence<I...>, std::index_sequence<(J + Index + 1)...>>::
-                    type{};
-        }
-
-        template<std::size_t Index>
-        using type = decltype( //
-            impl<Index>(
-                std::make_index_sequence<Index>{},
-                std::make_index_sequence<Size - Index - 1>{}
-            )
-        );
-    };
-}
-
 namespace stdsharp
 {
     template<auto... Values>
-    struct value_sequence
+    struct value_sequence :
+        private details::seq_traits<value_sequence<Values...>, sizeof...(Values)>
     {
         static constexpr std::size_t size() noexcept { return sizeof...(Values); }
 
@@ -105,18 +66,7 @@ namespace stdsharp
         static consteval void predicate_test()
             noexcept((nothrow_predicate<Func&, const decltype(Values)&> && ...));
 
-        template<typename, typename>
-        struct seq_traits;
-
-        template<auto... I, auto... J>
-        struct seq_traits<std::index_sequence<I...>, std::index_sequence<J...>>
-        {
-            struct type
-            {
-                template<auto... Others>
-                using apply = regular_value_sequence<get<I>()..., Others..., get<J>()...>;
-            };
-        };
+        using m_base = details::seq_traits<value_sequence, size()>;
 
     public:
         template<auto... Func>
@@ -188,12 +138,12 @@ namespace stdsharp
         using append_front_t = regular_value_sequence<Others..., Values...>;
 
         template<std::size_t Index, auto... Other>
-        using insert_t = details::seq_insert_trait<size(), seq_traits>:: //
-            template type<Index>::template apply<Other...>;
+        using insert_t =
+            m_base::template insert_trait<Index>::template type<regular_value_sequence<Other...>>;
 
         template<std::size_t Index, auto... Other>
-        using replace_t = details::seq_rmv_trait<size(), seq_traits>:: //
-            template type<Index>::template apply<Other...>;
+        using replace_t =
+            m_base::template replace_trait<Index>::template type<regular_value_sequence<Other...>>;
 
         template<std::size_t Index>
         using remove_at_t = replace_t<Index>;

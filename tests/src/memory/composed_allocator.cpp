@@ -19,7 +19,6 @@ struct test_allocator : allocator<T>
         const auto ptr = allocator<T>::allocate(n);
         const auto void_p = to_void_pointer(ptr);
 
-        INFO(format("{} = my_alloc::allocate({})\n", void_p, n));
         allocated.emplace_back(void_p);
         return ptr;
     }
@@ -28,7 +27,6 @@ struct test_allocator : allocator<T>
     {
         const auto void_p = to_void_pointer(p);
 
-        INFO(format("my_alloc::deallocate({}, {})\n", void_p, n));
         allocator<T>::deallocate(p, n);
         deallocated.emplace_back(void_p);
     }
@@ -65,11 +63,9 @@ SCENARIO("allocate memory", "[memory][composed_allocator]")
         }
 
         constexpr auto count = 5;
-        WHEN(format("allocate {} ints", count))
+        WHEN("allocate ints")
         {
             const auto ptr = alloc.allocate(count);
-
-            INFO(format("address: {}", to_void_pointer(ptr)));
 
             THEN("write values")
             {

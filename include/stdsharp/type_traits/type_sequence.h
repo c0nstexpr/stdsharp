@@ -7,13 +7,12 @@
 namespace stdsharp
 {
     template<typename... T>
-    struct type_sequence
+    struct type_sequence : private details::seq_traits<type_sequence<T...>, sizeof...(T)>
     {
         using value_seq_t = value_sequence<basic_type_constant<T>{}...>;
 
         using regular_type_seq = regular_type_sequence<T...>;
 
-    private:
         template<auto... Func>
         struct transform
         {
@@ -28,7 +27,6 @@ namespace stdsharp
                 typename decltype(stdsharp::invoke(Func, basic_type_constant<T>{}))::type...>;
         };
 
-    public:
         static constexpr std::size_t size() noexcept { return sizeof...(T); }
 
         template<std::size_t I>
@@ -57,30 +55,16 @@ namespace stdsharp
         using append_front_t = regular_type_sequence<Others..., T...>;
 
     private:
-        template<typename, typename>
-        struct seq_traits;
-
-        template<auto... I, auto... J>
-        struct seq_traits<std::index_sequence<I...>, std::index_sequence<J...>>
-        {
-            struct type
-            {
-                template<typename... Others>
-                using apply = regular_type_sequence<
-                    type_sequence::type<I>...,
-                    Others...,
-                    type_sequence::type<J>...>;
-            };
-        };
+        using m_base = details::seq_traits<type_sequence, size()>;
 
     public:
         template<std::size_t Index, typename... Other>
-        using insert_t = details::seq_insert_trait<size(), seq_traits>:: //
-            template type<Index>::template apply<Other...>;
+        using insert_t =
+            m_base::template insert_trait<Index>::template type<basic_type_sequence<Other...>>;
 
         template<std::size_t Index, typename... Other>
-        using replace_t = details::seq_rmv_trait<size(), seq_traits>:: //
-            template type<Index>::template apply<Other...>;
+        using replace_t =
+            m_base::template replace_trait<Index>::template type<basic_type_sequence<Other...>>;
 
         template<std::size_t Index>
         using remove_at_t = replace_t<Index>;

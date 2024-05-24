@@ -60,8 +60,6 @@ SCENARIO("box assign value", "[memory][box]")
 
         WHEN("assign custom type twice")
         {
-            INFO("custom type");
-
             box_v.emplace<local>(invoked);
             box_v.emplace<local>(invoked);
 

@@ -147,7 +147,7 @@ namespace stdsharp
             return static_cast<forward_value_t<Allocation>>(get(src));
         }
 
-        constexpr void do_emplace_construct(auto& allocator, auto& allocation, auto&&... args)
+        constexpr void do_emplace_construct(auto& allocator, auto& allocation, auto&&... args) const
         {
             ctor{}(allocator, data(allocation), cpp_forward(args)...);
         }
@@ -225,7 +225,7 @@ namespace stdsharp
             return std::move_iterator{data(allocation)};
         }
 
-        constexpr void do_emplace_construct(auto& allocator, auto& allocation, auto&&... args)
+        constexpr void do_emplace_construct(auto& allocator, auto& allocation, auto&&... args) const
         {
             auto begin = m_base::data(allocation);
             for(const auto end = begin + size(); begin < end; ++begin)
