@@ -69,10 +69,7 @@ namespace stdsharp
         template<std::size_t Index>
         using remove_at_t = replace_t<Index>;
     };
-}
 
-namespace stdsharp
-{
     template<typename T>
     using to_type_sequence = decltype( //
         []<template<typename...> typename Inner, typename... U>(const Inner<U...>&)
@@ -84,67 +81,95 @@ namespace stdsharp
 
 namespace stdsharp::details
 {
-    template<typename>
-    struct reverse_type_sequence;
+    template<template<auto...> typename Seq, auto... V>
+    consteval regular_type_sequence<typename decltype(V)::type...>
+        value_seq_convert_to_type_seq(Seq<V...>);
 
-    template<typename... T>
-    struct reverse_type_sequence<type_sequence<T...>>
-    {
-        using type = reverse_sequence_traits<type_sequence<T...>>::type;
-    };
-
-    template<typename, typename>
-    struct unique_type_sequence;
-
-    template<typename... T, std::constructible_from Comp>
-    struct unique_type_sequence<type_sequence<T...>, Comp>
-    {
-        using seq = type_sequence<T...>;
-
-        static consteval auto size() noexcept { return seq::size(); }
-
-        template<std::size_t I>
-        static consteval auto fill_indices(auto& indices, std::size_t& i, Comp& comp)
-        {
-            using value_seq = seq::value_seq_t;
-
-            const auto found =
-                stdsharp::value_sequence_algo::find<value_seq>(value_seq::template get<I>(), comp);
-            if(found < i) return;
-            indices[i++] = I;
-        }
-
-        template<auto... I>
-        static consteval auto get_indices(const std::index_sequence<I...> /*unused*/)
-        {
-            std::array<std::size_t, size()> indices{};
-            std::size_t i = 0;
-            Comp comp{};
-            (fill_indices<I>(indices, i, comp), ...);
-            return std::pair{indices, i};
-        }
-
-        static constexpr auto indices_pair = get_indices(std::make_index_sequence<size()>{});
-
-        static constexpr auto indices = indices_pair.first;
-
-        static constexpr auto indices_size = indices_pair.second;
-
-        template<auto... I>
-        static consteval regular_type_sequence<typename seq::template type<indices[I]>...>
-            apply_indices(std::index_sequence<I...>);
-
-        using type = decltype(apply_indices(std::make_index_sequence<indices_size>{}));
-    };
+    template<typename Seq>
+    using value_seq_convert_to_type_seq_t = decltype(value_seq_convert_to_type_seq(Seq{}));
 }
 
 namespace stdsharp::type_sequence_algo
 {
     template<typename Seq>
-    using reverse_t = details::reverse_type_sequence<Seq>::type;
+    using find_if_fn = value_sequence_algo::find_if_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr find_if_fn<Seq> find_if{};
+
+    template<typename Seq>
+    using for_each_n_fn = value_sequence_algo::for_each_n_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr for_each_n_fn<Seq> for_each_n{};
+
+    template<typename Seq>
+    using find_if_not_fn = value_sequence_algo::find_if_not_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr find_if_not_fn<Seq> find_if_not{};
+
+    template<typename Seq>
+    using find_fn = value_sequence_algo::find_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr find_fn<Seq> find{};
+
+    template<typename Seq>
+    using count_if_fn = value_sequence_algo::count_if_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr count_if_fn<Seq> count_if{};
+
+    template<typename Seq>
+    using count_if_not_fn = value_sequence_algo::count_if_not_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr count_if_not_fn<Seq> count_if_not{};
+
+    template<typename Seq>
+    using count_fn = value_sequence_algo::count_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr count_fn<Seq> count{};
+
+    template<typename Seq>
+    using all_of_fn = value_sequence_algo::all_of_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr all_of_fn<Seq> all_of{};
+
+    template<typename Seq>
+    using none_of_fn = value_sequence_algo::none_of_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr none_of_fn<Seq> none_of{};
+
+    template<typename Seq>
+    using any_of_fn = value_sequence_algo::any_of_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr any_of_fn<Seq> any_of{};
+
+    template<typename Seq>
+    using contains_fn = value_sequence_algo::contains_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr contains_fn<Seq> contains{};
+
+    template<typename Seq>
+    using adjacent_find_fn = value_sequence_algo::adjacent_find_fn<typename Seq::value_seq_t>;
+
+    template<typename Seq>
+    inline constexpr adjacent_find_fn<Seq> adjacent_find{};
+
+    template<typename Seq>
+    using reverse_t = details::
+        value_seq_convert_to_type_seq_t<value_sequence_algo::reverse_t<typename Seq::value_seq_t>>;
 
     template<typename Seq, typename Comp = std::ranges::equal_to>
-    using unique_t = details::unique_type_sequence<Seq, Comp>::type;
+    using unique_t = details::value_seq_convert_to_type_seq_t< //
+        value_sequence_algo::unique_t<typename Seq::value_seq_t, Comp>>;
 }
 
 namespace std
