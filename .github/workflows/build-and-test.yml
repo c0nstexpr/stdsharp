@@ -78,7 +78,7 @@ jobs:
 
       - uses: ilammy/msvc-dev-cmd@v1
         with:
-          toolset: 14.XX
+          toolset: 14.40
 
       - name: CMake build and test (Debug)
         uses: ./.github/actions/cmake-build-and-test
