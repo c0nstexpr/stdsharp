@@ -57,7 +57,6 @@ target_compile_options(
     ${PROJECT_NAME}
     PUBLIC
         $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments
-        -ftime-trace
         -ftemplate-backtrace-limit=0>
 )
 

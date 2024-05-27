@@ -33,7 +33,7 @@ namespace
     struct type_sequence_invoker
     {
         template<typename T>
-        constexpr void operator()(const basic_type_constant<T> /*unused*/)
+        constexpr void operator()(basic_type_constant<T> /*unused*/)
         {
         }
     };
@@ -46,7 +46,7 @@ TEMPLATE_TEST_CASE(
     type_sequence_invoker
 )
 {
-    STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
+    test_seq::invoke<>(TestType{});
 }
 
 using value_seq_t = test_seq::value_seq_t;
