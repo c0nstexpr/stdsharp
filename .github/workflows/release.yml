@@ -1,0 +1,39 @@
+name: stdsharp Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release-job:
+    name: release on tags
+    runs-on: ${{ matrix.os }}
+    continue-on-error: false
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        include:
+          - os: ubuntu-latest
+
+    steps:
+    - name: Archive
+      uses: thedoctor0/zip-release@0.7.6
+      with:
+        type: zip
+        exclusions: |
+          .git/
+          .github/
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release.zip
+        token: ${{ secrets.GITHUB_TOKEN }}
