@@ -24,13 +24,6 @@ function(verbose_message)
     endif()
 endfunction()
 
-function(target_clang_toolchain target lib_type)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(${target} ${lib_type} "-stdlib=libc++")
-        target_link_options(${target} ${lib_type} "--ld-path=ld.lld")
-    endif()
-endfunction()
-
 function(target_include_as_system target_name)
     get_target_property(included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
     get_target_property(target_type ${target_name} TYPE)
