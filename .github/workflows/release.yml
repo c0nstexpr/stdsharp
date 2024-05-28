@@ -3,7 +3,6 @@ name: stdsharp Release
 on:
   workflow_dispatch:
   push:
-    branches: [main]
     tags:
       - '*'
 
@@ -28,6 +27,7 @@ jobs:
       uses: thedoctor0/zip-release@0.7.6
       with:
         type: zip
+        directory: ${{ github.workspace }}
         exclusions: |
           .git/
           .github/
@@ -35,5 +35,5 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-        files: release.zip
+        files: ${{ github.workspace }}/release.zip
         token: ${{ secrets.GITHUB_TOKEN }}
