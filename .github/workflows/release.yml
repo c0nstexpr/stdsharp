@@ -23,7 +23,7 @@ jobs:
           - os: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Archive
       uses: thedoctor0/zip-release@0.7.6
