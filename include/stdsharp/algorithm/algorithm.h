@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../compare/compare.h"
-#include "../functional/operations.h"
 #include "../functional/invoke.h"
+#include "../functional/operations.h"
 
 #include <gsl/gsl>
 
@@ -87,11 +87,7 @@ namespace stdsharp
                 return;
             }
 
-            if(pre != next && is_neq(next))
-            {
-                pre = ordering::unordered;
-                return;
-            }
+            if(pre != next && is_neq(next)) pre = ordering::unordered;
         };
 
     public:
