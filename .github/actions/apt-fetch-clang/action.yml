@@ -14,7 +14,7 @@ runs:
       shell: bash
 
     - run: |
-        sudo apt-get install llvm-${{ inputs.llvm-ver }} clang-tidy-${{ inputs.llvm-ver }} clang-format-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev libc++abi-${{ inputs.llvm-ver }}-dev clangd-${{ inputs.llvm-ver }};
+        sudo apt-get install llvm-${{ inputs.llvm-ver }} clang-tidy-${{ inputs.llvm-ver }} clang-format-${{ inputs.llvm-ver }} libc++-${{ inputs.llvm-ver }}-dev clangd-${{ inputs.llvm-ver }};
         sudo update-alternatives --remove-all clang || true;
         sudo update-alternatives --remove-all clang++ || true;
         sudo update-alternatives --remove-all clang-tidy || true;
