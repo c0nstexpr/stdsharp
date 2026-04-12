@@ -1,135 +1,75 @@
-option(
-    VERBOSE_OUTPUT
-    "Enable verbose output, allowing for a better understanding of each step taken."
-    OFF
-)
-
 set(CMAKE_COLOR_DIAGNOSTICS ON)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-fdiagnostics-show-template-tree)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    add_compile_options(/utf-8 /diagnostics:caret)
-endif()
-
-include(ProcessorCount)
-
-processorcount(PROCESSOR_COUNT)
-
-function(verbose_message)
-    if(VERBOSE_OUTPUT)
-        message(STATUS ${ARGN})
-    endif()
-endfunction()
 
 function(target_include_as_system target_name)
     get_target_property(included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
     get_target_property(target_type ${target_name} TYPE)
-    target_include_directories(
-        ${target_name}
-        SYSTEM
-        BEFORE
-        ${target_type}
-        ${included}
-    )
+    target_include_directories(${target_name} SYSTEM BEFORE ${target_type} ${included})
 endfunction()
 
-# Create static or shared library, setup header and source files
-function(config_lib lib_name lib_type)
-    message("Configuring target library ${lib_name}")
-
-    cmake_parse_arguments(
-        ARG
-        ""
-        "STD;VER"
-        "INC_DIR;INSTALL_INC_DIR;SRC"
-        ${ARGN}
-    )
-
-    if(NOT DEFINED ARG_INC_DIR)
-        set(ARG_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    endif()
-
-    if(NOT DEFINED INSTALL_INC_DIR)
-        set(INSTALL_INC_DIR include)
-    endif()
-
-    list(JOIN ARG_INC_DIR "\n    " includes_str)
-    verbose_message("Found the following include dir:\n    ${includes_str}")
-
-    list(JOIN ARG_SRC "\n    " src_str)
-    verbose_message("Found the following source files:\n    ${src_str}")
-
-    add_library(${lib_name} ${lib_type} ${ARG_SRC})
-
-    set(inc_tag PUBLIC)
-
-    if(lib_type STREQUAL "SHARED")
-        set_target_properties(
-            ${lib_name}
-            PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS OFF
-        )
-
-        string(TOUPPER "${lib_name}_WIN_DLL" ${lib_name}_WIN_DLL)
-        message(
-            STATUS
-            "Detected shared library, setting ${lib_name}_WIN_DLL to ${${lib_name}_WIN_DLL}"
-        )
-        target_compile_definitions(
-            ${lib_name}
-            PRIVATE
-                $<$<CXX_COMPILER_ID:MSVC>:${${lib_name}_WIN_DLL}=__declspec\(dllexport\)>
-        )
-        message(
-            STATUS
-            "Added ${lib_name}_WIN_DLL to target ${lib_name} compile definitions"
-        )
-    elseif(lib_type STREQUAL "INTERFACE")
-        set(inc_tag INTERFACE)
-    endif()
+function(target_set_common_cxx_properties target_name target_tag)
+    cmake_parse_arguments(ARG "" "STD;VER" "INC_DIR;INSTALL_INC_DIR;SRC" ${ARGN})
 
     if(ARG_STD)
-        target_compile_features(${lib_name} ${inc_tag} cxx_std_${ARG_STD})
+        target_compile_features(${lib_name} ${target_tag} cxx_std_${ARG_STD})
         message(STATUS "Using c++ ${ARG_STD}")
     endif()
-
-    target_include_directories(
-        ${lib_name}
-        ${inc_tag}
-        $<INSTALL_INTERFACE:${ARG_INSTALL_INC_DIR}>
-        $<BUILD_INTERFACE:${ARG_INC_DIR}>
-    )
 
     if(NOT DEFINED ARG_VER)
         set(ARG_VER "${CMAKE_PROJECT_VERSION}")
     endif()
 
-    set_target_properties(${lib_name} PROPERTIES VERSION "${ARG_VER}")
+    if(NOT DEFINED ARG_INC_DIR)
+        set(ARG_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    endif()
+
+    if(NOT DEFINED ARG_INSTALL_INC_DIR)
+        set(ARG_INSTALL_INC_DIR include)
+    endif()
+
+    list(JOIN ARG_INC_DIR "\n" includes_str)
+    message(STATUS "Found the following include dir:")
+    message(STATUS "${includes_str}")
+    list(JOIN ARG_SRC "\n" src_str)
+    message(STATUS "Found the following source files:")
+    message(STATUS "${src_str}")
+
+    set_target_properties(
+        ${lib_name} PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+        VERSION "${ARG_VER}"
+    )
+    target_include_directories(
+        ${lib_name} ${target_tag}
+        $<INSTALL_INTERFACE:${ARG_INSTALL_INC_DIR}>
+        $<BUILD_INTERFACE:${ARG_INC_DIR}>
+    )
+    target_compile_options(
+        ${target_name} ${target_tag}
+        $<$<CXX_COMPILER_ID:Clang>:-fdiagnostics-show-template-tree>
+        $<$<CXX_COMPILER_ID:MSVC>:/utf-8,/diagnostics:caret>
+    )
+    target_sources(${target_name} ${target_tag} ${ARG_SRC})
+endfunction()
+
+# Create static or shared library, setup header and source files
+function(add_interface_target lib_name)
+    message(STATUS "Configuring interface target ${lib_name}")
+    add_library(${lib_name} INTERFACE)
+    target_set_common_cxx_properties(${lib_name} INTERFACE ${ARGN})
+endfunction()
+
+# Create static or shared library, setup header and source files
+function(add_lib_target lib_name lib_type)
+    message(STATUS "Configuring library target ${lib_name}")
+    add_library(${lib_name} ${lib_type})
+    target_set_common_cxx_properties(${lib_name} PUBLIC ${ARGN})
 endfunction()
 
 # Create executable, setup header and source files
-function(config_exe exe_name)
-    cmake_parse_arguments(ARG "" "STD;VER" "EXE_SRC" ${ARGN})
-
-    list(JOIN ARG_EXE_SRC "\n    " exe_src_str)
-    verbose_message(
-      "Found the following executable source files:\n    ${exe_src_str}"
-    )
-
-    add_executable(${exe_name} "${ARG_EXE_SRC}")
-
-    if(NOT DEFINED ARG_VER)
-        set(ARG_VER ${CMAKE_PROJECT_VERSION})
-    endif()
-
-    set_target_properties(${exe_name} PROPERTIES VERSION ${ARG_VER})
-
-    if(ARG_STD)
-        target_compile_features(${exe_name} PUBLIC cxx_std_${ARG_STD})
-        message(STATUS "Using c++ ${ARG_STD}.")
-    endif()
+function(add_exe_target exe_name)
+    cmake_parse_arguments(ARG "" "" "SRC" ${ARGN})
+    add_executable(${exe_name})
+    target_set_common_cxx_properties(${exe_name} PRIVATE ${ARGN})
 endfunction()
 
 # install library
@@ -140,7 +80,7 @@ function(target_install target_name)
     cmake_parse_arguments(
         ARG
         "ARCH_INDEPENDENT"
-        "BIN_DIR;INC_DST;VER;COMPATIBILITY;NAMESPACE;CONFIG_FILE"
+        "BIN_DIR;INC_DST;COMPATIBILITY;NAMESPACE;CONFIG_FILE"
         "DEPENDENCIES"
         ${ARGN}
     )
@@ -149,21 +89,15 @@ function(target_install target_name)
 
     if(NOT DEFINED ARG_BIN_DIR)
         get_target_property(ARG_BIN_DIR ${target_name} BINARY_DIR)
-        verbose_message("Use default binary dir ${ARG_BIN_DIR}")
     endif()
 
     if(NOT DEFINED ARG_INC_DST)
         set(ARG_INC_DST "./")
     endif()
 
-    if(NOT DEFINED ARG_VER)
-        get_target_property(ARG_VER ${target_name} VERSION)
-        verbose_message("Use default version ${ARG_VER}")
-    endif()
 
     if(NOT DEFINED ARG_NAMESPACE)
         set(ARG_NAMESPACE ${CMAKE_PROJECT_NAME})
-        verbose_message("Use default namespace ${ARG_NAMESPACE}")
     endif()
 
     install(
@@ -188,6 +122,7 @@ function(target_install target_name)
         INCLUDES DESTINATION "${ARG_INC_DST}"
     )
 
+    get_target_property(ARG_VER ${target_name} VERSION)
     if(
         (NOT DEFINED ARG_ARCH_INDEPENDENT)
         AND (target_type STREQUAL "INTERFACE_LIBRARY")
@@ -203,9 +138,7 @@ function(target_install target_name)
         PARENT_SCOPE
     )
 
-    verbose_message(
-      "CMake files install directory: ${${target_name}_INSTALL_CMAKEDIR}"
-    )
+    message(STATUS "CMake files install directory: ${${target_name}_INSTALL_CMAKEDIR}")
 
     install(
         EXPORT ${target_name}Targets
