@@ -4,18 +4,10 @@
 #include "../type_traits/indexed_traits.h"
 
 #include <array> // IWYU pragma: export
-#include <deque> // IWYU pragma: export
 #include <forward_list>
-#include <list> // IWYU pragma: export
-#include <map> // IWYU pragma: export
-#include <set> // IWYU pragma: export
-#include <unordered_map> // IWYU pragma: export
-#include <unordered_set> // IWYU pragma: export
-#include <vector> // IWYU pragma: export
 
 namespace stdsharp
 {
-
     template<typename T, auto Size>
     struct allocator_of<std::array<T, Size>>
     {
@@ -25,7 +17,6 @@ namespace stdsharp
 
 namespace stdsharp::containers
 {
-
     template<typename Rng, typename ValueType>
     concept compatible_range = std::ranges::input_range<Rng> &&
         std::convertible_to<std::ranges::range_reference_t<Rng>, ValueType>;
@@ -77,7 +68,7 @@ namespace stdsharp::containers
             requires move_insertable<ValueType, Allocator>;
             requires nothrow_move_constructible<ValueType>;
             requires noexcept(allocator_traits<Allocator>::
-                                  construct(allocator_instance, ptr, cpp_move(rv)));
+                    construct(allocator_instance, ptr, cpp_move(rv)));
         };
 
     template<typename Container>
@@ -224,8 +215,10 @@ namespace stdsharp::containers::details
         requires std::unsigned_integral<Size>;
         requires(std::numeric_limits<Size>::max() >= std::numeric_limits<Diff>::max());
 
-        requires !nothrow_default_initializable<Members> || noexcept(Container()) ||
-            !std::default_initializable<Members> || requires { Container(); };
+        requires !nothrow_default_initializable<Members> ||
+            noexcept(Container()) ||
+            !std::default_initializable<Members> ||
+            requires { Container(); };
 
         requires !(std::move_constructible<Members> && container_move_insertable<Container>) ||
             requires { Container(cpp_move(instance)); };
@@ -234,12 +227,14 @@ namespace stdsharp::containers::details
             requires { Container(instance); };
 
         requires !(Traits::propagate_on_move_v ||
-                   move_assignable<Members> && move_assignable<ValueType> &&
-                       container_move_insertable<Container>) ||
+                     move_assignable<Members> &&
+                     move_assignable<ValueType> &&
+                     container_move_insertable<Container>) ||
             requires { instance = cpp_move(instance); };
 
-        requires !(copy_assignable<Members> && copy_assignable<ValueType> &&
-                   container_copy_insertable<Container>) ||
+        requires !(copy_assignable<Members> &&
+                     copy_assignable<ValueType> &&
+                     container_copy_insertable<Container>) ||
             requires { instance = instance; };
 
         requires container_erasable<Container> && std::destructible<Container>;
@@ -347,7 +342,8 @@ namespace stdsharp::containers::details
         requires container_insertable<Container>;
 
         requires !(container_copy_insertable<Container> && copy_assignable<ValueType>) ||
-            std::assignable_from<Container&, IL> && requires {
+            std::assignable_from<Container&, IL> &&
+            requires {
                 { instance.insert(const_iter, size, const_value) } -> std::same_as<Iter>;
 
                 { instance.assign(size, const_value) } -> std::same_as<void>;
@@ -477,11 +473,12 @@ namespace stdsharp::containers::details
         requires std::copyable<ValueCmp>;
         requires std::predicate<ValueCmp, ValueType, ValueType>;
 
+        // clang-format off
         requires !container_emplace_constructible<Container, ValueType> ||
             details::container_optional_constructible<Container, CIter, CIter>::
                     template value<KeyCmp, Alloc> &&
                 details::container_optional_constructible<Container, IL>::
-                    template value<KeyCmp, Alloc>;
+                    template value<KeyCmp, Alloc>; // clang-format on
 
         requires !compatible_range<IL, ValueType> ||
             details::container_optional_constructible<Container, std::from_range_t, IL>::
@@ -580,9 +577,12 @@ namespace stdsharp::containers::details
                 template value<Size, Hasher, KeyEqual, Alloc>;
         };
 
-        requires !container_copy_insertable<Container> && copy_assignable<ValueType> &&
-                std::default_initializable<Hasher> && std::default_initializable<KeyEqual> &&
-                std::default_initializable<Alloc> || std::constructible_from<Container, IL>;
+        requires !container_copy_insertable<Container> &&
+            copy_assignable<ValueType> &&
+            std::default_initializable<Hasher> &&
+            std::default_initializable<KeyEqual> &&
+            std::default_initializable<Alloc> ||
+            std::constructible_from<Container, IL>;
 
         { instance.key_eq() } -> std::same_as<KeyEqual>;
         { instance.hash_function() } -> std::same_as<Hasher>;
@@ -591,7 +591,7 @@ namespace stdsharp::containers::details
         { const_instance.bucket_count() } -> std::same_as<Size>;
         { const_instance.max_bucket_count() } -> std::same_as<Size>;
 
-        { instance.max_load_factor(0.0f) } -> std::same_as<void>;
+        { instance.max_load_factor(0.0F) } -> std::same_as<void>;
 
         { const_instance.load_factor() } -> std::same_as<float>;
         { const_instance.max_load_factor() } -> std::same_as<float>;

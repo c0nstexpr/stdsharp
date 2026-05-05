@@ -4,7 +4,7 @@
 #include "../utility/cast_to.h"
 #include "../utility/fwd_cast.h"
 
-#include <gsl/gsl_assert>
+#include <gsl/assert>
 
 #include <ranges>
 

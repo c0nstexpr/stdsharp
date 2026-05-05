@@ -1,214 +1,151 @@
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
-function(target_include_as_system target_name)
-    get_target_property(included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
-    get_target_property(target_type ${target_name} TYPE)
-    target_include_directories(${target_name} SYSTEM BEFORE ${target_type} ${included})
+function(target_diagnostics target_name)
+    target_compile_options(
+        ${target_name} PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-fdiagnostics-show-template-tree>
+        $<$<CXX_COMPILER_ID:MSVC>:/utf-8,/diagnostics:caret>
+    )
 endfunction()
 
 function(target_set_common_cxx_properties target_name target_tag)
-    cmake_parse_arguments(ARG "" "STD;VER" "INC_DIR;INSTALL_INC_DIR;SRC" ${ARGN})
+    cmake_parse_arguments(ARG "" "STD;VER;INCLUDED_AS_SYSTEM" "INC_DIR;SRC;LINKS" ${ARGN})
 
-    if(ARG_STD)
-        target_compile_features(${lib_name} ${target_tag} cxx_std_${ARG_STD})
+    if(DEFINED ARG_STD)
         message(STATUS "Using c++ ${ARG_STD}")
+        target_compile_features(${target_name} ${target_tag} cxx_std_${ARG_STD})
     endif()
 
     if(NOT DEFINED ARG_VER)
-        set(ARG_VER "${CMAKE_PROJECT_VERSION}")
+        set(ARG_VER "${PROJECT_VERSION}")
     endif()
-
-    if(NOT DEFINED ARG_INC_DIR)
-        set(ARG_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    endif()
-
-    if(NOT DEFINED ARG_INSTALL_INC_DIR)
-        set(ARG_INSTALL_INC_DIR include)
-    endif()
-
-    list(JOIN ARG_INC_DIR "\n" includes_str)
-    message(STATUS "Found the following include dir:")
-    message(STATUS "${includes_str}")
-    list(JOIN ARG_SRC "\n" src_str)
-    message(STATUS "Found the following source files:")
-    message(STATUS "${src_str}")
+    message(STATUS "Setting version to ${ARG_VER}")
 
     set_target_properties(
-        ${lib_name} PROPERTIES
+        ${target_name} PROPERTIES
         WINDOWS_EXPORT_ALL_SYMBOLS ON
         VERSION "${ARG_VER}"
+        CXX_EXTENSIONS OFF
+        EXPORT_COMPILE_COMMANDS ON
     )
+    if(NOT DEFINED ARG_INC_DIR)
+        set(ARG_INC_DIR include)
+    endif()
+
+    if((NOT DEFINED ARG_INCLUDED_AS_SYSTEM) AND (NOT PROJECT_IS_TOP_LEVEL))
+        set(ARG_INCLUDED_AS_SYSTEM TRUE)
+    endif()
+
+    if(ARG_INCLUDED_AS_SYSTEM)
+        message(STATUS "Include directories will be marked as SYSTEM")
+        set(system_inc_tag SYSTEM)
+    endif()
+
+    message(STATUS "Found the following include dir:")
+    foreach(inc_dir ${ARG_INC_DIR})
+        message(STATUS "${inc_dir}")
+    endforeach()
+
+    message(STATUS "Found the following source files:")
+    foreach(src ${ARG_SRC})
+        message(STATUS "${src}")
+    endforeach()
+
     target_include_directories(
-        ${lib_name} ${target_tag}
-        $<INSTALL_INTERFACE:${ARG_INSTALL_INC_DIR}>
-        $<BUILD_INTERFACE:${ARG_INC_DIR}>
+        ${target_name} ${system_inc_tag} ${target_tag}
+        $<INSTALL_INTERFACE:${ARG_INC_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${ARG_INC_DIR}>
     )
-    target_compile_options(
-        ${target_name} ${target_tag}
-        $<$<CXX_COMPILER_ID:Clang>:-fdiagnostics-show-template-tree>
-        $<$<CXX_COMPILER_ID:MSVC>:/utf-8,/diagnostics:caret>
-    )
-    target_sources(${target_name} ${target_tag} ${ARG_SRC})
+    if(DEFINED ARG_SRC)
+        target_sources(${target_name} PRIVATE ${ARG_SRC})
+    endif()
+
+    message(STATUS "Linking with the following libraries: ${ARG_LINKS}")
+    target_link_libraries(${target_name} ${target_tag} ${ARG_LINKS})
 endfunction()
 
 # Create static or shared library, setup header and source files
-function(add_interface_target lib_name)
-    message(STATUS "Configuring interface target ${lib_name}")
-    add_library(${lib_name} INTERFACE)
-    target_set_common_cxx_properties(${lib_name} INTERFACE ${ARGN})
+function(add_interface_target target_name)
+    message(STATUS "Creating interface library ${target_name}")
+    add_library(${target_name} INTERFACE)
+    target_set_common_cxx_properties(${target_name} INTERFACE ${ARGN})
 endfunction()
 
 # Create static or shared library, setup header and source files
-function(add_lib_target lib_name lib_type)
-    message(STATUS "Configuring library target ${lib_name}")
-    add_library(${lib_name} ${lib_type})
-    target_set_common_cxx_properties(${lib_name} PUBLIC ${ARGN})
+function(add_lib_target target_name lib_type)
+    message(STATUS "Creating ${lib_type} library ${target_name}")
+    add_library(${target_name} ${lib_type})
+    target_set_common_cxx_properties(${target_name} PRIVATE ${ARGN})
 endfunction()
 
 # Create executable, setup header and source files
-function(add_exe_target exe_name)
-    cmake_parse_arguments(ARG "" "" "SRC" ${ARGN})
-    add_executable(${exe_name})
-    target_set_common_cxx_properties(${exe_name} PRIVATE ${ARGN})
+function(add_exe_target target_name)
+    message(STATUS "Creating executable ${target_name}")
+    add_executable(${target_name})
+    target_set_common_cxx_properties(${target_name} PRIVATE ${ARGN})
 endfunction()
 
-# install library
-function(target_install target_name)
-    include(CMakePackageConfigHelpers)
+# install targets in project
+function(project_install)
     include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
 
-    cmake_parse_arguments(
-        ARG
-        "ARCH_INDEPENDENT"
-        "BIN_DIR;INC_DST;COMPATIBILITY;NAMESPACE;CONFIG_FILE"
-        "DEPENDENCIES"
-        ${ARGN}
-    )
-
-    get_target_property(target_type ${target_name} TYPE)
-
-    if(NOT DEFINED ARG_BIN_DIR)
-        get_target_property(ARG_BIN_DIR ${target_name} BINARY_DIR)
+    cmake_parse_arguments(ARG "" "NAMESPACE;COMPATIBILITY;CONFIG_FILE" "TARGETS" ${ARGN})
+    if(NOT DEFINED ARG_TARGETS)
+        set(ARG_TARGETS ${PROJECT_NAME})
     endif()
-
-    if(NOT DEFINED ARG_INC_DST)
-        set(ARG_INC_DST "./")
-    endif()
-
 
     if(NOT DEFINED ARG_NAMESPACE)
-        set(ARG_NAMESPACE ${CMAKE_PROJECT_NAME})
+        set(ARG_NAMESPACE ${PROJECT_NAME})
     endif()
 
-    install(
-        TARGETS ${target_name}
-        EXPORT ${target_name}Targets
-        LIBRARY
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target_name}"
-            COMPONENT "${target_name}_Runtime"
-            NAMELINK_COMPONENT "${target_name}_Development"
-        ARCHIVE
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target_name}"
-            COMPONENT "${target_name}_Development"
-        RUNTIME
-            DESTINATION "${CMAKE_INSTALL_BINDIR}/${target_name}"
-            COMPONENT "${target_name}_Runtime"
-        BUNDLE
-            DESTINATION "${CMAKE_INSTALL_BINDIR}/${target_name}"
-            COMPONENT "${target_name}_Runtime"
-        PUBLIC_HEADER
-            DESTINATION "${ARG_INC_DST}"
-            COMPONENT "${target_name}_Development"
-        INCLUDES DESTINATION "${ARG_INC_DST}"
-    )
-
-    get_target_property(ARG_VER ${target_name} VERSION)
-    if(
-        (NOT DEFINED ARG_ARCH_INDEPENDENT)
-        AND (target_type STREQUAL "INTERFACE_LIBRARY")
-    )
-        set(ARG_ARCH_INDEPENDENT YES)
+    if(NOT DEFINED ARG_CONFIG_FILE)
+        set(ARG_CONFIG_FILE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Config.cmake.in")
+        message(STATUS "Using default config file: ${ARG_CONFIG_FILE}")
     endif()
 
-    set(${target_name}_INSTALL_CMAKEDIR
-        "${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}-${ARG_VER}"
-    )
-    set(${target_name}_INSTALL_CMAKEDIR
-        "${${target_name}_INSTALL_CMAKEDIR}"
-        PARENT_SCOPE
-    )
-
-    message(STATUS "CMake files install directory: ${${target_name}_INSTALL_CMAKEDIR}")
-
+    set(PROJECT_INSTALL_CMAKEDIR "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}")
+    message(STATUS "CMake files install directory: ${PROJECT_INSTALL_CMAKEDIR}")
+    # Declare the install components for the target.
+    install(TARGETS ${ARG_TARGETS} EXPORT ${PROJECT_NAME}Targets FILE_SET HEADERS)
+    # Install the exported target
     install(
-        EXPORT ${target_name}Targets
-        DESTINATION "${${target_name}_INSTALL_CMAKEDIR}"
+        EXPORT ${PROJECT_NAME}Targets
+        DESTINATION "${PROJECT_INSTALL_CMAKEDIR}"
         NAMESPACE ${ARG_NAMESPACE}::
-        COMPONENT "${target_name}_Development"
     )
 
-    if(ARG_ARCH_INDEPENDENT)
-        set(wbpvf_extra_args ARCH_INDEPENDENT)
-    endif()
 
-    set(version_config "${ARG_BIN_DIR}/${target_name}ConfigVersion.cmake")
-    set(target_config "${ARG_BIN_DIR}/${target_name}Config.cmake")
-
+    set(version_config "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
     write_basic_package_version_file(
         "${version_config}"
-        VERSION "${ARG_VER}"
         COMPATIBILITY ${ARG_COMPATIBILITY}
-        ${wbpvf_extra_args}
     )
 
-    if(ARG_CONFIG_FILE)
-        configure_file("${ARG_CONFIG_FILE}" "${target_config}" @ONLY)
-    else()
-        file(
-            CONFIGURE
-            OUTPUT "${target_config}"
-            CONTENT
-                "include(CMakeFindDependencyMacro)
-list(APPEND CMAKE_MODULE_PATH $\{CMAKE_CURRENT_LIST_DIR})
-foreach(dependency ${ARG_DEPENDENCIES})
-    find_dependency($\{dependency})
-endforeach()
-include($\{CMAKE_CURRENT_LIST_DIR}/${target_name}Targets.cmake)"
-            @ONLY
-            ESCAPE_QUOTES
-        )
-    endif()
-
-    install(
-        FILES "${version_config}" "${target_config}"
-        DESTINATION "${${target_name}_INSTALL_CMAKEDIR}"
-        COMPONENT "${target_name}_Development"
-    )
-
-    get_target_property(
-        target_included
-        ${target_name}
-        INTERFACE_INCLUDE_DIRECTORIES
+    set(project_config "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
+    configure_package_config_file(
+        ${ARG_CONFIG_FILE} ${project_config}
+        INSTALL_DESTINATION "${PROJECT_INSTALL_CMAKEDIR}"
     )
 
     install(
-        DIRECTORY "${target_included}"
-        DESTINATION "${ARG_INC_DST}"
-        COMPONENT "${target_name}_Development"
+        FILES "${version_config}" "${project_config}"
+        DESTINATION "${PROJECT_INSTALL_CMAKEDIR}"
     )
+
+    return(PROPAGATE PROJECT_INSTALL_CMAKEDIR)
 endfunction()
 
 function(target_clang_tidy target_name)
-    cmake_parse_arguments(ARG "" "ENABLE_PROFILE" "" ${ARGN})
-
+    message(CHECK_START "Checking for clang-tidy")
     find_program(CLANG_TIDY clang-tidy)
-
     if(NOT EXISTS "${CLANG_TIDY}")
-        message(STATUS "clang-tidy not found")
+        message(CHECK_FAIL "clang-tidy not found")
         return()
     endif()
 
-    message(STATUS "found clang-tidy: ${CLANG_TIDY}")
+    message(CHECK_PASS "found clang-tidy: ${CLANG_TIDY}")
+    cmake_parse_arguments(ARG "" "ENABLE_PROFILE" "" ${ARGN})
 
     if(ARG_ENABLE_PROFILE)
         get_target_property(bin_dir ${target_name} BINARY_DIR)
@@ -232,8 +169,7 @@ function(target_clang_tidy target_name)
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        message(STATUS "Add extra MSVC arg for clang-tidy")
-        list(APPEND CLANG_TIDY "--extra-arg=-EHsc") #TODO: https://github.com/llvm/llvm-project/issues/44701
+        list(APPEND CLANG_TIDY "--extra-arg=-EHsc") # TODO: https://github.com/llvm/llvm-project/issues/44701
     endif()
 
     set_target_properties(
@@ -242,67 +178,51 @@ function(target_clang_tidy target_name)
     )
 endfunction()
 
-function(target_clang_sanitizer target_name type)
-    cmake_parse_arguments(ARG "" "" "SANITIZER" ${ARGN})
+function(target_clang_sanitizer target_name)
+    get_target_property(compiler ${target_name} CXX_COMPILER_ID)
+    if(NOT compiler MATCHES "(Apple)?[Cc]lang")
+        return()
+    endif()
 
+    cmake_parse_arguments(ARG "" "" "SANITIZER" ${ARGN})
     foreach(sanitizer ${ARG_SANITIZER})
         set(sanitizer_options "${sanitizer_options} -fsanitize=${sanitizer}")
     endforeach()
 
-    set(clang_debug_only "$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:DEBUG>>")
+    target_compile_options(
+        ${target_name} PRIVATE
+        "${sanitizer_options} -fno-omit-frame-pointer -fno-optimize-sibling-calls -g"
+    )
+    target_link_options(${target_name} PRIVATE "${sanitizer_options}")
+endfunction()
+
+function(target_msvc_sanitizer target_name)
+    get_target_property(compiler ${target_name} CXX_COMPILER_ID)
+    if(NOT compiler MATCHES "MSVC")
+        return()
+    endif()
+
+    cmake_parse_arguments(ARG "" "" "SANITIZER" ${ARGN})
+    foreach(sanitizer ${ARG_SANITIZER})
+        set(sanitizer_options "${sanitizer_options} /fsanitize=${sanitizer}")
+    endforeach()
 
     target_compile_options(
-        ${target_name}
-        ${type}
-        "SHELL: $<${clang_debug_only}: ${sanitizer_options} -fno-omit-frame-pointer -fno-optimize-sibling-calls>"
+        ${target_name} PRIVATE
+        "${sanitizer_options} /fsanitize-address-use-after-return /Zi"
     )
-    target_link_options(
-        ${target_name}
-        ${type}
-        "SHELL: $<${clang_debug_only}:${sanitizer_options}>"
-    )
+    target_link_options(${target_name} PRIVATE "${sanitizer_options}")
 endfunction()
 
 function(target_llvm_coverage target_name)
-    message(STATUS "enable code coverage for ${target_name}")
-    find_program(llvm_profdata "llvm-profdata")
-    find_program(llvm_cov "llvm-cov")
-
-    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
-        message(
-            STATUS
-            "C++ Compiler should be Clang, ${CMAKE_CXX_COMPILER_ID} is not supported."
-        )
+    get_target_property(compiler ${target_name} CXX_COMPILER_ID)
+    if(NOT compiler MATCHES "(Apple)?[Cc]lang")
         return()
     endif()
 
-    if(NOT EXISTS "${llvm_profdata}" OR NOT EXISTS "${llvm_cov}")
-        message(STATUS "llvm-profdata or llvm-cov not found.")
-        return()
+    if(NOT DEFINED ARG_FORMAT)
+        set(ARG_FORMAT lcov)
     endif()
-
-    message(STATUS "found llvm-profdata at: ${llvm_profdata}")
-    message(STATUS "found llvm-cov at: ${llvm_cov}")
-
-    cmake_parse_arguments(ARG "" "FORMAT" "DEPENDS" ${ARGN})
-
-    set(profile_file "${target_name}.profraw")
-
-    # Run first to generate profraw file
-    add_custom_command(
-        OUTPUT ${profile_file}
-        DEPENDS ${target_name}
-        COMMAND
-            "${CMAKE_COMMAND}" -E env LLVM_PROFILE_FILE=${profile_file}
-            $<TARGET_FILE:${target_name}> || exit 0
-    )
-
-    set(options -fprofile-instr-generate -fcoverage-mapping)
-
-    target_compile_options(${target_name} PUBLIC ${options})
-    target_link_options(${target_name} PUBLIC ${options})
-
-    set(profdata_file_name "${target_name}.profdata")
 
     if(${ARG_FORMAT} STREQUAL text)
         set(coverage_file_ext json)
@@ -312,36 +232,46 @@ function(target_llvm_coverage target_name)
         message(FATAL_ERROR "unknown format ${ARG_FORMAT}")
     endif()
 
-    set(coverage_file_ext "${target_name}Coverage.${coverage_file_ext}")
+    message(CHECK_START "Checking for llvm-profdata and llvm-cov")
+    find_program(llvm_profdata "llvm-profdata")
+    find_program(llvm_cov "llvm-cov")
+    if(NOT EXISTS "${llvm_profdata}" OR NOT EXISTS "${llvm_cov}")
+        message(CHECK_FAIL "llvm-profdata or llvm-cov not found")
+        return()
+    endif()
 
+    message(CHECK_PASS "found llvm-profdata at: ${llvm_profdata}")
+    message(CHECK_PASS "found llvm-cov at: ${llvm_cov}")
+    message(STATUS "enable code coverage for ${target_name}")
+    cmake_parse_arguments(ARG "" "FORMAT" "DEPENDS" ${ARGN})
+
+    set(profile_file "${target_name}.profraw")
+
+    # Run first to generate profraw file
+    add_custom_command(
+        OUTPUT ${profile_file}
+        DEPENDS ${target_name}
+        COMMAND
+        "${CMAKE_COMMAND}" -E env LLVM_PROFILE_FILE=${profile_file}
+        $<TARGET_FILE:${target_name}> || exit 0
+    )
+
+    set(options -fprofile-instr-generate -fcoverage-mapping)
+    target_compile_options(${target_name} PRIVATE ${options})
+    target_link_options(${target_name} PRIVATE ${options})
+
+    set(profdata_file_name "${target_name}.profdata")
     add_custom_target(
         ${target_name}CoverageReport
         ALL
         DEPENDS ${profile_file}
         COMMAND
-            "${llvm_profdata}" merge --sparse -o="${profdata_file_name}"
-            "${profile_file}"
+        "${llvm_profdata}" merge --sparse -o="${profdata_file_name}"
+        "${profile_file}"
         COMMAND
-            "${llvm_cov}" export -format=${ARG_FORMAT}
-            -object="$<TARGET_FILE:${target_name}>"
-            -instr-profile="${profdata_file_name}" > "${coverage_file_ext}"
-        USES_TERMINAL
-    )
-endfunction()
-
-function(target_cmake_format target_name)
-    cmake_parse_arguments(ARG "" "" "SRC;EXTRA_ARGS" ${ARGN})
-
-    find_program(gersemi "gersemi")
-
-    if(NOT EXISTS "${gersemi}")
-        message(STATUS "gersemi not found, no cmake format target generated.")
-        return()
-    endif()
-
-    add_custom_target(
-        ${target_name}CMakeFormat
-        COMMAND "${gersemi}" -i ${ARG_EXTRA_ARGS} ${ARG_SRC}
+        "${llvm_cov}" export -format=${ARG_FORMAT}
+        -object="$<TARGET_FILE:${target_name}>"
+        -instr-profile="${profdata_file_name}" > "${target_name}Coverage.${coverage_file_ext}"
         USES_TERMINAL
     )
 endfunction()

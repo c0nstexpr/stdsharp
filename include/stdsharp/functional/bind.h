@@ -7,7 +7,7 @@ namespace stdsharp
 {
     inline constexpr struct bind_front_fn
     {
-        [[nodiscard]] constexpr auto operator()(auto&&... args) const
+        [[nodiscard]] constexpr auto operator()(auto&&... args) const //
             noexcept(noexcept(std::bind_front(cpp_forward(args)...))) //
             -> decltype(std::bind_front(cpp_forward(args)...))
         {
@@ -15,17 +15,15 @@ namespace stdsharp
         }
     } bind_front{};
 
-#if __cpp_lib_bind_back >= 202202L
     inline constexpr struct bind_back_fn
     {
-        [[nodiscard]] constexpr auto operator()(auto&&... args) const
+        [[nodiscard]] constexpr auto operator()(auto&&... args) const //
             noexcept(noexcept(std::bind_back(cpp_forward(args)...))) //
             -> decltype(std::bind_back(cpp_forward(args)...))
         {
             return std::bind_back(cpp_forward(args)...);
         }
     } bind_back{};
-#endif
 }
 
 namespace stdsharp::details
@@ -82,14 +80,14 @@ namespace stdsharp::details
                 typename Func,
                 typename... Binds,
                 list_initializable_from<Func> Invoker = BindInvoker<std::decay_t<Func>>,
-                std::constructible_from<Binds...> Args = stdsharp::indexed_values<
+                std::constructible_from<Binds...> Args = stdsharp::indexed_values< //
                     std::conditional_t<lvalue_ref<Binds>, Binds, std::decay_t<Binds>>...>,
                 typename Seq = Args::index_sequence>
                 requires std::invocable<bind_front_fn, Invoker, Seq, Args>
-            constexpr auto operator()(Func&& func, Binds&&... binds) const noexcept( //
+            constexpr auto operator()(Func&& func, Binds&&... binds) const noexcept(
                 nothrow_list_initializable_from<Invoker, Func> &&
                 nothrow_constructible_from<Args, Binds...> &&
-                nothrow_invocable<bind_front_fn, Invoker, Seq, Args> //
+                nothrow_invocable<bind_front_fn, Invoker, Seq, Args>
             )
             {
                 return bind_front(Invoker{cpp_forward(func)}, Seq{}, Args{cpp_forward(binds)...});

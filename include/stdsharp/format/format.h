@@ -78,7 +78,6 @@ namespace stdsharp::details
 
 namespace stdsharp
 {
-
     template<typename CharT = char>
     struct make_format_args_fn;
 
@@ -123,9 +122,10 @@ namespace stdsharp
     inline constexpr struct visit_fmt_arg_fn
     {
         template<typename Visitor, typename OutputIt, typename CharT>
-            requires requires(const std::
-                                  basic_format_arg<std::basic_format_context<OutputIt, CharT>>::
-                                      handle handle) {
+            requires requires( //
+                const std::basic_format_arg<std::basic_format_context<OutputIt, CharT>>::
+                    handle handle //
+            ) {
                 requires std::invocable<Visitor, const bool&>;
                 requires std::invocable<Visitor, const CharT&>;
                 requires std::invocable<Visitor, const int&>;
@@ -226,10 +226,10 @@ namespace stdsharp
     {
         switch(align_char)
         {
-        case '<': return format_align_t::left;
-        case '>': return format_align_t::right;
-        case '^': return format_align_t::center;
-        default: throw std::format_error{"invalid align specifier"};
+            case '<': return format_align_t::left;
+            case '>': return format_align_t::right;
+            case '^': return format_align_t::center;
+            default: throw std::format_error{"invalid align specifier"};
         }
     }
 
@@ -237,10 +237,10 @@ namespace stdsharp
     {
         switch(align_char)
         {
-        case L'<': return format_align_t::left;
-        case L'>': return format_align_t::right;
-        case L'^': return format_align_t::center;
-        default: throw std::format_error{"invalid align specifier"};
+            case L'<': return format_align_t::left;
+            case L'>': return format_align_t::right;
+            case L'^': return format_align_t::center;
+            default: throw std::format_error{"invalid align specifier"};
         }
     }
 
@@ -278,13 +278,10 @@ namespace stdsharp
         if(!whole) return {};
 
         fill_and_align_spec<CharT> spec;
-
         if(fill) spec.fill = *fill.begin();
 
         spec.align = get_format_align(*align.begin());
-
         ctx.advance_to(whole.end());
-
         return spec;
     }
 
@@ -298,15 +295,12 @@ namespace stdsharp
         parse_nested_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         const auto& [whole, ref] = ctre::starts_with<Regex>(ctx);
-
         if(!whole) return {};
 
         const auto int_v = std::ranges::empty(ref) ? //
             ctx.next_arg_id() :
             static_cast<std::size_t>(parse_decimal_integer(ref));
-
         ctx.advance_to(whole.end());
-
         return nested_fmt_spec{int_v};
     }
 
@@ -345,7 +339,6 @@ namespace stdsharp
         ctx.advance_to(dot.end());
 
         auto&& spec = parse_uint_maybe_nested_spec<IntType>(ctx);
-
         if(spec.index() == 0) throw std::format_error{"specify precision without valid number"};
 
         return spec;
@@ -355,11 +348,9 @@ namespace stdsharp
     constexpr bool parse_locale_spec(std::basic_format_parse_context<CharT>& ctx)
     {
         const auto& use_locale = ctre::starts_with<Regex>(ctx);
-
         if(!use_locale) return false;
 
         ctx.advance_to(use_locale.end());
-
         return true;
     }
 }
@@ -400,22 +391,21 @@ namespace stdsharp
     {
         switch(spec.index())
         {
-        case 0: return {};
+            case 0: return {};
 
-        case 1: return get<1>(spec);
+            case 1: return get<1>(spec);
 
-        case 2:
-            return ::stdsharp::visit_fmt_arg(
-                ctx,
-                get<2>(spec).id,
-                sequenced_invocables<
-                    details::fmt_int_cast_fn<IntType>,
-                    details::fmt_int_invalid_cast_fn<IntType>>{}
-            );
+            case 2:
+                return ::stdsharp::visit_fmt_arg(
+                    ctx,
+                    get<2>(spec).id,
+                    sequenced_invocables<
+                        details::fmt_int_cast_fn<IntType>,
+                        details::fmt_int_invalid_cast_fn<IntType>>{}
+                );
         }
 
         std::unreachable();
-
         return {};
     }
 }

@@ -17,8 +17,10 @@ namespace stdsharp
 #endif
         ;
 
-    inline constexpr auto assert_with =
-        []<typename... Args>(std::predicate<Args...> auto&& fn, Args&&... args) noexcept
+    inline constexpr auto assert_with = []<typename... Args>( //
+        std::predicate<Args...> auto&& fn,
+        Args&&... args
+    ) noexcept
     {
         Expects(invoke(fn, cpp_forward(args)...)); //
     };

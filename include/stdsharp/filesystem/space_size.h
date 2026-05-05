@@ -114,6 +114,13 @@ namespace stdsharp::filesystem
     using petabytes = space_size<std::uintmax_t, std::peta>;
     using exabytes = space_size<std::uintmax_t, std::exa>;
 
+    using kibibytes = space_size<std::uintmax_t, kibi>;
+    using mebibytes = space_size<std::uintmax_t, mebi>;
+    using gibibytes = space_size<std::uintmax_t, gibi>;
+    using tebibytes = space_size<std::uintmax_t, tebi>;
+    using pebibytes = space_size<std::uintmax_t, pebi>;
+    using exbibytes = space_size<std::uintmax_t, exbi>;
+
 #define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(period, unit_name) \
     STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, #unit_name)
 
@@ -157,37 +164,6 @@ namespace stdsharp::filesystem
         return os << size.size() << details::space_size_unit_name<period, CharT>;          \
     }
 
-#if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000
-    using zettabytes = space_size<std::uintmax_t, std::zetta>;
-    STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(zetta, ZB)
-
-    #if(INTMAX_MAX / 1'000'000'000) >= 1'000'000'000'000'000
-    using yottabytes = space_size<std::uintmax_t, std::yotta>;
-    STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(yotta, YB)
-
-    #endif
-#endif
-
-    using kibibytes = space_size<std::uintmax_t, kibi>;
-    using mebibytes = space_size<std::uintmax_t, mebi>;
-    using gibibytes = space_size<std::uintmax_t, gibi>;
-    using tebibytes = space_size<std::uintmax_t, tebi>;
-    using pebibytes = space_size<std::uintmax_t, pebi>;
-    using exbibytes = space_size<std::uintmax_t, exbi>;
-
-#if(UINTMAX_MAX / 1024) >= 1'152'921'504'606'846'976
-    using zebi = std::ratio_multiply<exbi, kibi>;
-    using zebibytes = space_size<std::uintmax_t, zebi>;
-    STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(zebi, ZiB)
-
-    #if(INTMAX_MAX / 1024 / 1024) >= 1'152'921'504'606'846'976.
-    using yobi = std::ratio_multiply<zebi, kibi>;
-    using yobibytes = space_size<std::uintmax_t, yobi>;
-    STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(yobi, YiB)
-
-    #endif
-#endif
-
     STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(bits::period, bits);
     STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(bytes::period, B);
     STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR(kilobytes::period, KB);
@@ -220,7 +196,6 @@ namespace std
     inline constexpr bool
         enable_nonlocking_formatter_optimization<::stdsharp::filesystem::space_size<Rep, Period>> =
             true;
-
 #endif
 
     template<typename Rep, typename Period, typename CharT>
@@ -231,9 +206,8 @@ namespace std
 
         static constexpr auto default_unit_name = []
         {
-            if constexpr(requires {
-                             ::stdsharp::filesystem::details::space_size_unit_name<Period, CharT>;
-                         })
+            if constexpr(
+                requires { ::stdsharp::filesystem::details::space_size_unit_name<Period, CharT>; })
                 return ::stdsharp::filesystem::details::space_size_unit_name<Period, CharT>;
             else return std::basic_string_view<CharT>{};
         }();
@@ -271,8 +245,7 @@ namespace std
 
             if constexpr( //
                 const auto& precision = ::stdsharp::get_maybe_nested_uint(precision_, ctx);
-                same_as<CharT, char> //
-            )
+                same_as<CharT, char>)
             {
                 fmt_str << "{:";
 

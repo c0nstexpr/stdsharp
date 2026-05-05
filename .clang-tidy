@@ -16,6 +16,7 @@ Checks: # enabled
     -*-dangling-else,
     -*-use-trailing-return-type,
     -*-braces-around-statements,
+    -*-math-missing-parentheses,
     -*-misleading-indentation,
     -*-macro-usage,
     -*-non-private-member-variables-in-classes,
@@ -37,77 +38,94 @@ Checks: # enabled
     -*-swappable-parameters,
     -*-reserved-identifier,
     -cert-dcl58-cpp,
+    -*-enum-initial-value
     -*-avoid-nested-conditional-operator,
     -*-inc-dec-in-conditions,
     -*-pointer-arithmetic'
   # disabled alias
-  - '-bugprone-narrowing-conversions,
-    -cert-con36-c,
-    -cert-con54-cpp,
-    -cert-dcl03-c,
-    -cert-dcl16-c,
-    -cert-dcl37-c,
-    -cert-dcl51-cpp,
-    -cert-dcl54-cpp,
-    -cert-dcl59-cpp,
-    -cert-err09-cpp,
-    -cert-err61-cpp,
-    -cert-exp42-c,
-    -cert-fio38-c,
-    -cert-flp37-c,
-    -cert-msc24-c,
-    -cert-msc30-c,
-    -cert-msc32-c,
-    -cert-msc33-c,
-    -cert-msc54-cpp,
-    -cert-oop11-cpp,
-    -cert-oop54-cpp,
-    -cert-pos44-c,
-    -cert-pos47-c,
-    -cert-sig30-c,
-    -cert-str34-c,
-    -clang-analyzer-core.BitwiseShift,
-    -clang-analyzer-core.CallAndMessage,
-    -clang-analyzer-core.DivideZero,
-    -clang-analyzer-core.NonNullParamChecker,
-    -clang-analyzer-core.NullDereference,
-    -clang-analyzer-core.StackAddressEscape,
-    -clang-analyzer-core.UndefinedBinaryOperatorResult,
-    -clang-analyzer-core.VLASize,
-    -clang-analyzer-core.uninitialized.ArraySubscript,
-    -clang-analyzer-core.uninitialized.Assign,
-    -clang-analyzer-core.uninitialized.Branch,
-    -clang-analyzer-core.uninitialized.CapturedBlockVariable,
-    -clang-analyzer-core.uninitialized.NewArraySize,
-    -clang-analyzer-core.uninitialized.UndefReturn,
-    -clang-analyzer-cplusplus.InnerPointer,
-    -clang-analyzer-cplusplus.Move,
-    -clang-analyzer-cplusplus.NewDelete,
-    -clang-analyzer-cplusplus.NewDeleteLeaks,
-    -clang-analyzer-cplusplus.PlacementNew,
-    -clang-analyzer-cplusplus.PureVirtualCall,
-    -clang-analyzer-cplusplus.StringChecker,
-    -clang-analyzer-deadcode.DeadStores,
-    -clang-analyzer-fuchsia.HandleChecker,
-    -clang-analyzer-nullability.NullPassedToNonnull,
-    -clang-analyzer-nullability.NullReturnedFromNonnull,
-    -clang-analyzer-nullability.NullableDereferenced,
-    -clang-analyzer-nullability.NullablePassedToNonnull,
+  - '-cert-arr39-c
+    -cert-con36-c
+    -cert-con54-cpp
+    -cert-ctr56-cpp
+    -cert-dcl03-c
+    -cert-dcl16-c
+    -cert-dcl37-c
+    -cert-dcl50-cpp
+    -cert-dcl51-cpp
+    -cert-dcl54-cpp
+    -cert-dcl58-cpp
+    -cert-dcl59-cpp
+    -cert-env33-c
+    -cert-err09-cpp
+    -cert-err33-c
+    -cert-err34-c
+    -cert-err52-cpp
+    -cert-err58-cpp
+    -cert-err60-cpp
+    -cert-err61-cpp
+    -cert-exp42-c
+    -cert-exp45-c
+    -cert-fio38-c
+    -cert-flp30-c
+    -cert-flp37-c
+    -cert-int09-c
+    -cert-mem57-cpp
+    -cert-msc24-c
+    -cert-msc30-c
+    -cert-msc32-c
+    -cert-msc33-c
+    -cert-msc50-cpp
+    -cert-msc51-cpp
+    -cert-msc54-cpp
+    -cert-oop11-cpp
+    -cert-oop54-cpp
+    -cert-oop57-cpp
+    -cert-oop58-cpp
+    -cert-pos44-c
+    -cert-pos47-c
+    -cert-sig30-c
+    -cert-str34-c
+    -clang-analyzer-core.BitwiseShift
+    -clang-analyzer-core.CallAndMessage
+    -clang-analyzer-core.DivideZero
+    -clang-analyzer-core.NonNullParamChecker
+    -clang-analyzer-core.NullDereference
+    -clang-analyzer-core.StackAddressEscape
+    -clang-analyzer-core.UndefinedBinaryOperatorResult
+    -clang-analyzer-core.VLASize
+    -clang-analyzer-core.uninitialized.ArraySubscript
+    -clang-analyzer-core.uninitialized.Assign
+    -clang-analyzer-core.uninitialized.Branch
+    -clang-analyzer-core.uninitialized.CapturedBlockVariable
+    -clang-analyzer-core.uninitialized.NewArraySize
+    -clang-analyzer-core.uninitialized.UndefReturn
+    -clang-analyzer-cplusplus.ArrayDelete
+    -clang-analyzer-cplusplus.InnerPointer
+    -clang-analyzer-cplusplus.Move
+    -clang-analyzer-cplusplus.NewDelete
+    -clang-analyzer-cplusplus.NewDeleteLeaks
+    -clang-analyzer-cplusplus.PlacementNew
+    -clang-analyzer-cplusplus.SelfAssignment
+    -clang-analyzer-cplusplus.StringChecker
+    -clang-analyzer-deadcode.DeadStores
+    -clang-analyzer-fuchsia.HandleChecker
+    -clang-analyzer-nullability.NullPassedToNonnull
+    -clang-analyzer-nullability.NullReturnedFromNonnull
+    -clang-analyzer-nullability.NullableDereferenced
+    -clang-analyzer-nullability.NullablePassedToNonnull
     -clang-analyzer-nullability.NullableReturnedFromNonnull,
     -clang-analyzer-optin.core.EnumCastOutOfRange,
     -clang-analyzer-optin.cplusplus.UninitializedObject,
     -clang-analyzer-optin.cplusplus.VirtualCall,
     -clang-analyzer-optin.mpi.MPI-Checker,
-    -clang-analyzer-optin.osx.OSObjectCStyleCast,
     -clang-analyzer-optin.osx.cocoa.localizability.EmptyLocalizationContextChecker,
     -clang-analyzer-optin.osx.cocoa.localizability.NonLocalizedStringChecker,
     -clang-analyzer-optin.performance.GCDAntipattern,
     -clang-analyzer-optin.performance.Padding,
     -clang-analyzer-optin.portability.UnixAPI,
+    -clang-analyzer-optin.taint.TaintedAlloc,
     -clang-analyzer-osx.API,
-    -clang-analyzer-osx.MIG,
     -clang-analyzer-osx.NumberObjectConversion,
-    -clang-analyzer-osx.OSObjectRetainCount,
     -clang-analyzer-osx.ObjCProperty,
     -clang-analyzer-osx.SecKeychainAPI,
     -clang-analyzer-osx.cocoa.AtSync,
@@ -134,6 +152,8 @@ Checks: # enabled
     -clang-analyzer-osx.coreFoundation.containers.OutOfBounds,
     -clang-analyzer-osx.coreFoundation.containers.PointerSizedValues,
     -clang-analyzer-security.FloatLoopCounter,
+    -clang-analyzer-security.PutenvStackArray,
+    -clang-analyzer-security.SetgidSetuidOrder,
     -clang-analyzer-security.cert.env.InvalidPtr,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     -clang-analyzer-security.insecureAPI.UncheckedReturn,
@@ -149,17 +169,16 @@ Checks: # enabled
     -clang-analyzer-security.insecureAPI.strcpy,
     -clang-analyzer-security.insecureAPI.vfork,
     -clang-analyzer-unix.API,
+    -clang-analyzer-unix.BlockInCriticalSection,
     -clang-analyzer-unix.Errno,
     -clang-analyzer-unix.Malloc,
     -clang-analyzer-unix.MallocSizeof,
     -clang-analyzer-unix.MismatchedDeallocator,
     -clang-analyzer-unix.StdCLibraryFunctions,
+    -clang-analyzer-unix.Stream,
     -clang-analyzer-unix.Vfork,
     -clang-analyzer-unix.cstring.BadSizeArg,
     -clang-analyzer-unix.cstring.NullArg,
-    -clang-analyzer-valist.CopyToSelf,
-    -clang-analyzer-valist.Uninitialized,
-    -clang-analyzer-valist.Unterminated,
     -clang-analyzer-webkit.NoUncountedMemberChecker,
     -clang-analyzer-webkit.RefCntblBaseVirtualDtor,
     -clang-analyzer-webkit.UncountedLambdaCapturesChecker,
@@ -168,29 +187,37 @@ Checks: # enabled
     -cppcoreguidelines-c-copy-assignment-signature,
     -cppcoreguidelines-explicit-virtual-functions,
     -cppcoreguidelines-macro-to-enum,
+    -cppcoreguidelines-narrowing-conversions,
     -cppcoreguidelines-noexcept-destructor,
     -cppcoreguidelines-noexcept-move-operations,
     -cppcoreguidelines-noexcept-swap,
     -cppcoreguidelines-non-private-member-variables-in-classes,
     -cppcoreguidelines-use-default-member-init,
     -fuchsia-header-anon-namespaces,
+    -fuchsia-multiple-inheritance,
+    -google-build-namespaces,
     -google-readability-braces-around-statements,
+    -google-readability-casting,
     -google-readability-function-size,
     -google-readability-namespace-comments,
     -hicpp-avoid-c-arrays,
     -hicpp-avoid-goto,
     -hicpp-braces-around-statements,
     -hicpp-deprecated-headers,
+    -hicpp-exception-baseclass,
     -hicpp-explicit-conversions,
     -hicpp-function-size,
+    -hicpp-ignored-remove-result,
     -hicpp-invalid-access-moved,
     -hicpp-member-init,
     -hicpp-move-const-arg,
     -hicpp-named-parameter,
     -hicpp-new-delete-operators,
     -hicpp-no-array-decay,
+    -hicpp-no-assembler,
     -hicpp-no-malloc,
     -hicpp-noexcept-move,
+    -hicpp-signed-bitwise,
     -hicpp-special-member-functions,
     -hicpp-static-assert,
     -hicpp-undelegated-constructor,
@@ -204,7 +231,8 @@ Checks: # enabled
     -hicpp-use-override,
     -hicpp-vararg,
     -llvm-else-after-return,
-    -llvm-qualified-auto'
+    -llvm-qualified-auto,
+    -performance-faster-string-find'
 WarningsAsErrors: '*'
 FormatStyle: 'file'
 HeaderFilterRegex: '(include/)|(src/)'

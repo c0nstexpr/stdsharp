@@ -46,19 +46,17 @@ namespace stdsharp
 
     inline constexpr struct is_between_fn
     {
-        template<
+        template< //
             typename T,
             typename Proj = std::identity,
             std::indirect_strict_weak_order<std::projected<const T*, Proj>> Compare = std::ranges::
                 less>
-        [[nodiscard]] constexpr auto operator()(
-            const T& t,
+        [[nodiscard]] constexpr auto operator()(const T& t,
             decltype(t) min,
             decltype(t) max,
             Compare cmp = {},
-            Proj proj = {}
-        ) const noexcept( //
-            nothrow_predicate<
+            Proj proj = {}) const noexcept( //
+            nothrow_predicate< //
                 Compare,
                 std::projected<const T*, Proj>,
                 std::projected<const T*, Proj>> //
@@ -91,7 +89,7 @@ namespace stdsharp
         };
 
     public:
-        template<
+        template< //
             std::input_iterator I1,
             std::sentinel_for<I1> S1,
             std::input_iterator I2,
@@ -122,23 +120,21 @@ namespace stdsharp
             return pre;
         }
 
-        template<
+        template< //
             std::ranges::input_range R1,
             std::ranges::input_range R2,
             typename Cmp = std::compare_three_way>
-            requires ordering_predicate<
+            requires ordering_predicate< //
                 Cmp&,
                 std::ranges::range_reference_t<R1>,
                 std::ranges::range_reference_t<R2>>
         constexpr auto operator()(R1&& r1, R2&& r2, Cmp cmp = {}) const
         {
-            return (*this)(
-                std::ranges::begin(r1),
+            return (*this)(std::ranges::begin(r1),
                 std::ranges::end(r1),
                 std::ranges::begin(r2),
                 std::ranges::end(r2),
-                cmp
-            );
+                cmp);
         }
     } strict_compare{};
 

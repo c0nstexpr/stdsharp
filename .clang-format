@@ -1,20 +1,16 @@
 ---
 Language: Cpp
 Standard: Latest
-BasedOnStyle: LLVM
 
 AccessModifierOffset: -4
-AlignAfterOpenBracket: BlockIndent
+AlignAfterOpenBracket: false
 AlignEscapedNewlines: Left
 AlignOperands: DontAlign
 AlignTrailingComments: false
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowBreakBeforeNoexceptSpecifier: OnlyWithParen
-AllowShortBlocksOnASingleLine: Always
-# AllowShortCaseExpressionOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortCompoundRequirementOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakTemplateDeclarations: Yes
@@ -24,8 +20,20 @@ BreakBeforeBraces: Allman
 BreakInheritanceList: AfterColon
 BreakBeforeTernaryOperators: false
 BreakConstructorInitializers: AfterColon
+BinPackLongBracedList: false
+BreakAfterOpenBracketBracedList: true
+BreakAfterOpenBracketFunction: true
+BreakAfterOpenBracketLoop: true
+BreakAfterOpenBracketSwitch: true
+BreakBeforeCloseBracketBracedList: true
+BreakBeforeCloseBracketFunction: true
+BreakBeforeCloseBracketLoop: true
+BreakBeforeCloseBracketSwitch: true
+BreakBinaryOperations: OnePerLine
+Cpp11BracedListStyle: FunctionCall
+EnumTrailingComma: Remove
+RemoveEmptyLinesInUnwrappedLines: true
 ColumnLimit: 100
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
 EmptyLineBeforeAccessModifier: Always
 FixNamespaceComments: false
 IncludeBlocks: Regroup
@@ -42,19 +50,22 @@ IncludeCategories:
   - Regex: "<.+>"
     SortPriority: 1
     Priority: 1
-IndentGotoLabels: false
+IndentCaseLabels: true
+IndentGotoLabels: true
 IndentPPDirectives: BeforeHash
 IndentWidth: 4
 IndentWrappedFunctionNames: true
-# KeepEmptyLines:
-#   AtEndOfFile: true
-#   AtStartOfBlock: false
-#   AtStartOfFile: false
 KeepEmptyLinesAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 1
 NamespaceIndentation: All
 PackConstructorInitializers: NextLine
+KeepEmptyLines:
+  AtStartOfFile: false
+NumericLiteralCase:
+  ExponentLetter: Upper
+  HexDigit: Upper
+  Prefix: Upper
+  Suffix: Upper
 PenaltyBreakAssignment: 20
 PenaltyBreakBeforeFirstCallParameter: 10
 PenaltyBreakComment: 0
@@ -64,7 +75,6 @@ PenaltyBreakScopeResolution: 30
 PenaltyBreakString: 100
 PenaltyBreakTemplateDeclaration: 0
 PenaltyExcessCharacter: 1000
-PenaltyIndentedWhitespace: 0
 PenaltyReturnTypeOnItsOwnLine: 50
 PointerAlignment: Left
 QualifierAlignment: Left
@@ -75,3 +85,4 @@ SpaceAfterTemplateKeyword: false
 SpaceBeforeCtorInitializerColon: false
 SpaceBeforeParens: Never
 SpacesInContainerLiterals: false
+WrapNamespaceBodyWithEmptyLines: Never

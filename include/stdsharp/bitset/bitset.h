@@ -11,10 +11,9 @@
 namespace stdsharp::details
 {
     template<typename Bitset>
-    class bitset_iterator :
-        public basic_iterator<std::decay_t<decltype(Bitset{}[0])>, ssize_t>
+    class bitset_iterator : public basic_iterator<std::decay_t<decltype(Bitset{}[0])>, ssize_t>
     {
-        using m_base = basic_iterator<
+        using m_base = basic_iterator<//
             typename bitset_iterator::value_type,
             typename bitset_iterator::difference_type>;
 

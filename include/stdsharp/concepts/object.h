@@ -237,10 +237,10 @@ namespace stdsharp
     concept arithmetic_like = std::three_way_comparable<T> && requires(T t1, T t2) {
         { t1 + t2 } -> std::same_as<T>;
         { t1 - t2 } -> std::same_as<T>;
-        { t1* t2 } -> std::same_as<T>;
+        { t1 * t2 } -> std::same_as<T>;
         { t1 / t2 } -> std::same_as<T>;
         { t1 % t2 } -> std::same_as<T>;
-        { t1& t2 } -> std::same_as<T>;
+        { t1 & t2 } -> std::same_as<T>;
         { t1 | t2 } -> std::same_as<T>;
         { t1 ^ t2 } -> std::same_as<T>;
         { t1 << t2 } -> std::same_as<T>;

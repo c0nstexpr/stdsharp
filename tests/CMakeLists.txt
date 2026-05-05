@@ -1,17 +1,12 @@
-#
-# Project details
-#
 project(${CMAKE_PROJECT_NAME}Tests LANGUAGES CXX)
 
-verbose_message("Adding tests under ${CMAKE_PROJECT_NAME}...")
-
+include(CTest)
 find_package(Catch2 CONFIG REQUIRED)
 include(Catch)
 
-#
-# Set the sources for the unit tests and add the executable(s)
-#
-set(src
+add_exe_target(
+    ${PROJECT_NAME}
+    SRC
     src/algorithm/algorithm.cpp
     src/bitset/bitset.cpp
     src/containers/actions.cpp
@@ -45,58 +40,17 @@ set(src
     src/lazy.cpp
     src/pattern_match.cpp
     src/synchronizer.cpp
+    LINKS stdsharp Catch2::Catch2WithMain
+    INCLUDED_AS_SYSTEM FALSE
 )
-
-config_lib(${PROJECT_NAME}Lib INTERFACE)
-
-target_link_libraries(
-    ${PROJECT_NAME}Lib
-    INTERFACE stdsharp::stdsharp Catch2::Catch2WithMain
-)
-
-config_exe(${PROJECT_NAME} EXE_SRC ${src})
-
-target_compile_options(
-    ${PROJECT_NAME}
-    PUBLIC
-        $<$<CXX_COMPILER_ID:Clang>:-Qunused-arguments
-        -ftemplate-backtrace-limit=0>
-)
-
-set_target_properties(
-    ${PROJECT_NAME}
-    PROPERTIES COMPILE_WARNING_AS_ERROR ON EXPORT_COMPILE_COMMANDS ON
-)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib)
-
-target_clang_sanitizer(${PROJECT_NAME} PUBLIC SANITIZER address undefined)
-
-#
-# Configure clang-tidy
-#
-option(ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
-
-if(${ENABLE_CLANG_TIDY})
-    message(STATUS "clang-tidy is enabled")
-    target_clang_tidy(${PROJECT_NAME})
-endif()
-
-#
-# Configure code coverage
-#
-set(CODE_COVERAGE_EXT CACHE STRING "Enable code coverage")
-
-if(CODE_COVERAGE_EXT)
-    target_llvm_coverage(${PROJECT_NAME} FORMAT ${CODE_COVERAGE_EXT})
-endif()
-
 catch_discover_tests(${PROJECT_NAME})
 
-target_cmake_format(
-  ${PROJECT_NAME}
-  SRC
-    "${CMAKE_SOURCE_DIR}/CMakeLists.txt"
-    "${CMAKE_SOURCE_DIR}/cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-)
+target_diagnostics(${PROJECT_NAME})
+target_compile_options(${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:Clang>: -ftemplate-backtrace-limit=0>)
+set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+
+target_clang_sanitizer(${PROJECT_NAME} PRIVATE SANITIZER address undefined leak thread memory type)
+target_msvc_sanitizer(${PROJECT_NAME} PRIVATE SANITIZER address kernel-address)
+
+target_clang_tidy(${PROJECT_NAME})
+target_llvm_coverage(${PROJECT_NAME})

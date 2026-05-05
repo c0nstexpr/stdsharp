@@ -4,6 +4,7 @@
 #include "regular_type_sequence.h"
 
 #include <compare>
+#include <cstdint>
 #include <functional>
 #include <typeinfo>
 

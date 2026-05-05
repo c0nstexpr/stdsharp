@@ -299,7 +299,6 @@ namespace stdsharp::containers::details
             return container;
         }
     };
-
 }
 
 namespace stdsharp::containers
