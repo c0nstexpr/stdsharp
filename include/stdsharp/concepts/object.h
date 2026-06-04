@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../functional/invoke_r.h"
 #include "type.h"
 

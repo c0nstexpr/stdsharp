@@ -1,62 +1,53 @@
 #pragma once
 
 #include "../functional/invocables.h"
+#include "../utility/value_wrapper.h"
 
 #include "../compilation_config_in.h"
-
-namespace stdsharp::details
-{
-    template<std::size_t I = 0, typename Fn>
-    static constexpr decltype(auto) composed_invoke(Fn&& fn, auto&&... arg) noexcept( //
-        noexcept( //
-            composed_invoke<I + 1>(
-                cpp_forward(fn),
-                cpp_forward(fn).template get<I>()(cpp_forward(arg)...)
-            )
-        )
-    )
-        requires requires {
-            composed_invoke<I + 1>(
-                cpp_forward(fn),
-                cpp_forward(fn).template get<I>()(cpp_forward(arg)...)
-            );
-        }
-    {
-        return composed_invoke<I + 1>(
-            cpp_forward(fn),
-            cpp_forward(fn).template get<I>()(cpp_forward(arg)...)
-        );
-    }
-
-    template<std::size_t I, typename... T>
-        requires(I == std::tuple_size_v<invocables<T...>>)
-    static constexpr decltype(auto) composed_invoke(
-        const invocables<T...>& /*unused*/,
-        auto&& arg //
-    ) noexcept
-    {
-        return cpp_forward(arg);
-    }
-}
 
 namespace stdsharp
 {
     template<typename... T>
-    class composed : public invocables<T...>
+    class composed;
+
+    template<typename T, typename... U>
+    STDSHARP_EBO class composed<T, U...> : value_wrapper<T>, composed<U...>
     {
-        using invocables = invocables<T...>;
+        using wrapper = value_wrapper<T>;
+        using next_composed = composed<U...>;
 
     public:
-        using invocables::invocables;
-
         composed() = default;
 
-        constexpr decltype(auto) operator()(this auto&& self, auto&&... args)
-            noexcept(noexcept(details::composed_invoke(cpp_forward(self), cpp_forward(args)...)))
-            requires requires { details::composed_invoke(cpp_forward(self), cpp_forward(args)...); }
+        template<typename TArg, typename... UArgs>
+            requires std::constructible_from<wrapper, TArg> &&
+                         std::constructible_from<next_composed, UArgs...>
+        constexpr composed(TArg&& t_arg, UArgs&&... u_args) noexcept(
+            nothrow_constructible_from<wrapper, TArg> &&
+            nothrow_constructible_from<next_composed, UArgs...>
+        ):
+            wrapper(cpp_forward(t_arg)), next_composed(cpp_forward(u_args)...)
         {
-            return details::composed_invoke(cpp_forward(self), cpp_forward(args)...);
         }
+
+        template<typename Self, typename... Args>
+            requires std::invocable<next_composed, Args...> &&
+            std::invocable<std::invoke_result_t<next_composed, Args...>, T>
+        constexpr decltype(auto) operator()(this Self&& self, Args&&... args) noexcept(
+            nothrow_invocable<next_composed, Args...> &&
+            nothrow_invocable<std::invoke_result_t<next_composed, Args...>, T>
+        )
+        {
+            return invoke(
+                cpp_forward(self).wrapper::get(),
+                cpp_forward(self).next_composed::operator()(cpp_forward(args)...)
+            );
+        }
+    };
+
+    template<typename T>
+    class composed<T> : invocables<T>
+    {
     };
 
     template<typename... T>
@@ -66,13 +57,13 @@ namespace stdsharp
 namespace std
 {
     template<typename... T>
-    struct tuple_size<::stdsharp::composed<T...>> : ::std::tuple_size<::stdsharp::invocables<T...>>
+    struct tuple_size<::stdsharp::composed<T...>> : ::std::tuple_size<::std::tuple<T...>>
     {
     };
 
     template<std::size_t I, typename... T>
     struct tuple_element<I, ::stdsharp::composed<T...>> :
-        ::std::tuple_element<I, ::stdsharp::invocables<T...>>
+        ::std::tuple_element<I, ::std::tuple<T...>>
     {
     };
 }

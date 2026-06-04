@@ -2,6 +2,7 @@
 
 #include "../cstdint/cstdint.h"
 #include "../iterator/iterator.h"
+#include "compose.h"
 #include "sequenced_invocables.h"
 
 namespace stdsharp
@@ -10,41 +11,57 @@ namespace stdsharp
     {
         template<typename T>
             requires std::constructible_from<std::decay_t<T>, T>
-        [[nodiscard]] constexpr std::decay_t<T> operator()(T&& t) const
+        [[nodiscard]] constexpr std::decay_t<T> operator()(T&& t) const //
             noexcept(nothrow_constructible_from<std::decay_t<T>>)
         {
             return t;
         }
     } copy{};
 
-    template<typename Func>
-    using not_fn_t = decltype(std::not_fn(std::declval<Func>()));
-
-    namespace details
+    inline constexpr struct not_fn
     {
-        struct assign
+        template<typename Fn>
+        [[nodiscard]] constexpr std::decay_t<Fn> operator()(Fn&& fn) const //
+            noexcept(noexcept(std::not_fn(cpp_forward(fn))))
+            requires requires { std::not_fn(cpp_forward(fn)); }
         {
-            template<typename T, typename U = T>
-                requires std::assignable_from<T&, U>
-            constexpr decltype(auto) operator()(T& left, U&& right) const
-                noexcept(nothrow_assignable_from<T&, U>)
-            {
-                return left = cpp_forward(right);
-            }
-        };
+            return std::not_fn(cpp_forward(fn));
+        }
+    } not_fn_v{};
+}
 
-        struct assign_by_construct
+namespace stdsharp::details
+{
+    struct assign
+    {
+        template<typename T, typename U = T>
+            requires std::assignable_from<T&, U>
+        constexpr decltype(auto) operator()(T& left, U&& right) const //
+            noexcept(nothrow_assignable_from<T&, U>)
         {
-            template<typename T, typename... U, typename DecayT = std::remove_reference_t<T>>
-                requires std::constructible_from<DecayT, U...>
-            constexpr decltype(auto) operator()(T& left, U&&... right) const
-                noexcept(noexcept(left = DecayT{cpp_forward(right)...}))
-            {
-                return left = DecayT{cpp_forward(right)...};
-            }
-        };
-    }
+            return left = cpp_forward(right);
+        }
+    };
 
+    struct assign_by_construct : assign
+    {
+        template<
+            typename T,
+            typename... Args,
+            std::constructible_from<Args...> DecayT = std::remove_reference_t<T>>
+            requires std::invocable<assign, T&, DecayT>
+        constexpr decltype(auto) operator()(T& left, Args&&... args) const noexcept(
+            nothrow_constructible_from<DecayT, Args...> && //
+            nothrow_invocable<assign, T&, DecayT>
+        )
+        {
+            return (*this)(left, DecayT{cpp_forward(args)...});
+        }
+    };
+}
+
+namespace stdsharp
+{
     inline constexpr struct assign :
         sequenced_invocables<details::assign, details::assign_by_construct>
     {
@@ -71,28 +88,19 @@ namespace stdsharp
     inline constexpr std::bit_not<> bit_not_v{};
     inline constexpr std::bit_or<> bit_or_v{};
     inline constexpr std::bit_xor<> bit_xor_v{};
+    using bit_xnor = composed<std::bit_xor<>, std::bit_not<>>;
+    inline constexpr bit_xnor bit_xnor_v{};
 
-    inline constexpr struct bit_xnor
-    {
-        template<typename T, typename U = T>
-        constexpr decltype(auto) operator()(T&& t, U&& u) const
-            noexcept(noexcept(bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u)))))
-            requires requires { bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u))); }
-        {
-            return bit_not_v(bit_xor_v(cpp_forward(t), cpp_forward(u)));
-        }
-    } bit_xnor_v{};
-
-#define SHARP_SHIFT_OPERATE(direction, operate)                                      \
-    inline constexpr struct direction##_shift                                        \
-    {                                                                                \
-        template<typename T, typename U = T>                                         \
-        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const \
-            noexcept(noexcept(cpp_forward(left) operate cpp_forward(right)))         \
-            requires requires { cpp_forward(left) operate cpp_forward(right); }      \
-        {                                                                            \
-            return cpp_forward(left) operate cpp_forward(right);                     \
-        }                                                                            \
+#define SHARP_SHIFT_OPERATE(direction, operate)                                           \
+    inline constexpr struct direction##_shift                                             \
+    {                                                                                     \
+        template<typename T, typename U = T>                                              \
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& left, U&& right) const /**/ \
+            noexcept(noexcept(cpp_forward(left) operate cpp_forward(right)))              \
+            requires requires { cpp_forward(left) operate cpp_forward(right); }           \
+        {                                                                                 \
+            return cpp_forward(left) operate cpp_forward(right);                          \
+        }                                                                                 \
     } direction##_shift_v{};
 
     SHARP_SHIFT_OPERATE(left, <<)
@@ -101,7 +109,6 @@ namespace stdsharp
 #undef SHARP_SHIFT_OPERATE
 
 #define STDSHARP_ASSIGN_OPERATE(operator_type, op)                                               \
-                                                                                                 \
     template<typename T, typename U>                                                             \
     concept operator_type##_assignable_from = requires(T t, U&& u) { t op## = cpp_forward(u); }; \
                                                                                                  \
@@ -111,7 +118,7 @@ namespace stdsharp
         {                                                                                        \
             template<typename T, typename U = T>                                                 \
                 requires(operator_type##_assignable_from<T, U>)                                  \
-            constexpr decltype(auto) operator()(T& t, U&& u) const                               \
+            constexpr decltype(auto) operator()(T& t, U&& u) const /**/                          \
                 noexcept(noexcept((t op## = cpp_forward(u))))                                    \
             {                                                                                    \
                 return t op## = cpp_forward(u);                                                  \
@@ -121,9 +128,9 @@ namespace stdsharp
         struct indirect_##operator_type##_assign                                                 \
         {                                                                                        \
             template<typename T, typename U = T>                                                 \
-                requires requires(T t, U&& u) { t = operator_type##_v(t, cpp_forward(u)); }      \
-            constexpr decltype(auto) operator()(T& t, U&& u) const                               \
+            constexpr decltype(auto) operator()(T& t, U&& u) const /**/                          \
                 noexcept(noexcept((t = operator_type##_v(t, cpp_forward(u)))))                   \
+                requires requires { t = operator_type##_v(t, cpp_forward(u)); }                  \
             {                                                                                    \
                 return t = operator_type##_v(t, cpp_forward(u));                                 \
             }                                                                                    \
@@ -154,7 +161,7 @@ namespace stdsharp
     {                                                                                   \
         template<typename T, typename U = T>                                            \
             requires requires(T t, U&& u) { t = operator_type##_v(t, cpp_forward(u)); } \
-        constexpr decltype(auto) operator()(T& t, U&& u) const                          \
+        constexpr decltype(auto) operator()(T& t, U&& u) const /**/                     \
             noexcept(noexcept((t = operator_type##_v(t, cpp_forward(u)))))              \
         {                                                                               \
             return t = operator_type##_v(t, cpp_forward(u));                            \
@@ -171,7 +178,10 @@ namespace stdsharp
     template<typename T>
     struct identity_with_fn
     {
-        constexpr decltype(auto) operator()(T&& t) const noexcept { return cpp_forward(t); }
+        [[nodiscard]] constexpr decltype(auto) operator()(T&& t) const noexcept
+        {
+            return cpp_forward(t);
+        }
     };
 
     template<typename T>
@@ -183,20 +193,20 @@ namespace stdsharp
     inline constexpr struct pre_##operator_prefix##crease                                          \
     {                                                                                              \
         template<typename T>                                                                       \
-            requires requires(T t) { op##op t; }                                                   \
-        constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(op##op v))               \
+        constexpr decltype(auto) operator()(T& t) const noexcept(noexcept(op##op t))               \
+            requires requires { op##op t; }                                                        \
         {                                                                                          \
-            return op##op v;                                                                       \
+            return op##op t;                                                                       \
         }                                                                                          \
     } pre_##operator_prefix##crease_v{};                                                           \
                                                                                                    \
     inline constexpr struct post_##operator_prefix##crease                                         \
     {                                                                                              \
         template<weakly_decrementable T>                                                           \
-            requires requires(T t) { t op##op; }                                                   \
-        [[nodiscard]] constexpr decltype(auto) operator()(T& v) const noexcept(noexcept(v op##op)) \
+        [[nodiscard]] constexpr decltype(auto) operator()(T& t) const noexcept(noexcept(t op##op)) \
+            requires requires { t op##op; }                                                        \
         {                                                                                          \
-            return v op##op;                                                                       \
+            return t op##op;                                                                       \
         }                                                                                          \
     } post_##operator_prefix##crease_v{};
 
@@ -204,50 +214,37 @@ namespace stdsharp
     STDSHARP_INC_DEC_OPERATE(de, -, minus)
 
 #undef STDSHARP_INC_DEC_OPERATE
+}
 
-    namespace details
+namespace stdsharp::details
+{
+    struct advance_by_op
     {
-        struct advance_by_op
+        template<typename T, std::signed_integral Distance = std::iter_difference_t<T>>
+            requires(std::invocable<pre_increase, T&> && std::invocable<pre_decrease, T&>)
+        constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept(
+            noexcept(nothrow_invocable<pre_increase, T&> && nothrow_invocable<pre_decrease, T&>)
+        )
         {
-            template<typename T, std::unsigned_integral Distance = std::iter_difference_t<T>>
-                requires std::invocable<pre_increase, T>
-            constexpr decltype(auto) operator()(T& v, Distance distance) const
-                noexcept(nothrow_invocable<pre_increase, T>)
-            {
-                if(distance == 0) return v;
-                for(; distance > 0; --distance) pre_increase_v(v);
-                return v;
-            }
+            for(; distance > 0; --distance) pre_increase_v(v);
+            for(; distance < 0; ++distance) pre_decrease_v(v);
 
-            template<typename T, std::signed_integral Distance = std::iter_difference_t<T>>
-                requires(
-                    std::invocable<advance_by_op, T, std::make_unsigned_t<Distance>> &&
-                    std::invocable<pre_decrease, T> //
-                )
-            constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept( //
-                noexcept(
-                    nothrow_invocable<advance_by_op, T, std::make_unsigned_t<Distance>> &&
-                    nothrow_invocable<pre_decrease, T> //
-                )
-            )
-            {
-                if(distance >= 0) return (*this)(v, make_unsigned(distance));
+            return v;
+        }
+    };
+}
 
-                for(; distance < 0; ++distance) pre_decrease_v(v);
-                return v;
-            }
-        };
-    }
-
-    inline constexpr struct advance : sequenced_invocables<plus_assign, details::advance_by_op>
-    {
-    } advance_v{};
+namespace stdsharp
+{
+    using advance = sequenced_invocables<plus_assign, details::advance_by_op>;
+    inline constexpr advance advance_v{};
 
     inline constexpr struct logical_imply_fn
     {
-        constexpr auto operator()(const bool first_cond, const bool second_cond) const noexcept
+        [[nodiscard]] constexpr auto operator()(const bool first_cond, const bool second_cond) //
+            const noexcept
         {
-            return first_cond ? second_cond : true;
+            return !first_cond || second_cond;
         }
     } logical_imply;
 }

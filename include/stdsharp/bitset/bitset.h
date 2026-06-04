@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../cassert/cassert.h"
 #include "../cstdint/cstdint.h"
 #include "../iterator/basic_iterator.h"

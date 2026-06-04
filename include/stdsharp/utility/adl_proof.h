@@ -1,7 +1,4 @@
 #pragma once
-
-#include "../namespace_alias.h"
-
 #include <concepts>
 
 namespace stdsharp

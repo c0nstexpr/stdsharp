@@ -36,9 +36,9 @@ namespace stdsharp::filesystem
         }
 
     public:
-        static constexpr space_size zero() noexcept { return {}; }
+        [[nodiscard]] static constexpr space_size zero() noexcept { return {}; }
 
-        static constexpr space_size max() noexcept { return std::numeric_limits<rep>::max(); }
+        [[nodiscard]] static constexpr space_size max() noexcept { return std::numeric_limits<rep>::max(); }
 
         space_size() = default;
 
@@ -226,7 +226,7 @@ namespace std
             using str_view = basic_string_view<CharT>;
 
             const auto& unit_name = unit_name_ ?
-                ::stdsharp::visit_fmt_arg(
+                ::stdsharp::visit_fmt_ctx_arg(
                     ctx,
                     unit_name_->id,
                     ::stdsharp::sequenced_invocables{

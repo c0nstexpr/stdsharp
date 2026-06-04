@@ -1,7 +1,4 @@
 #pragma once
-
-#include "../namespace_alias.h"
-
 #include <chrono>
 #include <concepts>
 #include <mutex> // IWYU pragma: export

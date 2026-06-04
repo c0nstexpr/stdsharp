@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../concepts/object.h"
-#include "fwd_cast.h"
+#include "forward_like.h"
 
 #include "../compilation_config_in.h"
 
@@ -22,7 +22,7 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
         {
-            return (fwd_cast<value_wrapper>(cpp_forward(self)).v);
+            return (cpp_forward(self).v);
         }
     };
 
@@ -54,7 +54,7 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
         {
-            return fwd_cast<T>(fwd_cast<value_wrapper>(cpp_forward(self)));
+            return forward_like<T>(cpp_forward(self));
         }
     };
 
@@ -73,23 +73,20 @@ namespace stdsharp
     struct value_wrapper : details::value_wrapper<T>
     {
     private:
-        static constexpr auto self_cast = fwd_cast<value_wrapper>;
-
         using m_base = details::value_wrapper<T>;
 
     public:
         using value_type = T;
-
         using m_base::m_base;
 
         [[nodiscard]] constexpr decltype(auto) cget(this const auto&& self) noexcept
         {
-            return self_cast(cpp_forward(self)).get();
+            return cpp_forward(self).get();
         }
 
         [[nodiscard]] constexpr decltype(auto) cget(this const auto& self) noexcept
         {
-            return self_cast(self).get();
+            return self.get();
         }
     };
 

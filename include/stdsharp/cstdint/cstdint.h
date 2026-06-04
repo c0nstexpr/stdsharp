@@ -1,14 +1,12 @@
 #pragma once
-
-#include "../namespace_alias.h"
-
 #include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
-#if __has_include(<stdfloat>)
+#include "../compilation_config_in.h"
 
+#if __has_include(<stdfloat>)
     #include <stdfloat>
 
 namespace stdsharp
@@ -43,47 +41,22 @@ namespace stdsharp
     using ushort = unsigned short;
     using ulong = unsigned long;
     using ull = unsigned long long;
-
+    using ssize_t = std::make_signed_t<std::size_t>;
     using byte = std::underlying_type_t<std::byte>;
 
-#ifdef INT8_MAX
     using i8 = std::int8_t;
-#endif
-
-#ifdef UINT8_MAX
     using u8 = std::uint8_t;
-#endif
-
-#ifdef INT16_MAX
     using i16 = std::int16_t;
-#endif
-
-#ifdef UINT16_MAX
     using u16 = std::uint16_t;
-#endif
-
-#ifdef INT32_MAX
     using i32 = std::int32_t;
-#endif
-
-#ifdef UINT32_MAX
     using u32 = std::uint32_t;
-#endif
-
-#ifdef INT64_MAX
     using i64 = std::int64_t;
-#endif
-
-#ifdef UINT64_MAX
     using u64 = std::uint64_t;
-#endif
-
-    using ssize_t = std::make_signed_t<std::size_t>;
 
     inline constexpr struct
     {
         template<typename T>
-        [[nodiscard]] constexpr auto operator()(const T t) noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(const T t) noexcept
         {
             return static_cast<std::make_unsigned_t<T>>(t);
         }
@@ -92,7 +65,7 @@ namespace stdsharp
     inline constexpr struct
     {
         template<typename T>
-        [[nodiscard]] constexpr auto operator()(const T t) noexcept
+        STDSHARP_INTRINSIC constexpr auto operator()(const T t) noexcept
         {
             return static_cast<std::make_signed_t<T>>(t);
         }
@@ -100,10 +73,12 @@ namespace stdsharp
 
     inline namespace literals
     {
-#define STDSHARP_INT_LITERALS(literal)                                                         \
-    [[nodiscard]] constexpr auto operator""_##literal(const unsigned long long value) noexcept \
-    {                                                                                          \
-        return static_cast<literal>(value);                                                    \
+#define STDSHARP_INT_LITERALS(literal)                      \
+    STDSHARP_INTRINSIC constexpr auto operator""_##literal( \
+        const unsigned long long value                      \
+    ) noexcept                                              \
+    {                                                       \
+        return static_cast<literal>(value);                 \
     }
 
 #define STDSHARP_SIGNS_INT_LITERALS(num) STDSHARP_INT_LITERALS(i##num) STDSHARP_INT_LITERALS(u##num)
@@ -120,3 +95,5 @@ namespace stdsharp
 #undef STDSHARP_INT_LITERALS
     }
 }
+
+#include "../compilation_config_out.h"

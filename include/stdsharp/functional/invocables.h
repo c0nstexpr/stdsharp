@@ -7,8 +7,6 @@
 
 namespace stdsharp::details
 {
-    template<typename...>
-    struct invocables;
 
     template<typename Base, std::size_t I>
     struct invoke_operator
@@ -23,12 +21,15 @@ namespace stdsharp::details
             noexcept(nothrow_invocable<Fn, Args...>)
         {
             return invoke(
-                fwd_cast<Base>(cpp_forward(self)).template get<I>(),
+                cpp_forward(self).Base::template get<I>(),
                 cpp_forward(args)...
             );
         }
     };
 
+    template<typename...>
+    struct invocables;
+    
     template<typename... Func, std::size_t... I>
     struct STDSHARP_EBO invocables<std::index_sequence<I...>, Func...> :
         stdsharp::indexed_values<Func...>,

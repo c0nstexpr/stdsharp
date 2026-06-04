@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../utility/constructor.h"
 #include "concepts.h"
 
@@ -17,18 +16,18 @@ namespace stdsharp::containers
     {
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires sequence_container<Container>
-        constexpr decltype(auto) operator()(
+        static constexpr decltype(auto) operator()(
             Container& container,
             const details::container_citer<Container>& iter,
             Args&&... args
-        ) const
+        )
         {
             return container.emplace(iter, cpp_forward(args)...);
         }
 
         template<typename... Args, container_emplace_constructible<Args...> Container>
             requires associative_like_container<Container>
-        constexpr decltype(auto) operator()(Container& container, Args&&... args) const
+        static constexpr decltype(auto) operator()(Container& container, Args&&... args)
         {
             return container.emplace(cpp_forward(args)...);
         }
@@ -42,11 +41,11 @@ namespace stdsharp::containers::erase_cpo
     struct erase_base_fn
     {
         template<container_erasable Container>
-        constexpr auto operator()(
+        static constexpr auto operator()(
             Container& container,
             const std::
                 equality_comparable_with<typename std::decay_t<Container>::value_type> auto& value
-        ) const
+        )
             requires requires {
                 requires sequence_container<Container>;
                 erase(container, value);
@@ -57,11 +56,11 @@ namespace stdsharp::containers::erase_cpo
 
         template<container_erasable Container>
             requires associative_like_container<Container>
-        constexpr auto operator()(
+        static constexpr auto operator()(
             Container& container,
             const std::
                 equality_comparable_with<typename std::decay_t<Container>::key_type> auto& key
-        ) const
+        )
         {
             return container.erase(key);
         }
@@ -70,21 +69,21 @@ namespace stdsharp::containers::erase_cpo
             container_erasable Container,
             typename ConstIter = details::container_citer<Container>>
             requires(sequence_container<Container> || associative_like_container<Container>)
-        constexpr auto operator()(
+        static constexpr auto operator()(
             Container& container,
             const ConstIter& const_iter_begin,
             const ConstIter& const_iter_end
-        ) const
+        )
         {
             return container.erase(const_iter_begin, const_iter_end);
         }
 
         template<container_erasable Container>
             requires(sequence_container<Container> || associative_like_container<Container>)
-        constexpr auto operator()(
+        static constexpr auto operator()(
             Container& container,
             const details::container_citer<Container>& const_iter_begin
-        ) const
+        )
         {
             return container.erase(const_iter_begin);
         }
@@ -95,14 +94,14 @@ namespace stdsharp::containers::erase_cpo
         using erase_base_fn::operator();
 
         template<typename Container>
-        constexpr auto operator()(
+        static constexpr auto operator()(
             Container& container,
             const details::container_citer<Container>& iter,
             const std::iter_difference_t<std::decay_t<decltype(iter)>>& size
-        ) const
+        )
             requires std::invocable<erase_base_fn, Container&, decltype(iter), decltype(iter)>
         {
-            return (*this)(container, iter, iter + size);
+            return erase_base_fn::operator()(container, iter, iter + size);
         }
     };
 }
@@ -122,7 +121,7 @@ namespace stdsharp::containers::inline cpo
             template<typename Container, typename... Args>                                          \
                 requires std::                                                                      \
                     invocable<emplace_fn, Container&, details::container_citer<Container>, Args...> \
-                constexpr decltype(auto) operator()(Container& container, Args&&... args) const     \
+                static constexpr decltype(auto) operator()(Container& container, Args&&... args)    \
             {                                                                                       \
                 return *emplace(container, container.c##iter(), cpp_forward(args)...);              \
             }                                                                                       \
@@ -131,8 +130,8 @@ namespace stdsharp::containers::inline cpo
         struct mem_fn                                                                               \
         {                                                                                           \
             template<typename... Args, container_emplace_constructible<Args...> Container>          \
-            constexpr typename std::decay_t<Container>::reference                                   \
-                operator()(Container& c, Args&&... args) const                                      \
+            static constexpr typename std::decay_t<Container>::reference                            \
+                operator()(Container& c, Args&&... args)                                            \
                 requires requires {                                                                 \
                     requires container<Container>;                                                  \
                     c.emplace_##where(std::declval<Args>()...);                                     \
@@ -164,7 +163,7 @@ namespace stdsharp::containers::erase_if_cpo
     struct adl_erase_if_fn
     {
         template<container_erasable Container, container_predicate<Container> Predicate>
-        constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
+        static constexpr auto operator()(Container& container, Predicate&& predicate_fn)
             requires requires {
                 requires std::same_as<
                     decltype(erase_if(container, std::declval<Predicate>())),
@@ -186,7 +185,7 @@ namespace stdsharp::containers::erase_if_cpo
                     details::container_citer<Container>,
                     details::container_citer<Container>>;
             }
-        constexpr auto operator()(Container& container, Predicate&& predicate_fn) const
+        static constexpr auto operator()(Container& container, Predicate&& predicate_fn)
         {
             const auto& it = std::ranges::remove_if(container, cpp_forward(predicate_fn));
             const auto removed_size = it.size();
@@ -212,7 +211,7 @@ namespace stdsharp::containers
         using size_type = std::ranges::range_size_t<Container>;
 
         template<sequence_container Container>
-        constexpr void operator()(Container& container, const size_type<Container> size) const
+        static constexpr void operator()(Container& container, const size_type<Container> size)
             requires requires { container.resize(size); }
         {
             return container.resize(size);
@@ -227,7 +226,7 @@ namespace stdsharp::containers
             template<typename Container>                                                        \
                 requires std::                                                                  \
                     invocable<cpo::erase_fn, Container&, details::container_citer<Container>>   \
-                constexpr void operator()(Container& container) const                           \
+                static constexpr void operator()(Container& container)                          \
             {                                                                                   \
                 cpo::erase(container, container.c##iter());                                     \
             }                                                                                   \
@@ -236,7 +235,7 @@ namespace stdsharp::containers
         struct pop_##where##_mem_fn                                                             \
         {                                                                                       \
             template<typename Container>                                                        \
-            constexpr void operator()(Container& container) const                               \
+            static constexpr void operator()(Container& container)                              \
                 requires requires {                                                             \
                     requires sequence_container<Container>;                                     \
                     requires std::same_as<decltype(container.pop_##where()), void>;             \
@@ -275,7 +274,7 @@ namespace stdsharp::containers::details
     public:
         template<typename... Args>
             requires(std::invocable<emplace_back_fn, Container&, Args> && ...)
-        constexpr auto operator()(Args&&... args) const noexcept(
+        static constexpr auto operator()(Args&&... args) noexcept(
             (nothrow_invocable<emplace_back_fn, Container&, Args> && ...) &&
             noexcept(reserved<Container, sizeof...(Args)>())
         )
@@ -288,7 +287,7 @@ namespace stdsharp::containers::details
 
         template<typename... Args>
             requires(std::invocable<emplace_fn, Container&, Args> && ...)
-        constexpr auto operator()(Args&&... args) const noexcept(
+        static constexpr auto operator()(Args&&... args) noexcept(
             (nothrow_invocable<emplace_fn, Container&, Args> && ...) &&
             noexcept(reserved<Container, sizeof...(Args)>())
         )

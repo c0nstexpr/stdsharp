@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../memory/allocator_traits.h"
 #include "../type_traits/indexed_traits.h"
 

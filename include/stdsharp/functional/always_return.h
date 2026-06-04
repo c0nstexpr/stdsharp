@@ -1,14 +1,12 @@
 #pragma once
-
 #include "../macros.h"
-#include "../namespace_alias.h"
 
 namespace stdsharp
 {
     inline constexpr struct always_return_fn
     {
-        [[nodiscard]] constexpr decltype(auto
-        ) operator()(auto&& v, const auto&... /*unused*/) const noexcept
+        [[nodiscard]] static constexpr decltype(auto)
+            operator()(auto&& v, const auto&... /*unused*/) noexcept
         {
             return cpp_forward(v);
         }
@@ -16,7 +14,7 @@ namespace stdsharp
 
     inline constexpr struct always_true_fn
     {
-        [[nodiscard]] constexpr bool operator()(const auto&... /*unused*/) const noexcept
+        [[nodiscard]] static constexpr bool operator()(const auto&... /*unused*/) noexcept
         {
             return true;
         }
@@ -24,7 +22,7 @@ namespace stdsharp
 
     inline constexpr struct always_false_fn
     {
-        [[nodiscard]] constexpr bool operator()(const auto&... /*unused*/) const noexcept
+        [[nodiscard]] static constexpr bool operator()(const auto&... /*unused*/) noexcept
         {
             return false;
         }
@@ -33,7 +31,7 @@ namespace stdsharp
     template<typename T>
     struct always_default_fn
     {
-        [[nodiscard]] constexpr auto operator()(const auto&... /*unused*/) const noexcept
+        [[nodiscard]] static constexpr auto operator()(const auto&... /*unused*/) noexcept
         {
             return T{};
         }
