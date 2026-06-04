@@ -20,7 +20,8 @@ namespace stdsharp::details
         {
         }
 
-        [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
+        template<typename Self>
+        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
             return (cpp_forward(self).v);
         }
@@ -52,7 +53,8 @@ namespace stdsharp::details
         {
         }
 
-        [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
+        template<typename Self>
+        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
             return forward_like<T>(cpp_forward(self));
         }

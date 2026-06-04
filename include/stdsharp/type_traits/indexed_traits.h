@@ -64,8 +64,8 @@ namespace stdsharp
 
         template<typename... U>
             requires list_initializable_from<m_base, U...>
-        constexpr indexed_values(U&&... t) noexcept(nothrow_list_initializable_from<m_base, U...>):
-            m_base{cpp_forward(t)...}
+        constexpr indexed_values(U&&... u) noexcept(nothrow_list_initializable_from<m_base, U...>):
+            m_base{cpp_forward(u)...}
         {
         }
     };

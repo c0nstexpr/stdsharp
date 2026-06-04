@@ -40,3 +40,5 @@ namespace stdsharp
     template<typename T>
     inline constexpr always_default_fn<T> always_default{};
 }
+
+#include "../compilation_config_out.h"

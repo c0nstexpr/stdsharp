@@ -246,5 +246,204 @@ namespace stdsharp
         {
             return !first_cond || second_cond;
         }
-    } logical_imply;
+    } logical_imply{};
+
+#define STDSHARP_OPERATOR(name)          \
+    using name##_fn = std::ranges::name; \
+    inline constexpr name##_fn name{};
+
+    STDSHARP_OPERATOR(equal_to)
+    STDSHARP_OPERATOR(not_equal_to)
+    STDSHARP_OPERATOR(less)
+    STDSHARP_OPERATOR(greater)
+    STDSHARP_OPERATOR(less_equal)
+    STDSHARP_OPERATOR(greater_equal)
+#undef STDSHARP_OPERATOR
+
+#define STDSHARP_OPERATOR(name)  \
+    using name##_fn = std::name; \
+    inline constexpr name##_fn name{};
+
+    STDSHARP_OPERATOR(compare_three_way)
+    STDSHARP_OPERATOR(identity)
+
+#undef STDSHARP_OPERATOR
+
+#define STDSHARP_OPERATOR(name)    \
+    using name##_fn = std::name<>; \
+    inline constexpr name##_fn name{};
+
+    STDSHARP_OPERATOR(plus)
+    STDSHARP_OPERATOR(minus)
+    STDSHARP_OPERATOR(divides)
+    STDSHARP_OPERATOR(multiplies)
+    STDSHARP_OPERATOR(modulus)
+    STDSHARP_OPERATOR(negate)
+    STDSHARP_OPERATOR(logical_and)
+    STDSHARP_OPERATOR(logical_not)
+    STDSHARP_OPERATOR(logical_or)
+    STDSHARP_OPERATOR(bit_and)
+    STDSHARP_OPERATOR(bit_not)
+    STDSHARP_OPERATOR(bit_or)
+    STDSHARP_OPERATOR(bit_xor)
+#undef STDSHARP_OPERATOR
+
+    inline constexpr struct bit_xnor_fn
+    {
+        template<typename T, typename U>
+            requires(
+                std::invocable<bit_xor_fn, T, U> &&
+                std::invocable<bit_not_fn, std::invoke_result_t<bit_xor_fn, T, U>>
+            )
+        static constexpr decltype(auto) operator()(T&& t, U&& u) noexcept(
+            nothrow_invocable<bit_xor_fn, T, U> &&
+            nothrow_invocable<bit_not_fn, std::invoke_result_t<bit_xor_fn, T, U>>
+        )
+        {
+            return bit_not(bit_xor(cpp_forward(t), cpp_forward(u)));
+        }
+    } bit_xnor{};
+
+#define STDSHARP_OPERATOR(direction, operate)                                              \
+    inline constexpr struct direction##_shift_fn                                           \
+    {                                                                                      \
+        template<typename T, typename U = T>                                               \
+        [[nodiscard]] static constexpr decltype(auto) operator()(T&& left, U&& right) /**/ \
+            noexcept(noexcept(cpp_forward(left) operate cpp_forward(right)))               \
+            requires requires { cpp_forward(left) operate cpp_forward(right); }            \
+        {                                                                                  \
+            return cpp_forward(left) operate cpp_forward(right);                           \
+        }                                                                                  \
+    } direction##_shift{};
+
+    STDSHARP_OPERATOR(left, <<)
+    STDSHARP_OPERATOR(right, >>)
+
+#undef STDSHARP_OPERATOR
+
+#define STDSHARP_OPERATOR(operator_type, op)                                                     \
+    template<typename T, typename U>                                                             \
+    concept operator_type##_assignable_from = requires(T t, U&& u) { t op## = cpp_forward(u); }; \
+                                                                                                 \
+    struct operator_type##_assign_fn                                                             \
+    {                                                                                            \
+        template<typename T, typename U = T>                                                     \
+            requires(operator_type##_assignable_from<T, U>)                                      \
+        constexpr decltype(auto) operator()(T& t, U&& u) const /**/                              \
+            noexcept(noexcept((t op## = cpp_forward(u))))                                        \
+        {                                                                                        \
+            return t op## = cpp_forward(u);                                                      \
+        }                                                                                        \
+                                                                                                 \
+        template<typename T, typename U = T>                                                     \
+        constexpr decltype(auto) operator()(T& t, U&& u) const /**/                              \
+            noexcept(noexcept((t = operator_type(t, cpp_forward(u)))))                           \
+            requires requires {                                                                  \
+                t = operator_type(t, cpp_forward(u));                                            \
+                requires !operator_type##_assignable_from<T, U>;                                 \
+            }                                                                                    \
+        {                                                                                        \
+            return t = operator_type(t, cpp_forward(u));                                         \
+        }                                                                                        \
+    };                                                                                           \
+                                                                                                 \
+    inline constexpr operator_type##_assign_fn operator_type##_assign{};
+
+    STDSHARP_OPERATOR(plus, +)
+    STDSHARP_OPERATOR(minus, -)
+    STDSHARP_OPERATOR(divides, /)
+    STDSHARP_OPERATOR(multiplies, *)
+    STDSHARP_OPERATOR(modulus, %)
+    STDSHARP_OPERATOR(bit_and, &)
+    STDSHARP_OPERATOR(bit_or, |)
+    STDSHARP_OPERATOR(bit_xor, ^)
+    STDSHARP_OPERATOR(left_shift, <<)
+    STDSHARP_OPERATOR(right_shift, >>)
+
+#undef STDSHARP_OPERATOR
+
+#define STDSHARP_OPERATOR(operator_type)                                            \
+    inline constexpr struct operator_type##_assign_fn                               \
+    {                                                                               \
+        template<typename T, typename U = T>                                        \
+            requires requires(T t, U&& u) { t = operator_type(t, cpp_forward(u)); } \
+        constexpr decltype(auto) operator()(T& t, U&& u) const /**/                 \
+            noexcept(noexcept((t = operator_type(t, cpp_forward(u)))))              \
+        {                                                                           \
+            return t = operator_type(t, cpp_forward(u));                            \
+        }                                                                           \
+    } operator_type##_assign{};
+
+    STDSHARP_OPERATOR(logical_and)
+    STDSHARP_OPERATOR(logical_not)
+    STDSHARP_OPERATOR(logical_or)
+    STDSHARP_OPERATOR(logical_imply)
+    STDSHARP_OPERATOR(compare_three_way)
+
+#undef STDSHARP_OPERATOR
+
+#define STDSHARP_OPERATOR(operator_prefix, op, al_op)                                              \
+    inline constexpr struct pre_##operator_prefix##crease_fn                                       \
+    {                                                                                              \
+        template<typename T>                                                                       \
+        constexpr decltype(auto) operator()(T& t) const noexcept(noexcept(op##op t))               \
+            requires requires { op##op t; }                                                        \
+        {                                                                                          \
+            return op##op t;                                                                       \
+        }                                                                                          \
+    } pre_##operator_prefix##crease{};                                                             \
+                                                                                                   \
+    inline constexpr struct post_##operator_prefix##crease_fn                                      \
+    {                                                                                              \
+        template<typename T>                                                                       \
+        [[nodiscard]] constexpr decltype(auto) operator()(T& t) const noexcept(noexcept(t op##op)) \
+            requires requires { t op##op; }                                                        \
+        {                                                                                          \
+            return t op##op;                                                                       \
+        }                                                                                          \
+    } post_##operator_prefix##crease{};
+
+    STDSHARP_OPERATOR(in, +, plus)
+    STDSHARP_OPERATOR(de, -, minus)
+
+#undef STDSHARP_OPERATOR
+
+    inline constexpr struct advance_fn
+    {
+        template<typename T, std::signed_integral Distance = std::iter_difference_t<T>>
+            requires std::invocable<plus_assign_fn, T&, const Distance&>
+        constexpr decltype(auto) operator()(T& v, const Distance& distance) const //
+            noexcept(nothrow_invocable<plus_assign_fn, T&, const Distance&>)
+        {
+            return plus_assign(v, distance);
+        }
+
+        template<typename T, std::signed_integral Distance = std::iter_difference_t<T>>
+            requires(
+                std::invocable<pre_increase_fn, T&> &&
+                std::invocable<pre_decrease_fn, T&> &&
+                !std::invocable<plus_assign_fn, T&, const Distance&>
+            )
+        constexpr decltype(auto) operator()(T& v, Distance distance) const noexcept(noexcept(
+            nothrow_invocable<pre_increase_fn, T&> && nothrow_invocable<pre_decrease_fn, T&>
+        ))
+        {
+            for(; distance > 0; --distance) pre_increase(v);
+            for(; distance < 0; ++distance) pre_decrease(v);
+
+            return v;
+        }
+    } advance{};
+
+    inline constexpr struct indexer_fn
+    {
+        [[nodiscard]] static constexpr decltype(auto) operator()(
+            auto&& element,
+            auto&&... args
+        ) noexcept(noexcept(cpp_forward(element)[cpp_forward(args)...]))
+            requires requires { cpp_forward(element)[cpp_forward(args)...]; }
+        {
+            return cpp_forward(element)[cpp_forward(args)...];
+        }
+    } indexer{};
 }

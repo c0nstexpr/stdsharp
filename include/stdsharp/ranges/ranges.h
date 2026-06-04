@@ -2,9 +2,7 @@
 
 #include "../iterator/iterator.h"
 #include "../utility/cast_to.h"
-#include "../utility/fwd_cast.h"
-
-#include <gsl/assert>
+#include "../cassert/cassert.h"
 
 #include <ranges>
 
@@ -155,7 +153,7 @@ namespace stdsharp
             requires std::ranges::sized_range<R> && std::invocable<index_fn, R, const Diff&>
         constexpr decltype(auto) operator()(R&& r, const Diff& i) const
         {
-            Expects(i < std::ranges::size(r));
+            assert_less(i, std::ranges::size(r));
             return index(cpp_forward(r), i);
         }
 

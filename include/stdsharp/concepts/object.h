@@ -198,6 +198,16 @@ namespace stdsharp
     template<typename Func, typename... Args>
     concept nothrow_invocable = std::is_nothrow_invocable_v<Func, Args...>;
 
+    template<typename Func, typename... Args>
+    concept static_invocable = requires(Args&&... args) {
+        Func::operator()(cpp_forward(args)...);
+    };
+
+    template<typename Func, typename... Args>
+    concept nothrow_static_invocable = requires(Args&&... args) {
+        requires noexcept(Func::operator()(cpp_forward(args)...));
+    };
+
     template<typename Func, typename ReturnT, typename... Args>
     concept regular_invocable_r = std::regular_invocable<Func, Args...> &&
         invocable_r<Func, ReturnT, Args...>;

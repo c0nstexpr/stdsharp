@@ -9,7 +9,7 @@ namespace stdsharp
     template<typename U>
     struct cast_to_fn
     {
-        STDSHARP_INTRINSIC constexpr U operator()(explicitly_convertible<U> auto&& t) const
+        STDSHARP_INTRINSIC constexpr U operator()(explicitly_convertible<U> auto&& t) //
             noexcept(noexcept(static_cast<U>(cpp_forward(t))))
         {
             return static_cast<U>(cpp_forward(t));

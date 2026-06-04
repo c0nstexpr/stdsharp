@@ -19,8 +19,12 @@ namespace stdsharp
     inline constexpr auto assert_with = //
         []<typename... Args>(std::predicate<Args...> auto&& fn, Args&&... args) static noexcept
     {
-        Expects(invoke(fn, cpp_forward(args)...)); //
-    };
+        template<typename... Args>
+        static void operator()(std::predicate<Args...> auto&& fn, Args&&... args) noexcept
+        {
+            if constexpr(is_debug) Expects(invoke(fn, cpp_forward(args)...));
+        };
+    } assert_with;
 
     inline constexpr auto assert_equal = []<typename T, typename U>(T&& t, U&& u) static noexcept
         requires std::invocable<decltype(assert_with), std::ranges::equal_to, T, U>

@@ -2,7 +2,7 @@
 #include "../cassert/cassert.h"
 #include "../cstdint/cstdint.h"
 #include "../iterator/basic_iterator.h"
-#include "../utility/fwd_cast.h"
+#include "../utility/forward_like.h"
 
 #include <bitset>
 #include <ranges>
@@ -19,15 +19,17 @@ namespace stdsharp::details
     public:
         using bitset = Bitset;
 
-        using m_base::operator++;
-        using m_base::operator--;
-        using m_base::operator-;
-
     private:
         bitset* set_{};
         std::size_t i_{};
 
-        static constexpr auto self_cast = fwd_cast<bitset_iterator>;
+        template<typename T>
+        static constexpr auto self_cast = forward_like<T, bitset_iterator>;
+
+        constexpr void validate_index(ssize_t n = 0) const noexcept
+        {
+            assert_less(i_ + n, set_->size());
+        }
 
     public:
         bitset_iterator() = default;
@@ -36,21 +38,30 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) operator*() const { return (*set_)[i_]; }
 
-        constexpr auto& operator++(this non_const auto& self) noexcept
+        template<non_const Self>
+        constexpr auto& operator++(this Self& self) noexcept
         {
-            ++self_cast(self).i_;
+            auto& this_ = self_cast<Self>(self);
+            this_.validate_index(1);
+            ++this_.i_;
             return self;
         }
 
-        constexpr auto& operator--(this non_const auto& self) noexcept
+        template<non_const Self>
+        constexpr auto& operator--(this Self& self) noexcept
         {
-            --self_cast(self).i_;
+            auto& this_ = self_cast<Self>(self);
+            this_.validate_index(1);
+            --this_.i_;
             return self;
         }
 
-        constexpr auto& operator+=(this non_const auto& self, const ssize_t n) noexcept
+        template<non_const Self>
+        constexpr auto& operator+=(this Self& self, const ssize_t n) noexcept
         {
-            self_cast(self).i_ += n;
+            auto& this_ = self_cast<Self>(self);
+            this_.validate_index(n);
+            this_.i_ += n;
             return self;
         }
 
@@ -62,6 +73,7 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) operator[](const ssize_t index) const
         {
+            validate_index(index);
             return (*set_)[i_ + index];
         }
 
@@ -110,7 +122,7 @@ namespace stdsharp
     inline constexpr struct bitset_crng_fn
     {
         template<std::size_t N>
-        [[nodiscard]] constexpr auto operator()(const std::bitset<N>& set) const
+        [[nodiscard]] static constexpr auto operator()(const std::bitset<N>& set)
         {
             return std::ranges::
                 subrange{bitset_const_iterator{set, 0}, bitset_const_iterator{set, N}};
@@ -122,7 +134,7 @@ namespace stdsharp
         using bitset_crng_fn::operator();
 
         template<std::size_t N>
-        [[nodiscard]] constexpr auto operator()(std::bitset<N>& set) const
+        [[nodiscard]] static constexpr auto operator()(std::bitset<N>& set)
         {
             return std::ranges::subrange{bitset_iterator{set, 0}, bitset_iterator{set, N}};
         }
