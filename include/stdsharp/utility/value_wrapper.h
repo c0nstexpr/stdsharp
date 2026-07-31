@@ -10,20 +10,20 @@ namespace stdsharp::details
     template<typename T>
     class value_wrapper
     {
-        T v;
+        T v_;
 
     public:
         template<typename... U>
             requires std::constructible_from<T, U...>
         constexpr value_wrapper(U&&... u) noexcept(nothrow_constructible_from<T, U...>):
-            v(cpp_forward(u)...)
+            v_(cpp_forward(u)...)
         {
         }
 
         template<typename Self>
         [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return (cpp_forward(self).v);
+            return forward_like<Self>(cpp_forward(self)).v_;
         }
     };
 
@@ -53,10 +53,9 @@ namespace stdsharp::details
         {
         }
 
-        template<typename Self>
-        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
         {
-            return forward_like<T>(cpp_forward(self));
+            return forward_like<value_wrapper>(cpp_forward(self));
         }
     };
 
@@ -80,15 +79,16 @@ namespace stdsharp
     public:
         using value_type = T;
         using m_base::m_base;
+        using m_base::get;
 
-        [[nodiscard]] constexpr decltype(auto) cget(this const auto&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget() const& noexcept
         {
-            return cpp_forward(self).get();
+            return get();
         }
 
-        [[nodiscard]] constexpr decltype(auto) cget(this const auto& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget() const&& noexcept
         {
-            return self.get();
+            return get();
         }
     };
 

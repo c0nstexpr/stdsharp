@@ -1,15 +1,33 @@
 #pragma once
 
-#include "invoke.h"
 #include "../utility/value_wrapper.h"
+#include "invoke.h"
 
 #include "../compilation_config_in.h"
 
 namespace stdsharp
 {
+    template<typename Fn>
+    struct invocable : value_wrapper<Fn>
+    {
+    private:
+        using m_base = value_wrapper<Fn>;
+
+    public:
+        using m_base::m_base;
+
+        template<typename Self, typename... Args>
+            requires std::invocable<Fn, Args...>
+        constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
+            noexcept(nothrow_invocable<Fn, Args...>)
+        {
+            invoke(cpp_forward(self), cpp_forward(args)...);
+        }
+    };
 
     template<typename Base, std::size_t I>
     struct invoke_operator
+
     {
         using m_base = value_wrapper<Fn>;
 
@@ -20,14 +38,11 @@ namespace stdsharp
             typename Self,
             typename... Args,
             std::invocable<Args...> Func = forward_like_t<Self, Fn>>
-            requires (!static_invocable<Fn, Args...>)
+            requires(!static_invocable<Fn, Args...>)
         constexpr decltype(auto) operator()(this Self&& self, Args&&... args) //
             noexcept(nothrow_invocable<Func, Args...>)
         {
-            return invoke(
-                cpp_forward(self).Base::template get<I>(),
-                cpp_forward(args)...
-            );
+            return invoke(cpp_forward(self).Base::template get<I>(), cpp_forward(args)...);
         }
     };
 

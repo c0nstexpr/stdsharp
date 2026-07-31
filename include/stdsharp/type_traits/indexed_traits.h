@@ -9,6 +9,12 @@ namespace stdsharp
     template<std::size_t I, typename T>
     struct indexed_value : value_wrapper<T>
     {
+        template<std::size_t J>
+            requires(I == J)
+        constexpr decltype(auto) get(this auto&& self) noexcept
+        {
+            return forward_like<indexed_value>(cpp_forward(self)).value_wrapper<T>::get();
+        }
     };
 }
 
@@ -22,29 +28,7 @@ namespace stdsharp::details
     {
         static constexpr auto size() noexcept { return sizeof...(T); }
 
-        template<std::size_t J>
-        using base_at = indexed_value<J, T...[J]>;
-
-        template<std::size_t J>
-            requires(J < size())
-        constexpr decltype(auto) get(this auto&& self) noexcept
-        {
-            return cpp_forward(self).base_at<J>::get();
-        }
-
-        template<std::size_t J>
-            requires(J < size())
-        constexpr decltype(auto) cget(this const auto&& self) noexcept
-        {
-            return cpp_forward(self).template get<J>();
-        }
-
-        template<std::size_t J>
-            requires(J < size())
-        constexpr decltype(auto) cget(this const auto& self) noexcept
-        {
-            return cpp_forward(self).template get<J>();
-        }
+        using indexed_value<I, T>::get...;
     };
 }
 
@@ -58,7 +42,6 @@ namespace stdsharp
     public:
         using m_base::size;
         using m_base::get;
-        using m_base::cget;
 
         indexed_values() = default;
 
@@ -68,10 +51,30 @@ namespace stdsharp
             m_base{cpp_forward(u)...}
         {
         }
+
+        template<std::size_t J>
+            requires(J < size())
+        constexpr decltype(auto) cget() const& noexcept
+        {
+            return this->template get<J>();
+        }
+
+        template<std::size_t J>
+            requires(J < size())
+        constexpr decltype(auto) cget() const&& noexcept
+        {
+            return this->template get<J>();
+        }
     };
 
     template<typename... T>
     indexed_values(T&&...) -> indexed_values<std::decay_t<T>...>;
+
+    inline void foo()
+    {
+        indexed_values<char, int> values;
+        auto v = values.get<0>();
+    }
 }
 
 namespace std

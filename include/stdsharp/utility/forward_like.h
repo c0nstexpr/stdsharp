@@ -5,21 +5,30 @@
 
 namespace stdsharp
 {
-    template<typename T>
+    template<typename T, typename U>
+    using forward_like_t = decltype(std::forward_like<T>(std::declval<U>()));
+
+    template<typename T, typename U>
     struct forward_like_fn
     {
-        template<typename U>
-        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(U&& u) noexcept
+        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(auto&& u) noexcept
         {
-            return std::forward_like<T, U>(u);
+            return (forward_like_t<T, U>)u;
         }
     };
 
     template<typename T>
-    inline constexpr forward_like_fn<T> forward_like{};
+    struct forward_like_fn<T, void>
+    {
+        template<typename U>
+        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(U&& u) noexcept
+        {
+            return forward_like_fn<T, U>::operator()(u);
+        }
+    };
 
-    template<typename From, typename To>
-    using forward_like_t = std::invoke_result_t<forward_like_fn<From>, To>;
+    template<typename T, typename U = void>
+    inline constexpr forward_like_fn<T, U> forward_like{};
 }
 
 #include "../compilation_config_out.h"
